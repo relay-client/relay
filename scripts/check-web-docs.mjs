@@ -89,6 +89,28 @@ function checkInternalLinks(files) {
   }
 }
 
+// Astro emits pages at the root of dist/ and only stamps the deploy base into
+// URLs, so a link missing that prefix still resolves locally and 404s in
+// production. Check the built HTML, which is the only place the difference shows.
+function checkBasePrefixedLinks() {
+  const base = process.env.RELAY_SITE_BASE ?? '/';
+  const normalized = base.endsWith('/') ? base.slice(0, -1) : base;
+  if (!normalized) return;
+
+  const attributeRe = /(?:href|src)="(\/[^"]*)"/g;
+  for (const file of walk(distRoot, path => path.endsWith('.html'))) {
+    const seen = new Set();
+    for (const match of read(file).matchAll(attributeRe)) {
+      const url = match[1];
+      if (url.startsWith('//') || seen.has(url)) continue;
+      seen.add(url);
+      if (!url.startsWith(`${normalized}/`)) {
+        fail(`${relative(root, file)} links to ${url}, which is missing the ${normalized} deploy base`);
+      }
+    }
+  }
+}
+
 function checkPagefind() {
   const pagefindDir = join(distRoot, 'pagefind');
   if (!existsSync(pagefindDir)) {
@@ -164,6 +186,7 @@ if (!existsSync(distRoot)) {
   const contentFiles = walk(contentRoot, path => /\.(mdx?|astro)$/i.test(path));
   checkMarkdownAssets(contentFiles);
   checkInternalLinks(contentFiles);
+  checkBasePrefixedLinks();
   checkPagefind();
   checkCodeBackedDocs();
   checkScreenshotInventory();
