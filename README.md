@@ -29,6 +29,8 @@ Grab the latest build from the [releases page](https://github.com/relay-client/r
 
 Every release ships SHA256 checksums and minisign signatures, and the in-app updater refuses any binary that fails either check.
 
+Guides, the scripting reference, and the YAML workspace format live in the **[documentation site](https://relay-client.github.io/relay/)**.
+
 ---
 
 ## Features
