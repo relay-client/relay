@@ -16,10 +16,50 @@ const BASE_NORMALIZED = BASE.endsWith('/') ? BASE.slice(0, -1) : BASE;
 const GITHUB_SOURCE = 'https://github.com/relay-client/relay';
 const GITHUB_RELEASES = 'https://github.com/relay-client/relay';
 
+// Starlight prefixes the deploy base onto the links it generates itself (sidebar,
+// pagination, breadcrumbs) but not onto root-absolute links written by hand in
+// markdown or MDX. On a project Pages deploy those become 404s, so rewrite them
+// here rather than hard-coding the base into every document.
+function rehypeBasePaths() {
+  if (!BASE_NORMALIZED) return () => tree => tree;
+  const prefixed = value =>
+    typeof value === 'string' &&
+    value.startsWith('/') &&
+    !value.startsWith('//') &&
+    !value.startsWith(`${BASE_NORMALIZED}/`);
+
+  return () => tree => {
+    const walk = node => {
+      if (node.type === 'element' && node.properties) {
+        for (const attribute of ['href', 'src']) {
+          if (prefixed(node.properties[attribute])) {
+            node.properties[attribute] = `${BASE_NORMALIZED}${node.properties[attribute]}`;
+          }
+        }
+      }
+      // Raw JSX inside MDX keeps its attributes on a separate node shape, so the
+      // hand-written <a href="/…"> markup on the landing page needs this branch.
+      if (Array.isArray(node.attributes)) {
+        for (const attribute of node.attributes) {
+          if (['href', 'src'].includes(attribute.name) && prefixed(attribute.value)) {
+            attribute.value = `${BASE_NORMALIZED}${attribute.value}`;
+          }
+        }
+      }
+      for (const child of node.children ?? []) walk(child);
+    };
+    walk(tree);
+    return tree;
+  };
+}
+
 export default defineConfig({
   site: SITE,
   base: BASE,
   trailingSlash: 'always',
+  markdown: {
+    rehypePlugins: [rehypeBasePaths()],
+  },
   integrations: [
     starlight({
       title: 'Relay',

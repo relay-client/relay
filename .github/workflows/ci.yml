@@ -51,10 +51,17 @@ jobs:
       - name: Build frontend
         run: npm run frontend:build
 
+      # Built with the same base as the deploy so the docs check can catch links
+      # that would 404 under the Pages sub-path.
       - name: Build web docs
+        env:
+          RELAY_SITE_URL: ${{ vars.RELAY_SITE_URL }}
+          RELAY_SITE_BASE: ${{ vars.RELAY_SITE_BASE }}
         run: npm run web:build
 
       - name: Check web docs
+        env:
+          RELAY_SITE_BASE: ${{ vars.RELAY_SITE_BASE }}
         run: npm run web:check-docs
 
       - name: Install Wails Linux dependencies
