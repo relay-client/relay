@@ -18,6 +18,6 @@
     "astro": "^5.5.0",
     "pagefind": "^1.5.2",
     "sharp": "^0.33.5",
-    "typescript": "^5.6.3"
+    "typescript": "^7.0.2"
   }
 }
