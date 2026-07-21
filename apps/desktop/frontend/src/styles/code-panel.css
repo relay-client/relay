@@ -1,0 +1,219 @@
+.code-snippet-panel {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: var(--status-bar-h);
+  z-index: 35;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: var(--code-w, 0px);
+  overflow: hidden;
+  background: var(--surface);
+  color: var(--text);
+  border-left: 1px solid transparent;
+  box-shadow: none;
+  pointer-events: none;
+  transition: border-color 0.12s ease;
+}
+
+.shell.code-open .code-snippet-panel {
+  border-left-color: var(--border);
+  pointer-events: auto;
+}
+
+.code-panel-resizer {
+  position: absolute;
+  top: 0;
+  left: -4px;
+  z-index: 5;
+  width: 9px;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: col-resize;
+}
+
+.code-panel-resizer:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.code-panel-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  height: 52px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+.snippet-select {
+  position: relative;
+  min-width: 0;
+}
+
+.snippet-select-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  height: 36px;
+  min-width: 160px;
+  max-width: min(260px, calc(var(--code-w, 330px) - 56px));
+  padding: 0 10px 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--elevated);
+  color: var(--text);
+  font-weight: 700;
+  line-height: 1;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.snippet-select-trigger span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.snippet-select-trigger:hover,
+.snippet-select-trigger[aria-expanded="true"] {
+  border-color: var(--accent-hover);
+  background: var(--hover);
+}
+
+.snippet-select-menu {
+  position: absolute;
+  z-index: 70;
+  top: 42px;
+  left: 0;
+  width: 210px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--elevated);
+  box-shadow: 0 18px 42px rgba(0,0,0,0.45);
+}
+
+.snippet-select-menu button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 30px;
+  padding: 0 9px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-2);
+  text-align: left;
+}
+
+.snippet-select-menu button:hover,
+.snippet-select-menu button.active {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.code-panel-toolbar .btn-icon,
+.code-panel-toolbar .code-copy-btn {
+  border-color: var(--border);
+  color: var(--text-2);
+}
+.code-panel-toolbar .btn-icon:hover,
+.code-panel-toolbar .code-copy-btn:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+.code-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.code-panel-title {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.code-panel-title {
+  display: flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 7px 14px 8px;
+}
+
+.curl-preview {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 4px 0 18px;
+  background: var(--surface);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.curl-line {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  min-height: 21px;
+  line-height: 1.55;
+}
+
+.curl-line-no {
+  padding-right: 10px;
+  color: var(--text-3);
+  text-align: right;
+  user-select: none;
+}
+
+.curl-line code {
+  padding-right: 14px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text);
+}
+
+.snippet-keyword {
+  color: var(--syn-kw);
+  font-weight: 700;
+}
+
+.snippet-flag {
+  color: var(--syn-flag);
+}
+
+.snippet-string {
+  color: var(--syn-snip-str);
+}
+
+.snippet-url {
+  color: var(--syn-url);
+}
+
+.snippet-number {
+  color: var(--syn-snip-num);
+}
+
+.snippet-punctuation {
+  color: var(--text-2);
+}
+
+.snippet-method.method-get { color: var(--get); }
+.snippet-method.method-post { color: var(--post); }
+.snippet-method.method-put { color: var(--put); }
+.snippet-method.method-patch { color: var(--patch); }
+.snippet-method.method-delete { color: var(--delete); }
+.snippet-method.method-head { color: var(--head); }
+.snippet-method.method-options { color: var(--options); }

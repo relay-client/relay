@@ -1,0 +1,54 @@
+---
+title: Download Relay
+description: Installers for macOS, Windows, and Linux. Always the latest stable release.
+---
+
+import { Card, CardGrid, LinkButton } from '@astrojs/starlight/components';
+
+The latest release is always at **[relay-client/relay/releases/latest](https://github.com/relay-client/relay/releases/latest)** — direct links below open the GitHub release page where you can pick the right artifact for your platform.
+
+<LinkButton href="https://github.com/relay-client/relay/releases/latest" icon="external" variant="primary">
+  Open latest release
+</LinkButton>
+
+<CardGrid>
+  <Card title="macOS" icon="apple">
+    **Universal `.dmg`** — Apple Silicon + Intel. Current builds are not Apple-notarized, so macOS may require a one-time **Open Anyway** confirmation.
+
+    Requires macOS 11 Big Sur or later.
+
+    [Download .dmg →](https://github.com/relay-client/relay/releases/latest)
+  </Card>
+  <Card title="Windows" icon="seti:windows">
+    **`.exe` (NSIS)** — classic Windows installer, x64; SmartScreen may warn because it is not currently Authenticode-signed.
+    **`.msix`** — packaged Windows install; installability depends on whether that release was signed with the configured publisher certificate.
+
+    Requires Windows 10 1903+ or Windows 11.
+
+    [Download for Windows →](https://github.com/relay-client/relay/releases/latest)
+  </Card>
+  <Card title="Linux" icon="linux">
+    **`.AppImage`** — portable, no install. x64.
+
+    Requires `libgtk-3` and `libwebkit2gtk-4.0`. glibc 2.31+.
+
+    [Download .AppImage →](https://github.com/relay-client/relay/releases/latest)
+  </Card>
+</CardGrid>
+
+## Verify your download
+
+SHA256 checksums are published in `SHA256SUMS.txt`; auto-updates use the checksums and minisign signatures embedded in `latest.json`. Verify before running:
+
+```sh
+shasum -a 256 relay-*.dmg
+# Should match the checksum on the release page.
+```
+
+## Older releases
+
+Every published version stays on the releases page. If you need an older build, browse the [full release list](https://github.com/relay-client/relay/releases) and pick a tag.
+
+## Building from source
+
+If you have access to the source repository, see [build instructions](https://github.com/relay-client/relay#building-from-source).

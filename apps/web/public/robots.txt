@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Update this URL to match your deployed site. Default assumes root deploy.
+Sitemap: https://relay-client.github.io/sitemap-index.xml

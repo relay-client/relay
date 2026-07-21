@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="Relay">
+  <defs>
+    <linearGradient id="bg" x1="6" y1="4" x2="58" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6d5cf5"/>
+      <stop offset="0.5" stop-color="#5865f2"/>
+      <stop offset="1" stop-color="#43a0f1"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="34" cy="22" r="40" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/>
+      <stop offset="0.55" stop-color="#ffffff" stop-opacity="0.05"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="sheen" x1="14" y1="6" x2="34" y2="36" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#bg)"/>
+  <rect width="64" height="64" rx="16" fill="url(#glow)"/>
+  <rect width="64" height="64" rx="16" fill="url(#sheen)"/>
+  <path fill="#fff" d="M11.9 21.2h32.6v-6.1L53 23.7l-8.5 8.6v-6.1H11.9a2.5 2.5 0 0 1 0-5Z"/>
+  <path fill="#fff" d="M52.1 37.8H19.5v-6.1L11 40.3l8.5 8.6v-6.1h32.6a2.5 2.5 0 0 0 0-5Z"/>
+</svg>

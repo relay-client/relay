@@ -1,0 +1,665 @@
+:root,
+:root[data-theme="dark"] {
+  --bg:           hsl(0deg 0% 10%);
+  --surface:      #222224;
+  --elevated:     #26292b;
+  --hover:        #333333;
+  --border:       #444444;
+  --border-subtle:#333333;
+
+  --text:         hsl(0deg 0% 80%);
+  --text-2:       #aaaaaa;
+  --text-3:       #999999;
+
+  --accent:       #5865f2;
+  --accent-dim:   rgba(88,101,242,0.18);
+  --accent-hover: #6a77ff;
+
+  --get:     hsl(140, 72%, 68%);
+  --post:    hsl(202, 88%, 72%);
+  --put:     hsl(24, 88%, 72%);
+  --patch:   hsl(24, 88%, 72%);
+  --delete:  hsl(8, 70%, 60%);
+  --head:    hsl(190, 82%, 72%);
+  --options: hsl(170, 70%, 60%);
+
+  --s2xx: hsl(140, 72%, 68%);
+  --s3xx: hsl(210, 90%, 76%);
+  --s4xx: hsl(24, 88%, 72%);
+  --s5xx: hsl(8, 70%, 52%);
+  --scroll-thumb: #5a5a5a;
+  --scroll-thumb-hover: #6a6a6a;
+  --diagnostic-error: #ef4444;
+  --diagnostic-badge-border: color-mix(in srgb, var(--diagnostic-error) 52%, transparent);
+  --diagnostic-badge-bg: color-mix(in srgb, var(--diagnostic-error) 12%, transparent);
+  --diagnostic-badge-text: color-mix(in srgb, var(--diagnostic-error) 82%, var(--text));
+
+  --modal-bg: #222224;
+  --modal-border: #444444;
+
+  --syn-key:     hsl(7, 84%, 70%);
+  --syn-str:     hsl(35, 65%, 72%);
+  --syn-num:     #fab387;
+  --syn-bool:    hsl(7, 84%, 70%);
+  --syn-hdr-key: hsl(210, 90%, 76%);
+  --syn-kw:      hsl(210, 90%, 76%);
+  --syn-flag:    hsl(285, 72%, 75%);
+  --syn-snip-str:hsl(35, 65%, 72%);
+  --syn-url:     hsl(190, 82%, 72%);
+  --syn-snip-num:hsl(24, 88%, 72%);
+
+  color-scheme: dark;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+:root[data-theme="light"] {
+  --bg:           #ffffff;
+  --surface:      #f8f8f8;
+  --elevated:     #f6f6f6;
+  --hover:        #f1f1f1;
+  --border:       #cccccc;
+  --border-subtle:#e5e5e5;
+
+  --text:         #343434;
+  --text-2:       #838383;
+  --text-3:       #9B9B9B;
+
+  --accent:       #4a55d4;
+  --accent-dim:   rgba(74,85,212,0.12);
+  --accent-hover: #5865f2;
+
+  --get:     hsl(145, 50%, 36%);
+  --post:    hsl(280, 45%, 48%);
+  --put:     hsl(35, 85%, 42%);
+  --patch:   hsl(280, 45%, 48%);
+  --delete:  hsl(8, 60%, 52%);
+  --head:    hsl(195, 55%, 42%);
+  --options: hsl(178, 50%, 36%);
+
+  --s2xx: hsl(145, 50%, 36%);
+  --s3xx: hsl(214, 55%, 45%);
+  --s4xx: hsl(35, 85%, 42%);
+  --s5xx: hsl(8, 60%, 52%);
+  --scroll-thumb: #ced4da;
+  --scroll-thumb-hover: #adb5bd;
+
+  --modal-bg: #ffffff;
+  --modal-border: #cccccc;
+
+  --syn-key:     hsl(352, 45%, 50%);
+  --syn-str:     hsl(28, 55%, 38%);
+  --syn-num:     hsl(328, 50%, 48%);
+  --syn-bool:    hsl(352, 45%, 50%);
+  --syn-hdr-key: hsl(214, 55%, 45%);
+  --syn-kw:      hsl(214, 55%, 45%);
+  --syn-flag:    hsl(280, 45%, 48%);
+  --syn-snip-str:hsl(28, 55%, 38%);
+  --syn-url:     hsl(195, 55%, 42%);
+  --syn-snip-num:hsl(35, 85%, 42%);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --bg: #ffffff;
+    --surface: #f8f8f8;
+    --elevated: #f6f6f6;
+    --hover: #f1f1f1;
+    --border: #cccccc;
+    --border-subtle:#e5e5e5;
+    --text: #343434;
+    --text-2: #838383;
+    --text-3: #9B9B9B;
+    --accent: #4a55d4;
+    --accent-dim: rgba(74,85,212,0.12);
+    --accent-hover: #5865f2;
+    --get: hsl(145, 50%, 36%); --post: hsl(280, 45%, 48%); --put: hsl(35, 85%, 42%);
+    --patch: hsl(280, 45%, 48%); --delete: hsl(8, 60%, 52%); --head: hsl(195, 55%, 42%); --options: hsl(178, 50%, 36%);
+    --s2xx: hsl(145, 50%, 36%); --s3xx: hsl(214, 55%, 45%); --s4xx: hsl(35, 85%, 42%); --s5xx: hsl(8, 60%, 52%);
+    --scroll-thumb: #ced4da;
+    --scroll-thumb-hover: #adb5bd;
+    --modal-bg: #ffffff; --modal-border: #cccccc;
+    --syn-key:hsl(352, 45%, 50%); --syn-str:hsl(28, 55%, 38%); --syn-num:hsl(328, 50%, 48%); --syn-bool:hsl(352, 45%, 50%);
+    --syn-hdr-key:hsl(214, 55%, 45%); --syn-kw:hsl(214, 55%, 45%); --syn-flag:hsl(280, 45%, 48%);
+    --syn-snip-str:hsl(28, 55%, 38%); --syn-url:hsl(195, 55%, 42%); --syn-snip-num:hsl(35, 85%, 42%);
+    color-scheme: light;
+  }
+}
+
+:root[data-theme-variant="light-monochrome"] {
+  --bg: #ffffff;
+  --surface: #f8f8f8;
+  --elevated: #f3f3f3;
+  --hover: #eaeaea;
+  --border: #cbcbcb;
+  --border-subtle: #e5e5e5;
+  --text: rgb(52, 52, 52);
+  --text-2: #838383;
+  --text-3: #9B9B9B;
+  --accent: #525252;
+  --accent-dim: rgba(82,82,82,0.12);
+  --accent-hover: #404040;
+  --get: #525252;
+  --post: #525252;
+  --put: #737373;
+  --patch: #737373;
+  --delete: #404040;
+  --head: #6b6b6b;
+  --options: #8a8a8a;
+  --s2xx: #525252;
+  --s3xx: #737373;
+  --s4xx: #666666;
+  --s5xx: #404040;
+  --scroll-thumb: #ced4da;
+  --scroll-thumb-hover: #adb5bd;
+  --modal-bg: #ffffff;
+  --modal-border: #cbcbcb;
+  --syn-key:#404040; --syn-str:#737373; --syn-num:#525252; --syn-bool:#666666;
+  --syn-hdr-key:#666666; --syn-kw:#666666; --syn-flag:#525252;
+  --syn-snip-str:#737373; --syn-url:#666666; --syn-snip-num:#525252;
+}
+
+:root[data-theme-variant="light-pastel"] {
+  --bg: #fdfaf7;
+  --surface: #f7f4ef;
+  --elevated: #f0ebe4;
+  --hover: #e2dbd1;
+  --border: #d3cabc;
+  --border-subtle: #e2dbd1;
+  --text: #2b2f3a;
+  --text-2: #6e7380;
+  --text-3: #8d8577;
+  --accent: #d16c6c;
+  --accent-dim: rgba(209,108,108,0.14);
+  --accent-hover: #c75b63;
+  --get: #3c9d7c;
+  --post: #7a70b5;
+  --put: #dd8a52;
+  --patch: #3a8f98;
+  --delete: #c75b63;
+  --head: #3a7cc4;
+  --options: #2d8fa1;
+  --s2xx: #3c9d7c;
+  --s3xx: #3a7cc4;
+  --s4xx: #dd8a52;
+  --s5xx: #c75b63;
+  --scroll-thumb: #d3cabc;
+  --scroll-thumb-hover: #b8b0a3;
+  --modal-bg: #ffffff;
+  --modal-border: #d3cabc;
+  --syn-key:#c57a92; --syn-str:#c75b63; --syn-num:#2d8fa1; --syn-bool:#7a70b5;
+  --syn-hdr-key:#3a7cc4; --syn-kw:#3a7cc4; --syn-flag:#7a70b5;
+  --syn-snip-str:#c75b63; --syn-url:#3a8f98; --syn-snip-num:#2d8fa1;
+}
+
+:root[data-theme-variant="catppuccin-latte"] {
+  --bg: #eff1f5;
+  --surface: #e6e9ef;
+  --elevated: #dce0e8;
+  --hover: #ccd0da;
+  --border: #acb0be;
+  --border-subtle: #bcc0cc;
+  --text: #4c4f69;
+  --text-2: #6c6f85;
+  --text-3: #9ca0b0;
+  --accent: #8839ef;
+  --accent-dim: rgba(136,57,239,0.12);
+  --accent-hover: #7287fd;
+  --get: #40a02b;
+  --post: #1e66f5;
+  --put: #df8e1d;
+  --patch: #fe640b;
+  --delete: #d20f39;
+  --head: #209fb5;
+  --options: #179299;
+  --s2xx: #40a02b;
+  --s3xx: #1e66f5;
+  --s4xx: #fe640b;
+  --s5xx: #d20f39;
+  --scroll-thumb: #acb0be;
+  --scroll-thumb-hover: #9ca0b0;
+  --modal-bg: #eff1f5;
+  --modal-border: #acb0be;
+  --syn-key:#d20f39; --syn-str:#df8e1d; --syn-num:#fe640b; --syn-bool:#ea76cb;
+  --syn-hdr-key:#1e66f5; --syn-kw:#1e66f5; --syn-flag:#8839ef;
+  --syn-snip-str:#df8e1d; --syn-url:#04a5e5; --syn-snip-num:#fe640b;
+}
+
+:root[data-theme-variant="vscode-light"] {
+  --bg: #ffffff;
+  --surface: #f3f3f3;
+  --elevated: #e8e8e8;
+  --hover: #dddddd;
+  --border: #cecece;
+  --border-subtle: #e5e5e5;
+  --text: #000000;
+  --text-2: #6e7681;
+  --text-3: #7a7a7a;
+  --accent: #007acc;
+  --accent-dim: rgba(0,122,204,0.12);
+  --accent-hover: #0065a8;
+  --get: #098658;
+  --post: #795e26;
+  --put: #d18616;
+  --patch: #d18616;
+  --delete: #cd3131;
+  --head: #0000ff;
+  --options: #7a7a7a;
+  --s2xx: #098658;
+  --s3xx: #0000ff;
+  --s4xx: #795e26;
+  --s5xx: #cd3131;
+  --scroll-thumb: #d4d4d4;
+  --scroll-thumb-hover: #c6c6c6;
+  --modal-bg: #ffffff;
+  --modal-border: #cecece;
+  --syn-key:#af00db; --syn-str:#a31515; --syn-num:#098658; --syn-bool:#0000ff;
+  --syn-hdr-key:#0451a5; --syn-kw:#0000ff; --syn-flag:#795e26;
+  --syn-snip-str:#a31515; --syn-url:#0451a5; --syn-snip-num:#098658;
+}
+
+:root[data-theme-variant="dark-monochrome"] {
+  --bg: #1e1e1e;
+  --surface: #252526;
+  --elevated: #333333;
+  --hover: #3D3D3D;
+  --border: #444444;
+  --border-subtle: #3D3D3D;
+  --text: #d4d4d4;
+  --text-2: #b0b0b0;
+  --text-3: #858585;
+  --accent: #a3a3a3;
+  --accent-dim: rgba(163,163,163,0.16);
+  --accent-hover: #d4d4d4;
+  --get: #a3a3a3;
+  --post: #b0b0b0;
+  --put: #9a9a9a;
+  --patch: #9a9a9a;
+  --delete: #c0c0c0;
+  --head: #9da5b4;
+  --options: #8a8a8a;
+  --s2xx: #a3a3a3;
+  --s3xx: #9da5b4;
+  --s4xx: #b0b0b0;
+  --s5xx: #c0c0c0;
+  --scroll-thumb: #5a5a5a;
+  --scroll-thumb-hover: #6a6a6a;
+  --modal-bg: #252526;
+  --modal-border: #444444;
+  --syn-key:#d4d4d4; --syn-str:#c0c0c0; --syn-num:#b0b0b0; --syn-bool:#a3a3a3;
+  --syn-hdr-key:#a3a3a3; --syn-kw:#a3a3a3; --syn-flag:#b0b0b0;
+  --syn-snip-str:#c0c0c0; --syn-url:#b0b0b0; --syn-snip-num:#b0b0b0;
+}
+
+:root[data-theme-variant="dark-pastel"] {
+  --bg: #1a1625;
+  --surface: #1f1a2e;
+  --elevated: #2a2440;
+  --hover: #352e4d;
+  --border: #453d5c;
+  --border-subtle: #352e4d;
+  --text: #e8e0f0;
+  --text-2: #a89fc4;
+  --text-3: #7a7294;
+  --accent: #f0a6ca;
+  --accent-dim: rgba(240,166,202,0.18);
+  --accent-hover: #e09fd9;
+  --get: #7dd3a8;
+  --post: #c4a6f0;
+  --put: #f0b87d;
+  --patch: #f0d77d;
+  --delete: #f0887d;
+  --head: #7db8f0;
+  --options: #7dd3c9;
+  --s2xx: #7dd3a8;
+  --s3xx: #7db8f0;
+  --s4xx: #f0b87d;
+  --s5xx: #f0887d;
+  --scroll-thumb: #5c5478;
+  --scroll-thumb-hover: #7a7294;
+  --modal-bg: #2a2440;
+  --modal-border: #453d5c;
+  --syn-key:#e09fd9; --syn-str:#f0a6ca; --syn-num:#7dd3c9; --syn-bool:#c4a6f0;
+  --syn-hdr-key:#7db8f0; --syn-kw:#7db8f0; --syn-flag:#c4a6f0;
+  --syn-snip-str:#f0a6ca; --syn-url:#7dd3c9; --syn-snip-num:#7dd3c9;
+}
+
+:root[data-theme-variant="catppuccin-frappe"] {
+  --bg: #303446;
+  --surface: #292c3c;
+  --elevated: #414559;
+  --hover: #51576d;
+  --border: #626880;
+  --border-subtle: #51576d;
+  --text: #c6d0f5;
+  --text-2: #a5adce;
+  --text-3: #737994;
+  --accent: #ca9ee6;
+  --accent-dim: rgba(202,158,230,0.18);
+  --accent-hover: #babbf1;
+  --get: #a6d189;
+  --post: #8caaee;
+  --put: #e5c890;
+  --patch: #ef9f76;
+  --delete: #e78284;
+  --head: #85c1dc;
+  --options: #81c8be;
+  --s2xx: #a6d189;
+  --s3xx: #8caaee;
+  --s4xx: #ef9f76;
+  --s5xx: #e78284;
+  --scroll-thumb: #626880;
+  --scroll-thumb-hover: #737994;
+  --modal-bg: #292c3c;
+  --modal-border: #626880;
+  --syn-key:#e78284; --syn-str:#e5c890; --syn-num:#ef9f76; --syn-bool:#f4b8e4;
+  --syn-hdr-key:#8caaee; --syn-kw:#8caaee; --syn-flag:#ca9ee6;
+  --syn-snip-str:#e5c890; --syn-url:#99d1db; --syn-snip-num:#ef9f76;
+}
+
+:root[data-theme-variant="catppuccin-macchiato"] {
+  --bg: #24273a;
+  --surface: #1e2030;
+  --elevated: #363a4f;
+  --hover: #494d64;
+  --border: #5b6078;
+  --border-subtle: #494d64;
+  --text: #cad3f5;
+  --text-2: #a5adcb;
+  --text-3: #6e738d;
+  --accent: #c6a0f6;
+  --accent-dim: rgba(198,160,246,0.18);
+  --accent-hover: #b7bdf8;
+  --get: #a6da95;
+  --post: #8aadf4;
+  --put: #eed49f;
+  --patch: #f5a97f;
+  --delete: #ed8796;
+  --head: #7dc4e4;
+  --options: #8bd5ca;
+  --s2xx: #a6da95;
+  --s3xx: #8aadf4;
+  --s4xx: #f5a97f;
+  --s5xx: #ed8796;
+  --scroll-thumb: #5b6078;
+  --scroll-thumb-hover: #6e738d;
+  --modal-bg: #1e2030;
+  --modal-border: #5b6078;
+  --syn-key:#ed8796; --syn-str:#eed49f; --syn-num:#f5a97f; --syn-bool:#f5bde6;
+  --syn-hdr-key:#8aadf4; --syn-kw:#8aadf4; --syn-flag:#c6a0f6;
+  --syn-snip-str:#eed49f; --syn-url:#91d7e3; --syn-snip-num:#f5a97f;
+}
+
+:root[data-theme-variant="catppuccin-mocha"] {
+  --bg: #1e1e2e;
+  --surface: #181825;
+  --elevated: #313244;
+  --hover: #45475a;
+  --border: #585b70;
+  --border-subtle: #45475a;
+  --text: #cdd6f4;
+  --text-2: #a6adc8;
+  --text-3: #6c7086;
+  --accent: #cba6f7;
+  --accent-dim: rgba(203,166,247,0.18);
+  --accent-hover: #b4befe;
+  --get: #a6e3a1;
+  --post: #89b4fa;
+  --put: #f9e2af;
+  --patch: #fab387;
+  --delete: #f38ba8;
+  --head: #74c7ec;
+  --options: #94e2d5;
+  --s2xx: #a6e3a1;
+  --s3xx: #89b4fa;
+  --s4xx: #fab387;
+  --s5xx: #f38ba8;
+  --scroll-thumb: #585b70;
+  --scroll-thumb-hover: #6c7086;
+  --modal-bg: #181825;
+  --modal-border: #585b70;
+  --syn-key:#f38ba8; --syn-str:#f9e2af; --syn-num:#fab387; --syn-bool:#f5c2e7;
+  --syn-hdr-key:#89b4fa; --syn-kw:#89b4fa; --syn-flag:#cba6f7;
+  --syn-snip-str:#f9e2af; --syn-url:#89dceb; --syn-snip-num:#fab387;
+}
+
+:root[data-theme-variant="nord"] {
+  --bg: #2e3440;
+  --surface: #3b4252;
+  --elevated: #434c5e;
+  --hover: #4c566a;
+  --border: #5e6778;
+  --border-subtle: #4c566a;
+  --text: #eceff4;
+  --text-2: #d8dee9;
+  --text-3: #9ca8ba;
+  --accent: #88c0d0;
+  --accent-dim: rgba(136,192,208,0.18);
+  --accent-hover: #8fbcbb;
+  --get: #a3be8c;
+  --post: #b48ead;
+  --put: #ebcb8b;
+  --patch: #d08770;
+  --delete: #bf616a;
+  --head: #81a1c1;
+  --options: #8fbcbb;
+  --s2xx: #a3be8c;
+  --s3xx: #81a1c1;
+  --s4xx: #d08770;
+  --s5xx: #bf616a;
+  --scroll-thumb: #4c566a;
+  --scroll-thumb-hover: #81a1c1;
+  --modal-bg: #3b4252;
+  --modal-border: #5e6778;
+  --syn-key:#81a1c1; --syn-str:#a3be8c; --syn-num:#b48ead; --syn-bool:#81a1c1;
+  --syn-hdr-key:#81a1c1; --syn-kw:#81a1c1; --syn-flag:#b48ead;
+  --syn-snip-str:#a3be8c; --syn-url:#88c0d0; --syn-snip-num:#b48ead;
+}
+
+:root[data-theme-variant="vscode-dark"] {
+  --bg: #1e1e1e;
+  --surface: #252526;
+  --elevated: #2d2d2d;
+  --hover: #3c3c3c;
+  --border: #454545;
+  --border-subtle: #3c3c3c;
+  --text: #d4d4d4;
+  --text-2: #858585;
+  --text-3: #6e6e6e;
+  --accent: #007acc;
+  --accent-dim: rgba(0,122,204,0.18);
+  --accent-hover: #3794ff;
+  --get: #4ec9b0;
+  --post: #dcdcaa;
+  --put: #ce9178;
+  --patch: #ce9178;
+  --delete: #f14c4c;
+  --head: #569cd6;
+  --options: #858585;
+  --s2xx: #4ec9b0;
+  --s3xx: #569cd6;
+  --s4xx: #ce9178;
+  --s5xx: #f14c4c;
+  --scroll-thumb: #5a5a5a;
+  --scroll-thumb-hover: #6e6e6e;
+  --modal-bg: #252526;
+  --modal-border: #3c3c3c;
+  --syn-key:#c586c0; --syn-str:#ce9178; --syn-num:#b5cea8; --syn-bool:#569cd6;
+  --syn-hdr-key:#9cdcfe; --syn-kw:#569cd6; --syn-flag:#dcdcaa;
+  --syn-snip-str:#ce9178; --syn-url:#4fc1ff; --syn-snip-num:#b5cea8;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) transparent;
+  overscroll-behavior: none;
+}
+
+@media not all and (pointer: coarse) {
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-track,
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    min-height: 42px;
+    border: 2px solid transparent;
+    border-radius: 14px;
+    background-color: var(--scroll-thumb);
+    background-clip: padding-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scroll-thumb-hover);
+  }
+}
+
+html, body, #app {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+:root {
+  --titlebar-h: 0px;
+}
+
+:root[data-platform="darwin"] {
+  --titlebar-h: 28px;
+  --mac-traffic-w: 80px;
+}
+
+@supports (-webkit-backdrop-filter: blur(1px)) {
+  :root[data-platform="darwin"] .brand {
+    padding-top: var(--titlebar-h);
+  }
+  /* Collapsed sidebar slides the header to the window edge, under the macOS traffic lights — reserve room. */
+  :root[data-platform="darwin"] .shell.sidebar-hidden .workspace-searchbar {
+    padding-left: var(--mac-traffic-w, 80px);
+  }
+  :root[data-platform="darwin"] .titlebar-drag-region {
+    -webkit-app-region: drag;
+    --wails-draggable: drag;
+  }
+  :root[data-platform="darwin"] .workspace-searchbar button,
+  :root[data-platform="darwin"] .workspace-searchbar input,
+  :root[data-platform="darwin"] .workspace-searchbar a,
+  :root[data-platform="darwin"] .workspace-searchbar select,
+  :root[data-platform="darwin"] .workspace-searchbar-left > .workspace-switcher,
+  :root[data-platform="darwin"] .global-search,
+  :root[data-platform="darwin"] .searchbar-settings-btn,
+  :root[data-platform="darwin"] .searchbar-brand-icon {
+    -webkit-app-region: no-drag;
+    --wails-draggable: no-drag;
+  }
+}
+
+/* Custom window controls live only on the frameless Windows build. */
+.win-controls {
+  display: none;
+}
+
+:root[data-platform="windows"] .titlebar-drag-region {
+  --wails-draggable: drag;
+}
+
+:root[data-platform="windows"] .workspace-searchbar button,
+:root[data-platform="windows"] .workspace-searchbar input,
+:root[data-platform="windows"] .workspace-searchbar a,
+:root[data-platform="windows"] .workspace-searchbar select,
+:root[data-platform="windows"] .workspace-searchbar-left > .workspace-switcher,
+:root[data-platform="windows"] .global-search,
+:root[data-platform="windows"] .searchbar-settings-btn,
+:root[data-platform="windows"] .searchbar-brand-icon,
+:root[data-platform="windows"] .win-controls,
+:root[data-platform="windows"] .win-control {
+  --wails-draggable: no-drag;
+}
+
+:root[data-platform="windows"] .win-controls {
+  display: flex;
+  align-items: stretch;
+  height: 50px; /* searchbar content (34px) + vertical padding (8px × 2) */
+  margin: -8px -16px -8px 6px; /* bleed over searchbar padding to the window corner */
+}
+
+:root[data-platform="windows"] .win-control {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-3);
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+:root[data-platform="windows"] .win-control:hover {
+  background: var(--hover);
+  color: var(--text-1);
+}
+
+:root[data-platform="windows"] .win-close:hover {
+  background: #e81123;
+  color: #fff;
+}
+
+:root[data-platform="windows"] .win-control:focus-visible {
+  outline: none;
+  background: var(--hover);
+}
+
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+
+/* App chrome is not text-selectable (like Postman / VS Code); only real content
+   opts back in — field values, the code editor, and code / response output. */
+#app {
+  -webkit-user-select: none;
+  user-select: none;
+}
+input,
+textarea,
+[contenteditable="true"],
+pre,
+code,
+.cm-content,
+.response-body,
+.resp-header-key,
+.resp-header-val,
+.kv-auto-key,
+.kv-auto-value,
+.kv-auto-note {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.hidden-file-input {
+  display: none;
+}

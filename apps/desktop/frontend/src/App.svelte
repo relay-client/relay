@@ -1,0 +1,869 @@
+<script lang="ts">
+  import { onMount, untrack } from 'svelte';
+  import { getAppInfo, checkForUpdate, applyUpdate, restartApp } from './lib/backend';
+  import type { UpdateInfo } from './lib/backend';
+  import UpdateBanner from './lib/components/UpdateBanner.svelte';
+  import { vm } from './lib/stores/app.svelte';
+  import { appLazyComponents as lazy } from './lib/stores/lazyComponents.svelte';
+  import AppOverlays from './lib/components/AppOverlays.svelte';
+  import AppToasts from './lib/components/AppToasts.svelte';
+  import BodyModeSelector from './lib/components/BodyModeSelector.svelte';
+  import RequestBar from './lib/components/RequestBar.svelte';
+  import RequestEditorTabs from './lib/components/RequestEditorTabs.svelte';
+  import Sidebar from './lib/components/Sidebar.svelte';
+  import StatusBar from './lib/components/StatusBar.svelte';
+  import WorkspaceChrome from './lib/components/WorkspaceChrome.svelte';
+  import WorkspaceOverview from './lib/components/WorkspaceOverview.svelte';
+  import { METHODS, REQUEST_TYPES, DEFAULT_WORKSPACE, RAW_BODY_TYPES } from './lib/constants';
+  import './styles/sse.css';
+  import { installTitlebarDoubleClickHandler } from './lib/windowControls';
+  import { methodColor, requestTabLabel, requestTransportLabel, activeCount, statusClass, formatSize, scriptLineCount } from './lib/utils';
+  import type { SnippetLanguage } from './lib/stores/ui';
+  import type { ResponseTab } from './lib/types/models';
+
+  const AUTO_UPDATE_INSTALL_KEY = 'relay:auto-update-install';
+  const UPDATE_READY_KEY = 'relay:update-ready';
+
+  let updateInfo = $state<UpdateInfo | null>(null);
+  let updateReady = $state(false);
+  let autoUpdateInstall = $state(localStorage.getItem(AUTO_UPDATE_INSTALL_KEY) === 'true');
+  let autoUpdateInstalling = $state(false);
+  // setTimeout id for the deferred update check + a destroy flag so async
+  // continuations don't write to a destroyed component (HMR scenario).
+  let updateCheckTimer: ReturnType<typeof setTimeout> | null = null;
+  let destroyed = false;
+  let focusedBeforeWindowBlur: HTMLElement | null = null;
+  let codePanelAvailable = $derived(vm.codePanelAvailable);
+  let sseSessionVisible = $derived(vm.sseSessionIsVisible());
+
+  function setRuntimePlatform(runtime: string) {
+    const platform = runtime.split('/')[0] || 'browser';
+    document.documentElement.dataset.platform = platform;
+    document.documentElement.dataset.runtime = runtime;
+  }
+
+  function preventNativeContextMenu(event: MouseEvent) {
+    event.preventDefault();
+  }
+
+  function setAutoUpdateInstall(value: boolean) {
+    autoUpdateInstall = value;
+    localStorage.setItem(AUTO_UPDATE_INSTALL_KEY, value ? 'true' : 'false');
+  }
+
+  function markUpdateReady(info: UpdateInfo) {
+    updateInfo = info;
+    updateReady = true;
+  }
+
+  function syncUpdateReadyForVersion(version: string): boolean {
+    const pendingReadyVersion = localStorage.getItem(UPDATE_READY_KEY);
+    if (!pendingReadyVersion) {
+      updateReady = false;
+      return false;
+    }
+    if (pendingReadyVersion === version) {
+      localStorage.removeItem(UPDATE_READY_KEY);
+      updateReady = false;
+      return false;
+    }
+    // Stale pending-restart marker: if the user downgraded (or the install
+    // failed and the running binary is now older than the version we
+    // recorded), clear the marker so we don't pester them with a "restart
+    // to finish updating" banner that no longer applies.
+    if (!isPendingVersionNewer(pendingReadyVersion, version)) {
+      localStorage.removeItem(UPDATE_READY_KEY);
+      updateReady = false;
+      return false;
+    }
+    updateReady = true;
+    return true;
+  }
+
+  // Compare two version strings; returns true iff `pending` is strictly
+  // newer than `current`. Empty / non-numeric falls back to string equality.
+  function isPendingVersionNewer(pending: string, current: string): boolean {
+    if (!pending || !current || pending === current) return false;
+    const norm = (v: string) => v.replace(/^v/, '').split('-')[0]?.split('.').map(n => parseInt(n, 10) || 0) ?? [];
+    const p = norm(pending);
+    const c = norm(current);
+    const len = Math.max(p.length, c.length);
+    for (let i = 0; i < len; i++) {
+      const pv = p[i] ?? 0;
+      const cv = c[i] ?? 0;
+      if (pv > cv) return true;
+      if (pv < cv) return false;
+    }
+    return false;
+  }
+
+  async function installUpdateAutomatically(info: UpdateInfo): Promise<boolean> {
+    if (!autoUpdateInstall || autoUpdateInstalling || localStorage.getItem(UPDATE_READY_KEY)) return false;
+    autoUpdateInstalling = true;
+    try {
+      const err = await applyUpdate(info);
+      if (err) {
+        console.warn('Auto-update install failed:', err);
+        return false;
+      }
+      localStorage.setItem(UPDATE_READY_KEY, info.version);
+      updateReady = true;
+      return true;
+    } catch (err) {
+      console.warn('Auto-update install failed:', err);
+      return false;
+    } finally {
+      autoUpdateInstalling = false;
+    }
+  }
+
+  function restartForInstalledUpdate() {
+    localStorage.removeItem(UPDATE_READY_KEY);
+    void restartApp();
+  }
+
+  $effect(() => {
+    vm.requestEditSignal();
+    untrack(() => vm.scheduleActiveRequestPersist());
+  });
+
+  $effect(() => {
+    vm.clampResponseSearchIndex();
+  });
+
+  $effect(() => {
+    vm.response;
+    vm.responseSearch;
+    vm.responseBodyPage;
+    vm.responseBodyIsPaged;
+    untrack(() => vm.scheduleResponseSearchCount());
+  });
+
+  $effect(() => {
+    lazy.preloadForAppShell({
+      requestTab: vm.requestTab,
+      requestType: vm.requestType,
+      method: vm.method,
+      topView: vm.topView,
+      codePanelOpen: vm.codePanelOpen,
+      codePanelAvailable,
+      cookieJarOpen: vm.cookieJarOpen,
+      globalSearchOpen: vm.globalSearchOpen,
+      settingsOpen: vm.settingsOpen,
+      sseSessionVisible,
+    });
+  });
+
+  $effect(() => {
+    if (!codePanelAvailable && vm.codePanelOpen) vm.codePanelOpen = false;
+  });
+
+  $effect(() => {
+    if (vm.workspaceBlocked && vm.topView !== 'overview' && vm.topView !== 'git') vm.topView = 'overview';
+  });
+
+  $effect(() => {
+    vm.requestStoreLoaded;
+    vm.topView;
+    vm.activeCollectionSettingsId;
+    vm.collectionRunnerOpen;
+    vm.collectionRunnerCollectionId;
+    vm.gitWorkspaceOpen;
+    vm.sidebarView;
+    untrack(() => vm.saveTopViewState());
+  });
+
+  function hideBootScreen() {
+    const boot = document.getElementById('boot-screen');
+    if (!boot) return;
+    boot.classList.add('boot-hidden');
+    setTimeout(() => boot.remove(), 360);
+  }
+
+  onMount(() => {
+    const uninstallTitlebarDoubleClick = installTitlebarDoubleClickHandler();
+    const offBeforeQuit = window.runtime?.EventsOn?.('relay:before-quit', () => {
+      void vm.reviewDraftsBeforeQuit();
+    });
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      vm.flushPendingPersist();
+      if (!vm.hasUnsavedDrafts() && !vm.hasUnsavedRequestChanges()) return;
+      event.preventDefault();
+    };
+    const flushOnHide = () => {
+      if (document.visibilityState === 'hidden') vm.flushPendingPersist();
+    };
+    const flushOnPageHide = () => vm.flushPendingPersist();
+    const rememberFocusedElement = (event: FocusEvent) => {
+      if (
+        event.target instanceof HTMLElement
+        && event.target !== document.body
+        && event.target !== document.documentElement
+      ) {
+        focusedBeforeWindowBlur = event.target;
+      }
+    };
+    const rememberWindowFocus = () => {
+      const active = document.activeElement;
+      if (
+        active instanceof HTMLElement
+        && active !== document.body
+        && active !== document.documentElement
+      ) {
+        focusedBeforeWindowBlur = active;
+      }
+    };
+    const restoreWindowFocus = () => {
+      const active = document.activeElement;
+      if (
+        focusedBeforeWindowBlur?.isConnected
+        && (active === document.body || active === document.documentElement || active === null)
+      ) {
+        focusedBeforeWindowBlur.focus({ preventScroll: true });
+      }
+    };
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const onThemeChange = () => {
+      if (vm.appTheme.mode === 'system') vm.applyTheme();
+    };
+    window.addEventListener('beforeunload', beforeUnload);
+    window.addEventListener('pagehide', flushOnPageHide);
+    window.addEventListener('blur', rememberWindowFocus);
+    window.addEventListener('focus', restoreWindowFocus);
+    document.addEventListener('focusin', rememberFocusedElement);
+    document.addEventListener('visibilitychange', flushOnHide);
+    media.addEventListener('change', onThemeChange);
+
+    void (async () => {
+      vm.loadTheme();
+      vm.loadRequestSettings();
+      vm.loadShortcutSettings();
+      vm.loadAutosaveSettings();
+      vm.loadProxyConfig();
+      vm.loadScriptEngine();
+      void vm.loadDefaultWorkspaceLocation();
+      vm.initSSEListeners();
+      vm.initGrpcListeners();
+      vm.initWebSocketListeners();
+      vm.initSocketIOListeners();
+      vm.initWorkspaceListeners();
+      try {
+        await vm.loadRequestWorkspace();
+      } finally {
+        hideBootScreen();
+      }
+      const info = await getAppInfo();
+      vm.appRuntime = info.runtime;
+      vm.appVersion = info.version;
+      setRuntimePlatform(info.runtime);
+      const updatePendingRestart = syncUpdateReadyForVersion(info.version);
+
+
+
+      if (info.version && info.version !== 'dev' && !updatePendingRestart) {
+        updateCheckTimer = setTimeout(async () => {
+          updateCheckTimer = null;
+          if (destroyed) return;
+          const result = await checkForUpdate();
+          if (destroyed) return;
+          if (result.info) {
+            updateInfo = result.info;
+            updateReady = await installUpdateAutomatically(result.info);
+          } else {
+            updateInfo = null;
+            updateReady = false;
+          }
+        }, 4000);
+      }
+    })();
+
+    return () => {
+      // HMR / fast-refresh remounts the component without destroying the
+      // previous instance synchronously. Without explicit cleanup the
+      // matchMedia + beforeunload + pagehide listeners and the deferred
+      // update check accumulate; the theme can briefly flip multiple times
+      // on each dev save, and the update banner can pop up after destroy.
+      destroyed = true;
+      if (updateCheckTimer !== null) {
+        clearTimeout(updateCheckTimer);
+        updateCheckTimer = null;
+      }
+      uninstallTitlebarDoubleClick();
+      offBeforeQuit?.();
+      window.removeEventListener('beforeunload', beforeUnload);
+      window.removeEventListener('pagehide', flushOnPageHide);
+      window.removeEventListener('blur', rememberWindowFocus);
+      window.removeEventListener('focus', restoreWindowFocus);
+      document.removeEventListener('focusin', rememberFocusedElement);
+      document.removeEventListener('visibilitychange', flushOnHide);
+      media.removeEventListener('change', onThemeChange);
+    };
+  });
+</script>
+
+<svelte:window
+  on:keydown={vm.onKeydown}
+  on:contextmenu={preventNativeContextMenu}
+  on:mousedown={vm.onWindowMouseDown}
+  on:click={vm.onWindowMouseDown}
+  on:mousemove={vm.onWindowMouseMove}
+  on:mouseup={vm.onWindowMouseUp}
+/>
+
+{#if updateInfo}
+  <UpdateBanner
+    info={updateInfo}
+    ready={updateReady}
+    installing={autoUpdateInstalling}
+    onDismiss={() => (updateInfo = null)}
+    onOpen={() => { vm.openSettings('updates'); }}
+    onRestart={restartForInstalledUpdate}
+  />
+{/if}
+
+<AppToasts />
+
+<AppOverlays
+  startupUpdateInfo={updateInfo}
+  startupUpdateReady={updateReady}
+  {autoUpdateInstall}
+  {autoUpdateInstalling}
+  {setAutoUpdateInstall}
+  appRuntime={vm.appRuntime}
+  onUpdateInstalled={markUpdateReady}
+/>
+
+<main
+  class="shell"
+  class:resizing-sidebar={vm.sidebarResizing}
+  class:resizing-col={vm.colResizing !== null}
+  class:resizing-row={vm.panelResizing}
+  class:resizing-code={vm.codePanelResizing}
+  class:code-open={vm.codePanelOpen && codePanelAvailable}
+  class:sidebar-hidden={vm.sidebarHidden}
+  style="--sidebar-w: {vm.sidebarHidden ? 0 : vm.sidebarWidth}px; --code-requested-w: {vm.codePanelOpen && codePanelAvailable ? vm.codePanelWidth : 0}px"
+>
+  <input
+    class="hidden-file-input"
+    bind:this={vm._postmanImportInput}
+    type="file"
+    accept=".json,.yaml,.yml,.bru,application/json,application/yaml,text/yaml,text/x-yaml"
+    onchange={vm.onPostmanImportFile}
+  />
+
+  <Sidebar
+    bind:sidebarView={vm.sidebarView}
+    bind:sidebarSearch={vm.sidebarSearch}
+    bind:sidebarSearchInput={vm._sidebarSearchInput}
+    topView={vm.topView}
+    activeRequestId={vm.activeRequestId}
+    activeEnvironmentId={vm.activeEnvironmentId}
+    collectionGroups={vm.collectionGroups}
+    historyGroups={vm.historyGroups}
+    pinnedRequests={vm.pinnedRequests}
+    activeWorkspaceEnvironments={vm.activeWorkspaceEnvironments}
+    openCollectionMenuId={vm.openCollectionMenuId}
+    openRequestMenuId={vm.openRequestMenuId}
+    historyHeaderMenuOpen={vm.historyHeaderMenuOpen}
+    openHistoryMenuId={vm.openHistoryMenuId}
+    openPostmanImport={vm.openPostmanImport}
+    createCollection={vm.createCollection}
+    toggleCollectionCollapsed={vm.toggleCollectionCollapsed}
+    toggleCollectionMenu={vm.toggleCollectionMenu}
+    createNewRequest={vm.createNewRequest}
+    renameCollection={vm.renameCollection}
+    openCollectionSettings={vm.openCollectionSettings}
+    exportCollection={vm.exportCollection}
+    deleteCollection={vm.deleteCollection}
+    moveCollection={vm.moveCollection}
+    switchRequest={vm.switchRequest}
+    {requestTabLabel}
+    toggleRequestMenu={vm.toggleRequestMenu}
+    renameRequest={vm.renameRequest}
+    duplicateRequest={vm.duplicateRequest}
+    copyRequestCurl={vm.copyRequestCurl}
+    toggleRequestPinned={vm.toggleRequestPinned}
+    deleteRequest={vm.deleteRequest}
+    toggleFolderCollapsed={vm.toggleFolderCollapsed}
+    openFolderMenuKey={vm.openFolderMenuKey}
+    toggleFolderMenu={vm.toggleFolderMenu}
+    createRequestInFolder={vm.createRequestInFolder}
+    createSubfolder={vm.createSubfolder}
+    renameFolder={vm.renameFolder}
+    deleteFolder={vm.deleteFolder}
+    createFolderInCollection={vm.createFolderInCollection}
+    runFolder={vm.runFolder}
+    toggleHistoryHeaderMenu={vm.toggleHistoryHeaderMenu}
+    clearRequestHistory={vm.clearRequestHistory}
+    toggleHistoryDay={vm.toggleHistoryDay}
+    openHistoryEntry={vm.openHistoryEntry}
+    historyTitle={vm.historyTitle}
+    {statusClass}
+    toggleHistoryEntryMenu={vm.toggleHistoryEntryMenu}
+    activeWorkspaceCollections={vm.activeWorkspaceCollections}
+    saveHistoryEntryToCollection={vm.saveHistoryEntryToCollection}
+    saveHistoryEntryToNewCollection={vm.saveHistoryEntryToNewCollection}
+    deleteHistoryEntry={vm.deleteHistoryEntry}
+    createEnvironment={vm.createEnvironment}
+    selectEnvironment={vm.selectEnvironment}
+    openEnvironment={vm.openEnvironment}
+    environmentValueCount={vm.environmentValueCount}
+    renameEnvironment={vm.renameEnvironment}
+    deleteEnvironment={vm.deleteEnvironment}
+    exportEnvironmentToPostman={vm.exportEnvironmentToPostman}
+    openWorkspaceDiagnostic={vm.openWorkspaceDiagnostic}
+    workspaceBlocked={vm.workspaceBlocked}
+  />
+
+  <button
+    class="sidebar-divider"
+    type="button"
+    onmousedown={vm.startSidebarResize}
+    onkeydown={vm.onSidebarDividerKeydown}
+    aria-label="Resize sidebar"
+  ></button>
+
+  <div class="workspace">
+    <WorkspaceChrome
+      bind:workspaceSearch={vm.workspaceSearch}
+      bind:workspaceMenuOpen={vm.workspaceMenuOpen}
+      bind:topView={vm.topView}
+      bind:environmentMenuOpen={vm.environmentMenuOpen}
+      bind:sidebarView={vm.sidebarView}
+      bind:codePanelOpen={vm.codePanelOpen}
+      codePanelAvailable={codePanelAvailable}
+      defaultWorkspace={DEFAULT_WORKSPACE}
+      activeWorkspace={vm.activeWorkspace}
+      workspaces={vm.workspaces}
+      activeWorkspaceId={vm.activeWorkspaceId}
+      openRequests={vm.openRequestsForTabs}
+      activeRequestId={vm.activeRequestId}
+      activeWorkspaceEnvironments={vm.activeWorkspaceEnvironments}
+      activeEnvironmentId={vm.activeEnvironmentId}
+      dirtyRequestIds={vm.dirtyRequestIdList}
+      activeRequestIsDirty={vm.activeRequestIsDirty}
+      activeRequestCanRevert={vm.activeRequestCanRevert}
+      collectionRunnerOpen={vm.collectionRunnerOpen}
+      collectionRunnerRunning={vm.collectionRunnerRunning}
+      activeCollectionSettings={vm.activeCollectionSettings}
+      gitTabOpen={vm.gitWorkspaceOpen}
+      gitChangeCount={vm.gitStatus.files?.length ?? 0}
+      autosave={vm.autosave}
+      appRuntime={vm.appRuntime}
+      workspaceBlocked={vm.workspaceBlocked}
+      saveActiveRequest={vm.saveActiveRequest}
+      revertActiveRequestChanges={vm.revertActiveRequestChanges}
+      toggleWorkspaceMenu={vm.toggleWorkspaceMenu}
+      createWorkspace={vm.createWorkspace}
+      switchWorkspace={vm.switchWorkspace}
+      workspaceCollectionCountFor={vm.workspaceCollectionCountFor}
+      workspaceRequestCountFor={vm.workspaceRequestCountFor}
+      deleteWorkspace={vm.deleteWorkspace}
+      openGlobalSearch={vm.openGlobalSearch}
+      openSettings={vm.openSettings}
+      openCookieJar={vm.openCookieJar}
+      openCollectionRunner={vm.openCollectionRunner}
+      closeCollectionRunner={vm.closeCollectionRunnerTab}
+      closeCollectionSettings={vm.closeCollectionSettingsTab}
+      openGitTab={vm.openGitTab}
+      closeGitTab={vm.closeGitTab}
+      cookieCount={vm.cookies.length}
+      {requestTabLabel}
+      switchRequest={vm.switchRequest}
+      closeRequestTab={vm.closeRequestTab}
+      createDraftRequest={vm.createDraftRequest}
+      toggleEnvironmentMenu={vm.toggleEnvironmentMenu}
+      environmentLabel={vm.environmentLabel}
+      useEnvironment={vm.useEnvironment}
+      environmentHasValues={vm.environmentHasValues}
+      environmentValueCount={vm.environmentValueCount}
+    />
+
+    {#if vm.topView === 'overview'}
+      <WorkspaceOverview
+        activeWorkspace={vm.activeWorkspace}
+        workspaceBlocked={vm.workspaceBlocked}
+        defaultWorkspace={DEFAULT_WORKSPACE}
+        workspaceRequestCount={vm.workspaceRequestCount}
+        collectionCount={vm.collections.filter(c => c.workspaceId === vm.activeWorkspaceId).length}
+        updateWorkspaceDescription={vm.updateWorkspaceDescription}
+        renameWorkspace={vm.renameWorkspace}
+        createWorkspace={vm.createWorkspace}
+        openSettings={vm.openSettings}
+        createCollection={vm.createCollection}
+        createNewRequest={vm.createNewRequest}
+        createEnvironment={vm.createEnvironment}
+        codePanelAvailable={codePanelAvailable}
+        onOpenCodePanel={() => { if (codePanelAvailable) vm.codePanelOpen = true; }}
+        onOpenGit={vm.openGitTab}
+      />
+    {:else if vm.topView === 'git'}
+      {#if lazy.GitWorkspaceComponent}
+      <lazy.GitWorkspaceComponent
+        status={vm.gitStatus}
+        branches={vm.gitBranches}
+        diff={vm.gitDiff}
+        conflict={vm.gitConflict}
+        conflictContent={vm.gitConflictContent}
+        commits={vm.gitLog}
+        selectedCommit={vm.gitSelectedCommit}
+        selectedPath={vm.gitSelectedPath}
+        loading={vm.gitLoading}
+        action={vm.gitAction}
+        diffLoading={vm.gitDiffLoading}
+        error={vm.gitError}
+        output={vm.gitOutput}
+        workspaceBlocked={vm.workspaceBlocked}
+        workspaceDiagnostics={vm.activeWorkspaceDiagnostics}
+        onEditWorkspaceDiagnostic={vm.openWorkspaceYAMLEditor}
+        workspaceDiagnosticKey={vm.workspaceDiagnosticKey}
+        workspaceDiagnosticTitle={vm.workspaceDiagnosticTitle}
+        workspaceDiagnosticLocation={vm.workspaceDiagnosticLocation}
+        onRefresh={vm.refreshGitStatus}
+        onUseLocal={vm.useLocalWorkspace}
+        onCreateLocal={vm.createLocalFolderWorkspace}
+        onOpen={vm.openGitWorkspace}
+        onClone={vm.cloneGitWorkspace}
+        onFetch={vm.fetchGitWorkspace}
+        onPull={vm.pullGitWorkspace}
+        onPullBranch={vm.pullGitBranch}
+        onResolveConflict={vm.resolveGitConflict}
+        onContinueOperation={vm.continueGitOperation}
+        onAbortOperation={vm.abortGitOperation}
+        onStash={vm.stashGitWorkspace}
+        onPopStash={vm.popGitStash}
+        onInit={vm.initGitWorkspace}
+        onAddRemote={vm.addGitRemote}
+        onTestRemote={vm.testGitRemote}
+        onCheckoutBranch={vm.checkoutGitBranch}
+        onCreateBranch={vm.createGitBranch}
+        onCreateBranchFromRemote={vm.createGitBranchFromRemote}
+        onDeleteBranch={vm.deleteGitBranch}
+        onRenameBranch={vm.renameGitBranch}
+        onCommit={vm.commitGitWorkspace}
+        onViewOutgoing={vm.viewGitOutgoingChanges}
+        onRefreshLog={vm.refreshGitLog}
+        onLoadMoreLog={vm.loadMoreGitLog}
+        onSelectCommit={vm.selectGitCommit}
+        onPush={vm.pushGitWorkspace}
+        onForcePush={vm.forcePushGitWorkspace}
+        onDiscardFile={vm.discardSelectedGitFile}
+        onDiscardFiles={vm.discardSelectedGitFiles}
+        onDiscardAll={vm.discardGitWorkspaceChanges}
+        onSelectFile={vm.selectGitFile}
+      />
+      {/if}
+    {:else if vm.topView === 'environment'}
+      {#if lazy.EnvironmentWorkspaceComponent}
+      <lazy.EnvironmentWorkspaceComponent
+        activeEnvironment={vm.activeEnvironment}
+        activeEnvironmentId={vm.activeEnvironmentId}
+        autosave={vm.autosave}
+        environmentSaveState={vm.environmentSaveState}
+        createEnvironment={vm.createEnvironment}
+        renameEnvironment={vm.renameEnvironment}
+        useEnvironment={vm.useEnvironment}
+        deleteEnvironment={vm.deleteEnvironment}
+        saveEnvironment={vm.saveEnvironment}
+        updateEnvironmentRow={vm.updateEnvironmentRow}
+        removeEnvironmentRow={vm.removeEnvironmentRow}
+        importEnvFromFile={vm.importEnvFromFile}
+      />
+      {/if}
+    {:else if vm.topView === 'collection'}
+      {#if lazy.CollectionWorkspaceComponent}
+      <lazy.CollectionWorkspaceComponent
+        collection={vm.activeCollectionSettings}
+        requestCount={vm.activeCollectionSettings ? vm.collectionRequestCount(vm.activeCollectionSettings.id) : 0}
+        bind:collectionSettingsTab={vm.collectionSettingsTab}
+        autosave={vm.autosave}
+        saveState={vm.collectionSettingsSaveState}
+        workspaceBlocked={vm.workspaceBlocked}
+        variableSuggestions={vm.variableSuggestions}
+        scriptEngine={vm.scriptEngine}
+        onSave={vm.saveCollectionSettings}
+        onReset={vm.resetCollectionSettings}
+        onCreateRequest={vm.createNewRequest}
+      />
+      {/if}
+    {:else if vm.topView === 'runner'}
+      {#if lazy.CollectionRunnerWorkspaceComponent}
+      <lazy.CollectionRunnerWorkspaceComponent
+        collections={vm.collectionRunnerCollections}
+        selectedCollectionId={vm.collectionRunnerEffectiveCollectionId}
+        requests={vm.collectionRunnerRequests}
+        filteredRequests={vm.collectionRunnerFilteredRequests}
+        selectedRequestIds={vm.collectionRunnerSelectedRequestIds}
+        selectedCount={vm.collectionRunnerSelectedCount}
+        delayMs={vm.collectionRunnerDelayMs}
+        includeTags={vm.collectionRunnerIncludeTags}
+        excludeTags={vm.collectionRunnerExcludeTags}
+        iterations={vm.collectionRunnerRunIterations}
+        dataFileName={vm.collectionRunnerDataFileName}
+        dataRowCount={vm.collectionRunnerDataRows.length}
+        dataError={vm.collectionRunnerDataError}
+        parallel={vm.collectionRunnerParallel}
+        running={vm.collectionRunnerRunning}
+        title={vm.collectionRunnerTitle}
+        results={vm.collectionRunnerResults}
+        summary={vm.collectionRunnerSummary}
+        {methodColor}
+        {requestTabLabel}
+        {requestTransportLabel}
+        requestTags={vm.collectionRunnerRequestTags}
+        isRequestSkipped={vm.savedRequestIsRunnerSkipped}
+        onSelectCollection={vm.setCollectionRunnerCollection}
+        onSetDelayMs={vm.setCollectionRunnerDelayMs}
+        onSetIncludeTags={vm.setCollectionRunnerIncludeTags}
+        onSetExcludeTags={vm.setCollectionRunnerExcludeTags}
+        onSetIterations={vm.setCollectionRunnerIterations}
+        onSelectDataFile={vm.selectCollectionRunnerDataFile}
+        onClearDataFile={vm.clearCollectionRunnerDataFile}
+        onSetParallel={vm.setCollectionRunnerParallel}
+        onToggleRequest={vm.toggleCollectionRunnerRequest}
+        onSelectAll={vm.selectAllCollectionRunnerRequests}
+        onDeselectAll={vm.deselectAllCollectionRunnerRequests}
+        onReset={vm.resetCollectionRunner}
+        onDownloadReport={vm.downloadCollectionRunnerReport}
+        onRun={vm.startCollectionRunnerFromSelection}
+        onStop={vm.stopCollectionRunner}
+      />
+      {/if}
+    {:else}
+      <RequestBar
+        requestName={vm.requestHeaderName()}
+        requestType={vm.requestType}
+        bind:method={vm.method}
+        bind:url={vm.url}
+        bind:urlInputRef={vm._urlInputRef}
+        requestTypes={REQUEST_TYPES}
+        methods={METHODS}
+        loading={vm.loading}
+        {methodColor}
+        requestTypeLabel={vm.requestTypeLabel}
+        requestTypeEditable={vm.requestTypeEditable}
+        variableSuggestions={vm.variableSuggestions}
+        onRequestNameInput={vm.setRequestHeaderName}
+        onRequestNameCommit={vm.commitRequestHeaderName}
+        onRequestTypeChange={vm.selectRequestType}
+        onUrlPaste={vm.onUrlPaste}
+        onUrlInput={() => vm.syncParamsFromUrl()}
+        onSend={vm.runActiveRequest}
+        onSendAndDownload={() => vm.runActiveRequestAndDownload()}
+        sseStatus={vm.requestType === 'http' && (vm.method === 'SSE' || sseSessionVisible) ? (vm.currentSSESession?.status ?? 'idle') : undefined}
+        wsStatus={vm.requestType === 'ws' ? (vm.currentWebSocketSession?.status ?? 'idle') : undefined}
+        sioStatus={vm.requestType === 'socketio' ? (vm.currentSocketIOSession?.status ?? 'idle') : undefined}
+        grpcMethod={vm.grpcMethod}
+        grpcMethods={vm.grpcSelectableMethods()}
+        grpcServiceLoading={vm.grpcServiceLoading}
+        grpcMethodLabel={vm.grpcMethodLabel}
+        onGrpcMethodChange={vm.selectGrpcMethod}
+        onGrpcDiscover={vm.discoverGrpcServices}
+      />
+
+      <div class="request-editor" style="height: {vm.requestPanelHeight}px; --request-panel-h: {vm.requestPanelHeight}px">
+        <RequestEditorTabs
+          bind:requestTab={vm.requestTab}
+          requestType={vm.requestType}
+          paramsCount={activeCount(vm.params)}
+          authConfigured={vm.authHasConfig()}
+          headerCount={vm.requestHeaderCount}
+          bodyHasContent={vm.bodyHasContent()}
+          bodyBadgeLabel={vm.bodyBadgeLabel()}
+          scriptLineCount={scriptLineCount(vm.preRequestScript) + scriptLineCount(vm.testScript)}
+          listenEventCount={activeCount(vm.sioEvents)}
+          metadataCount={activeCount(vm.grpcMetadata)}
+          grpcMethodSelected={Boolean(vm.grpcMethod)}
+        />
+
+        {#if vm.requestTab === 'body' && vm.requestType !== 'ws' && vm.requestType !== 'socketio' && vm.requestType !== 'graphql' && vm.requestType !== 'grpc'}
+          <BodyModeSelector
+            bind:rawTypeMenuOpen={vm.rawTypeMenuOpen}
+            rawBodyType={vm.rawBodyType}
+            rawBodyTypes={RAW_BODY_TYPES}
+            bodyModeIs={vm.bodyModeIs}
+            setBodyMode={vm.setBodyMode}
+            rawTypeLabel={vm.rawTypeLabel}
+            setRawBodyType={vm.setRawBodyType}
+            showBeautify={vm.bodyModeIs('raw')}
+            beautified={vm.beautifiedBody}
+            beautifyDisabled={vm.bodyLang !== 'json'}
+            onBeautify={() => vm.beautifyBody()}
+          />
+        {/if}
+
+        <div class="tab-content" class:body-editor-mode={(vm.requestTab === 'body' && (vm.requestType === 'ws' || vm.requestType === 'socketio' || vm.requestType === 'grpc' || !['none', 'form', 'urlencoded', 'binary'].includes(vm.bodyType))) || (vm.requestType === 'graphql' && (vm.requestTab === 'query' || vm.requestTab === 'schema'))}>
+          {#if vm.requestTab === 'docs'}
+            {#if lazy.DocsTabComponent}<lazy.DocsTabComponent />{/if}
+          {:else if vm.requestTab === 'query'}
+            {#if lazy.GraphQLQueryTabComponent}<lazy.GraphQLQueryTabComponent />{/if}
+          {:else if vm.requestTab === 'params'}
+            {#if lazy.ParamsTabComponent}<lazy.ParamsTabComponent />{/if}
+          {:else if vm.requestTab === 'auth'}
+            {#if lazy.AuthTabComponent}<lazy.AuthTabComponent />{/if}
+          {:else if vm.requestTab === 'headers'}
+            {#if lazy.HeadersTabComponent}<lazy.HeadersTabComponent />{/if}
+          {:else if vm.requestTab === 'metadata'}
+            {#if lazy.GrpcMetadataTabComponent}<lazy.GrpcMetadataTabComponent />{/if}
+          {:else if vm.requestTab === 'body'}
+            {#if vm.requestType === 'ws'}
+              {#if lazy.WebSocketMessageTabComponent}<lazy.WebSocketMessageTabComponent />{/if}
+            {:else if vm.requestType === 'socketio'}
+              {#if lazy.SocketIOMessageTabComponent}<lazy.SocketIOMessageTabComponent />{/if}
+            {:else if vm.requestType === 'grpc'}
+              {#if lazy.GrpcMessageTabComponent}<lazy.GrpcMessageTabComponent />{/if}
+            {:else if lazy.BodyTabComponent}
+              <lazy.BodyTabComponent />
+            {/if}
+          {:else if vm.requestTab === 'events'}
+            {#if lazy.SocketIOEventsTabComponent}<lazy.SocketIOEventsTabComponent />{/if}
+          {:else if vm.requestTab === 'schema'}
+            {#if lazy.GraphQLSchemaTabComponent}<lazy.GraphQLSchemaTabComponent />{/if}
+          {:else if vm.requestTab === 'service'}
+            {#if lazy.GrpcServiceDefinitionTabComponent}<lazy.GrpcServiceDefinitionTabComponent />{/if}
+          {:else if vm.requestTab === 'scripts'}
+            {#if lazy.ScriptsTabComponent}<lazy.ScriptsTabComponent />{/if}
+          {:else if vm.requestTab === 'settings'}
+            {#if vm.requestType === 'ws'}
+              {#if lazy.WebSocketSettingsTabComponent}<lazy.WebSocketSettingsTabComponent />{/if}
+            {:else if vm.requestType === 'socketio'}
+              {#if lazy.SocketIOSettingsTabComponent}<lazy.SocketIOSettingsTabComponent />{/if}
+            {:else if vm.requestType === 'grpc'}
+              {#if lazy.GrpcSettingsTabComponent}<lazy.GrpcSettingsTabComponent />{/if}
+            {:else if lazy.RequestSettingsTabComponent}
+              <lazy.RequestSettingsTabComponent />
+            {/if}
+          {/if}
+        </div>
+      </div>
+
+      <button
+        class="panel-divider"
+        type="button"
+        onmousedown={vm.startPanelResize}
+        onkeydown={vm.onPanelDividerKeydown}
+        aria-label="Resize panels"
+      ></button>
+
+      {#if vm.requestType === 'ws'}
+        {#if lazy.WebSocketPanelComponent}
+        <lazy.WebSocketPanelComponent
+          status={vm.currentWebSocketSession?.status ?? 'idle'}
+          connectedAt={vm.currentWebSocketSession?.connectedAt ?? 0}
+          messages={vm.currentWebSocketSession?.messages ?? []}
+          headers={vm.currentWebSocketSession?.headers ?? []}
+          error={vm.currentWebSocketSession?.error ?? ''}
+          bind:responseTab={vm.wsResponseTab}
+          canRestore={(vm.currentWebSocketSession?.clearedMessages?.length ?? 0) > 0}
+          onClear={vm.webSocketClearMessages}
+          onRestore={vm.webSocketRestoreMessages}
+        />
+        {/if}
+      {:else if vm.requestType === 'socketio'}
+        {#if lazy.SocketIOPanelComponent}
+        <lazy.SocketIOPanelComponent
+          status={vm.currentSocketIOSession?.status ?? 'idle'}
+          connectedAt={vm.currentSocketIOSession?.connectedAt ?? 0}
+          namespace={vm.currentSocketIOSession?.namespace ?? '/'}
+          messages={vm.currentSocketIOSession?.messages ?? []}
+          error={vm.currentSocketIOSession?.error ?? ''}
+          canRestore={(vm.currentSocketIOSession?.clearedMessages?.length ?? 0) > 0}
+          listenEventCount={vm.sioEvents.filter(r => r.enabled && r.key.trim()).length}
+          onClear={vm.socketIOClearMessages}
+          onRestore={vm.socketIORestoreMessages}
+          onGoToEvents={() => vm.requestTab = 'events'}
+        />
+        {/if}
+      {:else if vm.requestType === 'http' && (vm.method === 'SSE' || sseSessionVisible)}
+        {#if lazy.SSEPanelComponent}
+        <lazy.SSEPanelComponent
+          status={vm.currentSSESession?.status ?? 'idle'}
+          connectedUrl={vm.currentSSESession?.connectedUrl ?? ''}
+          statusText={vm.currentSSESession?.statusText ?? ''}
+          statusCode={vm.currentSSESession?.statusCode ?? 0}
+          connectedAt={vm.currentSSESession?.connectedAt ?? 0}
+          duration={vm.currentSSESession?.duration ?? 0}
+          timings={vm.currentSSESession?.timings ?? null}
+          events={vm.currentSSESession?.events ?? []}
+          headers={vm.currentSSESession?.headers ?? []}
+          error={vm.currentSSESession?.error ?? ''}
+          canRestore={(vm.currentSSESession?.clearedEvents?.length ?? 0) > 0}
+          onClear={vm.sseClearEvents}
+          onRestore={vm.sseRestoreEvents}
+        />
+        {/if}
+      {:else if vm.requestType === 'grpc'}
+        {#if lazy.GrpcResponsePanelComponent}
+          <lazy.GrpcResponsePanelComponent />
+        {/if}
+      {:else if lazy.ResponsePanelComponent}
+        <lazy.ResponsePanelComponent
+          loading={vm.loading}
+          requestError={vm.requestError}
+          response={vm.response}
+          responseTab={vm.responseTab}
+          bind:responseSearchOpen={vm.responseSearchOpen}
+          bind:responseSearch={vm.responseSearch}
+          bind:responseSearchIndex={vm.responseSearchIndex}
+          responseTestSummary={vm.responseTestSummary}
+          responseSearchTotal={vm.responseSearchTotal}
+          responseDisplayBody={vm.responseDisplayBody}
+          responseRenderMode={vm.responseRenderMode}
+          responseBodyIsPaged={vm.responseBodyIsPaged}
+          responseBodyVirtualized={vm.responseBodyVirtualized}
+          responseBodyPage={vm.responseBodyPage}
+          responseBodyPageCount={vm.responseBodyPageCount}
+          responseBodyPageLabel={vm.responseBodyPageLabel}
+          copiedBody={vm.copiedBody}
+          savedResponse={vm.savedResponse}
+          appRuntime={vm.appRuntime}
+          {statusClass}
+          {formatSize}
+          onResponseSearchKeydown={vm.onResponseSearchKeydown}
+          prevResponseMatch={vm.prevResponseMatch}
+          nextResponseMatch={vm.nextResponseMatch}
+          previousResponseBodyPage={vm.previousResponseBodyPage}
+          nextResponseBodyPage={vm.nextResponseBodyPage}
+          toggleResponseSearch={vm.toggleResponseSearch}
+          copyResponseBody={vm.copyResponseBody}
+          saveResponseFile={vm.saveResponseFile}
+          loadResponseFromFile={vm.loadResponseFromFile}
+          setResponseTab={(tab: ResponseTab) => vm.setActiveResponseTab(tab)}
+        />
+      {/if}
+    {/if}
+
+  </div>
+
+  <StatusBar
+    sidebarHidden={vm.sidebarHidden}
+    codePanelOpen={vm.codePanelOpen}
+    codePanelAvailable={codePanelAvailable}
+    topView={vm.topView}
+    gitStatus={vm.gitStatus}
+    appVersion={vm.appVersion}
+    appRuntime={vm.appRuntime}
+    appTheme={vm.appTheme}
+    resolvedAppTheme={vm.resolvedAppTheme}
+    setThemeMode={vm.setThemeMode}
+    setThemeVariant={vm.setThemeVariant}
+    onOpenGit={vm.openGitTab}
+    onOpenAbout={() => vm.openSettings('about')}
+    onToggleSidebar={() => (vm.sidebarHidden = !vm.sidebarHidden)}
+    onToggleCodePanel={() => { if (codePanelAvailable) vm.codePanelOpen = !vm.codePanelOpen; }}
+  />
+
+  {#if vm.codePanelOpen && codePanelAvailable && lazy.CodeSnippetPanelComponent}
+    <lazy.CodeSnippetPanelComponent
+      lines={vm.snippetRenderedLines}
+      codePanelOpen={vm.codePanelOpen}
+      snippetLanguage={vm.snippetLanguage}
+      bind:snippetMenuOpen={vm.snippetMenuOpen}
+      copiedSnippet={vm.copiedSnippet}
+      onSnippetLanguageChange={(lang: SnippetLanguage) => (vm.snippetLanguage = lang)}
+      onCopy={vm.copySnippet}
+      onResizeStart={vm.startCodePanelResize}
+      onDividerKeydown={vm.onCodePanelDividerKeydown}
+    />
+  {/if}
+</main>

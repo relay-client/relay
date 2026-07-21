@@ -1,0 +1,126 @@
+---
+title: Relay
+description: A fast, local-first desktop API client. No accounts, no cloud sync, no telemetry — just you and your APIs.
+template: splash
+---
+
+import { Card, CardGrid, Code, LinkCard } from '@astrojs/starlight/components';
+import { Image } from 'astro:assets';
+import heroShot from '../../assets/screenshots/workspace-overview.png';
+import appLogoUrl from '../../assets/logo.svg?url';
+
+<div class="relay-hero">
+  <div class="relay-hero-inner">
+    <div class="relay-hero-copy">
+      <span class="relay-badge"><img src={appLogoUrl} alt="" width="26" height="26" /> Relay</span>
+      <h1>A fast, <span class="relay-hero-grad">local-first</span><br />desktop API client</h1>
+      <p class="relay-hero-sub">No accounts, no cloud sync, no telemetry — just you and your APIs. HTTP, GraphQL, gRPC, WebSocket, and SSE, all on your machine.</p>
+      <div class="relay-hero-actions">
+        <a class="relay-btn relay-btn-primary" href="/download/">Download</a>
+        <a class="relay-btn relay-btn-ghost" href="/docs/getting-started/installation/">Read the docs</a>
+        <a class="relay-btn relay-btn-link" href="https://github.com/relay-client/relay">GitHub ↗</a>
+      </div>
+      <p class="relay-hero-meta">macOS · Windows · Linux · Free</p>
+    </div>
+    <div class="relay-hero-visual">
+      <Image src={heroShot} alt="Relay workspace overview" class="relay-hero-shot" loading="eager" />
+    </div>
+  </div>
+</div>
+
+## Built for engineers who live in the terminal
+
+<CardGrid stagger>
+  <Card title="Local-first by default" icon="laptop">
+    Your local profile and secrets are protected with AES-256-GCM. Git workspace YAML stays reviewable, with sensitive values replaced by local placeholders.
+  </Card>
+  <Card title="All the auth flows" icon="seti:lock">
+    Bearer, Basic, Digest (RFC 2617), API Key, OAuth 2.0 (Client Credentials + Authorization Code with PKCE), AWS Signature v4. One-click token fetch where it makes sense.
+  </Card>
+  <Card title="Scriptable requests" icon="seti:javascript">
+    Pre-request and test scripts in sandboxed JavaScript, with legacy Tengo support. Inject headers, assert responses, parse JSON, set variables.
+  </Card>
+  <Card title="Imports that travel" icon="random">
+    Import Postman, Insomnia, Bruno/OpenCollection, OpenAPI, HAR, curl, or a full Relay backup. Export to Postman, OpenAPI, OpenCollection, or all-data backup.
+  </Card>
+  <Card title="Git-backed workspaces" icon="seti:git">
+    Store workspaces as reviewable YAML, keep secrets local, and use diagnostics/conflict helpers when a repo changes underneath you.
+  </Card>
+  <Card title="Code generation" icon="seti:code-search">
+    Copy any request as cURL, Python `requests`, JavaScript `fetch`, or Go `net/http`. More languages in the side panel.
+  </Card>
+  <Card title="Keyboard-first" icon="seti:config">
+    Global search (⌘K), quick send (⌘↵), tab switching (⌘1–⌘9). All shortcuts configurable.
+  </Card>
+</CardGrid>
+
+## Scripting that gets out of the way
+
+<Code
+  lang="js"
+  title="pre-request + test"
+  code={`// pre-request: inject a header
+pm.request.headers.set("X-Client", "relay")
+
+// test: assert status and parse JSON
+pm.test("status is 200", () => pm.response.to.have.status(200))
+const body = pm.response.json()
+pm.test("has id", () => pm.expect(body).to.have.property("id"))`}
+/>
+
+Imports, `require`, process, filesystem, and network access are disabled. Execution caps at 2 seconds, so scripts can't escape the sandbox or block the UI.
+
+## Ready to try it?
+
+<CardGrid>
+  <LinkCard
+    title="Install Relay"
+    description="Download the installer for macOS, Windows, or Linux."
+    href="/download/"
+  />
+  <LinkCard
+    title="Send your first request"
+    description="Five-minute walkthrough of the request lifecycle."
+    href="/docs/getting-started/first-request/"
+  />
+  <LinkCard
+    title="Coming from Postman or Insomnia?"
+    description="Drop your export into Relay and keep going. Migration guide with the gotchas."
+    href="/docs/getting-started/migrating/"
+  />
+  <LinkCard
+    title="Scripting API reference"
+    description="Full pm.* API for pre-request and test scripts."
+    href="/docs/reference/scripting-api/"
+  />
+  <LinkCard
+    title="Request types"
+    description="HTTP, GraphQL, SSE, WebSocket, Socket.IO, and gRPC in one place."
+    href="/docs/guides/request-types/"
+  />
+  <LinkCard
+    title="Collection Runner"
+    description="Run saved requests as local smoke tests and export an HTML report."
+    href="/docs/guides/collection-runner/"
+  />
+  <LinkCard
+    title="Git-backed workspaces"
+    description="Store workspaces as YAML, keep secrets local, and collaborate through Git."
+    href="/docs/guides/git-workspaces/"
+  />
+  <LinkCard
+    title="Relay YAML format"
+    description="Public contract for Git-backed workspace files."
+    href="/docs/reference/relay-yaml-format/"
+  />
+  <LinkCard
+    title="Privacy & security"
+    description="What stays on your machine, what leaves it, and how it's protected."
+    href="/privacy/"
+  />
+  <LinkCard
+    title="Troubleshooting"
+    description="Gatekeeper, SmartScreen, proxies, corporate CAs — every common gotcha."
+    href="/docs/troubleshooting/"
+  />
+</CardGrid>
