@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/relay-client/relay/security/advisories/new
+    about: Please report security vulnerabilities privately via GitHub Security Advisories. Do not file a public issue.
+  - name: Question / discussion
+    url: https://github.com/relay-client/relay/discussions
+    about: Ask a question, share a workflow, or propose an idea before opening an issue.

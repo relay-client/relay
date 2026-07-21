@@ -1,0 +1,213 @@
+:root {
+  /* Relay brand */
+  --relay-brand: #5865f2;
+  --relay-brand-strong: #4954e8;
+  --relay-violet: #6d5cf5;
+  --relay-blue: #43a0f1;
+
+  --sl-color-accent-low: #20223f;
+  --sl-color-accent: #5865f2;
+  --sl-color-accent-high: #c8ccff;
+
+  --sl-color-white: #ffffff;
+  --sl-color-gray-1: #e6e6e6;
+  --sl-color-gray-2: #c2c2c2;
+  --sl-color-gray-3: #8b8b8b;
+  --sl-color-gray-4: #545454;
+  --sl-color-gray-5: #353535;
+  --sl-color-gray-6: #1d1d1d;
+  --sl-color-black: #111111;
+
+  --sl-font: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --sl-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+:root[data-theme='light'] {
+  --sl-color-accent-low: #e3e5ff;
+  --sl-color-accent: #4954e8;
+  --sl-color-accent-high: #23275e;
+}
+
+/* ---- Header polish ---- */
+header.header {
+  border-bottom: 1px solid var(--sl-color-hairline, var(--sl-color-gray-6));
+  backdrop-filter: saturate(1.2) blur(8px);
+  background: color-mix(in srgb, var(--sl-color-bg) 82%, transparent);
+}
+.site-title {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  gap: 0.55rem;
+}
+.site-title img {
+  border-radius: 9px;
+}
+
+/* =====================================================================
+   Landing hero (custom, dark gradient panel)
+   ===================================================================== */
+/* Splash landing builds its own H1 inside .relay-hero, so hide Starlight's
+   auto page-title panel on that page only (other pages keep their H1). */
+:root:has(.relay-hero) .content-panel:has(h1#_top) {
+  display: none;
+}
+
+.relay-hero {
+  position: relative;
+  overflow: hidden;
+  margin-block: 1rem 3.5rem;
+  padding: clamp(2rem, 4vw, 4rem);
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #fff;
+  background:
+    radial-gradient(125% 120% at 12% 0%, rgba(109, 92, 245, 0.40), transparent 55%),
+    radial-gradient(120% 140% at 100% 105%, rgba(67, 160, 241, 0.30), transparent 52%),
+    linear-gradient(155deg, #181a30 0%, #101120 58%, #0d0e1a 100%);
+  box-shadow: 0 40px 90px -40px rgba(40, 40, 100, 0.65);
+}
+/* subtle top sheen */
+.relay-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 30%);
+  pointer-events: none;
+}
+
+.relay-hero-inner {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: clamp(2rem, 4vw, 3.5rem);
+  align-items: center;
+  max-width: 70rem;
+  margin-inline: auto;
+}
+
+.relay-hero-copy { min-width: 0; }
+
+.relay-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.34rem 0.85rem 0.34rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #d7daff;
+}
+.relay-badge img { width: 26px; height: 26px; border-radius: 7px; display: block; }
+
+.relay-hero h1 {
+  margin: 1.15rem 0 0;
+  font-size: clamp(2.05rem, 3.4vw, 3rem);
+  line-height: 1.07;
+  letter-spacing: -0.025em;
+  font-weight: 800;
+  color: #fff;
+}
+.relay-hero-grad {
+  background: linear-gradient(90deg, #c3c8ff, #8ec8ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.relay-hero-sub {
+  margin: 1.05rem 0 0;
+  max-width: 34rem;
+  font-size: 1.08rem;
+  line-height: 1.55;
+  color: #aab0d4;
+}
+
+.relay-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.85rem;
+}
+.relay-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.7rem 1.3rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.97rem;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+.relay-btn-primary {
+  background: var(--relay-brand);
+  color: #fff;
+  box-shadow: 0 14px 34px -12px rgba(88, 101, 242, 0.85);
+}
+.relay-btn-primary:hover {
+  background: var(--relay-brand-strong);
+  transform: translateY(-1px);
+  box-shadow: 0 18px 40px -12px rgba(88, 101, 242, 0.95);
+}
+.relay-btn-ghost {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+.relay-btn-ghost:hover { background: rgba(255, 255, 255, 0.15); }
+.relay-btn-link {
+  color: #c2c7ee;
+  padding-inline: 0.6rem;
+}
+.relay-btn-link:hover { color: #fff; }
+
+.relay-hero-meta {
+  margin-top: 1.3rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: #757b9e;
+}
+
+.relay-hero-visual { position: relative; min-width: 0; }
+.relay-hero-visual::before {
+  content: "";
+  position: absolute;
+  inset: -14% -10% -10% -10%;
+  z-index: 0;
+  background: radial-gradient(58% 58% at 62% 38%, rgba(88, 101, 242, 0.55), transparent 70%);
+  filter: blur(26px);
+}
+.relay-hero-shot {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 34px 70px -24px rgba(0, 0, 0, 0.7);
+}
+
+@media (max-width: 50rem) {
+  .relay-hero-inner { grid-template-columns: 1fr; text-align: center; }
+  .relay-hero-sub { margin-inline: auto; }
+  .relay-hero-actions { justify-content: center; }
+  .relay-hero-visual { margin-top: 0.5rem; }
+}
+
+/* =====================================================================
+   Feature cards on the landing
+   ===================================================================== */
+.sl-markdown-content .card {
+  background: color-mix(in srgb, var(--sl-color-bg) 90%, var(--sl-color-accent) 10%);
+  border: 1px solid color-mix(in srgb, var(--sl-color-gray-5) 60%, transparent);
+  border-radius: 14px;
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+.sl-markdown-content .card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--sl-color-accent) 55%, transparent);
+  box-shadow: 0 18px 40px -26px color-mix(in srgb, var(--sl-color-accent) 80%, black);
+}

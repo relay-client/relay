@@ -1,0 +1,350 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relay.dev/schemas/relay-workspace-yaml-v1.schema.json",
+  "title": "Relay Workspace YAML v1",
+  "description": "Public contract for Relay workspace YAML files stored with path layout yaml-filesystem-names.v1.",
+  "type": "object",
+  "oneOf": [
+    { "$ref": "#/$defs/rootFile" },
+    { "$ref": "#/$defs/workspaceFile" },
+    { "$ref": "#/$defs/collectionFile" },
+    { "$ref": "#/$defs/requestFile" },
+    { "$ref": "#/$defs/environmentFile" }
+  ],
+  "$defs": {
+    "fileVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "filesystemName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "pattern": "^[A-Za-z0-9._-]+$",
+      "description": "Stable Git path segment. It must not contain slashes."
+    },
+    "order": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "timestamp": {
+      "type": "number",
+      "minimum": 0
+    },
+    "kvRow": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "enabled", "key", "value"],
+      "properties": {
+        "id": {
+          "oneOf": [
+            { "type": "integer" },
+            { "type": "string" }
+          ]
+        },
+        "enabled": { "type": "boolean" },
+        "key": { "type": "string" },
+        "value": {
+          "type": "string",
+          "description": "May be a relay secret placeholder such as {{relaySecret:request:req-main:auth:bearerToken}}."
+        },
+        "description": { "type": "string" },
+        "isFile": { "type": "boolean" },
+        "fileName": { "type": "string" },
+        "secret": { "type": "boolean" }
+      }
+    },
+    "auth": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["none", "bearer", "basic", "apikey", "oauth2", "aws", "digest"]
+        },
+        "bearerToken": { "type": "string" },
+        "basicUser": { "type": "string" },
+        "basicPass": { "type": "string" },
+        "apiKeyName": { "type": "string" },
+        "apiKeyValue": { "type": "string" },
+        "apiKeyIn": { "type": "string", "enum": ["header", "query"] },
+        "oauth2GrantType": { "type": "string", "enum": ["client_credentials", "authorization_code"] },
+        "oauth2AuthURL": { "type": "string" },
+        "oauth2TokenURL": { "type": "string" },
+        "oauth2ClientID": { "type": "string" },
+        "oauth2Secret": { "type": "string" },
+        "oauth2Scope": { "type": "string" },
+        "oauth2Token": { "type": "string" },
+        "oauth2RefreshToken": { "type": "string" },
+        "oauth2TokenExpiry": { "type": "number", "minimum": 0 },
+        "oauth2UsePKCE": { "type": "boolean" },
+        "awsAccessKey": { "type": "string" },
+        "awsSecretKey": { "type": "string" },
+        "awsRegion": { "type": "string" },
+        "awsService": { "type": "string" }
+      }
+    },
+    "requestSettings": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "httpVersion": { "type": "string", "enum": ["auto", "1.1", "2"] },
+        "enableSSLVerification": { "type": "boolean" },
+        "followRedirects": { "type": "boolean" },
+        "followOriginalMethod": { "type": "boolean" },
+        "followAuthorizationHeader": { "type": "boolean" },
+        "removeRefererHeader": { "type": "boolean" },
+        "encodeUrlAutomatically": { "type": "boolean" },
+        "disableCookieJar": { "type": "boolean" },
+        "maxRedirects": { "type": "integer", "minimum": 0 },
+        "timeoutMs": { "type": "integer", "minimum": 0 },
+        "proxyUrl": { "type": "string" },
+        "browserEmulation": { "type": "boolean" },
+        "browserOrigin": { "type": "string" },
+        "browserWithCredentials": { "type": "boolean" },
+        "browserEnforceCORS": { "type": "boolean" },
+        "browserEnforceCSP": { "type": "boolean" },
+        "browserCSP": { "type": "string" },
+        "wsHandshakeTimeoutMs": { "type": "integer", "minimum": 0 },
+        "wsReconnectAttempts": { "type": "integer", "minimum": 0 },
+        "wsReconnectIntervalMs": { "type": "integer", "minimum": 0 },
+        "wsMaxMessageSizeMb": { "type": "integer", "minimum": 1 },
+        "sioClientVersion": { "type": "string", "enum": ["v2", "v3"] },
+        "sioPath": { "type": "string" },
+        "sioNamespace": { "type": "string" },
+        "grpcUseTls": { "type": "boolean" },
+        "grpcUseReflection": { "type": "boolean" },
+        "grpcServerName": { "type": "string" },
+        "grpcIncludeDefaultValues": { "type": "boolean" },
+        "grpcMaxResponseMessageSizeMb": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "sioArg": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "content", "bodyType", "encoding"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "content": { "type": "string" },
+        "bodyType": { "type": "string", "enum": ["text", "json", "html", "xml", "binary"] },
+        "encoding": { "type": "string", "enum": ["base64", "hex"] }
+      }
+    },
+    "workspace": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "name", "filesystemName"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string" },
+        "filesystemName": { "$ref": "#/$defs/filesystemName" },
+        "description": { "type": "string" },
+        "createdAt": { "$ref": "#/$defs/timestamp" },
+        "updatedAt": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "collection": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "workspaceId", "name", "filesystemName"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "workspaceId": { "$ref": "#/$defs/id" },
+        "name": { "type": "string" },
+        "filesystemName": { "$ref": "#/$defs/filesystemName" },
+        "description": { "type": "string" },
+        "collapsed": { "type": "boolean" },
+        "folderPaths": {
+          "type": "array",
+          "description": "Persisted empty and non-empty collection folder paths. Each nested array contains UI display names.",
+          "items": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "defaults": { "$ref": "#/$defs/collectionDefaults" },
+        "createdAt": { "$ref": "#/$defs/timestamp" },
+        "updatedAt": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "collectionDefaults": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "headers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/kvRow" }
+        },
+        "variables": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/kvRow" }
+        },
+        "auth": { "$ref": "#/$defs/auth" },
+        "preRequestScript": { "type": "string" },
+        "testScript": { "type": "string" },
+        "preRequestScriptJs": { "type": "string" },
+        "testScriptJs": { "type": "string" },
+        "settings": { "$ref": "#/$defs/requestSettings" }
+      }
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "name", "filesystemName", "collectionId", "method", "url", "auth", "settings"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string" },
+        "filesystemName": { "$ref": "#/$defs/filesystemName" },
+        "nameAuto": { "type": "boolean" },
+        "requestType": { "type": "string", "enum": ["http", "graphql", "ws", "socketio", "grpc"] },
+        "isDraft": { "type": "boolean" },
+        "isPinned": { "type": "boolean" },
+        "collectionId": { "$ref": "#/$defs/id" },
+        "folderPath": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "method": { "type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "SSE"] },
+        "url": { "type": "string" },
+        "requestTab": { "type": "string", "enum": ["docs", "params", "query", "auth", "headers", "metadata", "body", "schema", "service", "events", "scripts", "settings"] },
+        "params": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/kvRow" }
+        },
+        "headers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/kvRow" }
+        },
+        "auth": { "$ref": "#/$defs/auth" },
+        "bodyType": { "type": "string", "enum": ["none", "json", "text", "xml", "html", "form", "urlencoded", "binary", "graphql"] },
+        "rawBodyType": { "type": "string", "enum": ["text", "json", "html", "xml"] },
+        "bodyContent": { "type": "string" },
+        "bodyFilePath": { "type": "string" },
+        "bodyFileName": { "type": "string" },
+        "formRows": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/kvRow" }
+        },
+        "graphqlSchema": { "type": "string" },
+        "preRequestScript": { "type": "string" },
+        "testScript": { "type": "string" },
+        "preRequestScriptJs": { "type": "string" },
+        "testScriptJs": { "type": "string" },
+        "requestNotes": { "type": "string" },
+        "settings": { "$ref": "#/$defs/requestSettings" },
+        "settingsOverrides": {
+          "type": "object",
+          "additionalProperties": { "type": "boolean" }
+        },
+        "sioEvents": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/kvRow" }
+        },
+        "sioEventName": { "type": "string" },
+        "sioArgs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/sioArg" }
+        },
+        "sioAck": { "type": "boolean" },
+        "grpcMethod": { "type": "string" },
+        "grpcMetadata": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/kvRow" }
+        },
+        "grpcUseReflection": { "type": "boolean" },
+        "grpcProtoFilePath": { "type": "string" },
+        "grpcProtoFileName": { "type": "string" },
+        "grpcProtoImportPaths": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "createdAt": { "$ref": "#/$defs/timestamp" },
+        "updatedAt": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "workspaceId", "name", "filesystemName", "values"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "workspaceId": { "$ref": "#/$defs/id" },
+        "name": { "type": "string" },
+        "filesystemName": { "$ref": "#/$defs/filesystemName" },
+        "values": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/kvRow" }
+        },
+        "createdAt": { "$ref": "#/$defs/timestamp" },
+        "updatedAt": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "rootFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "format", "workspaceOrder"],
+      "properties": {
+        "version": { "$ref": "#/$defs/fileVersion" },
+        "format": { "type": "string", "const": "relay.workspace.yaml.v1" },
+        "workspaceOrder": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    "workspaceFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "workspace"],
+      "properties": {
+        "version": { "$ref": "#/$defs/fileVersion" },
+        "workspace": { "$ref": "#/$defs/workspace" },
+        "collectionOrder": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    "collectionFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "collection"],
+      "properties": {
+        "version": { "$ref": "#/$defs/fileVersion" },
+        "collection": { "$ref": "#/$defs/collection" },
+        "requestOrder": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    "requestFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "request"],
+      "properties": {
+        "version": { "$ref": "#/$defs/fileVersion" },
+        "order": { "$ref": "#/$defs/order" },
+        "request": { "$ref": "#/$defs/request" }
+      }
+    },
+    "environmentFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "environment"],
+      "properties": {
+        "version": { "$ref": "#/$defs/fileVersion" },
+        "order": { "$ref": "#/$defs/order" },
+        "environment": { "$ref": "#/$defs/environment" }
+      }
+    }
+  },
+  "x-relay-format": "relay.workspace.yaml.v1",
+  "x-relay-path-layout": "yaml-filesystem-names.v1",
+  "x-relay-storage-kind": "workspace-yaml"
+}

@@ -1,0 +1,86 @@
+name: Bug report
+description: Something is broken or behaving unexpectedly in Relay.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. To help us reproduce and fix it quickly, please fill in as much detail as you can.
+
+  - type: input
+    id: version
+    attributes:
+      label: Relay version
+      description: Find this in Settings → About, or in the bottom-right status bar.
+      placeholder: "0.1.5"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Operating system
+      options:
+        - macOS (Intel)
+        - macOS (Apple Silicon)
+        - Windows 10
+        - Windows 11
+        - Linux (AppImage)
+        - Linux (other)
+    validations:
+      required: true
+
+  - type: input
+    id: os-version
+    attributes:
+      label: OS version
+      placeholder: "macOS 14.4 / Windows 11 23H2 / Ubuntu 22.04"
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps from a fresh app launch to the bug.
+      placeholder: |
+        1. Open Relay
+        2. Create a new POST request with body type "form"
+        3. Add a file field …
+        4. Press Send
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What actually happened
+      description: Include screenshots if the bug is visual. Drag images into this box.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console output (optional)
+      description: |
+        If the app crashed or a button silently did nothing, the browser DevTools console often has a clue. Right-click in the app → *Inspect Element* → Console tab. Paste any red lines here.
+      render: text
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-flight checks
+      options:
+        - label: I'm on the latest Relay release (checked Settings → Updates)
+          required: true
+        - label: I searched existing issues and didn't find a duplicate
+          required: true
+        - label: This isn't a security issue (those go to the [security advisories](https://github.com/relay-client/relay/security/advisories/new) instead)
+          required: true
