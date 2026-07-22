@@ -5,7 +5,7 @@ description: Common questions about Relay — data, auth, updates, troubleshooti
 
 ## Is Relay free?
 
-Yes. Relay is free to use on macOS, Windows, and Linux. The source for the desktop application is currently closed; release binaries and update metadata are published to a public repository so the auto-updater works without embedding tokens. See [building from source](https://github.com/relay-client/relay#building-from-source) if you have access.
+Yes — free and open source under the [MIT license](https://github.com/relay-client/relay/blob/main/LICENSE), on macOS, Windows, and Linux. The full desktop application source is at [relay-client/relay](https://github.com/relay-client/relay), which is also where releases are published. You can read it, [build it yourself](https://github.com/relay-client/relay#building-from-source), or [contribute](https://github.com/relay-client/relay/blob/main/CONTRIBUTING.md).
 
 ## Is my data sent anywhere?
 
@@ -66,7 +66,7 @@ Tracked as GitHub issues with the `roadmap` label. Current gaps include SOAP/XML
 
 [Open an issue](https://github.com/relay-client/relay/issues) with:
 
-- Version (Help → About → copy).
+- Version (Settings → About).
 - Platform and OS version.
 - Steps to reproduce.
 - Anonymized request if relevant (strip auth + sensitive bodies).
