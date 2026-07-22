@@ -221,7 +221,7 @@ jobs:
             AppDir "release/relay-${VERSION}-linux-amd64.AppImage"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: relay-${{ matrix.artifact }}
           path: release/*
