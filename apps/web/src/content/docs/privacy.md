@@ -7,6 +7,8 @@ Relay is a local-first desktop application. There is no Relay backend, account s
 
 This page documents exactly what data Relay stores, where, how it's protected, and the few cases where the app talks to a network on your behalf.
 
+None of it has to be taken on trust: Relay is open source under the MIT license, so every claim below can be checked against the code at [relay-client/relay](https://github.com/relay-client/relay), and the binaries can be reproduced from that source.
+
 ![Settings → About showing the app version and runtime info](../../assets/screenshots/settings-about.png)
 
 ## What Relay stores on your machine
