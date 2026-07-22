@@ -5,6 +5,15 @@
   --relay-violet: #6d5cf5;
   --relay-blue: #43a0f1;
 
+  --sl-font: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --sl-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Scoped to the dark theme on purpose. Starlight keeps its palette in
+   @layer starlight.base, and an unlayered rule beats a layered one regardless
+   of specificity — so declaring this ramp on a bare :root would apply it to
+   both themes and leave the theme toggle with nothing to change. */
+:root[data-theme='dark'] {
   --sl-color-accent-low: #20223f;
   --sl-color-accent: #5865f2;
   --sl-color-accent-high: #c8ccff;
@@ -17,9 +26,6 @@
   --sl-color-gray-5: #353535;
   --sl-color-gray-6: #1d1d1d;
   --sl-color-black: #111111;
-
-  --sl-font: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --sl-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 :root[data-theme='light'] {
