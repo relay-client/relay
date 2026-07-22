@@ -106,7 +106,7 @@ pm.test("has id", () => pm.expect(body).to.have.property("id"))
 **Prerequisites**
 
 - Go 1.25+
-- Node.js 20+
+- Node.js 22.12+
 - [Wails v2](https://wails.io/docs/gettingstarted/installation) — `go install github.com/wailsapp/wails/v2/cmd/wails@latest`
 - macOS: Xcode Command Line Tools
 - Windows: NSIS (for installer builds) and Windows SDK (for MSIX packaging/signing tools)

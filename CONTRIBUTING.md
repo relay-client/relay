@@ -18,7 +18,7 @@ By taking part you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 Requirements:
 
 - Go 1.25+
-- Node.js 20+
+- Node.js 22.12+
 - [Wails v2](https://wails.io/docs/gettingstarted/installation) — `go install github.com/wailsapp/wails/v2/cmd/wails@latest`
 - macOS: Xcode Command Line Tools
 - Linux: `libgtk-3-dev`, `libwebkit2gtk-4.0-dev`

@@ -2,6 +2,7 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import sitemap from '@astrojs/sitemap';
+import { unified } from '@astrojs/markdown-remark';
 
 
 
@@ -58,7 +59,7 @@ export default defineConfig({
   base: BASE,
   trailingSlash: 'always',
   markdown: {
-    rehypePlugins: [rehypeBasePaths()],
+    processor: unified({ rehypePlugins: [rehypeBasePaths()] }),
   },
   integrations: [
     starlight({
@@ -70,9 +71,7 @@ export default defineConfig({
       },
       favicon: '/favicon.svg',
       customCss: ['./src/styles/custom.css'],
-      social: {
-        github: GITHUB_SOURCE,
-      },
+      social: [{ icon: 'github', label: 'GitHub', href: GITHUB_SOURCE }],
       editLink: {
         baseUrl: `${GITHUB_SOURCE}/edit/main/apps/web/`,
       },
