@@ -7,7 +7,13 @@ All notable changes to Relay are documented here. This project follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Changed
+- Wails updated to 2.13, along with the Go dependency set (`golang.org/x/net`, `golang.org/x/crypto`, gRPC, minisign) and the frontend toolchain (Svelte 5.56, TypeScript 7, Vite plugin 6). No behaviour change is intended; the desktop app is otherwise identical to 1.0.0.
+
+### Fixed
+- Documentation site: the theme toggle changed only its own label because the brand palette was applied to both themes. Light mode works again.
+- Documentation site: hand-written links dropped the deploy base path and returned 404s.
+- Release automation: release notes fell back to a placeholder instead of reading the annotated tag message.
 
 ---
 
