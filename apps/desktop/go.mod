@@ -3,8 +3,8 @@ module github.com/relay-client/relay/apps/desktop
 go 1.25.0
 
 require (
-	aead.dev/minisign v0.2.0
-	github.com/Masterminds/semver/v3 v3.2.1
+	aead.dev/minisign v0.3.0
+	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/andybalholm/brotli v1.2.2
 	github.com/d5/tengo/v2 v2.17.0
 	github.com/dop251/goja v0.0.0-20260311135729-065cd970411c
@@ -12,11 +12,11 @@ require (
 	github.com/golang/protobuf v1.5.4
 	github.com/gorilla/websocket v1.5.3
 	github.com/jhump/protoreflect v1.18.0
-	github.com/klauspost/compress v1.19.0
+	github.com/klauspost/compress v1.19.1
 	github.com/minio/selfupdate v0.6.0
-	github.com/wailsapp/wails/v2 v2.12.0
-	golang.org/x/net v0.51.0
-	google.golang.org/grpc v1.81.1
+	github.com/wailsapp/wails/v2 v2.13.0
+	golang.org/x/net v0.54.0
+	google.golang.org/grpc v1.82.1
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -55,10 +55,10 @@ require (
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/wailsapp/go-webview2 v1.0.22 // indirect
 	github.com/wailsapp/mimetype v1.4.1 // indirect
-	golang.org/x/crypto v0.48.0 // indirect
+	golang.org/x/crypto v0.51.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.42.0 // indirect
-	golang.org/x/text v0.34.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260226221140-a57be14db171 // indirect
+	golang.org/x/sys v0.44.0 // indirect
+	golang.org/x/text v0.37.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260414002931-afd174a4e478 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
