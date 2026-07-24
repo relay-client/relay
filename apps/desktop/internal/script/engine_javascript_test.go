@@ -61,6 +61,24 @@ pm.environment.unset("keep");
 	}
 }
 
+func TestJSIterationDataIsReadable(t *testing.T) {
+	ctx := NewContext(nil, nil)
+	ctx.IterationData = map[string]string{"user": "ada", "role": "admin"}
+	res := jsPre(`
+pm.variables.set("who", pm.iterationData.get("user"));
+pm.variables.set("missing", String(pm.iterationData.get("nope") === undefined));
+`, ctx)
+	if res.Error != "" {
+		t.Fatalf("unexpected error: %s", res.Error)
+	}
+	if ctx.Variables["who"] != "ada" {
+		t.Fatalf("who = %q", ctx.Variables["who"])
+	}
+	if ctx.Variables["missing"] != "true" {
+		t.Fatalf("expected undefined for a missing iterationData key, got %q", ctx.Variables["missing"])
+	}
+}
+
 func TestJSMissingValueIsUndefined(t *testing.T) {
 	ctx := NewContext(nil, nil)
 	res := jsPre(`

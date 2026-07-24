@@ -3,7 +3,6 @@ package api
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -174,6 +173,7 @@ func redactSecrets(text string, secrets []string) string {
 func populateScriptRequestContext(ctx *script.Context, req model.HttpRequest) {
 	ctx.RequestURL = req.URL
 	ctx.RequestMethod = req.Method
+	ctx.IterationData = req.IterationData
 	for _, h := range req.Headers {
 		if h.Enabled && h.Key != "" {
 			ctx.RequestHeaders[h.Key] = h.Value
@@ -220,6 +220,9 @@ func doRequestWithBodySink(ctx context.Context, req model.HttpRequest, jar http.
 	}
 	if isNumericHostname(u.Hostname()) {
 		return earlyError(invalidBarePortURLMessage("http"))
+	}
+	if msg := validateClientCertificate(req); msg != "" {
+		return earlyError(msg)
 	}
 
 	applyQueryParams(u, req)
@@ -268,7 +271,15 @@ func doRequestWithBodySink(ctx context.Context, req model.HttpRequest, jar http.
 	if explicitCookieHeader && !req.DisableCookieJar {
 		requestJar = receiveOnlyCookieJar{jar: jar}
 	}
-	client := buildHTTPClient(req, requestJar, effectiveTimeout, browserCtx)
+	client, sentRequests := buildHTTPClient(req, requestJar, effectiveTimeout, browserCtx)
+	// Attached to every outcome from here on, including failures: a request
+	// that never got a response is exactly when the timeline is worth reading.
+	withTrace := func(resp model.HttpResponse) model.HttpResponse {
+		resp.SentRequests = sentRequests.snapshot()
+		resp.Connection = timings.connectionInfo()
+		resp.Timeline = timings.timeline()
+		return resp
+	}
 	timings.markPrepared()
 	if browserCtx.enforceCORS && corsPreflightRequired(httpReq) {
 		requestHeaders := corsUnsafeRequestHeaderNames(httpReq.Header)
@@ -278,11 +289,11 @@ func doRequestWithBodySink(ctx context.Context, req model.HttpRequest, jar http.
 			preflightResp, corsMsg, networkErr := runCORSPreflight(traceCtx, client, httpReq, u, browserCtx)
 			if networkErr != nil {
 				finish := time.Now()
-				return model.HttpResponse{
+				return withTrace(model.HttpResponse{
 					Duration: finish.Sub(start).Milliseconds(),
 					Timings:  timings.snapshot(finish),
 					Error:    formatRequestError(fmt.Errorf("CORS preflight failed: %w", networkErr), u, effectiveTimeout),
-				}
+				})
 			}
 			if corsMsg != "" {
 				finish := time.Now()
@@ -296,7 +307,7 @@ func doRequestWithBodySink(ctx context.Context, req model.HttpRequest, jar http.
 					resp.Status = preflightResp.Status
 					resp.Headers = httpHeadersToKeyValues(preflightResp.Header)
 				}
-				return resp
+				return withTrace(resp)
 			}
 			if preflightResp != nil {
 				cachePreflightResponse(cache, cacheKey, preflightResp)
@@ -306,11 +317,11 @@ func doRequestWithBodySink(ctx context.Context, req model.HttpRequest, jar http.
 	httpResp, err := client.Do(httpReq)
 	if err != nil {
 		finish := time.Now()
-		return model.HttpResponse{
+		return withTrace(model.HttpResponse{
 			Duration: finish.Sub(start).Milliseconds(),
 			Timings:  timings.snapshot(finish),
 			Error:    formatRequestError(err, u, effectiveTimeout),
-		}
+		})
 	}
 	defer httpResp.Body.Close()
 
@@ -318,27 +329,27 @@ func doRequestWithBodySink(ctx context.Context, req model.HttpRequest, jar http.
 	if browserCtx.enforceCORS {
 		if msg := validateCORSActualResponse(httpResp, browserCtx); msg != "" {
 			finish := time.Now()
-			return model.HttpResponse{
+			return withTrace(model.HttpResponse{
 				StatusCode: httpResp.StatusCode,
 				Status:     httpResp.Status,
 				Headers:    respHeaders,
 				Duration:   finish.Sub(start).Milliseconds(),
 				Timings:    timings.snapshot(finish),
 				Error:      "CORS error: " + msg,
-			}
+			})
 		}
 	}
 
 	if isEventStreamResponse(httpResp.Header) {
 		finish := time.Now()
-		return model.HttpResponse{
+		return withTrace(model.HttpResponse{
 			StatusCode: httpResp.StatusCode,
 			Status:     httpResp.Status,
 			Headers:    respHeaders,
 			Duration:   finish.Sub(start).Milliseconds(),
 			Timings:    timings.snapshot(finish),
 			Error:      "This endpoint returned an SSE stream. Switch to SSE mode to subscribe.",
-		}
+		})
 	}
 
 	var (
@@ -415,7 +426,7 @@ func doRequestWithBodySink(ctx context.Context, req model.HttpRequest, jar http.
 			resp.Error = fmt.Sprintf("response truncated — showing first %d MB (total size unknown)", shown)
 		}
 	}
-	return resp
+	return withTrace(resp)
 }
 
 func readResponseBodyWithLimit(body io.Reader, maxSize int64) ([]byte, bool, error) {
@@ -615,14 +626,14 @@ func effectiveRequestTimeout(req model.HttpRequest) time.Duration {
 	return 30 * time.Second
 }
 
-func buildHTTPClient(req model.HttpRequest, jar http.CookieJar, timeout time.Duration, browserCtx browserSecurityContext) *http.Client {
+func buildHTTPClient(req model.HttpRequest, jar http.CookieJar, timeout time.Duration, browserCtx browserSecurityContext) (*http.Client, *sentRequestRecorder) {
 	maxRedirects := req.MaxRedirects
 	if maxRedirects <= 0 {
 		maxRedirects = 10
 	}
 
-	transport := buildBaseHTTPTransport(req)
-	roundTripper := buildHTTPRoundTripper(req, transport)
+	transport := sharedHTTPTransport(req)
+	recorder := newSentRequestRecorder(buildHTTPRoundTripper(req, transport), req.SecretEnvironmentValues)
 
 	if req.DisableCookieJar {
 		jar = nil
@@ -630,35 +641,10 @@ func buildHTTPClient(req model.HttpRequest, jar http.CookieJar, timeout time.Dur
 
 	return &http.Client{
 		Timeout:       timeout,
-		Transport:     roundTripper,
+		Transport:     recorder,
 		Jar:           jar,
 		CheckRedirect: buildRedirectPolicy(req, maxRedirects, browserCtx),
-	}
-}
-
-func buildBaseHTTPTransport(req model.HttpRequest) *http.Transport {
-	baseTransport, _ := http.DefaultTransport.(*http.Transport)
-	if baseTransport == nil {
-		baseTransport = &http.Transport{}
-	}
-	transport := baseTransport.Clone()
-	transport.ForceAttemptHTTP2 = req.HTTPVersion != "1.1"
-	if req.HTTPVersion == "1.1" {
-		transport.TLSNextProto = map[string]func(string, *tls.Conn) http.RoundTripper{}
-	}
-	// Always pin a minimum TLS version. Even when the user opts out of
-	// certificate verification (a debugging affordance), accepting TLS 1.0/1.1
-	// would expose them to known protocol attacks they didn't ask for.
-	if !req.EnableSSLVerification {
-		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS12}
-	} else if transport.TLSClientConfig == nil {
-		transport.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12}
-	} else if transport.TLSClientConfig.MinVersion < tls.VersionTLS12 {
-		transport.TLSClientConfig = transport.TLSClientConfig.Clone()
-		transport.TLSClientConfig.MinVersion = tls.VersionTLS12
-	}
-	transport.Proxy = proxyForRequest(req)
-	return transport
+	}, recorder
 }
 
 func buildHTTPRoundTripper(req model.HttpRequest, transport *http.Transport) http.RoundTripper {
@@ -739,30 +725,34 @@ func sameHostAndScheme(a, b *url.URL) bool {
 	return strings.EqualFold(a.Scheme, b.Scheme) && strings.EqualFold(a.Host, b.Host)
 }
 
+// applyQueryParams merges the request's param rows into the URL's own query
+// string, preserving order end to end: whatever the URL already carried first,
+// then the param rows in table order, then the API-key param.
+//
+// Order matters. url.Values.Encode sorts alphabetically, which silently breaks
+// every API that signs the query string verbatim (HMAC signatures, payment
+// gateways) and reshuffles what the user deliberately typed. url.Values also
+// can't tell a bare flag ("?debug") from an empty assignment ("?debug="), and
+// turns the former into the latter.
 func applyQueryParams(u *url.URL, req model.HttpRequest) {
+	pairs := parseRawQuery(u.RawQuery)
 	if req.EncodeURLAutomatically {
-		q := u.Query()
-		for _, p := range req.Params {
-			if p.Enabled && p.Key != "" {
-				q.Add(p.Key, p.Value)
+		for i := range pairs {
+			pairs[i].key = reencodeQueryComponent(pairs[i].key)
+			if pairs[i].hasValue {
+				pairs[i].value = reencodeQueryComponent(pairs[i].value)
 			}
 		}
-		if req.Auth.Type == "apikey" && req.Auth.KeyIn == "query" && req.Auth.KeyName != "" {
-			q.Add(req.Auth.KeyName, req.Auth.KeyValue)
-		}
-		u.RawQuery = q.Encode()
-	} else {
-		raw := u.RawQuery
-		for _, p := range req.Params {
-			if p.Enabled && p.Key != "" {
-				raw = appendRawQuery(raw, p.Key, p.Value)
-			}
-		}
-		if req.Auth.Type == "apikey" && req.Auth.KeyIn == "query" && req.Auth.KeyName != "" {
-			raw = appendRawQuery(raw, req.Auth.KeyName, req.Auth.KeyValue)
-		}
-		u.RawQuery = raw
 	}
+	for _, p := range req.Params {
+		if p.Enabled && p.Key != "" {
+			pairs = append(pairs, escapedQueryPair(p.Key, p.Value))
+		}
+	}
+	if req.Auth.Type == "apikey" && req.Auth.KeyIn == "query" && req.Auth.KeyName != "" {
+		pairs = append(pairs, escapedQueryPair(req.Auth.KeyName, req.Auth.KeyValue))
+	}
+	u.RawQuery = encodeQueryPairs(pairs)
 }
 
 // applyUserHeaders copies enabled rows onto the outgoing request. Hop-by-hop
@@ -906,12 +896,62 @@ func urlWithoutFragment(u *url.URL) string {
 	return noFrag.String()
 }
 
-func appendRawQuery(rawQuery, key, value string) string {
-	pair := url.QueryEscape(key) + "=" + url.QueryEscape(value)
-	if rawQuery == "" {
-		return pair
+// queryPair is one query-string parameter, kept in the order it appeared and
+// still percent-encoded. hasValue distinguishes "?flag" from "?flag=".
+type queryPair struct {
+	key      string
+	value    string
+	hasValue bool
+}
+
+// parseRawQuery splits a raw query on "&" without decoding, so the
+// non-encoding path can pass the user's own spelling through untouched.
+// Unlike url.ParseQuery it keeps duplicate keys in place and never drops a
+// segment it fails to decode.
+func parseRawQuery(raw string) []queryPair {
+	if raw == "" {
+		return nil
 	}
-	return rawQuery + "&" + pair
+	segments := strings.Split(raw, "&")
+	pairs := make([]queryPair, 0, len(segments))
+	for _, segment := range segments {
+		if segment == "" {
+			continue
+		}
+		key, value, hasValue := strings.Cut(segment, "=")
+		pairs = append(pairs, queryPair{key: key, value: value, hasValue: hasValue})
+	}
+	return pairs
+}
+
+func escapedQueryPair(key, value string) queryPair {
+	return queryPair{key: url.QueryEscape(key), value: url.QueryEscape(value), hasValue: true}
+}
+
+// reencodeQueryComponent normalises a component the user typed by hand: decode
+// it, then re-encode it properly. A component that doesn't decode (a stray "%"
+// or "%zz") is escaped whole rather than dropped.
+func reencodeQueryComponent(raw string) string {
+	decoded, err := url.QueryUnescape(raw)
+	if err != nil {
+		return url.QueryEscape(raw)
+	}
+	return url.QueryEscape(decoded)
+}
+
+func encodeQueryPairs(pairs []queryPair) string {
+	var out strings.Builder
+	for _, pair := range pairs {
+		if out.Len() > 0 {
+			out.WriteByte('&')
+		}
+		out.WriteString(pair.key)
+		if pair.hasValue {
+			out.WriteByte('=')
+			out.WriteString(pair.value)
+		}
+	}
+	return out.String()
 }
 
 func mergeScriptURL(ctx *script.Context, req *model.HttpRequest) {

@@ -96,9 +96,13 @@ type HttpRequest struct {
 	SecretEnvironmentKeys        []string          `json:"secretEnvironmentKeys"`
 	SecretEnvironmentValues      []string          `json:"secretEnvironmentValues"`
 	CollectionVariables          map[string]string `json:"collectionVariables"`
+	IterationData                map[string]string `json:"iterationData,omitempty"`
 	ProxyURL                     string            `json:"proxyUrl"`
 	ProxyMode                    string            `json:"proxyMode"`
 	ProxyBypass                  string            `json:"proxyBypass"`
+	ClientCertPath               string            `json:"clientCertPath"`
+	ClientKeyPath                string            `json:"clientKeyPath"`
+	ClientKeyPassword            string            `json:"clientKeyPassword"`
 	BrowserEmulation             bool              `json:"browserEmulation"`
 	BrowserOrigin                string            `json:"browserOrigin"`
 	BrowserWithCredentials       bool              `json:"browserWithCredentials"`
@@ -119,16 +123,50 @@ type HttpRequest struct {
 }
 
 type HttpResponse struct {
-	StatusCode       int          `json:"statusCode"`
-	Status           string       `json:"status"`
-	Headers          []KeyValue   `json:"headers"`
-	Body             string       `json:"body"`
-	Duration         int64        `json:"duration"`
-	Timings          ResponseTime `json:"timings"`
-	Size             int64        `json:"size"`
-	Error            string       `json:"error,omitempty"`
-	PreRequestResult ScriptResult `json:"preRequestResult"`
-	TestResult       ScriptResult `json:"testResult"`
+	StatusCode       int             `json:"statusCode"`
+	Status           string          `json:"status"`
+	Headers          []KeyValue      `json:"headers"`
+	Body             string          `json:"body"`
+	Duration         int64           `json:"duration"`
+	Timings          ResponseTime    `json:"timings"`
+	Size             int64           `json:"size"`
+	Error            string          `json:"error,omitempty"`
+	PreRequestResult ScriptResult    `json:"preRequestResult"`
+	TestResult       ScriptResult    `json:"testResult"`
+	SentRequests     []SentRequest   `json:"sentRequests,omitempty"`
+	Connection       ConnectionInfo  `json:"connection"`
+	Timeline         []TimelineEvent `json:"timeline,omitempty"`
+}
+
+// SentRequest is what actually went out on the wire, captured at the transport
+// after auth, cookies, and redirect handling have had their say. A redirect
+// chain produces one entry per hop.
+type SentRequest struct {
+	Method  string     `json:"method"`
+	URL     string     `json:"url"`
+	Proto   string     `json:"proto"`
+	Headers []KeyValue `json:"headers"`
+}
+
+type ConnectionInfo struct {
+	Reused     bool     `json:"reused"`
+	WasIdle    bool     `json:"wasIdle"`
+	LocalAddr  string   `json:"localAddr,omitempty"`
+	RemoteAddr string   `json:"remoteAddr,omitempty"`
+	Protocol   string   `json:"protocol,omitempty"`
+	TLSVersion string   `json:"tlsVersion,omitempty"`
+	TLSCipher  string   `json:"tlsCipher,omitempty"`
+	ALPN       string   `json:"alpn,omitempty"`
+	ServerName string   `json:"serverName,omitempty"`
+	Addresses  []string `json:"addresses,omitempty"`
+}
+
+// TimelineEvent is one point on the request's life, measured in milliseconds
+// from the moment the send started.
+type TimelineEvent struct {
+	Label  string  `json:"label"`
+	AtMs   float64 `json:"atMs"`
+	Detail string  `json:"detail,omitempty"`
 }
 
 type ResponseTime struct {

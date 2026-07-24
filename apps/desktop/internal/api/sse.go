@@ -283,7 +283,7 @@ func (m *sseManager) runStreamAttempt(
 		sseReq.DisableCookieJar = true
 		httpReq.Header.Del("Cookie")
 	}
-	transport := buildBaseHTTPTransport(sseReq)
+	transport := sharedHTTPTransport(sseReq)
 	// Look up the per-workspace cookie jar so streams from different
 	// workspaces don't share Set-Cookie state.
 	var jar http.CookieJar

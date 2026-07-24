@@ -22,6 +22,9 @@ func main() {
 	if len(os.Args) >= 2 && os.Args[1] == "git-credential" {
 		os.Exit(api.RunGitCredentialHelper(os.Args[2:]))
 	}
+	if len(os.Args) >= 2 && os.Args[1] == "run" {
+		os.Exit(api.RunCLI(os.Args[2:]))
+	}
 
 	app := api.NewApp()
 	err := wails.Run(buildAppOptions(app, assets))

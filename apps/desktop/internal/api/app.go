@@ -75,6 +75,7 @@ func (a *App) Shutdown(_ context.Context) {
 	if a.sse != nil {
 		a.sse.disconnectAll()
 	}
+	httpTransports.closeAll()
 }
 
 func (a *App) BeforeClose(ctx context.Context) bool {
