@@ -1134,11 +1134,109 @@ func TestSendRequestRejectsBarePortLikeURL(t *testing.T) {
 	}
 }
 
-func TestAppendRawQueryEscapesKeyAndValue(t *testing.T) {
-	got := appendRawQuery("existing=1", "a key&x", "value with spaces&equals=#")
+func TestApplyQueryParamsEscapesKeyAndValue(t *testing.T) {
+	u, err := url.Parse("https://example.com/path?existing=1")
+	if err != nil {
+		t.Fatalf("parse url: %v", err)
+	}
+	applyQueryParams(u, model.HttpRequest{
+		Params: []model.KeyValue{{Enabled: true, Key: "a key&x", Value: "value with spaces&equals=#"}},
+	})
+
 	want := "existing=1&a+key%26x=value+with+spaces%26equals%3D%23"
-	if got != want {
-		t.Fatalf("expected %q, got %q", want, got)
+	if u.RawQuery != want {
+		t.Fatalf("expected %q, got %q", want, u.RawQuery)
+	}
+}
+
+// APIs that sign the query string verbatim break when the client reorders it,
+// so params must reach the wire in the order the user arranged them.
+func TestApplyQueryParamsPreservesOrder(t *testing.T) {
+	for _, autoEncode := range []bool{true, false} {
+		name := "manual encoding"
+		if autoEncode {
+			name = "automatic encoding"
+		}
+		t.Run(name, func(t *testing.T) {
+			u, err := url.Parse("https://example.com/sign?z_url=0")
+			if err != nil {
+				t.Fatalf("parse url: %v", err)
+			}
+			applyQueryParams(u, model.HttpRequest{
+				Params: []model.KeyValue{
+					{Enabled: true, Key: "z_last", Value: "1"},
+					{Enabled: false, Key: "skipped", Value: "x"},
+					{Enabled: true, Key: "a_first", Value: "2"},
+					{Enabled: true, Key: "m_mid", Value: "3"},
+				},
+				Auth:                   model.AuthConfig{Type: "apikey", KeyIn: "query", KeyName: "api_key", KeyValue: "k"},
+				EncodeURLAutomatically: autoEncode,
+			})
+
+			want := "z_url=0&z_last=1&a_first=2&m_mid=3&api_key=k"
+			if u.RawQuery != want {
+				t.Fatalf("expected %q, got %q", want, u.RawQuery)
+			}
+		})
+	}
+}
+
+func TestApplyQueryParamsKeepsRepeatedKeysInOrder(t *testing.T) {
+	u, err := url.Parse("https://example.com/list?tag=a&other=1&tag=b")
+	if err != nil {
+		t.Fatalf("parse url: %v", err)
+	}
+	applyQueryParams(u, model.HttpRequest{
+		Params:                 []model.KeyValue{{Enabled: true, Key: "tag", Value: "c"}},
+		EncodeURLAutomatically: true,
+	})
+
+	want := "tag=a&other=1&tag=b&tag=c"
+	if u.RawQuery != want {
+		t.Fatalf("expected %q, got %q", want, u.RawQuery)
+	}
+}
+
+// url.Values rewrites a bare flag into an empty assignment; some APIs treat
+// the two differently, so whichever the user typed has to survive.
+func TestApplyQueryParamsKeepsBareFlag(t *testing.T) {
+	u, err := url.Parse("https://example.com/search?debug&verbose=")
+	if err != nil {
+		t.Fatalf("parse url: %v", err)
+	}
+	applyQueryParams(u, model.HttpRequest{EncodeURLAutomatically: true})
+
+	want := "debug&verbose="
+	if u.RawQuery != want {
+		t.Fatalf("expected %q, got %q", want, u.RawQuery)
+	}
+}
+
+func TestApplyQueryParamsReencodesExistingQueryWhenAutomatic(t *testing.T) {
+	u, err := url.Parse("https://example.com/s?q=a b&raw=%zz")
+	if err != nil {
+		t.Fatalf("parse url: %v", err)
+	}
+	applyQueryParams(u, model.HttpRequest{EncodeURLAutomatically: true})
+
+	// "a b" is normalised; "%zz" is invalid escaping and gets escaped whole
+	// rather than silently dropped.
+	want := "q=a+b&raw=%25zz"
+	if u.RawQuery != want {
+		t.Fatalf("expected %q, got %q", want, u.RawQuery)
+	}
+}
+
+func TestApplyQueryParamsLeavesExistingQueryAloneWhenManual(t *testing.T) {
+	u, err := url.Parse("https://example.com/s?q=a%20b&raw=%zz")
+	if err != nil {
+		t.Fatalf("parse url: %v", err)
+	}
+	applyQueryParams(u, model.HttpRequest{EncodeURLAutomatically: false})
+
+	want := "q=a%20b&raw=%zz"
+	if u.RawQuery != want {
+		t.Fatalf("expected %q, got %q", want, u.RawQuery)
 	}
 }
 

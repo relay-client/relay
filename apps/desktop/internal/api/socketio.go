@@ -732,7 +732,7 @@ func (m *socketIOManager) pollingHandshake(ctx context.Context, req model.HttpRe
 	u.RawQuery = q.Encode()
 	applyQueryParams(u, req)
 
-	transport := buildBaseHTTPTransport(req)
+	transport := sharedHTTPTransport(req)
 	client := &http.Client{Transport: buildHTTPRoundTripper(req, transport)}
 	if t := websocketHandshakeTimeout(req); t > 0 {
 		client.Timeout = t

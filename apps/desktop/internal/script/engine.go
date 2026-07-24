@@ -34,6 +34,9 @@ func resolveEngine(name string) Engine {
 type Context struct {
 	Variables   map[string]string
 	Environment map[string]string
+	// IterationData holds the current data-file row, exposed to scripts as the
+	// read-only pm.iterationData. Empty outside a data-driven run.
+	IterationData map[string]string
 
 	RequestURL     string
 	RequestMethod  string

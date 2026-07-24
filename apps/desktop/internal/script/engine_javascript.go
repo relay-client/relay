@@ -108,6 +108,13 @@ func buildJSHost(vm *goja.Runtime, ctx *Context, hasResponse bool) map[string]in
 			}
 		},
 
+		"iterGet": func(k string) goja.Value {
+			if v, ok := ctx.IterationData[k]; ok {
+				return vm.ToValue(v)
+			}
+			return undef
+		},
+
 		"reqGetUrl":    func() string { return ctx.RequestURL },
 		"reqSetUrl":    func(u string) { ctx.RequestURL = limitJSHostString(u) },
 		"reqGetMethod": func() string { return ctx.RequestMethod },
@@ -332,6 +339,7 @@ var __relayAPI = (function (host) {
   var pm = {
     variables: kv('varGet', 'varSet', 'varUnset', 'varClear'),
     environment: kv('envGet', 'envSet', 'envUnset', 'envClear'),
+    iterationData: { get: function (k) { return host.iterGet(String(k)); } },
     request: {
       set_url: function (u) { host.reqSetUrl(String(u)); },
       setUrl: function (u) { host.reqSetUrl(String(u)); },

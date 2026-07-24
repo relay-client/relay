@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"math"
 	"net/http/httptrace"
+	"strings"
 	"sync"
 	"time"
 
@@ -33,6 +34,50 @@ type responseTimingRecorder struct {
 
 	firstResponseByte time.Time
 	lastResponseByte  time.Time
+
+	events     []model.TimelineEvent
+	connection model.ConnectionInfo
+}
+
+func (r *responseTimingRecorder) addEventLocked(label string, at time.Time, detail string) {
+	r.events = append(r.events, model.TimelineEvent{
+		Label:  label,
+		AtMs:   millisBetween(r.start, at),
+		Detail: detail,
+	})
+}
+
+// timeline returns the recorded events in the order they happened.
+func (r *responseTimingRecorder) timeline() []model.TimelineEvent {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if len(r.events) == 0 {
+		return nil
+	}
+	out := make([]model.TimelineEvent, len(r.events))
+	copy(out, r.events)
+	return out
+}
+
+func (r *responseTimingRecorder) connectionInfo() model.ConnectionInfo {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.connection
+}
+
+func tlsVersionName(version uint16) string {
+	switch version {
+	case tls.VersionTLS13:
+		return "TLS 1.3"
+	case tls.VersionTLS12:
+		return "TLS 1.2"
+	case tls.VersionTLS11:
+		return "TLS 1.1"
+	case tls.VersionTLS10:
+		return "TLS 1.0"
+	default:
+		return ""
+	}
 }
 
 func withResponseTiming(ctx context.Context, start time.Time) (context.Context, *responseTimingRecorder) {
@@ -77,20 +122,22 @@ func (r *responseTimingRecorder) snapshot(finish time.Time) model.ResponseTime {
 
 func (r *responseTimingRecorder) clientTrace() *httptrace.ClientTrace {
 	return &httptrace.ClientTrace{
-		GetConn: func(_ string) {
+		GetConn: func(hostPort string) {
 			r.mu.Lock()
 			defer r.mu.Unlock()
 			r.getConn = time.Now()
 			r.socketRecorded = false
+			r.addEventLocked("Connection requested", r.getConn, hostPort)
 		},
-		DNSStart: func(_ httptrace.DNSStartInfo) {
+		DNSStart: func(info httptrace.DNSStartInfo) {
 			r.mu.Lock()
 			defer r.mu.Unlock()
 			now := time.Now()
 			r.recordSocketStartLocked(now)
 			r.dnsStart = now
+			r.addEventLocked("DNS lookup started", now, info.Host)
 		},
-		DNSDone: func(_ httptrace.DNSDoneInfo) {
+		DNSDone: func(info httptrace.DNSDoneInfo) {
 			r.mu.Lock()
 			defer r.mu.Unlock()
 			now := time.Now()
@@ -98,15 +145,22 @@ func (r *responseTimingRecorder) clientTrace() *httptrace.ClientTrace {
 				r.dnsTotal += now.Sub(r.dnsStart)
 			}
 			r.dnsStart = time.Time{}
+			addresses := make([]string, 0, len(info.Addrs))
+			for _, addr := range info.Addrs {
+				addresses = append(addresses, addr.String())
+			}
+			r.connection.Addresses = addresses
+			r.addEventLocked("DNS lookup done", now, strings.Join(addresses, ", "))
 		},
-		ConnectStart: func(_, _ string) {
+		ConnectStart: func(network, addr string) {
 			r.mu.Lock()
 			defer r.mu.Unlock()
 			now := time.Now()
 			r.recordSocketStartLocked(now)
 			r.connectStart = now
+			r.addEventLocked("TCP connecting", now, network+" "+addr)
 		},
-		ConnectDone: func(_, _ string, _ error) {
+		ConnectDone: func(network, addr string, err error) {
 			r.mu.Lock()
 			defer r.mu.Unlock()
 			now := time.Now()
@@ -114,13 +168,19 @@ func (r *responseTimingRecorder) clientTrace() *httptrace.ClientTrace {
 				r.tcpTotal += now.Sub(r.connectStart)
 			}
 			r.connectStart = time.Time{}
+			detail := network + " " + addr
+			if err != nil {
+				detail += " — " + err.Error()
+			}
+			r.addEventLocked("TCP connected", now, detail)
 		},
 		TLSHandshakeStart: func() {
 			r.mu.Lock()
 			defer r.mu.Unlock()
 			r.tlsStart = time.Now()
+			r.addEventLocked("TLS handshake started", r.tlsStart, "")
 		},
-		TLSHandshakeDone: func(_ tls.ConnectionState, _ error) {
+		TLSHandshakeDone: func(state tls.ConnectionState, err error) {
 			r.mu.Lock()
 			defer r.mu.Unlock()
 			now := time.Now()
@@ -128,8 +188,21 @@ func (r *responseTimingRecorder) clientTrace() *httptrace.ClientTrace {
 				r.tlsTotal += now.Sub(r.tlsStart)
 			}
 			r.tlsStart = time.Time{}
+			if err != nil {
+				r.addEventLocked("TLS handshake failed", now, err.Error())
+				return
+			}
+			r.connection.TLSVersion = tlsVersionName(state.Version)
+			r.connection.TLSCipher = tls.CipherSuiteName(state.CipherSuite)
+			r.connection.ALPN = state.NegotiatedProtocol
+			r.connection.ServerName = state.ServerName
+			detail := r.connection.TLSVersion
+			if r.connection.TLSCipher != "" {
+				detail += ", " + r.connection.TLSCipher
+			}
+			r.addEventLocked("TLS handshake done", now, detail)
 		},
-		GotConn: func(_ httptrace.GotConnInfo) {
+		GotConn: func(info httptrace.GotConnInfo) {
 			r.mu.Lock()
 			defer r.mu.Unlock()
 			now := time.Now()
@@ -137,11 +210,34 @@ func (r *responseTimingRecorder) clientTrace() *httptrace.ClientTrace {
 				r.socketTotal += now.Sub(r.getConn)
 				r.socketRecorded = true
 			}
+			r.connection.Reused = info.Reused
+			r.connection.WasIdle = info.WasIdle
+			if info.Conn != nil {
+				if local := info.Conn.LocalAddr(); local != nil {
+					r.connection.LocalAddr = local.String()
+				}
+				if remote := info.Conn.RemoteAddr(); remote != nil {
+					r.connection.RemoteAddr = remote.String()
+				}
+			}
+			detail := "new connection"
+			if info.Reused {
+				detail = "reused connection"
+			}
+			if r.connection.RemoteAddr != "" {
+				detail += " — " + r.connection.RemoteAddr
+			}
+			r.addEventLocked("Connection ready", now, detail)
 		},
-		WroteRequest: func(_ httptrace.WroteRequestInfo) {
+		WroteRequest: func(info httptrace.WroteRequestInfo) {
 			r.mu.Lock()
 			defer r.mu.Unlock()
 			r.wroteRequest = time.Now()
+			detail := ""
+			if info.Err != nil {
+				detail = info.Err.Error()
+			}
+			r.addEventLocked("Request sent", r.wroteRequest, detail)
 		},
 		GotFirstResponseByte: func() {
 			r.mu.Lock()
@@ -155,6 +251,7 @@ func (r *responseTimingRecorder) clientTrace() *httptrace.ClientTrace {
 				r.waitingTotal += now.Sub(r.wroteRequest)
 			}
 			r.wroteRequest = time.Time{}
+			r.addEventLocked("First response byte", now, "")
 		},
 	}
 }
