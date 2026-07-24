@@ -5,6 +5,29 @@ description: Notable Relay changes and links to the exact notes for each publish
 
 This page summarizes the notable-change log maintained in the source repository. For the exact notes and artifacts attached to every published tag, use the [Relay releases page](https://github.com/relay-client/relay/releases).
 
+## 1.1.0
+
+### Added
+
+- **CLI runner** — `relay run` executes a YAML workspace's HTTP and GraphQL requests and their JavaScript test scripts from the terminal or CI. Data-driven iterations from a CSV/JSON file (`--data`), `cli`/`json`/`junit` reporters with file export, global and environment variable scopes with export-back, `--verbose`, `--bail`, `--insecure`, and a non-zero exit code when a request errors or an assertion fails. See [CLI runner](/docs/guides/cli-runner/).
+- **Client certificates (mutual TLS)** — present a certificate, optional separate key, and passphrase per request or inherited from a collection. See [Per-request settings](/docs/guides/request-settings/#client-certificate-mutual-tls).
+- **Dynamic variables** — `{{$guid}}`, `{{$timestamp}}`, `{{$randomEmail}}` and around 50 more under Postman's names, generated at send time. Imported Postman collections that used them no longer fail with an unresolved variable.
+- **`.http` / `.rest` import** — files from the JetBrains HTTP Client and the VS Code REST Client, including `###` separators, `# @name` directives, and file variables.
+- **Response Timeline tab** — DNS, TCP, TLS and first-byte events on a millisecond scale, connection details (reused or new, addresses, TLS version, cipher, ALPN, SNI), and the request exactly as it went on the wire, one block per redirect hop.
+- **Response Diff tab** — compares the current response body against the previous one for the same request, collapsing unchanged runs.
+- **Scripting**: `pm.iterationData.get(key)` reads the current data-file row during a data-driven run.
+
+### Changed
+
+- Parallel collection runs take a **Max concurrent requests** setting (default 8, maximum 64).
+- Wails updated to 2.13 along with the Go and frontend dependency sets.
+
+### Fixed
+
+- Query parameters keep their order on the wire. They were sorted alphabetically whenever automatic URL encoding was on (the default), breaking APIs that sign the query string verbatim.
+- HTTP connections are reused between requests instead of building a fresh transport — and leaking its idle sockets — on every send.
+- A parallel collection run no longer fires the entire batch at once, which could exhaust file descriptors on a large collection.
+
 ## 1.0.0
 
 First public release. Relay was developed privately until this point; the source is now open under the MIT license and every release is published from the main repository.

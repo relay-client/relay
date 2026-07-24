@@ -50,6 +50,7 @@ Guides, the scripting reference, and the YAML workspace format live in the **[do
 - API Key — in header or query string
 - OAuth 2.0 — Client Credentials and Authorization Code (with PKCE) grants; loopback browser sign-in, refresh tokens, and automatic token refresh before each send
 - AWS Signature v4
+- Client certificates (mutual TLS), per request or inherited from a collection
 - Per-request, collection, and folder defaults with inheritance
 
 **Scripting** — pre-request and test scripts in sandboxed JavaScript, with legacy [Tengo](https://github.com/d5/tengo) support:
@@ -75,6 +76,7 @@ pm.test("has id", () => pm.expect(body).to.have.property("id"))
 - Drag-and-drop organisation
 - Full request history (14-day retention, 1000 entries)
 - Git-backed YAML workspaces with diagnostics, conflict helpers, and local-only secrets
+- **CLI runner** — `relay run ./workspace --env CI` executes requests and their test scripts for CI, with data-driven iterations (`--data`), pretty/JSON/JUnit reporters, variable export, and a non-zero exit code on failure
 
 **Response viewer**
 - Syntax-highlighted body with line numbers
@@ -199,6 +201,8 @@ Scripts run in a sandboxed JavaScript environment by default, or in the legacy [
 | `.set(key, value)` | Write a variable |
 | `.unset(key)` | Delete a variable |
 | `.clear()` | Clear all variables |
+
+**`pm.iterationData.get(key)`** — read the current data-row value during a data-driven run (read-only).
 
 **`pm.test(name, fnOrResult)`** — register a named test assertion. JavaScript accepts a callback or boolean; Tengo accepts a boolean expression.
 
