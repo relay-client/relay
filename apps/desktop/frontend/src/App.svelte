@@ -2,6 +2,11 @@
   import { onMount, untrack } from 'svelte';
   import { getAppInfo, checkForUpdate, applyUpdate, restartApp } from './lib/backend';
   import type { UpdateInfo } from './lib/backend';
+  // Bundled at build time (see the relay-changelog plugin in vite.config.ts) so
+  // the release notes are available offline and match the running build exactly.
+  import CHANGELOG_MARKDOWN from 'virtual:relay-changelog';
+  import { isReleaseVersion, latestReleaseNotes, releaseNotesFor, shouldShowWhatsNew, type ChangelogSection } from './lib/whatsNew';
+  import WhatsNewModal from './lib/components/WhatsNewModal.svelte';
   import UpdateBanner from './lib/components/UpdateBanner.svelte';
   import { vm } from './lib/stores/app.svelte';
   import { appLazyComponents as lazy } from './lib/stores/lazyComponents.svelte';
@@ -23,6 +28,45 @@
 
   const AUTO_UPDATE_INSTALL_KEY = 'relay:auto-update-install';
   const UPDATE_READY_KEY = 'relay:update-ready';
+  const LAST_SEEN_VERSION_KEY = 'relay:last-seen-version';
+
+  let whatsNewSection = $state<ChangelogSection | null>(null);
+
+  // Opens the "What's new" screen once, on the first launch after an update.
+  // The notes are read from the changelog bundled with this build, so the
+  // screen works offline and always describes the version actually running.
+  function checkWhatsNew(version: string) {
+    let lastSeen: string | null = null;
+    try {
+      lastSeen = localStorage.getItem(LAST_SEEN_VERSION_KEY);
+    } catch {
+      return;
+    }
+    const section = releaseNotesFor(CHANGELOG_MARKDOWN, version);
+    if (shouldShowWhatsNew(version, lastSeen, Boolean(section))) {
+      whatsNewSection = section;
+    }
+    // Record the version even when nothing is shown (fresh install, dev build,
+    // downgrade), so the next real upgrade has a baseline to compare against.
+    if (isReleaseVersion(version)) {
+      try {
+        localStorage.setItem(LAST_SEEN_VERSION_KEY, version);
+      } catch {  }
+    }
+  }
+
+  function dismissWhatsNew() {
+    whatsNewSection = null;
+  }
+
+  // Opening the notes on demand from Settings falls back to the newest recorded
+  // release, so the entry still works on a dev build.
+  function showWhatsNew() {
+    whatsNewSection =
+      releaseNotesFor(CHANGELOG_MARKDOWN, vm.appVersion) ?? latestReleaseNotes(CHANGELOG_MARKDOWN);
+  }
+
+  const whatsNewAvailable = Boolean(latestReleaseNotes(CHANGELOG_MARKDOWN));
 
   let updateInfo = $state<UpdateInfo | null>(null);
   let updateReady = $state(false);
@@ -257,6 +301,7 @@
       vm.appVersion = info.version;
       setRuntimePlatform(info.runtime);
       const updatePendingRestart = syncUpdateReadyForVersion(info.version);
+      checkWhatsNew(info.version);
 
 
 
@@ -331,7 +376,13 @@
   {setAutoUpdateInstall}
   appRuntime={vm.appRuntime}
   onUpdateInstalled={markUpdateReady}
+  {whatsNewAvailable}
+  onShowWhatsNew={showWhatsNew}
 />
+
+{#if whatsNewSection}
+  <WhatsNewModal section={whatsNewSection} onDismiss={dismissWhatsNew} />
+{/if}
 
 <main
   class="shell"
