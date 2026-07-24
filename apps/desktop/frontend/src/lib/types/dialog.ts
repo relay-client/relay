@@ -2,7 +2,7 @@ export type DialogOption = {
   value: string;
   label: string;
   disabled?: boolean;
-  icon?: 'http' | 'graphql' | 'ws' | 'sio' | 'grpc' | 'bruno' | 'postman' | 'insomnia' | 'openapi' | 'har';
+  icon?: 'http' | 'graphql' | 'ws' | 'sio' | 'grpc' | 'bruno' | 'postman' | 'insomnia' | 'openapi' | 'har' | 'httpfile';
   description?: string;
 };
 

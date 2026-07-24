@@ -13,6 +13,7 @@
   import { prettyMarkup } from './utils';
   import type { VariableSuggestion } from './variables';
   import { variableDisplayValue } from './variables';
+  import { DYNAMIC_VARIABLES } from './dynamicVariables';
 
   type Lang = 'json' | 'javascript' | 'html' | 'xml' | 'graphql' | 'text';
 
@@ -275,15 +276,14 @@
   }
 
   function variableCompletionSource(context: CompletionContext) {
-    if (!variableSuggestions.length) return null;
     const from = Math.max(0, context.pos - 90);
     const before = context.state.sliceDoc(from, context.pos);
-    const match = before.match(/\{\{\s*([A-Za-z0-9_.-]*)$/);
+    const match = before.match(/\{\{\s*([$A-Za-z0-9_.-]*)$/);
     if (!match) return null;
     const prefix = match[1] ?? '';
     const start = context.pos - prefix.length;
     const needle = prefix.toLowerCase();
-    const options = variableSuggestions
+    const environmentOptions = variableSuggestions
       .filter(variable => variable.key.toLowerCase().includes(needle))
       .sort((a, b) => {
         const ap = a.key.toLowerCase().startsWith(needle) ? 0 : 1;
@@ -297,8 +297,20 @@
         detail: variable.secret ? 'secret' : variableDisplayValue(variable),
         apply: `${variable.key}}}`,
       }));
+    // Dynamic variables are generated at send time, so they belong in the same
+    // picker even when the workspace has no environment selected.
+    const dynamicOptions = DYNAMIC_VARIABLES
+      .filter(variable => variable.name.toLowerCase().includes(needle))
+      .slice(0, 30)
+      .map(variable => ({
+        label: variable.name,
+        type: 'keyword',
+        detail: variable.description,
+        apply: `${variable.name}}}`,
+      }));
+    const options = [...environmentOptions, ...dynamicOptions];
     if (!options.length) return null;
-    return { from: start, options, validFor: /^[A-Za-z0-9_.-]*$/ };
+    return { from: start, options, validFor: /^[$A-Za-z0-9_.-]*$/ };
   }
 
   function lineCommentToken() {

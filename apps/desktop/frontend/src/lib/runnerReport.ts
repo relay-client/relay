@@ -1,5 +1,6 @@
 import type { CollectionRunnerResult } from './types/models';
 import type { RunnerDataRow } from './runnerData';
+import { clampConcurrency } from './concurrency';
 
 export type CollectionRunnerReportSummary = {
   total: number;
@@ -21,6 +22,7 @@ export type CollectionRunnerReportInput = {
   iterations: number;
   delayMs: number;
   parallel: boolean;
+  concurrency?: number;
   includeTags: string;
   excludeTags: string;
   dataFileName?: string;
@@ -168,7 +170,7 @@ export function buildCollectionRunnerReportHtml(input: CollectionRunnerReportInp
     <h2>Run Settings</h2>
     <section class="settings">
       <div class="setting"><small>Iterations</small><span>${escapeHtml(input.iterations)}</span></div>
-      <div class="setting"><small>Mode</small><span>${input.parallel ? 'Parallel' : 'Sequential'}</span></div>
+      <div class="setting"><small>Mode</small><span>${input.parallel ? `Parallel (max ${escapeHtml(clampConcurrency(input.concurrency))} concurrent)` : 'Sequential'}</span></div>
       <div class="setting"><small>Delay</small><span>${escapeHtml(input.delayMs)} ms</span></div>
       <div class="setting"><small>Include tags</small><span>${escapeHtml(input.includeTags || 'None')}</span></div>
       <div class="setting"><small>Exclude tags</small><span>${escapeHtml(input.excludeTags || 'None')}</span></div>

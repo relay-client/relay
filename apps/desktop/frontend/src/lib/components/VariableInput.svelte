@@ -2,6 +2,7 @@
   import { onMount, tick } from 'svelte';
   import type { VariableSuggestion } from '../variables';
   import { variableDisplayValue } from '../variables';
+  import { isDynamicVariableName } from '../dynamicVariables';
   import { escapeHtml } from '../utils';
 
   type VariableInputElement = HTMLInputElement | HTMLTextAreaElement;
@@ -71,7 +72,7 @@
     while ((m = VAR_RE.exec(value)) !== null) {
       result += escapeHtml(value.slice(last, m.index));
       const key = m[1].trim();
-      if (knownKeySet.has(key)) {
+      if (knownKeySet.has(key) || isDynamicVariableName(key)) {
         result += escapeHtml(m[0]);
       } else {
         result += `<mark class="var-token-err">${escapeHtml(m[0])}</mark>`;

@@ -4,6 +4,7 @@ import { mkRow } from '../../constants';
 import type { Environment, KVRow, Workspace } from '../../types/models';
 import type { VariableSuggestion } from '../../variables';
 import { variableTemplate } from '../../variables';
+import { resolveDynamicVariable } from '../../dynamicVariables';
 import { parseEnvFile } from '../../utils';
 
 type EnvironmentHost = {
@@ -114,9 +115,14 @@ export const environmentFeature = {
     }
     return redacted;
   },
+  // Environment values win over dynamic variables, so a workspace that defines
+  // its own "$timestamp" keeps controlling it.
   resolveTemplate(this: EnvironmentHost, value: string, values = this.activeEnvironmentValues()) {
     if (!value || !value.includes('{{')) return value;
-    return value.replace(/\{\{\s*([A-Za-z0-9_.-]+)\s*\}\}/g, (match, key) => Object.prototype.hasOwnProperty.call(values, key) ? values[key] : match);
+    return value.replace(/\{\{\s*(\$?[A-Za-z0-9_.-]+)\s*\}\}/g, (match, key) => {
+      if (Object.prototype.hasOwnProperty.call(values, key)) return values[key];
+      return resolveDynamicVariable(key) ?? match;
+    });
   },
   resolveRows(this: EnvironmentHost, rows: KVRow[], values = this.activeEnvironmentValues()) {
     return rows.map(row => ({ ...row, key: this.resolveTemplate(row.key, values), value: this.resolveTemplate(row.value, values) }));

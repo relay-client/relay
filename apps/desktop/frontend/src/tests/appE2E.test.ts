@@ -5,6 +5,7 @@ import { buildOpenCollectionFiles, openCollectionBundleFromFiles } from '../lib/
 import { buildOpenApiDocument } from '../lib/openapi';
 import { buildPostmanCollection, postmanRequestsFromItems } from '../lib/postman';
 import { parseRunnerDataFile } from '../lib/runnerData';
+import { DEFAULT_RUNNER_CONCURRENCY } from '../lib/concurrency';
 import { emptyCollectionDefaults } from '../lib/collectionDefaults';
 import { makeWorkspace } from '../lib/normalizers';
 import type {
@@ -184,6 +185,7 @@ class TestApp {
   unsavedRequestSnapshots = new Map<string, SavedRequest>();
   savedRequestSnapshots = new Map<string, SavedRequest>();
   responses = new Map<string, HttpResponse>();
+  previousResponses = new Map<string, HttpResponse>();
   responseTabs = new Map<string, ResponseTab>();
   grpcResponses = new Map<string, GrpcResponse>();
   grpcResponseTabs = new Map<string, GrpcResponseTab>();
@@ -316,6 +318,7 @@ class TestApp {
   collectionRunnerDataRows: any[] = [];
   collectionRunnerDataError = '';
   collectionRunnerParallel = false;
+  collectionRunnerConcurrency = DEFAULT_RUNNER_CONCURRENCY;
   collectionRunnerTitle = '';
   collectionRunnerRunning = false;
   collectionRunnerResults: CollectionRunnerResult[] = [];
@@ -593,6 +596,76 @@ describe('full application e2e smoke', () => {
       expect.objectContaining({ name: 'dryRun', in: 'query', example: 'true' }),
     ]));
     expect(openApi.paths['/graphql']).toBeUndefined();
+  });
+
+  it('keeps the replaced response as the diff baseline for that request', async () => {
+    const app = new TestApp() as TestApp & Record<string, any>;
+    app.activeRequestId = 'req-diff';
+
+    const first = httpResponse(200, { id: 1, status: 'pending' });
+    const second = httpResponse(200, { id: 1, status: 'done' });
+
+    app.setActiveResponse(first);
+    expect(app.previousResponse()).toBeNull();
+    expect(app.responseDiff()).toBeNull();
+
+    app.setActiveResponse(second);
+    expect(app.previousResponse()).toBe(first);
+
+    const diff = app.responseDiff();
+    expect(diff).not.toBeNull();
+    expect(diff.identical).toBe(false);
+    expect(diff.added).toBe(1);
+    expect(diff.removed).toBe(1);
+
+    // A different request must not inherit this one's baseline.
+    app.activeRequestId = 'req-other';
+    expect(app.previousResponse()).toBeNull();
+
+    app.activeRequestId = 'req-diff';
+    app.clearResponseDiffBaseline();
+    expect(app.previousResponse()).toBeNull();
+    expect(app.responseDiff()).toBeNull();
+  });
+
+  // A parallel run used to fire the whole batch at once, so a 300-request
+  // collection opened 300 sockets and tripped the client's own limits.
+  it('caps how many requests a parallel run has in flight at once', async () => {
+    backend.state.savedStores = [];
+    backend.state.sentHttpRequests = [];
+    backend.state.environment = {};
+    const app = new TestApp() as TestApp & Record<string, any>;
+
+    app.prompts.push('Load API');
+    await app.createCollection();
+    const collection = app.collections[0];
+
+    const requests: SavedRequest[] = [];
+    for (let index = 0; index < 12; index += 1) {
+      await app.createNewRequest(collection.id);
+      app.url = `https://api.example.test/item/${index}`;
+      app.method = 'GET';
+      await app.saveActiveRequest();
+      requests.push(app.requests.find(req => req.id === app.activeRequestId)!);
+    }
+
+    let inFlight = 0;
+    let peak = 0;
+    vi.mocked(backend.sendHttpRequest).mockImplementation(async () => {
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      await new Promise<void>(resolve => setTimeout(resolve, 1));
+      inFlight -= 1;
+      return httpResponse(200, { ok: true });
+    });
+
+    await app.startCollectionRunner('Load API', requests, { parallel: true, concurrency: 3 });
+
+    // 12 requests over 3 lanes: the limit is reached, and never exceeded.
+    expect(peak).toBe(3);
+    expect(app.collectionRunnerResults).toHaveLength(12);
+    expect(app.collectionRunnerResults.every((result: CollectionRunnerResult) => result.status === 'passed')).toBe(true);
+    vi.mocked(backend.sendHttpRequest).mockReset();
   });
 
   it('duplicates the current editor state for the active request', async () => {

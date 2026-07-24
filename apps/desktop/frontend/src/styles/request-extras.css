@@ -292,6 +292,61 @@
   min-height: 92px;
 }
 
+.client-cert-setting {
+  /* Override the two-column setting grid: the cert controls need full width. */
+  display: block;
+}
+
+.client-cert-setting .setting-copy {
+  margin-bottom: 12px;
+}
+
+.client-cert-fields {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  max-width: 620px;
+}
+
+.client-cert-row {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.client-cert-label {
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.client-cert-path {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+.client-cert-pass {
+  grid-column: 2 / 4;
+}
+
+.client-cert-hint {
+  margin: 2px 0 0;
+  color: var(--text-3);
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+
+.client-cert-hint code {
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
 .setting-copy {
   display: flex;
   flex-direction: column;

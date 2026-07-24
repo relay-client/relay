@@ -58,6 +58,48 @@
       </span>
     </label>
 
+    <div class="postman-setting client-cert-setting">
+      <span class="setting-copy">
+        <strong>Client certificate (mTLS)</strong>
+        <span>Present a certificate for servers that require mutual TLS. Set it on a collection to reuse it across requests.</span>
+        {#if vm.collectionSettingDefaultNote('clientCertPath')}<em class:setting-default-muted={!vm.collectionSettingIsInherited('clientCertPath')}>{vm.collectionSettingDefaultNote('clientCertPath')}</em>{/if}
+      </span>
+      <div class="client-cert-fields">
+        <div class="client-cert-row">
+          <span class="client-cert-label">Certificate (CRT/PEM)</span>
+          {#if vm.clientCertPath}
+            <span class="client-cert-path" title={vm.clientCertPath}>{vm.clientCertPath}</span>
+            <button class="btn-secondary btn-sm" type="button" onclick={() => vm.clearClientCertField('clientCertPath')}>Clear</button>
+          {:else}
+            <button class="btn-secondary btn-sm" type="button" onclick={() => vm.pickClientCertFile('clientCertPath')}>Choose file…</button>
+          {/if}
+        </div>
+        <div class="client-cert-row">
+          <span class="client-cert-label">Private key (optional)</span>
+          {#if vm.clientKeyPath}
+            <span class="client-cert-path" title={vm.clientKeyPath}>{vm.clientKeyPath}</span>
+            <button class="btn-secondary btn-sm" type="button" onclick={() => vm.clearClientCertField('clientKeyPath')}>Clear</button>
+          {:else}
+            <button class="btn-secondary btn-sm" type="button" onclick={() => vm.pickClientCertFile('clientKeyPath')} disabled={!vm.clientCertPath}>Choose file…</button>
+          {/if}
+        </div>
+        <div class="client-cert-row">
+          <span class="client-cert-label">Key passphrase</span>
+          <input
+            class="field-input client-cert-pass"
+            type="password"
+            placeholder="Leave blank if the key is unencrypted"
+            autocomplete="off"
+            spellcheck="false"
+            value={vm.clientKeyPassword}
+            oninput={(event) => { vm.clientKeyPassword = event.currentTarget.value; vm.markRequestSettingOverride('clientKeyPassword'); }}
+            disabled={!vm.clientCertPath}
+          />
+        </div>
+        <p class="client-cert-hint">The key file defaults to the certificate file when left blank (combined PEM). Use <code>&#123;&#123;variable&#125;&#125;</code> in any field to keep the passphrase in workspace secrets.</p>
+      </div>
+    </div>
+
     <label class="postman-setting">
       <span class="setting-copy">
         <strong>Automatically follow redirects</strong>

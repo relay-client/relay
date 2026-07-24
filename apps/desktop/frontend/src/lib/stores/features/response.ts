@@ -1,6 +1,7 @@
 import { openFileDialog, readTextFile, saveFileDialog } from '../../backend';
 import type { HttpResponse, ScriptResult } from '../../backend';
 import { countMatchesAsync, shouldVirtualizeResponseBody } from '../../response-render';
+import { diffResponseBodies, type ResponseDiff } from '../../responseDiff';
 import type { GrpcResponse, RequestType, ResponseTab } from '../../types/models';
 import { clamp, clipboardCopy, formatSize, prettyJson, prettyMarkup } from '../../utils';
 
@@ -37,6 +38,7 @@ type ResponseHost = {
   responseTab: ResponseTab;
   responseTabs: Map<string, ResponseTab>;
   responses: Map<string, HttpResponse>;
+  previousResponses: Map<string, HttpResponse>;
   savedResponse: boolean;
   safeResponseSearchIndex: number;
   activeRequestId: string;
@@ -53,6 +55,9 @@ type ResponseHost = {
   scrollCurrentSearchMatch: () => void;
   setActiveResponse: (response: HttpResponse | null, requestId?: string) => void;
   setActiveResponseTab: (tab: ResponseTab, requestId?: string) => void;
+  previousResponse: (requestId?: string) => HttpResponse | null;
+  responseDiff: () => ResponseDiff | null;
+  clearResponseDiffBaseline: (requestId?: string) => void;
   setResponseBodyPage: (page: number) => void;
   testSummary: (result?: ScriptResult | null) => { passed: number; total: number; allPassed: boolean } | null;
 };
@@ -172,13 +177,40 @@ export const responseFeature = {
     return { passed, total: result.tests.length, allPassed: passed === result.tests.length };
   },
 
+  // The response being replaced is kept as the baseline for the diff view.
+  // It stays in memory only: bodies are up to 100 MB, which has no business
+  // going into the persisted store.
   setActiveResponse(this: ResponseHost, response: HttpResponse | null, requestId = this.activeRequestId) {
+    const replaced = requestId ? this.responses.get(requestId) : null;
     this.response = response;
     if (!requestId) return;
     const next = new Map(this.responses);
     if (response) next.set(requestId, response);
     else next.delete(requestId);
     this.responses = next;
+
+    const previous = new Map(this.previousResponses);
+    if (response && replaced && replaced !== response) previous.set(requestId, replaced);
+    else if (!response) previous.delete(requestId);
+    this.previousResponses = previous;
+  },
+
+  previousResponse(this: ResponseHost, requestId = this.activeRequestId): HttpResponse | null {
+    return (requestId && this.previousResponses.get(requestId)) || null;
+  },
+
+  responseDiff(this: ResponseHost) {
+    const previous = this.previousResponse();
+    if (!previous || !this.response) return null;
+    return diffResponseBodies(this.responseFullBody(previous), this.responseFullBody(this.response));
+  },
+
+  clearResponseDiffBaseline(this: ResponseHost, requestId = this.activeRequestId) {
+    if (!requestId) return;
+    const previous = new Map(this.previousResponses);
+    previous.delete(requestId);
+    this.previousResponses = previous;
+    if (this.responseTab === 'diff') this.setActiveResponseTab('body');
   },
 
   setActiveResponseTab(this: ResponseHost, tab: ResponseTab, requestId = this.activeRequestId) {
