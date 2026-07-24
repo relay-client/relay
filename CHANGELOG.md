@@ -5,7 +5,7 @@ All notable changes to Relay are documented here. This project follows
 
 ---
 
-## [Unreleased]
+## [1.1.1] - 2026-07-24
 
 ### Added
 - A **What's new** screen on the first launch after an update, showing that release's notes. It appears once per version — a relaunch, a downgrade, and a first-ever install stay quiet. Reopen it any time from Settings → About → What's new. The notes are bundled with the build, so the screen works offline and always matches the version running.

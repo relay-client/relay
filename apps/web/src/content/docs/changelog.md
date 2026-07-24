@@ -5,6 +5,12 @@ description: Notable Relay changes and links to the exact notes for each publish
 
 This page summarizes the notable-change log maintained in the source repository. For the exact notes and artifacts attached to every published tag, use the [Relay releases page](https://github.com/relay-client/relay/releases).
 
+## 1.1.1
+
+### Added
+
+- **What's new on first launch** — after updating, Relay opens a screen with that release's notes. It appears once per version: relaunching the same build, downgrading, and a first-ever install stay quiet. Reopen it any time from **Settings → About → What's new**. The notes ship with the build, so the screen works offline and always matches the version you are running. See [App settings](/docs/guides/settings/#whats-new).
+
 ## 1.1.0
 
 ### Added
