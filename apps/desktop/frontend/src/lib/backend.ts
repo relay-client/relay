@@ -323,6 +323,9 @@ export type HttpRequest = {
   proxyUrl?: string;
   proxyMode?: '' | 'off' | 'on' | 'system';
   proxyBypass?: string;
+  clientCertPath?: string;
+  clientKeyPath?: string;
+  clientKeyPassword?: string;
   browserEmulation?: boolean;
   browserOrigin?: string;
   browserWithCredentials?: boolean;
@@ -341,6 +344,32 @@ export type HttpRequest = {
   sseReconnectIntervalMs?: number;
 };
 
+export type SentRequest = {
+  method: string;
+  url: string;
+  proto: string;
+  headers: KeyValue[];
+};
+
+export type ConnectionInfo = {
+  reused: boolean;
+  wasIdle: boolean;
+  localAddr?: string;
+  remoteAddr?: string;
+  protocol?: string;
+  tlsVersion?: string;
+  tlsCipher?: string;
+  alpn?: string;
+  serverName?: string;
+  addresses?: string[];
+};
+
+export type TimelineEvent = {
+  label: string;
+  atMs: number;
+  detail?: string;
+};
+
 export type HttpResponse = {
   statusCode: number;
   status: string;
@@ -352,6 +381,9 @@ export type HttpResponse = {
   error?: string;
   preRequestResult: ScriptResult;
   testResult: ScriptResult;
+  sentRequests?: SentRequest[];
+  connection?: ConnectionInfo;
+  timeline?: TimelineEvent[];
 };
 
 export type GrpcMethodInfo = {

@@ -1,4 +1,5 @@
 import { cancelHttpRequest, getEnvironment, openFileDialog, readTextFile, sendGrpcRequest, sendHttpRequest } from '../../backend';
+import { clampConcurrency, DEFAULT_RUNNER_CONCURRENCY, forEachWithConcurrency } from '../../concurrency';
 import type { GrpcRequest, HttpRequest, HttpResponse } from '../../backend';
 import type { Collection, CollectionRunnerResult, GrpcResponse, RequestType, SavedRequest } from '../../types/models';
 import type { RunnerDataRow } from '../../runnerData';
@@ -25,6 +26,7 @@ type CollectionRunnerHost = {
   collectionRunnerDataRows: RunnerDataRow[];
   collectionRunnerDataError: string;
   collectionRunnerParallel: boolean;
+  collectionRunnerConcurrency: number;
   collectionRunnerTitle: string;
   collectionRunnerRunning: boolean;
   collectionRunnerResults: CollectionRunnerResult[];
@@ -67,7 +69,7 @@ type CollectionRunnerHost = {
   selectAllCollectionRunnerRequests: () => void;
   clearCollectionRunnerDataFile: () => void;
   stopCollectionRunner: () => void;
-  startCollectionRunner: (title: string, requests: SavedRequest[], options?: { delayMs?: number; iterations?: number; parallel?: boolean; dataRows?: RunnerDataRow[] }) => Promise<void>;
+  startCollectionRunner: (title: string, requests: SavedRequest[], options?: { delayMs?: number; iterations?: number; parallel?: boolean; concurrency?: number; dataRows?: RunnerDataRow[] }) => Promise<void>;
   runnerResultShell: (req: SavedRequest, status?: CollectionRunnerResult['status'], runId?: string, iteration?: number) => CollectionRunnerResult;
   runnerResultFromResponse: (req: SavedRequest, resp: HttpResponse, runId: string, iteration: number) => CollectionRunnerResult;
   runnerResultFromGrpcResponse: (req: SavedRequest, resp: GrpcResponse, runId: string, iteration: number) => CollectionRunnerResult;
@@ -177,6 +179,9 @@ export const collectionRunnerFeature = {
   setCollectionRunnerParallel(this: CollectionRunnerHost, value: boolean) {
     this.collectionRunnerParallel = value;
   },
+  setCollectionRunnerConcurrency(this: CollectionRunnerHost, value: string | number) {
+    this.collectionRunnerConcurrency = clampConcurrency(value);
+  },
   selectAllCollectionRunnerRequests(this: CollectionRunnerHost) {
     this.collectionRunnerSelectedRequestIds = new Set(this.collectionRunnerSelectableRequests.map(request => request.id));
   },
@@ -196,6 +201,7 @@ export const collectionRunnerFeature = {
     this.collectionRunnerIterations = 1;
     this.clearCollectionRunnerDataFile();
     this.collectionRunnerParallel = false;
+    this.collectionRunnerConcurrency = DEFAULT_RUNNER_CONCURRENCY;
     this.collectionRunnerResults = [];
     this.selectAllCollectionRunnerRequests();
   },
@@ -210,6 +216,7 @@ export const collectionRunnerFeature = {
         iterations: this.collectionRunnerRunIterations,
         dataRows: this.collectionRunnerDataRows,
         parallel: this.collectionRunnerParallel,
+        concurrency: this.collectionRunnerConcurrency,
       },
     );
   },
@@ -293,6 +300,7 @@ export const collectionRunnerFeature = {
       iterations: this.collectionRunnerRunIterations,
       delayMs: this.collectionRunnerDelayMs,
       parallel: this.collectionRunnerParallel,
+      concurrency: this.collectionRunnerConcurrency,
       includeTags: this.collectionRunnerIncludeTags,
       excludeTags: this.collectionRunnerExcludeTags,
       dataFileName: this.collectionRunnerDataFileName,
@@ -379,7 +387,7 @@ export const collectionRunnerFeature = {
       if (this.collectionRunnerActiveRequestId === runnerRequestId) this.collectionRunnerActiveRequestId = '';
     }
   },
-  async startCollectionRunner(this: CollectionRunnerHost, title: string, requests: SavedRequest[], options: { delayMs?: number; iterations?: number; parallel?: boolean; dataRows?: RunnerDataRow[] } = {}) {
+  async startCollectionRunner(this: CollectionRunnerHost, title: string, requests: SavedRequest[], options: { delayMs?: number; iterations?: number; parallel?: boolean; concurrency?: number; dataRows?: RunnerDataRow[] } = {}) {
     if (!requests.length) {
       this.collectionImportToast = 'No requests to run';
       setTimeout(() => (this.collectionImportToast = ''), 2200);
@@ -419,13 +427,15 @@ export const collectionRunnerFeature = {
       setTimeout(() => (this.collectionImportToast = ''), 3200);
     }
     if (options.parallel) {
+      const concurrency = clampConcurrency(options.concurrency ?? this.collectionRunnerConcurrency);
       for (let iteration = 1; iteration <= iterations; iteration += 1) {
         const batch = runs.filter(run => run.iteration === iteration);
         if (this.collectionRunnerCancelRequested) {
           for (const run of batch) this.updateCollectionRunnerResult(run.runId, { status: 'skipped' });
           continue;
         }
-        await Promise.all(batch.map(run => this.executeCollectionRunnerRequest(run.request, run.runId, run.iteration, envValues, secretValues, secretKeys, dataRows[run.iteration - 1] ?? {})));
+        await forEachWithConcurrency(batch, concurrency, run =>
+          this.executeCollectionRunnerRequest(run.request, run.runId, run.iteration, envValues, secretValues, secretKeys, dataRows[run.iteration - 1] ?? {}));
         if (delayMs > 0 && iteration < iterations && !this.collectionRunnerCancelRequested) {
           await this.waitForCollectionRunnerDelay(delayMs);
         }

@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Collection, CollectionRunnerResult, SavedRequest } from '../types/models';
+  import { MAX_RUNNER_CONCURRENCY, MIN_RUNNER_CONCURRENCY } from '../concurrency';
   import Select from './Select.svelte';
 
   let {
@@ -17,6 +18,7 @@
     dataRowCount,
     dataError,
     parallel,
+    concurrency,
     running,
     title,
     results,
@@ -34,6 +36,7 @@
     onSelectDataFile,
     onClearDataFile,
     onSetParallel,
+    onSetConcurrency,
     onToggleRequest,
     onSelectAll,
     onDeselectAll,
@@ -56,6 +59,7 @@
     dataRowCount: number;
     dataError: string;
     parallel: boolean;
+    concurrency: number;
     running: boolean;
     title: string;
     results: CollectionRunnerResult[];
@@ -73,6 +77,7 @@
     onSelectDataFile: () => void | Promise<void>;
     onClearDataFile: () => void;
     onSetParallel: (value: boolean) => void;
+    onSetConcurrency: (value: string | number) => void;
     onToggleRequest: (requestId: string) => void;
     onSelectAll: () => void;
     onDeselectAll: () => void;
@@ -210,6 +215,25 @@
       <span></span>
       Run in parallel
     </label>
+
+    {#if parallel}
+      <label class="runner-field">
+        <span>Max concurrent requests</span>
+        <input
+          type="number"
+          min={MIN_RUNNER_CONCURRENCY}
+          max={MAX_RUNNER_CONCURRENCY}
+          step="1"
+          value={concurrency}
+          oninput={(event) => onSetConcurrency(inputValue(event))}
+          disabled={running}
+        />
+      </label>
+      <p class="runner-hint">
+        Requests in an iteration run at the same time, so a test that saves a variable
+        may not have finished before the next request reads it. Keep chained requests sequential.
+      </p>
+    {/if}
 
     <div class="runner-actions">
       {#if running}

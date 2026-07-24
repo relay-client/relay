@@ -5,8 +5,11 @@
   import { shortcutComboLabel } from '../stores/features/preferences';
   import ResponseBodyViewer from './ResponseBodyViewer.svelte';
   import ResponseTimeTooltip from './ResponseTimeTooltip.svelte';
+  import ResponseTimelinePanel from './ResponseTimelinePanel.svelte';
+  import ResponseDiffPanel from './ResponseDiffPanel.svelte';
+  import type { ResponseDiff } from '../responseDiff';
 
-  type ResponseTab = 'body' | 'headers' | 'test-results';
+  type ResponseTab = 'body' | 'headers' | 'test-results' | 'timeline' | 'diff';
 
   let {
     loading,
@@ -17,6 +20,8 @@
     responseSearch = $bindable(''),
     responseSearchIndex = $bindable(0),
     responseTestSummary,
+    responseDiffSummary = null,
+    previousResponse = null,
     responseSearchTotal,
     responseDisplayBody,
     responseRenderMode,
@@ -40,6 +45,7 @@
     saveResponseFile,
     loadResponseFromFile,
     setResponseTab,
+    clearResponseDiffBaseline = () => {},
   }: {
     loading: boolean;
     requestError: string;
@@ -49,6 +55,8 @@
     responseSearch: string;
     responseSearchIndex: number;
     responseTestSummary: { passed: number; total: number; allPassed: boolean } | null;
+    responseDiffSummary?: ResponseDiff | null;
+    previousResponse?: HttpResponse | null;
     responseSearchTotal: number;
     responseDisplayBody: string;
     responseRenderMode: ResponseRenderMode;
@@ -72,6 +80,7 @@
     saveResponseFile: () => void;
     loadResponseFromFile: () => void;
     setResponseTab: (tab: ResponseTab) => void;
+    clearResponseDiffBaseline?: () => void;
   } = $props();
 
   let responseSearchInput = $state<HTMLInputElement | undefined>();
@@ -125,6 +134,17 @@
           <button role="tab" class:active={responseTab === 'headers'} aria-selected={responseTab === 'headers'} aria-controls="response-panel-headers" tabindex={responseTab === 'headers' ? 0 : -1} onclick={() => setResponseTab('headers')} type="button">
             Headers{#if response.headers?.length}<span class="badge">{response.headers.length}</span>{/if}
           </button>
+          {#if previousResponse}
+            <button role="tab" class:active={responseTab === 'diff'} aria-selected={responseTab === 'diff'} aria-controls="response-panel-diff" tabindex={responseTab === 'diff' ? 0 : -1} onclick={() => setResponseTab('diff')} type="button">
+              Diff
+              {#if responseDiffSummary && !responseDiffSummary.identical}
+                <span class="badge badge-fail">{responseDiffSummary.added + responseDiffSummary.removed}</span>
+              {/if}
+            </button>
+          {/if}
+          {#if response.timeline?.length || response.sentRequests?.length}
+            <button role="tab" class:active={responseTab === 'timeline'} aria-selected={responseTab === 'timeline'} aria-controls="response-panel-timeline" tabindex={responseTab === 'timeline' ? 0 : -1} onclick={() => setResponseTab('timeline')} type="button">Timeline</button>
+          {/if}
           {#if response.testResult?.tests?.length || response.preRequestResult?.logs?.length || response.testResult?.logs?.length || response.preRequestResult?.error || response.testResult?.error}
             <button role="tab" class:active={responseTab === 'test-results'} class="tab-script" aria-selected={responseTab === 'test-results'} aria-controls="response-panel-scripts" tabindex={responseTab === 'test-results' ? 0 : -1} onclick={() => setResponseTab('test-results')} type="button">
               Scripts
@@ -220,6 +240,21 @@
           </div>
         {/each}
       </div>
+
+    {:else if responseTab === 'diff'}
+      <ResponseDiffPanel
+        diff={responseDiffSummary}
+        previous={previousResponse}
+        current={response}
+        onDismiss={clearResponseDiffBaseline}
+      />
+
+    {:else if responseTab === 'timeline'}
+      <ResponseTimelinePanel
+        sentRequests={response.sentRequests ?? []}
+        connection={response.connection}
+        timeline={response.timeline ?? []}
+      />
 
     {:else if responseTab === 'test-results'}
       <div class="test-results-panel" id="response-panel-scripts" role="tabpanel">

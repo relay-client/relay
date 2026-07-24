@@ -347,7 +347,7 @@
     class="hidden-file-input"
     bind:this={vm._postmanImportInput}
     type="file"
-    accept=".json,.yaml,.yml,.bru,application/json,application/yaml,text/yaml,text/x-yaml"
+    accept=".json,.yaml,.yml,.bru,.http,.rest,.har,application/json,application/yaml,text/yaml,text/x-yaml"
     onchange={vm.onPostmanImportFile}
   />
 
@@ -603,6 +603,7 @@
         dataRowCount={vm.collectionRunnerDataRows.length}
         dataError={vm.collectionRunnerDataError}
         parallel={vm.collectionRunnerParallel}
+        concurrency={vm.collectionRunnerConcurrency}
         running={vm.collectionRunnerRunning}
         title={vm.collectionRunnerTitle}
         results={vm.collectionRunnerResults}
@@ -620,6 +621,7 @@
         onSelectDataFile={vm.selectCollectionRunnerDataFile}
         onClearDataFile={vm.clearCollectionRunnerDataFile}
         onSetParallel={vm.setCollectionRunnerParallel}
+        onSetConcurrency={vm.setCollectionRunnerConcurrency}
         onToggleRequest={vm.toggleCollectionRunnerRequest}
         onSelectAll={vm.selectAllCollectionRunnerRequests}
         onDeselectAll={vm.deselectAllCollectionRunnerRequests}
@@ -806,6 +808,8 @@
           bind:responseSearch={vm.responseSearch}
           bind:responseSearchIndex={vm.responseSearchIndex}
           responseTestSummary={vm.responseTestSummary}
+          responseDiffSummary={vm.responseDiff()}
+          previousResponse={vm.previousResponse()}
           responseSearchTotal={vm.responseSearchTotal}
           responseDisplayBody={vm.responseDisplayBody}
           responseRenderMode={vm.responseRenderMode}
@@ -829,6 +833,7 @@
           saveResponseFile={vm.saveResponseFile}
           loadResponseFromFile={vm.loadResponseFromFile}
           setResponseTab={(tab: ResponseTab) => vm.setActiveResponseTab(tab)}
+          clearResponseDiffBaseline={() => vm.clearResponseDiffBaseline()}
         />
       {/if}
     {/if}

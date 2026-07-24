@@ -68,6 +68,7 @@
                 class="dialog-choice-icon"
                 class:http={opt.icon === 'http' || opt.icon === 'postman'}
                 class:gql={opt.icon === 'graphql' || opt.icon === 'openapi'}
+                class:httpfile={opt.icon === 'httpfile'}
                 class:ws={opt.icon === 'ws' || opt.icon === 'har'}
                 class:sio={opt.icon === 'sio' || opt.icon === 'insomnia'}
                 class:grpc={opt.icon === 'grpc'}
@@ -100,6 +101,13 @@
                   <svg width="22" height="22" viewBox="0 0 18 18" fill="none">
                     <path d="M3.2 4.2h11.6v9.6H3.2V4.2z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/>
                     <path d="M3.4 6.8h11.2M5.4 10h5.8M5.4 12h3.4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                  </svg>
+                {:else if opt.icon === 'httpfile'}
+                  <svg width="22" height="22" viewBox="0 0 18 18" fill="none">
+                    <path d="M4.4 2.7h5.4l3.8 3.8v8.8H4.4V2.7z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/>
+                    <path d="M9.6 2.8v3.8h3.8" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"/>
+                    <path d="M6.4 9.4h2.1M6.4 11.6h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                    <path d="M10.2 8.6l1.5 1.4-1.5 1.4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 {:else if opt.icon === 'ws'}
                   <svg width="22" height="22" viewBox="0 0 18 18" fill="none">

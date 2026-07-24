@@ -12,6 +12,7 @@ import {
   DEFAULT_GRAPHQL_VARIABLES,
 } from '../graphql';
 import type { RunnerDataRow } from '../runnerData';
+import { DEFAULT_RUNNER_CONCURRENCY } from '../concurrency';
 import {
   makeWorkspace, makeCollection,
   normalizeWorkspace, normalizeCollection, normalizeEnvironment,
@@ -253,6 +254,7 @@ class AppVM {
   declare setCollectionRunnerIncludeTags: typeof collectionRunnerFeature.setCollectionRunnerIncludeTags;
   declare setCollectionRunnerExcludeTags: typeof collectionRunnerFeature.setCollectionRunnerExcludeTags;
   declare setCollectionRunnerParallel: typeof collectionRunnerFeature.setCollectionRunnerParallel;
+  declare setCollectionRunnerConcurrency: typeof collectionRunnerFeature.setCollectionRunnerConcurrency;
   declare selectAllCollectionRunnerRequests: typeof collectionRunnerFeature.selectAllCollectionRunnerRequests;
   declare deselectAllCollectionRunnerRequests: typeof collectionRunnerFeature.deselectAllCollectionRunnerRequests;
   declare toggleCollectionRunnerRequest: typeof collectionRunnerFeature.toggleCollectionRunnerRequest;
@@ -524,6 +526,9 @@ class AppVM {
   declare testSummary: typeof responseFeature.testSummary;
   declare setActiveResponse: typeof responseFeature.setActiveResponse;
   declare setActiveResponseTab: typeof responseFeature.setActiveResponseTab;
+  declare previousResponse: typeof responseFeature.previousResponse;
+  declare responseDiff: typeof responseFeature.responseDiff;
+  declare clearResponseDiffBaseline: typeof responseFeature.clearResponseDiffBaseline;
   declare toggleResponseSearch: typeof responseFeature.toggleResponseSearch;
   declare scheduleResponseSearchCount: typeof responseFeature.scheduleResponseSearchCount;
   declare scrollCurrentSearchMatch: typeof responseFeature.scrollCurrentSearchMatch;
@@ -564,6 +569,7 @@ class AppVM {
   declare importPostmanPayload: typeof importExportFeature.importPostmanPayload;
   declare importInsomniaPayload: typeof importExportFeature.importInsomniaPayload;
   declare importOpenApiPayload: typeof importExportFeature.importOpenApiPayload;
+  declare importHttpFilePayload: typeof importExportFeature.importHttpFilePayload;
   declare exportCollection: typeof importExportFeature.exportCollection;
   declare exportCollectionToOpenCollection: typeof importExportFeature.exportCollectionToOpenCollection;
   declare exportCollectionToPostman: typeof importExportFeature.exportCollectionToPostman;
@@ -660,6 +666,8 @@ class AppVM {
   declare saveRequestSettings: typeof preferencesFeature.saveRequestSettings;
   declare resetRequestSettings: typeof preferencesFeature.resetRequestSettings;
   declare toggleSSLVerification: typeof preferencesFeature.toggleSSLVerification;
+  declare pickClientCertFile: typeof preferencesFeature.pickClientCertFile;
+  declare clearClientCertField: typeof preferencesFeature.clearClientCertField;
   declare loadShortcutSettings: typeof preferencesFeature.loadShortcutSettings;
   declare saveShortcutSettings: typeof preferencesFeature.saveShortcutSettings;
   declare shortcutCombo: typeof preferencesFeature.shortcutCombo;
@@ -818,6 +826,9 @@ class AppVM {
   disableCookieJar = $state(false);
   maxRedirects = $state(10);
   proxyUrl = $state('');
+  clientCertPath = $state('');
+  clientKeyPath = $state('');
+  clientKeyPassword = $state('');
   browserEmulation = $state(false);
   browserOrigin = $state('');
   browserWithCredentials = $state(false);
@@ -888,6 +899,7 @@ class AppVM {
   responseSearchCounting = $state(false);
   response = $state<HttpResponse | null>(null);
   responses = $state<Map<string, HttpResponse>>(new Map());
+  previousResponses = $state<Map<string, HttpResponse>>(new Map());
   responseTabs = $state<Map<string, ResponseTab>>(new Map());
   grpcResponse = $state<GrpcResponse | null>(null);
   grpcResponseTab = $state<GrpcResponseTab>('messages');
@@ -1018,6 +1030,7 @@ class AppVM {
   collectionRunnerDataRows = $state<RunnerDataRow[]>([]);
   collectionRunnerDataError = $state('');
   collectionRunnerParallel = $state(false);
+  collectionRunnerConcurrency = $state(DEFAULT_RUNNER_CONCURRENCY);
   collectionRunnerTitle = $state('');
   collectionRunnerRunning = $state(false);
   collectionRunnerResults = $state<CollectionRunnerResult[]>([]);

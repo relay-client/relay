@@ -1,5 +1,6 @@
 import { openDirectoryDialog, readCollectionTextFiles, writeCollectionTextFiles } from '../../backend';
-import type { BodyType, Collection, Environment, RequestHistoryEntry, SavedRequest, ScriptEngine, Workspace } from '../../types/models';
+import type { BodyType, Collection, Environment, KVRow, RequestHistoryEntry, SavedRequest, ScriptEngine, Workspace } from '../../types/models';
+import { mkRow } from '../../constants';
 import type { TopView } from '../ui';
 import { filesystemNameFromName, makeCollection, normalizeCollection, normalizeEnvironment, normalizeSavedRequest } from '../../normalizers';
 import { normalizeCollectionDefaults } from '../../collectionDefaults';
@@ -7,7 +8,7 @@ import { routeImportedScripts, withActiveScripts } from '../../scriptEngine';
 import { downloadTextFile, safeFileName } from '../../utils';
 import type { OpenApiExportFormat } from '../../openapi';
 
-type ImportSource = 'bruno' | 'postman' | 'insomnia' | 'openapi' | 'har';
+type ImportSource = 'bruno' | 'postman' | 'insomnia' | 'openapi' | 'har' | 'httpfile';
 
 type DialogOptionInput = { value: string; label: string; icon?: string; description?: string };
 
@@ -49,7 +50,8 @@ type ImportExportHost = {
   importCollectionPayload: (text: string, fileName: string, source: ImportSource) => Promise<number>;
   importOpenCollectionFiles: (files: Array<{ path: string; content: string }>, fallbackName: string) => Promise<number>;
   importHarPayload: (payload: unknown, fileName: string) => Promise<number>;
-  importRequestsPayload: (collectionName: string, buildRequests: (collectionId: string, collectionName: string) => SavedRequest[]) => Promise<number>;
+  importRequestsPayload: (collectionName: string, buildRequests: (collectionId: string, collectionName: string) => SavedRequest[], collectionVariables?: KVRow[]) => Promise<number>;
+  importHttpFilePayload: (text: string, fileName: string) => Promise<number>;
   importPostmanPayload: (payload: unknown, fileName: string) => Promise<number>;
   importInsomniaPayload: (payload: unknown, fileName: string) => Promise<number>;
   importOpenApiPayload: (payload: unknown, fileName: string) => Promise<number>;
@@ -70,6 +72,7 @@ export const importExportFeature = {
       { value: 'insomnia', label: 'Insomnia Export', icon: 'insomnia', description: 'Import an Insomnia workspace or collection export JSON file.' },
       { value: 'openapi', label: 'OpenAPI / Swagger', icon: 'openapi', description: 'Import OpenAPI 3.x or Swagger 2.0 JSON/YAML specs.' },
       { value: 'har', label: 'HAR from DevTools', icon: 'har', description: 'Turn captured browser traffic into requests.' },
+      { value: 'httpfile', label: '.http / .rest file', icon: 'httpfile', description: 'Import a JetBrains HTTP Client or VS Code REST Client file.' },
     ], 'Import');
     if (!source) return;
     this.collectionImportSource = source as ImportSource;
@@ -95,6 +98,7 @@ export const importExportFeature = {
     if (source === 'bruno') {
       return this.importOpenCollectionFiles([{ path: fileName, content: text }], fileName.replace(/\.(bru|ya?ml)$/i, '') || 'Bruno Collection');
     }
+    if (source === 'httpfile') return this.importHttpFilePayload(text, fileName);
     if (source === 'postman') return this.importPostmanPayload(JSON.parse(text) as unknown, fileName);
     if (source === 'insomnia') return this.importInsomniaPayload(JSON.parse(text) as unknown, fileName);
     if (source === 'har') return this.importHarPayload(JSON.parse(text) as unknown, fileName);
@@ -146,11 +150,14 @@ export const importExportFeature = {
     const collectionName = harCollectionName(payload, fileName);
     return this.importRequestsPayload(collectionName, (collectionId, name) => harRequestsFromLog(payload, collectionId, name));
   },
-  async importRequestsPayload(this: ImportExportHost, collectionName: string, buildRequests: (collectionId: string, collectionName: string) => SavedRequest[]) {
+  async importRequestsPayload(this: ImportExportHost, collectionName: string, buildRequests: (collectionId: string, collectionName: string) => SavedRequest[], collectionVariables?: KVRow[]) {
     if (!this.guardWorkspaceWritable('Importing')) return 0;
     const wsId = this.activeWorkspaceId || this.workspaces[0]?.id; if (!wsId) throw new Error('No workspace available');
     await this.persistActiveRequestNow();
     const collection = makeCollection(wsId, collectionName);
+    if (collectionVariables?.length) {
+      collection.defaults = { ...collection.defaults, variables: collectionVariables };
+    }
     const importCollections = [...this.collections, collection];
     const importedReqs = buildRequests(collection.id, collectionName)
       .map(req => routeImportedScripts(normalizeSavedRequest(req, importCollections, wsId), this.scriptEngine));
@@ -178,6 +185,19 @@ export const importExportFeature = {
     const { openApiCollectionName, openApiRequestsFromSpec } = await import('../../openapi');
     const collectionName = openApiCollectionName(payload, fileName);
     return this.importRequestsPayload(collectionName, (collectionId, name) => openApiRequestsFromSpec(payload, collectionId, name));
+  },
+  // `@base = …` file variables become collection variables, so the imported
+  // {{base}} references keep resolving without hand-editing every request.
+  async importHttpFilePayload(this: ImportExportHost, text: string, fileName: string) {
+    const { httpFileCollectionName, parseHttpFile } = await import('../../httpFile');
+    const collectionName = httpFileCollectionName(fileName);
+    const parsed = parseHttpFile(text, '', collectionName);
+    const variables = parsed.variables.map(variable => ({ ...mkRow(), key: variable.key, value: variable.value, enabled: true }));
+    return this.importRequestsPayload(
+      collectionName,
+      (collectionId, name) => parsed.requests.map(request => ({ ...request, collectionId, collection: name })),
+      variables,
+    );
   },
   async exportCollection(this: ImportExportHost, collectionId: string) {
     this.closeFloatingMenus();

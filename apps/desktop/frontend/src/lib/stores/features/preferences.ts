@@ -1,3 +1,4 @@
+import { openFileDialog } from '../../backend';
 import { DEFAULT_PROXY_CONFIG, DEFAULT_REQUEST_SETTINGS, SHORTCUT_DEFINITIONS } from '../../constants';
 import { normalizeProxyConfig, proxyConfigForPersistence } from '../../proxy';
 import type { SettingsTab } from '../ui';
@@ -27,6 +28,9 @@ type PreferencesHost = {
   maxRedirects: number;
   timeoutMs: number;
   proxyUrl: string;
+  clientCertPath: string;
+  clientKeyPath: string;
+  clientKeyPassword: string;
   browserEmulation: boolean;
   browserOrigin: string;
   browserWithCredentials: boolean;
@@ -131,6 +135,9 @@ export const preferencesFeature = {
       maxRedirects: this.maxRedirects,
       timeoutMs: this.timeoutMs,
       proxyUrl: this.proxyUrl,
+      clientCertPath: this.clientCertPath,
+      clientKeyPath: this.clientKeyPath,
+      clientKeyPassword: this.clientKeyPassword,
       browserEmulation: this.browserEmulation,
       browserOrigin: this.browserOrigin,
       browserWithCredentials: this.browserWithCredentials,
@@ -163,6 +170,9 @@ export const preferencesFeature = {
     this.maxRedirects = settings.maxRedirects ?? DEFAULT_REQUEST_SETTINGS.maxRedirects;
     this.timeoutMs = settings.timeoutMs ?? DEFAULT_REQUEST_SETTINGS.timeoutMs;
     this.proxyUrl = settings.proxyUrl ?? DEFAULT_REQUEST_SETTINGS.proxyUrl;
+    this.clientCertPath = settings.clientCertPath ?? DEFAULT_REQUEST_SETTINGS.clientCertPath;
+    this.clientKeyPath = settings.clientKeyPath ?? DEFAULT_REQUEST_SETTINGS.clientKeyPath;
+    this.clientKeyPassword = settings.clientKeyPassword ?? DEFAULT_REQUEST_SETTINGS.clientKeyPassword;
     this.browserEmulation = settings.browserEmulation ?? DEFAULT_REQUEST_SETTINGS.browserEmulation;
     this.browserOrigin = settings.browserOrigin ?? DEFAULT_REQUEST_SETTINGS.browserOrigin;
     this.browserWithCredentials = settings.browserWithCredentials ?? DEFAULT_REQUEST_SETTINGS.browserWithCredentials;
@@ -215,6 +225,17 @@ export const preferencesFeature = {
       this.enableSSLVerification = true;
       this.markRequestSettingOverride?.('enableSSLVerification');
     }
+  },
+  async pickClientCertFile(this: PreferencesHost, field: 'clientCertPath' | 'clientKeyPath') {
+    const path = await openFileDialog(field === 'clientCertPath' ? 'Select client certificate' : 'Select client key');
+    if (path) {
+      this[field] = path;
+      this.markRequestSettingOverride?.(field);
+    }
+  },
+  clearClientCertField(this: PreferencesHost, field: 'clientCertPath' | 'clientKeyPath' | 'clientKeyPassword') {
+    this[field] = '';
+    this.markRequestSettingOverride?.(field);
   },
   loadShortcutSettings(this: PreferencesHost) {
     try {

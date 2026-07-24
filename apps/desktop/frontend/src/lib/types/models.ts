@@ -120,7 +120,7 @@ export type RawBodyType = 'text' | 'json' | 'html' | 'xml';
 export type HttpVersion = 'auto' | '1.1' | '2';
 export type RequestTab = 'docs' | 'params' | 'query' | 'auth' | 'headers' | 'metadata' | 'body' | 'schema' | 'service' | 'events' | 'scripts' | 'settings';
 export type ScriptTab = 'pre-request' | 'tests';
-export type ResponseTab = 'body' | 'headers' | 'test-results';
+export type ResponseTab = 'body' | 'headers' | 'test-results' | 'timeline' | 'diff';
 export type GrpcResponseTab = 'messages' | 'metadata' | 'trailers' | 'scripts';
 export type AuthType = 'inherit' | 'none' | 'bearer' | 'basic' | 'apikey' | 'oauth2' | 'aws' | 'digest';
 export type SidebarView = 'collections' | 'environments' | 'history';
@@ -180,7 +180,8 @@ export type RequestSettings = {
   httpVersion: HttpVersion; enableSSLVerification: boolean; followRedirects: boolean;
   followOriginalMethod: boolean; followAuthorizationHeader: boolean; removeRefererHeader: boolean;
   encodeUrlAutomatically: boolean; disableCookieJar: boolean; maxRedirects: number; timeoutMs: number;
-  proxyUrl: string; browserEmulation: boolean; browserOrigin: string; browserWithCredentials: boolean;
+  proxyUrl: string; clientCertPath: string; clientKeyPath: string; clientKeyPassword: string;
+  browserEmulation: boolean; browserOrigin: string; browserWithCredentials: boolean;
   browserEnforceCORS: boolean; browserEnforceCSP: boolean; browserCSP: string;
   wsHandshakeTimeoutMs: number; wsReconnectAttempts: number; wsReconnectIntervalMs: number; wsMaxMessageSizeMb: number;
   sioClientVersion: SocketIOClientVersion; sioPath: string; sioNamespace: string;
