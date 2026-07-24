@@ -146,6 +146,7 @@ export default defineConfig({
             { label: 'Request history', link: '/docs/guides/history/' },
             { label: 'Scripting (pre-request & tests)', link: '/docs/guides/scripting/' },
             { label: 'Collection Runner', link: '/docs/guides/collection-runner/' },
+            { label: 'CLI runner (relay run)', link: '/docs/guides/cli-runner/' },
             { label: 'Git-backed workspaces', link: '/docs/guides/git-workspaces/' },
             { label: 'Import & export', link: '/docs/guides/import-export/' },
             { label: 'Backup & recovery', link: '/docs/guides/backup-recovery/' },

@@ -17,6 +17,28 @@ Resolution combines two saved scopes plus runtime script state:
 
 If nothing matches, the literal `{{name}}` is left untouched so the unresolved template is visible.
 
+## Dynamic variables
+
+Names beginning with `$` are generated at send time and need no environment entry. They match Postman's names, so imported collections that use them keep working.
+
+```
+GET https://api.example.com/orders?trace={{$guid}}&ts={{$timestamp}}
+```
+
+Every occurrence is generated independently — two `{{$guid}}` in one request produce two different ids. An environment variable with the same name wins, so you can pin one when a test needs a fixed value.
+
+| Group | Names |
+|-------|-------|
+| Identity & time | `$guid`, `$randomUUID`, `$timestamp`, `$isoTimestamp`, `$randomDatePast`, `$randomDateFuture`, `$randomDateRecent` |
+| Numbers & text | `$randomInt`, `$randomBoolean`, `$randomAlphaNumeric`, `$randomWord`, `$randomWords`, `$randomLoremSentence`, `$randomLoremParagraph`, `$randomPassword`, `$randomSemver` |
+| People | `$randomFirstName`, `$randomLastName`, `$randomFullName`, `$randomUserName`, `$randomEmail`, `$randomExampleEmail`, `$randomPhoneNumber`, `$randomJobTitle` |
+| Network | `$randomIP`, `$randomIPV6`, `$randomMACAddress`, `$randomDomainName`, `$randomDomainWord`, `$randomUrl`, `$randomProtocol`, `$randomPort`, `$randomUserAgent` |
+| Places | `$randomCity`, `$randomCountry`, `$randomCountryCode`, `$randomStreetAddress`, `$randomLatitude`, `$randomLongitude` |
+| Business | `$randomCompanyName`, `$randomBankAccount`, `$randomCreditCardMask`, `$randomPrice`, `$randomCurrencyCode`, `$randomCurrencyName`, `$randomCurrencySymbol` |
+| Files & colour | `$randomMimeType`, `$randomFileName`, `$randomFileExt`, `$randomColor`, `$randomHexColor` |
+
+The editor's `{{` autocomplete lists them alongside your own variables. A `{{$name}}` Relay doesn't implement is left as-is rather than sent as an empty value.
+
 ## Switching environments
 
 Use the environment switcher in the top bar. The active environment is per-workspace — switching to a different workspace remembers its last-used environment.

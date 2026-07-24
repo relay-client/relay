@@ -43,6 +43,21 @@ Imports, `require`, process access, filesystem access, and direct network access
 
 `pm.variables` writes to the session's runtime variable scope (available to later requests in the same run); `pm.environment` writes to the active environment.
 
+## `pm.iterationData`
+
+| Method | Description |
+|--------|-------------|
+| `.get(key)` | Read the current data-row value for `key` (read-only) |
+
+During a data-driven run — the [Collection Runner](/docs/guides/collection-runner/) with a data file, or [`relay run --data`](/docs/guides/cli-runner/#data-driven-runs) — `pm.iterationData` exposes the current row. It's read-only; outside a data run every key is `undefined`.
+
+```js
+pm.test("greets the row's user", () => {
+  const body = pm.response.json()
+  pm.expect(body.name).to.equal(pm.iterationData.get("name"))
+})
+```
+
 ## Assertions
 
 JavaScript:

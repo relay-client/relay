@@ -14,6 +14,7 @@ Relay supports both one-off interchange formats and full Relay backups. Imports 
 | Bruno/OpenCollection | Collections, explicit empty folders, requests, GraphQL, and supported metadata. |
 | OpenAPI/Swagger | HTTP/SSE requests generated from operations. |
 | HAR | Captured HTTP requests. |
+| `.http` / `.rest` | JetBrains HTTP Client and VS Code REST Client files: requests, names, headers, bodies, and file variables. |
 | cURL | A single request pasted into the URL bar. |
 | Relay all-data backup | Workspaces, collections, environments, requests, history, cookies, and selected UI/request preferences. |
 | Relay Git/YAML workspace | Reviewable workspace files with local-only secrets. |
@@ -40,6 +41,31 @@ What doesn't:
 - Postman cloud Mock Servers / Monitors.
 - Visualizer scripts.
 - Variable types beyond string/secret.
+
+## From a `.http` / `.rest` file
+
+Pick **.http / .rest file** in the import dialog. Relay reads the format shared by the JetBrains HTTP Client and the VS Code REST Client:
+
+```http
+@baseUrl = https://api.example.com
+
+### List orders
+GET {{baseUrl}}/orders?status=open
+Accept: application/json
+
+### Create order
+# @name createOrder
+POST {{baseUrl}}/orders
+Content-Type: application/json
+
+{ "sku": "RELAY-1" }
+```
+
+- `###` separates requests, and the text after it becomes the request name. A `# @name` directive takes priority.
+- File variables (`@baseUrl = …`) become collection variables, so `{{baseUrl}}` keeps resolving after import.
+- A bare URL line is treated as `GET`, and a trailing `HTTP/1.1` is ignored.
+- `WEBSOCKET` requests and the `X-REQUEST-TYPE: GraphQL` header map to Relay's WebSocket and GraphQL request types.
+- `< ./body.json` and `> ./out.json` reference files the importer cannot read. Relay records them in the request's Docs tab instead of dropping them silently, as it does for JetBrains response-handler scripts (`> {% … %}`), which use an API Relay does not run.
 
 ## From curl
 

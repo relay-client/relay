@@ -46,6 +46,18 @@ Disabling SSL verification opens you to MITM attacks on that request. Only use i
 
 For corporate root CAs, the cleaner fix is to install the CA into your system trust store — Relay uses the OS trust roots, so once the CA is trusted system-wide it works in Relay too.
 
+## Client certificate (mutual TLS)
+
+For servers that require **mutual TLS**, present a client certificate under *Settings → Client certificate (mTLS)*:
+
+- **Certificate (CRT/PEM)** — the client certificate file, in PEM format.
+- **Private key (optional)** — the key file. Leave it blank when the key is in the same file as the certificate (a combined PEM).
+- **Key passphrase** — only for an encrypted key. It accepts a `{{variable}}`, so you can point it at a workspace secret instead of storing it in the YAML.
+
+Set it on a **collection** (via collection defaults) to reuse one certificate across every request in it, the same way other settings inherit.
+
+A missing file, a mismatched certificate/key pair, or a wrong passphrase fails the request before it dials, with a message that says which. Relay supports PEM keys, including the legacy openssl encrypted format; PKCS#8-encrypted keys need converting first (`openssl pkcs8 -in key.pem -out key.dec.pem`).
+
 ## Timeout
 
 **Request timeout (ms)** caps the total time from connection start to body fully read. Default: **30 000 ms** (30 seconds). Set to `0` to disable.
