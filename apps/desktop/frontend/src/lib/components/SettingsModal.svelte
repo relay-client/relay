@@ -90,6 +90,8 @@
     autoUpdateInstalling = false,
     setAutoUpdateInstall,
     onUpdateInstalled = () => {},
+    whatsNewAvailable = false,
+    onShowWhatsNew = () => {},
   }: {
     settingsTab: SettingsTab;
     shortcutCaptureMessage: string;
@@ -125,6 +127,8 @@
     autoUpdateInstalling?: boolean;
     setAutoUpdateInstall: (value: boolean) => void;
     onUpdateInstalled?: (info: UpdateInfo) => void;
+    whatsNewAvailable?: boolean;
+    onShowWhatsNew?: () => void;
   } = $props();
 
   const UPDATE_READY_KEY = 'relay:update-ready';
@@ -1056,6 +1060,18 @@
             <div class="about-loading">
               <span class="updates-spinner" aria-hidden="true"></span>
             </div>
+          {/if}
+
+          {#if whatsNewAvailable}
+            <button class="about-whats-new" type="button" onclick={onShowWhatsNew}>
+              <span class="about-whats-new-copy">
+                <strong>What's new</strong>
+                <span>Release notes for this build.</span>
+              </span>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
           {/if}
 
           <div class="about-update-card">
@@ -2016,6 +2032,47 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     background: var(--elevated);
+  }
+
+  .about-whats-new {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+    max-width: 360px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--elevated);
+    color: var(--text-3);
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+  }
+
+  .about-whats-new:hover {
+    border-color: var(--accent);
+    background: var(--hover);
+    color: var(--accent);
+  }
+
+  .about-whats-new-copy {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .about-whats-new-copy strong {
+    color: var(--text);
+    font-size: 12.5px;
+  }
+
+  .about-whats-new-copy span {
+    color: var(--text-3);
+    font-size: 11px;
+    line-height: 1.4;
   }
 
   .about-update-copy {

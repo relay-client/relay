@@ -84,6 +84,12 @@ Development builds created with `make dev` or `go run` do not use the release up
 
 The **About** tab also has **Automatically install updates**. When enabled, Relay performs the background check, installs a discovered release, and asks you to restart. The setting is disabled in development builds.
 
+## What's new
+
+The first time Relay starts after updating to a new version, it opens a **What's new** screen with that release's notes. It appears once per version: relaunching the same build, downgrading, and a first-ever install all stay quiet — a brand-new user has nothing to catch up on.
+
+You can reopen it any time from **About → What's new**. The notes are bundled with the build, so the screen works offline and always describes the version you are actually running.
+
 ## Support and About
 
 **Support** opens Relay's public issue tracker for bugs and questions. **About** shows the installed Relay version and platform; include both when reporting a problem.

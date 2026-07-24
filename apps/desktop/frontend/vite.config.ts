@@ -1,11 +1,36 @@
 import { svelte } from '@sveltejs/vite-plugin-svelte';
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
+
+// The repo changelog lives outside the frontend package, so Rollup can't
+// resolve a relative import to it. Serve it as a virtual module instead: the
+// "What's new" screen needs the notes bundled so it works offline and always
+// matches the build that is running.
+const CHANGELOG_PATH = resolve(import.meta.dirname, '../../../CHANGELOG.md');
+const CHANGELOG_ID = 'virtual:relay-changelog';
+const CHANGELOG_RESOLVED_ID = '\0' + CHANGELOG_ID;
 
 export default defineConfig({
   plugins: [
     svelte(),
+    {
+      name: 'relay-changelog',
+      resolveId(id) {
+        return id === CHANGELOG_ID ? CHANGELOG_RESOLVED_ID : null;
+      },
+      load(id) {
+        if (id !== CHANGELOG_RESOLVED_ID) return null;
+        this.addWatchFile(CHANGELOG_PATH);
+        let markdown = '';
+        try {
+          markdown = readFileSync(CHANGELOG_PATH, 'utf8');
+        } catch {
+          // A missing changelog just means no notes to show; never fail the build.
+        }
+        return `export default ${JSON.stringify(markdown)};`;
+      }
+    },
     {
       name: 'keep-wails-dist-placeholder',
       closeBundle() {

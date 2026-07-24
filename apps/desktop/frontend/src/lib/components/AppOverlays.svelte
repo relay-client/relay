@@ -16,6 +16,8 @@
     setAutoUpdateInstall: (value: boolean) => void;
     appRuntime: string;
     onUpdateInstalled: (info: UpdateInfo) => void;
+    whatsNewAvailable: boolean;
+    onShowWhatsNew: () => void;
   };
 
   let {
@@ -26,6 +28,8 @@
     setAutoUpdateInstall,
     appRuntime,
     onUpdateInstalled,
+    whatsNewAvailable,
+    onShowWhatsNew,
   }: Props = $props();
 </script>
 
@@ -45,6 +49,8 @@
   {#if lazy.SettingsModalComponent}
     <lazy.SettingsModalComponent
       bind:settingsTab={vm.settingsTab}
+      {whatsNewAvailable}
+      {onShowWhatsNew}
       shortcutCaptureMessage={vm.shortcutCaptureMessage}
       shortcutEditingId={vm.shortcutEditingId}
       {appRuntime}
