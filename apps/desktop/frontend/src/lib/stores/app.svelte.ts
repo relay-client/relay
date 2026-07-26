@@ -4,7 +4,7 @@ import {
   gitStatus, gitCommitLogPage, gitListBranches,
   useLocalWorkspaceStore, createLocalWorkspaceRoot, saveWorkspaceSecrets,
 } from '../backend';
-import type { CookieJarEntry, GitBranchListResult, GitConflictFileResult, GitDiffResult, GitLogResult, GitWorkspaceStatus, HttpResponse, WorkspaceDiagnostic, WorkspaceOpenResult, WorkspaceSecretRef } from '../backend';
+import type { CookieJarEntry, GitBranchListResult, GitConflictFileResult, GitDiffResult, GitLogResult, GitWorkspaceStatus, HttpResponse, OAuth2DevicePrompt, WorkspaceDiagnostic, WorkspaceOpenResult, WorkspaceSecretRef } from '../backend';
 import type { SSEEventEntry, SSESession, WebSocketMessageEntry, WebSocketSession, SocketIOMessageEntry, SocketIOSession, SocketIOClientVersion } from '../types/models';
 import { initialThemeState, type AppTheme, type ResolvedAppTheme } from '../theme';
 import {
@@ -24,11 +24,11 @@ import {
   DEFAULT_PROXY_CONFIG,
 } from '../constants';
 import {
-  safeFileName, downloadTextFile, clipboardCopy,
+  safeFileName, downloadTextFile, clipboardCopy, restoreRows,
 } from '../utils';
 import type {
   Method, BodyType, RawBodyType, HttpVersion, RequestTab, ScriptTab, ResponseTab, GrpcResponseTab,
-  AuthType, OAuth2GrantType, SidebarView, ShortcutId, KVRow,
+  AuthType, OAuth2GrantType, OAuth2ClientAuth, SidebarView, ShortcutId, KVRow,
   Workspace, Collection, Environment,
    RequestSettingsOverrides, ProxyConfig, SavedRequest, RequestHistoryEntry, RequestStore, ScriptEngine,
   CollectionGroup, HistoryDayGroup,
@@ -68,6 +68,7 @@ import { socketioFeature } from './features/socketio';
 import { mkSioEventRow, socketioFormFeature } from './features/socketioForm';
 import { dialogFeature } from './features/dialogs';
 import { environmentFeature } from './features/environments';
+import { globalsFeature, withTrailingRow as withTrailingGlobalRow } from './features/globals';
 import { historyFeature } from './features/history';
 import { menuFeature } from './features/menus';
 import { preferencesFeature } from './features/preferences';
@@ -276,6 +277,7 @@ class AppVM {
 
   declare currentRequestSettingsOverrides: typeof collectionDefaultsFeature.currentRequestSettingsOverrides;
   declare markRequestSettingOverride: typeof collectionDefaultsFeature.markRequestSettingOverride;
+  declare applyCollectionVariableUpdates: typeof collectionDefaultsFeature.applyCollectionVariableUpdates;
   declare clearRequestSettingOverrides: typeof collectionDefaultsFeature.clearRequestSettingOverrides;
   declare collectionForRequest: typeof collectionDefaultsFeature.collectionForRequest;
   declare requestWithCollectionDefaults: typeof collectionDefaultsFeature.requestWithCollectionDefaults;
@@ -725,6 +727,17 @@ class AppVM {
   declare openEnvironment: typeof environmentFeature.openEnvironment;
   declare environmentRowsWithTrailing: typeof environmentFeature.environmentRowsWithTrailing;
   declare scheduleEnvironmentPersist: typeof environmentFeature.scheduleEnvironmentPersist;
+  declare openGlobals: typeof globalsFeature.openGlobals;
+  declare globalVariableRows: typeof globalsFeature.globalVariableRows;
+  declare globalVariableValues: typeof globalsFeature.globalVariableValues;
+  declare globalVariableCount: typeof globalsFeature.globalVariableCount;
+  declare updateGlobalVariableRow: typeof globalsFeature.updateGlobalVariableRow;
+  declare removeGlobalVariableRow: typeof globalsFeature.removeGlobalVariableRow;
+  declare clearGlobalVariables: typeof globalsFeature.clearGlobalVariables;
+  declare scheduleGlobalsPersist: typeof globalsFeature.scheduleGlobalsPersist;
+  declare saveGlobals: typeof globalsFeature.saveGlobals;
+  declare syncBackendGlobals: typeof globalsFeature.syncBackendGlobals;
+  declare syncGlobalsFromBackend: typeof globalsFeature.syncGlobalsFromBackend;
   declare saveEnvironment: typeof environmentFeature.saveEnvironment;
   declare updateEnvironmentRow: typeof environmentFeature.updateEnvironmentRow;
   declare removeEnvironmentRow: typeof environmentFeature.removeEnvironmentRow;
@@ -817,6 +830,8 @@ class AppVM {
 
   followRedirects = $state(true);
   timeoutMs = $state(30000);
+  scriptTimeoutMs = $state(0);
+  allowSendRequest = $state(false);
   httpVersion = $state<HttpVersion>('auto');
   enableSSLVerification = $state(true);
   followOriginalMethod = $state(false);
@@ -856,16 +871,27 @@ class AppVM {
   oauth2GrantType = $state<OAuth2GrantType>('client_credentials');
   oauth2TokenURL = $state('');
   oauth2AuthURL = $state('');
+  oauth2DeviceAuthURL = $state('');
   oauth2ClientID = $state('');
   oauth2Secret = $state('');
   oauth2Scope = $state('');
+  oauth2Audience = $state('');
   oauth2Token = $state('');
   oauth2RefreshToken = $state('');
   oauth2TokenExpiry = $state(0);
   oauth2UsePKCE = $state(true);
   oauth2Loading = $state(false);
+  oauth2Username = $state('');
+  oauth2Password = $state('');
+  oauth2ClientAuth = $state<OAuth2ClientAuth>('basic');
+  oauth2AssertionAlgorithm = $state('');
+  oauth2AssertionPrivateKey = $state('');
+  oauth2AssertionKeyID = $state('');
+  oauth2AssertionAudience = $state('');
+  oauth2DevicePrompt = $state<OAuth2DevicePrompt | null>(null);
   awsAccessKey = $state('');
   awsSecretKey = $state('');
+  awsSessionToken = $state('');
   awsRegion = $state('us-east-1');
   awsService = $state('execute-api');
 
@@ -1090,6 +1116,10 @@ class AppVM {
   missingSecretsSaving = $state(false);
   missingSecretsError = $state('');
   environmentSaveState = $state<'idle' | 'dirty' | 'saving' | 'saved'>('idle');
+  globalVariables = $state<KVRow[]>([{ id: 1, enabled: true, key: '', value: '', description: '' }]);
+  globalsSaveState = $state<'idle' | 'dirty' | 'saving' | 'saved'>('idle');
+  globalsPersistTimer: ReturnType<typeof setTimeout> | null = null;
+  globalsSavedTimer: ReturnType<typeof setTimeout> | null = null;
   responseBodyPage = $state(0);
   quitReviewInProgress = $state(false);
   autosave = $state(false);
@@ -1214,6 +1244,7 @@ class AppVM {
     let lReqs: SavedRequest[] = [], lWs: Workspace[] = [], lCols: Collection[] = [], lEnvs: Environment[] = [];
     let lActiveId = '', lWsId = '', lEnvId = '', lOpenIds: string[] = [], lFolderCollapsed: Record<string, boolean> = {}, lHistory: RequestHistoryEntry[] = [];
     let lWorkspaceCookies: Record<string, CookieJarEntry[]> = {};
+    let lGlobals: KVRow[] = withTrailingGlobalRow([]);
     let requestStoreRaw = '';
     let requestStoreReadFailed = false;
     const savedTopViewState = this.loadTopViewState();
@@ -1250,6 +1281,7 @@ class AppVM {
         lReqs = (parsed.requests ?? []).map(r => normalizeSavedRequest(r, lCols, lWsId));
         lHistory = (parsed.history ?? []).map(e => normalizeHistoryEntry(e, lCols, lWsId)).filter((e): e is RequestHistoryEntry => Boolean(e));
         lWorkspaceCookies = this.normalizeWorkspaceCookieStore(parsed.workspaceCookies);
+        lGlobals = withTrailingGlobalRow(restoreRows(parsed.globals ?? []));
       }
     } catch (e) {
       this.collectionImportToast = 'Warning: some requests could not be loaded — data may be corrupt';
@@ -1269,6 +1301,8 @@ class AppVM {
     this.unsavedRequestSnapshots = new Map();
     this.folderCollapseState = lFolderCollapsed; this.activeWorkspaceId = lWsId; this.activeEnvironmentId = lEnvId;
     this.workspaceCookies = lWorkspaceCookies;
+    this.globalVariables = lGlobals;
+    void this.syncBackendGlobals();
     await this.restoreWorkspaceCookieJar(lWsId);
     if (!lReqs.length) {
       this.openRequestIds = [];
@@ -1572,6 +1606,7 @@ applyFeatures(
   realtimeFeature,
   collectionRunnerDerivedFeature,
   collectionRunnerFeature,
+  globalsFeature,
   collectionDefaultsFeature,
   collectionFeature,
   folderFeature,

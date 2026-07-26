@@ -266,8 +266,11 @@ export function emptyAuthState() {
     bearerToken: '', basicUser: '', basicPass: '',
     apiKeyName: 'X-API-Key', apiKeyValue: '', apiKeyIn: 'header' as 'header' | 'query',
     oauth2TokenURL: '', oauth2ClientID: '', oauth2Secret: '', oauth2Scope: '', oauth2Token: '',
-    oauth2GrantType: 'client_credentials' as const, oauth2AuthURL: '', oauth2RefreshToken: '', oauth2TokenExpiry: 0, oauth2UsePKCE: true,
-    awsAccessKey: '', awsSecretKey: '', awsRegion: 'us-east-1', awsService: 'execute-api',
+    oauth2GrantType: 'client_credentials' as const, oauth2AuthURL: '', oauth2DeviceAuthURL: '',
+    oauth2RefreshToken: '', oauth2TokenExpiry: 0, oauth2UsePKCE: true, oauth2Audience: '',
+    oauth2Username: '', oauth2Password: '', oauth2ClientAuth: 'basic' as const,
+    oauth2AssertionAlgorithm: '', oauth2AssertionPrivateKey: '', oauth2AssertionKeyID: '', oauth2AssertionAudience: '',
+    awsAccessKey: '', awsSecretKey: '', awsSessionToken: '', awsRegion: 'us-east-1', awsService: 'execute-api',
   };
 }
 
@@ -280,9 +283,16 @@ export function authStateHasData(auth: SavedRequest['auth'], type: AuthType = au
   if (type === 'bearer') return has(auth.bearerToken);
   if (type === 'basic' || type === 'digest') return has(auth.basicUser, auth.basicPass);
   if (type === 'apikey') return has(auth.apiKeyValue) || auth.apiKeyName.trim() !== 'X-API-Key' || auth.apiKeyIn !== 'header';
-  if (type === 'oauth2') return has(auth.oauth2TokenURL, auth.oauth2AuthURL ?? '', auth.oauth2ClientID, auth.oauth2Secret, auth.oauth2Scope, auth.oauth2Token, auth.oauth2RefreshToken ?? '');
+  if (type === 'oauth2') {
+    return has(
+      auth.oauth2TokenURL, auth.oauth2AuthURL ?? '', auth.oauth2DeviceAuthURL ?? '',
+      auth.oauth2ClientID, auth.oauth2Secret, auth.oauth2Scope, auth.oauth2Token,
+      auth.oauth2RefreshToken ?? '', auth.oauth2Audience ?? '',
+      auth.oauth2Username ?? '', auth.oauth2Password ?? '', auth.oauth2AssertionPrivateKey ?? '',
+    );
+  }
   if (type === 'aws') {
-    return has(auth.awsAccessKey, auth.awsSecretKey) || auth.awsRegion.trim() !== 'us-east-1' || auth.awsService.trim() !== 'execute-api';
+    return has(auth.awsAccessKey, auth.awsSecretKey, auth.awsSessionToken ?? '') || auth.awsRegion.trim() !== 'us-east-1' || auth.awsService.trim() !== 'execute-api';
   }
   return false;
 }

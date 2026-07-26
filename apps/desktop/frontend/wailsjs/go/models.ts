@@ -665,15 +665,25 @@ export namespace model {
 	    oauth2GrantType: string;
 	    oauth2TokenURL: string;
 	    oauth2AuthURL: string;
+	    oauth2DeviceAuthURL: string;
 	    oauth2RedirectURL: string;
 	    oauth2ClientID: string;
 	    oauth2Secret: string;
 	    oauth2Scope: string;
+	    oauth2Audience: string;
 	    oauth2UsePKCE: boolean;
 	    oauth2RefreshToken: string;
 	    oauth2InsecureSkipVerify: boolean;
+	    oauth2Username: string;
+	    oauth2Password: string;
+	    oauth2ClientAuth: string;
+	    oauth2AssertionAlgorithm: string;
+	    oauth2AssertionPrivateKey: string;
+	    oauth2AssertionKeyID: string;
+	    oauth2AssertionAudience: string;
 	    awsAccessKey: string;
 	    awsSecretKey: string;
+	    awsSessionToken: string;
 	    awsRegion: string;
 	    awsService: string;
 	
@@ -693,17 +703,57 @@ export namespace model {
 	        this.oauth2GrantType = source["oauth2GrantType"];
 	        this.oauth2TokenURL = source["oauth2TokenURL"];
 	        this.oauth2AuthURL = source["oauth2AuthURL"];
+	        this.oauth2DeviceAuthURL = source["oauth2DeviceAuthURL"];
 	        this.oauth2RedirectURL = source["oauth2RedirectURL"];
 	        this.oauth2ClientID = source["oauth2ClientID"];
 	        this.oauth2Secret = source["oauth2Secret"];
 	        this.oauth2Scope = source["oauth2Scope"];
+	        this.oauth2Audience = source["oauth2Audience"];
 	        this.oauth2UsePKCE = source["oauth2UsePKCE"];
 	        this.oauth2RefreshToken = source["oauth2RefreshToken"];
 	        this.oauth2InsecureSkipVerify = source["oauth2InsecureSkipVerify"];
+	        this.oauth2Username = source["oauth2Username"];
+	        this.oauth2Password = source["oauth2Password"];
+	        this.oauth2ClientAuth = source["oauth2ClientAuth"];
+	        this.oauth2AssertionAlgorithm = source["oauth2AssertionAlgorithm"];
+	        this.oauth2AssertionPrivateKey = source["oauth2AssertionPrivateKey"];
+	        this.oauth2AssertionKeyID = source["oauth2AssertionKeyID"];
+	        this.oauth2AssertionAudience = source["oauth2AssertionAudience"];
 	        this.awsAccessKey = source["awsAccessKey"];
 	        this.awsSecretKey = source["awsSecretKey"];
+	        this.awsSessionToken = source["awsSessionToken"];
 	        this.awsRegion = source["awsRegion"];
 	        this.awsService = source["awsService"];
+	    }
+	}
+	export class ConnectionInfo {
+	    reused: boolean;
+	    wasIdle: boolean;
+	    localAddr?: string;
+	    remoteAddr?: string;
+	    protocol?: string;
+	    tlsVersion?: string;
+	    tlsCipher?: string;
+	    alpn?: string;
+	    serverName?: string;
+	    addresses?: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new ConnectionInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.reused = source["reused"];
+	        this.wasIdle = source["wasIdle"];
+	        this.localAddr = source["localAddr"];
+	        this.remoteAddr = source["remoteAddr"];
+	        this.protocol = source["protocol"];
+	        this.tlsVersion = source["tlsVersion"];
+	        this.tlsCipher = source["tlsCipher"];
+	        this.alpn = source["alpn"];
+	        this.serverName = source["serverName"];
+	        this.addresses = source["addresses"];
 	    }
 	}
 	export class Cookie {
@@ -857,6 +907,9 @@ export namespace model {
 	    preRequestScript: string;
 	    testScript: string;
 	    scriptEngine: string;
+	    name: string;
+	    scriptTimeoutMs: number;
+	    allowSendRequest: boolean;
 	    secretEnvironmentKeys: string[];
 	    secretEnvironmentValues: string[];
 	    collectionVariables: Record<string, string>;
@@ -885,6 +938,9 @@ export namespace model {
 	        this.preRequestScript = source["preRequestScript"];
 	        this.testScript = source["testScript"];
 	        this.scriptEngine = source["scriptEngine"];
+	        this.name = source["name"];
+	        this.scriptTimeoutMs = source["scriptTimeoutMs"];
+	        this.allowSendRequest = source["allowSendRequest"];
 	        this.secretEnvironmentKeys = source["secretEnvironmentKeys"];
 	        this.secretEnvironmentValues = source["secretEnvironmentValues"];
 	        this.collectionVariables = source["collectionVariables"];
@@ -928,6 +984,9 @@ export namespace model {
 	    tests: TestResult[];
 	    logs?: string[];
 	    error?: string;
+	    skippedRequest?: boolean;
+	    collectionVariables?: Record<string, string>;
+	    collectionVariablesRemoved?: string[];
 	
 	    static createFrom(source: any = {}) {
 	        return new ScriptResult(source);
@@ -938,6 +997,9 @@ export namespace model {
 	        this.tests = this.convertValues(source["tests"], TestResult);
 	        this.logs = source["logs"];
 	        this.error = source["error"];
+	        this.skippedRequest = source["skippedRequest"];
+	        this.collectionVariables = source["collectionVariables"];
+	        this.collectionVariablesRemoved = source["collectionVariablesRemoved"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -1067,6 +1129,11 @@ export namespace model {
 	    scriptEngine: string;
 	    followRedirects: boolean;
 	    timeoutMs: number;
+	    name: string;
+	    scriptTimeoutMs: number;
+	    allowSendRequest: boolean;
+	    iteration?: number;
+	    iterationCount?: number;
 	    httpVersion: string;
 	    enableSSLVerification: boolean;
 	    followOriginalMethod: boolean;
@@ -1078,9 +1145,13 @@ export namespace model {
 	    secretEnvironmentKeys: string[];
 	    secretEnvironmentValues: string[];
 	    collectionVariables: Record<string, string>;
+	    iterationData?: Record<string, string>;
 	    proxyUrl: string;
 	    proxyMode: string;
 	    proxyBypass: string;
+	    clientCertPath: string;
+	    clientKeyPath: string;
+	    clientKeyPassword: string;
 	    browserEmulation: boolean;
 	    browserOrigin: string;
 	    browserWithCredentials: boolean;
@@ -1121,6 +1192,11 @@ export namespace model {
 	        this.scriptEngine = source["scriptEngine"];
 	        this.followRedirects = source["followRedirects"];
 	        this.timeoutMs = source["timeoutMs"];
+	        this.name = source["name"];
+	        this.scriptTimeoutMs = source["scriptTimeoutMs"];
+	        this.allowSendRequest = source["allowSendRequest"];
+	        this.iteration = source["iteration"];
+	        this.iterationCount = source["iterationCount"];
 	        this.httpVersion = source["httpVersion"];
 	        this.enableSSLVerification = source["enableSSLVerification"];
 	        this.followOriginalMethod = source["followOriginalMethod"];
@@ -1132,9 +1208,13 @@ export namespace model {
 	        this.secretEnvironmentKeys = source["secretEnvironmentKeys"];
 	        this.secretEnvironmentValues = source["secretEnvironmentValues"];
 	        this.collectionVariables = source["collectionVariables"];
+	        this.iterationData = source["iterationData"];
 	        this.proxyUrl = source["proxyUrl"];
 	        this.proxyMode = source["proxyMode"];
 	        this.proxyBypass = source["proxyBypass"];
+	        this.clientCertPath = source["clientCertPath"];
+	        this.clientKeyPath = source["clientKeyPath"];
+	        this.clientKeyPassword = source["clientKeyPassword"];
 	        this.browserEmulation = source["browserEmulation"];
 	        this.browserOrigin = source["browserOrigin"];
 	        this.browserWithCredentials = source["browserWithCredentials"];
@@ -1152,6 +1232,58 @@ export namespace model {
 	        this.sioListenEvents = source["sioListenEvents"];
 	        this.sseDisableReconnect = source["sseDisableReconnect"];
 	        this.sseReconnectIntervalMs = source["sseReconnectIntervalMs"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class TimelineEvent {
+	    label: string;
+	    atMs: number;
+	    detail?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new TimelineEvent(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.label = source["label"];
+	        this.atMs = source["atMs"];
+	        this.detail = source["detail"];
+	    }
+	}
+	export class SentRequest {
+	    method: string;
+	    url: string;
+	    proto: string;
+	    headers: KeyValue[];
+	
+	    static createFrom(source: any = {}) {
+	        return new SentRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.method = source["method"];
+	        this.url = source["url"];
+	        this.proto = source["proto"];
+	        this.headers = this.convertValues(source["headers"], KeyValue);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -1211,6 +1343,17 @@ export namespace model {
 	    error?: string;
 	    preRequestResult: ScriptResult;
 	    testResult: ScriptResult;
+	    sentRequests?: SentRequest[];
+	    connection: ConnectionInfo;
+	    timeline?: TimelineEvent[];
+	    skipped?: boolean;
+	    skipReason?: string;
+	    previewImageBase64?: string;
+	    previewMediaType?: string;
+	    bodyIsBinary?: boolean;
+	    bodySniffedType?: string;
+	    collectionVariableUpdates?: Record<string, string>;
+	    collectionVariablesRemoved?: string[];
 	
 	    static createFrom(source: any = {}) {
 	        return new HttpResponse(source);
@@ -1228,6 +1371,17 @@ export namespace model {
 	        this.error = source["error"];
 	        this.preRequestResult = this.convertValues(source["preRequestResult"], ScriptResult);
 	        this.testResult = this.convertValues(source["testResult"], ScriptResult);
+	        this.sentRequests = this.convertValues(source["sentRequests"], SentRequest);
+	        this.connection = this.convertValues(source["connection"], ConnectionInfo);
+	        this.timeline = this.convertValues(source["timeline"], TimelineEvent);
+	        this.skipped = source["skipped"];
+	        this.skipReason = source["skipReason"];
+	        this.previewImageBase64 = source["previewImageBase64"];
+	        this.previewMediaType = source["previewMediaType"];
+	        this.bodyIsBinary = source["bodyIsBinary"];
+	        this.bodySniffedType = source["bodySniffedType"];
+	        this.collectionVariableUpdates = source["collectionVariableUpdates"];
+	        this.collectionVariablesRemoved = source["collectionVariablesRemoved"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -1255,6 +1409,7 @@ export namespace model {
 	    expires_in: number;
 	    refresh_token?: string;
 	    scope?: string;
+	    id_token?: string;
 	    error?: string;
 	    error_description?: string;
 	
@@ -1269,10 +1424,12 @@ export namespace model {
 	        this.expires_in = source["expires_in"];
 	        this.refresh_token = source["refresh_token"];
 	        this.scope = source["scope"];
+	        this.id_token = source["id_token"];
 	        this.error = source["error"];
 	        this.error_description = source["error_description"];
 	    }
 	}
+	
 	
 	
 	export class SocketIOEmitMessage {
@@ -1309,6 +1466,7 @@ export namespace model {
 	        this.error = source["error"];
 	    }
 	}
+	
 	
 	export class UpdateInfo {
 	    version: string;

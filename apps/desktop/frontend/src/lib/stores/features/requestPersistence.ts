@@ -3,6 +3,7 @@ import { normalizeSavedRequest } from '../../normalizers';
 import type {
   Collection,
   Environment,
+  KVRow,
   PersistRequestStore,
   RequestHistoryEntry,
   RequestStore,
@@ -27,6 +28,7 @@ type RequestPersistenceHost = {
   dirtyRequestIds: Set<string>;
   draftRequestIds: Set<string>;
   environments: Environment[];
+  globalVariables: KVRow[];
   externalWorkspaceChangePending: boolean;
   folderCollapseState: Record<string, boolean>;
   openRequestIds: string[];
@@ -160,6 +162,7 @@ export const requestPersistenceFeature = {
       environments: storeEnvironments.map(e => ({ ...e, values: cloneRowsForStore(e.values) })),
       requests: storeRequests,
       history: this.pruneHistory(nextHistory),
+      globals: cloneRowsForStore(this.globalVariables),
       workspaceCookies: storeWorkspaceCookies,
     };
   },

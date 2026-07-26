@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte';
   import { getAppInfo, checkForUpdate, applyUpdate, restartApp } from './lib/backend';
-  import type { UpdateInfo } from './lib/backend';
+  import type { OAuth2DevicePrompt, UpdateInfo } from './lib/backend';
   // Bundled at build time (see the relay-changelog plugin in vite.config.ts) so
   // the release notes are available offline and match the running build exactly.
   import CHANGELOG_MARKDOWN from 'virtual:relay-changelog';
@@ -19,6 +19,7 @@
   import StatusBar from './lib/components/StatusBar.svelte';
   import WorkspaceChrome from './lib/components/WorkspaceChrome.svelte';
   import WorkspaceOverview from './lib/components/WorkspaceOverview.svelte';
+  import GlobalsWorkspace from './lib/components/GlobalsWorkspace.svelte';
   import { METHODS, REQUEST_TYPES, DEFAULT_WORKSPACE, RAW_BODY_TYPES } from './lib/constants';
   import './styles/sse.css';
   import { installTitlebarDoubleClickHandler } from './lib/windowControls';
@@ -229,6 +230,9 @@
     const offBeforeQuit = window.runtime?.EventsOn?.('relay:before-quit', () => {
       void vm.reviewDraftsBeforeQuit();
     });
+    const offDevicePrompt = window.runtime?.EventsOn?.<OAuth2DevicePrompt>('oauth2:device-prompt', prompt => {
+      vm.oauth2DevicePrompt = prompt;
+    });
     const beforeUnload = (event: BeforeUnloadEvent) => {
       vm.flushPendingPersist();
       if (!vm.hasUnsavedDrafts() && !vm.hasUnsavedRequestChanges()) return;
@@ -303,8 +307,6 @@
       const updatePendingRestart = syncUpdateReadyForVersion(info.version);
       checkWhatsNew(info.version);
 
-
-
       if (info.version && info.version !== 'dev' && !updatePendingRestart) {
         updateCheckTimer = setTimeout(async () => {
           updateCheckTimer = null;
@@ -335,6 +337,7 @@
       }
       uninstallTitlebarDoubleClick();
       offBeforeQuit?.();
+      offDevicePrompt?.();
       window.removeEventListener('beforeunload', beforeUnload);
       window.removeEventListener('pagehide', flushOnPageHide);
       window.removeEventListener('blur', rememberWindowFocus);
@@ -456,6 +459,8 @@
     saveHistoryEntryToNewCollection={vm.saveHistoryEntryToNewCollection}
     deleteHistoryEntry={vm.deleteHistoryEntry}
     createEnvironment={vm.createEnvironment}
+    openGlobals={vm.openGlobals}
+    globalVariableCount={vm.globalVariableCount()}
     selectEnvironment={vm.selectEnvironment}
     openEnvironment={vm.openEnvironment}
     environmentValueCount={vm.environmentValueCount}
@@ -604,6 +609,17 @@
         onSelectFile={vm.selectGitFile}
       />
       {/if}
+    {:else if vm.topView === 'globals'}
+      <GlobalsWorkspace
+        rows={vm.globalVariables}
+        autosave={vm.autosave}
+        saveState={vm.globalsSaveState}
+        updateRow={vm.updateGlobalVariableRow}
+        removeRow={vm.removeGlobalVariableRow}
+        clearAll={vm.clearGlobalVariables}
+        save={vm.saveGlobals}
+      />
+
     {:else if vm.topView === 'environment'}
       {#if lazy.EnvironmentWorkspaceComponent}
       <lazy.EnvironmentWorkspaceComponent

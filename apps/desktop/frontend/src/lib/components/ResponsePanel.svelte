@@ -7,9 +7,11 @@
   import ResponseTimeTooltip from './ResponseTimeTooltip.svelte';
   import ResponseTimelinePanel from './ResponseTimelinePanel.svelte';
   import ResponseDiffPanel from './ResponseDiffPanel.svelte';
+  import ResponsePreviewPanel from './ResponsePreviewPanel.svelte';
+  import { responseMediaType, responsePreviewFor } from '../responsePreview';
   import type { ResponseDiff } from '../responseDiff';
 
-  type ResponseTab = 'body' | 'headers' | 'test-results' | 'timeline' | 'diff';
+  type ResponseTab = 'body' | 'headers' | 'test-results' | 'timeline' | 'diff' | 'preview';
 
   let {
     loading,
@@ -85,6 +87,14 @@
 
   let responseSearchInput = $state<HTMLInputElement | undefined>();
   let sendShortcut = $derived(shortcutComboLabel('Meta+Enter', appRuntime));
+  let responsePreview = $derived(responsePreviewFor(response));
+  let binaryBodyDescription = $derived.by(() => {
+    const type = response?.bodySniffedType || responseMediaType(response as HttpResponse);
+    const size = response ? formatSize(response.size) : '';
+    if (type && size) return `${type}, ${size}.`;
+    if (type) return `${type}.`;
+    return size ? `${size}.` : '';
+  });
 
   $effect(() => {
     if (responseSearchOpen) setTimeout(() => responseSearchInput?.focus(), 0);
@@ -131,6 +141,9 @@
       <div class="status-right">
         <div class="response-mini-tabs" role="tablist" use:tabListKeyboard>
           <button role="tab" class:active={responseTab === 'body'} aria-selected={responseTab === 'body'} aria-controls="response-panel-body" tabindex={responseTab === 'body' ? 0 : -1} onclick={() => setResponseTab('body')} type="button">Body</button>
+          {#if responsePreview.kind !== 'none'}
+            <button role="tab" class:active={responseTab === 'preview'} aria-selected={responseTab === 'preview'} aria-controls="response-panel-preview" tabindex={responseTab === 'preview' ? 0 : -1} onclick={() => setResponseTab('preview')} type="button">Preview</button>
+          {/if}
           <button role="tab" class:active={responseTab === 'headers'} aria-selected={responseTab === 'headers'} aria-controls="response-panel-headers" tabindex={responseTab === 'headers' ? 0 : -1} onclick={() => setResponseTab('headers')} type="button">
             Headers{#if response.headers?.length}<span class="badge">{response.headers.length}</span>{/if}
           </button>
@@ -210,6 +223,24 @@
         <div class="response-placeholder response-empty-state" role="status">
           <span class="response-placeholder-text">Response body is empty</span>
         </div>
+      {:else if response.bodyIsBinary}
+        <div class="response-binary-body" role="status">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-5-5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+            <path d="M14 3v5h5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+          </svg>
+          <strong>This response is binary</strong>
+          <p>
+            {binaryBodyDescription}
+            Showing it as text would only produce replacement characters, so it is not rendered here.
+          </p>
+          <div class="response-binary-actions">
+            {#if responsePreview.kind !== 'none'}
+              <button class="btn-primary btn-sm" type="button" onclick={() => setResponseTab('preview')}>Open preview</button>
+            {/if}
+            <button class="btn-secondary btn-sm" type="button" onclick={saveResponseFile}>Save to file</button>
+          </div>
+        </div>
       {:else}
         {#if responseBodyIsPaged}
           <div class="response-page-bar">
@@ -240,6 +271,9 @@
           </div>
         {/each}
       </div>
+
+    {:else if responseTab === 'preview'}
+      <ResponsePreviewPanel preview={responsePreview} {formatSize} />
 
     {:else if responseTab === 'diff'}
       <ResponseDiffPanel

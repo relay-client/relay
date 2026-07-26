@@ -17,6 +17,14 @@
   ] as const;
   let authOptions = $derived(vm.requestType === 'grpc' ? GRPC_AUTH_OPTIONS : AUTH_OPTIONS);
 
+  let oauth2ActionLabel = $derived.by(() => {
+    switch (vm.oauth2GrantType) {
+      case 'authorization_code': return 'Authorize in browser';
+      case 'device_code': return vm.oauth2Loading ? 'Waiting for approval…' : 'Start device sign-in';
+      default: return 'Get Access Token';
+    }
+  });
+
   let oauth2ExpiryLabel = $derived.by(() => {
     if (!vm.oauth2TokenExpiry) return '';
     const ms = vm.oauth2TokenExpiry - Date.now();
@@ -158,26 +166,80 @@
       <div class="radio-group">
         <label class="radio-label"><input type="radio" bind:group={vm.oauth2GrantType} value="client_credentials" /> Client Credentials</label>
         <label class="radio-label"><input type="radio" bind:group={vm.oauth2GrantType} value="authorization_code" /> Authorization Code</label>
+        <label class="radio-label"><input type="radio" bind:group={vm.oauth2GrantType} value="device_code" /> Device Code</label>
+        <label class="radio-label"><input type="radio" bind:group={vm.oauth2GrantType} value="password" /> Password</label>
       </div>
       {#if vm.oauth2GrantType === 'authorization_code'}
         <label class="field-label" for="oauth2-auth-url">Authorization URL</label>
         <input id="oauth2-auth-url" class="field-input" bind:value={vm.oauth2AuthURL} placeholder="https://auth.example.com/oauth/authorize" spellcheck="false" />
       {/if}
+      {#if vm.oauth2GrantType === 'device_code'}
+        <label class="field-label" for="oauth2-device-url">Device Authorization URL</label>
+        <input id="oauth2-device-url" class="field-input" bind:value={vm.oauth2DeviceAuthURL} placeholder="https://auth.example.com/oauth/device/code" spellcheck="false" />
+      {/if}
       <label class="field-label" for="oauth2-url">Token URL</label>
       <input id="oauth2-url" class="field-input" bind:value={vm.oauth2TokenURL} placeholder="https://auth.example.com/oauth/token" spellcheck="false" />
+      {#if vm.oauth2GrantType === 'password'}
+        <div class="auth-grid-2">
+          <div>
+            <label class="field-label" for="oauth2-username">Username</label>
+            <input id="oauth2-username" class="field-input" bind:value={vm.oauth2Username} spellcheck="false" />
+          </div>
+          <div>
+            <label class="field-label" for="oauth2-password">Password</label>
+            <input id="oauth2-password" class="field-input" bind:value={vm.oauth2Password} type="password" />
+          </div>
+        </div>
+      {/if}
       <label class="field-label" for="oauth2-id">Client ID</label>
       <input id="oauth2-id" class="field-input" bind:value={vm.oauth2ClientID} spellcheck="false" />
-      <label class="field-label" for="oauth2-secret">Client Secret{#if vm.oauth2GrantType === 'authorization_code'} <span class="field-label-hint">(optional with PKCE)</span>{/if}</label>
-      <input id="oauth2-secret" class="field-input" bind:value={vm.oauth2Secret} type="password" />
+      <span class="field-label">Client authentication</span>
+      <select class="field-input" bind:value={vm.oauth2ClientAuth} aria-label="Client authentication method">
+        <option value="basic">Send as Basic auth header</option>
+        <option value="body">Send client credentials in body</option>
+        <option value="client_secret_jwt">Client secret JWT (HS256)</option>
+        <option value="private_key_jwt">Private key JWT (RS256 / ES256)</option>
+      </select>
+      {#if vm.oauth2ClientAuth !== 'private_key_jwt'}
+        <label class="field-label" for="oauth2-secret">Client Secret{#if vm.oauth2GrantType === 'authorization_code'} <span class="field-label-hint">(optional with PKCE)</span>{/if}</label>
+        <input id="oauth2-secret" class="field-input" bind:value={vm.oauth2Secret} type="password" />
+      {/if}
+      {#if vm.oauth2ClientAuth === 'private_key_jwt'}
+        <label class="field-label" for="oauth2-private-key">Private key (PEM)<span class="field-label-hint"> — accepts a {'{{variable}}'} so it can live in workspace secrets</span></label>
+        <textarea id="oauth2-private-key" class="field-input field-mono oauth2-key-input" bind:value={vm.oauth2AssertionPrivateKey} placeholder="-----BEGIN PRIVATE KEY-----" spellcheck="false"></textarea>
+        <div class="auth-grid-2">
+          <div>
+            <label class="field-label" for="oauth2-kid">Key ID <span class="field-label-hint">(optional)</span></label>
+            <input id="oauth2-kid" class="field-input field-mono" bind:value={vm.oauth2AssertionKeyID} spellcheck="false" />
+          </div>
+          <div>
+            <label class="field-label" for="oauth2-alg">Algorithm <span class="field-label-hint">(auto)</span></label>
+            <input id="oauth2-alg" class="field-input field-mono" bind:value={vm.oauth2AssertionAlgorithm} placeholder="RS256" spellcheck="false" />
+          </div>
+        </div>
+      {/if}
+      {#if vm.oauth2ClientAuth === 'client_secret_jwt' || vm.oauth2ClientAuth === 'private_key_jwt'}
+        <label class="field-label" for="oauth2-assertion-aud">Assertion audience <span class="field-label-hint">(defaults to the token URL)</span></label>
+        <input id="oauth2-assertion-aud" class="field-input" bind:value={vm.oauth2AssertionAudience} placeholder="https://auth.example.com/oauth/token" spellcheck="false" />
+      {/if}
       <label class="field-label" for="oauth2-scope">Scope</label>
       <input id="oauth2-scope" class="field-input" bind:value={vm.oauth2Scope} placeholder="e.g. read write" spellcheck="false" />
+      <label class="field-label" for="oauth2-audience">Audience <span class="field-label-hint">(optional — required by some providers)</span></label>
+      <input id="oauth2-audience" class="field-input" bind:value={vm.oauth2Audience} placeholder="https://api.example.com" spellcheck="false" />
       {#if vm.oauth2GrantType === 'authorization_code'}
         <label class="radio-label oauth2-pkce-row"><input type="checkbox" bind:checked={vm.oauth2UsePKCE} /> Use PKCE (recommended)</label>
+      {/if}
+      {#if vm.oauth2DevicePrompt}
+        <div class="oauth2-device-prompt">
+          <p class="oauth2-device-lead">Sign in on another device, then enter this code:</p>
+          <output class="oauth2-device-code">{vm.oauth2DevicePrompt.userCode}</output>
+          <p class="oauth2-device-uri">{vm.oauth2DevicePrompt.verificationUri}</p>
+        </div>
       {/if}
       <div class="oauth2-token-row">
         <button class="btn-primary btn-sm" type="button" disabled={vm.oauth2Loading} onclick={vm.fetchOAuth2Token}>
           {#if vm.oauth2Loading}<span class="spinner-sm"></span>{/if}
-          {vm.oauth2GrantType === 'authorization_code' ? 'Authorize in browser' : 'Get Access Token'}
+          {oauth2ActionLabel}
         </button>
         {#if vm.oauth2RefreshToken}
           <button class="btn-secondary btn-sm" type="button" disabled={vm.oauth2Loading} onclick={vm.refreshOAuth2Token}>Refresh token</button>
@@ -199,6 +261,10 @@
         <div>
           <label class="field-label" for="aws-secret">Secret Access Key</label>
           <input id="aws-secret" class="field-input field-mono" bind:value={vm.awsSecretKey} type="password" />
+        </div>
+        <div class="auth-grid-span">
+          <label class="field-label" for="aws-session-token">Session token <span class="field-label-hint">(temporary credentials from STS / SSO)</span></label>
+          <input id="aws-session-token" class="field-input field-mono" bind:value={vm.awsSessionToken} type="password" />
         </div>
         <div>
           <label class="field-label" for="aws-region">Region</label>

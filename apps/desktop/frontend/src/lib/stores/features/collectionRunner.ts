@@ -56,7 +56,14 @@ type CollectionRunnerHost = {
   activeSecretEnvironmentValues: () => string[];
   activeSecretEnvironmentKeys: () => string[];
   syncBackendEnvironment: () => Promise<void>;
+  syncBackendGlobals: () => Promise<void>;
+  syncGlobalsFromBackend: () => Promise<boolean>;
   mergeActiveEnvironmentValues: (values: Record<string, string>) => Promise<boolean>;
+  applyCollectionVariableUpdates: (
+    req: Pick<SavedRequest, 'collectionId'>,
+    updates: Record<string, string> | undefined,
+    removed: string[] | undefined,
+  ) => Promise<boolean>;
   refreshCookieJar: (silent?: boolean, persistAfterRefresh?: boolean) => Promise<void>;
   saveTextFile: (name: string, content: string) => Promise<boolean>;
   // intra-feature members (mixed into the same prototype)
@@ -244,6 +251,12 @@ export const collectionRunnerFeature = {
     const scriptError = resp.preRequestResult?.error || resp.testResult?.error || '';
     const testFailed = testsTotal > 0 && testsPassed !== testsTotal;
     const error = resp.error || scriptError || (resp.statusCode >= 400 ? resp.status : '');
+    if (resp.skipped) {
+      return {
+        ...this.runnerResultShell(req, 'skipped', runId, iteration),
+        error: '',
+      };
+    }
     return {
       ...this.runnerResultShell(req, 'queued', runId, iteration),
       status: error || testFailed ? 'failed' : 'passed',
@@ -378,6 +391,9 @@ export const collectionRunnerFeature = {
           this.updateCollectionRunnerResult(runId, { status: 'skipped', error: '' });
         } else {
           this.updateCollectionRunnerResult(runId, this.runnerResultFromResponse(req, resp, runId, iteration));
+          try {
+            await this.applyCollectionVariableUpdates(req, resp.collectionVariableUpdates, resp.collectionVariablesRemoved);
+          } catch {}
         }
       }
     } catch (error) {
@@ -422,6 +438,7 @@ export const collectionRunnerFeature = {
     const secretValues = this.activeSecretEnvironmentValues();
     const secretKeys = this.activeSecretEnvironmentKeys();
     try { await this.syncBackendEnvironment(); } catch {}
+    try { await this.syncBackendGlobals(); } catch {}
     if (skippedRealtimeRequests.length) {
       this.collectionImportToast = `Skipped ${skippedRealtimeRequests.length} realtime request${skippedRealtimeRequests.length === 1 ? '' : 's'}`;
       setTimeout(() => (this.collectionImportToast = ''), 3200);
@@ -460,6 +477,7 @@ export const collectionRunnerFeature = {
       }
     }
     try { await this.mergeActiveEnvironmentValues(envValues); } catch {}
+    try { await this.syncGlobalsFromBackend(); } catch {}
     this.collectionRunnerFinishedAt = Date.now();
     this.collectionRunnerRunning = false;
     void this.refreshCookieJar(true, true);

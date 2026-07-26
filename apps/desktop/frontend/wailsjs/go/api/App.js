@@ -14,6 +14,10 @@ export function AuthorizeOAuth2(arg1) {
   return window['go']['api']['App']['AuthorizeOAuth2'](arg1);
 }
 
+export function AuthorizeOAuth2Device(arg1) {
+  return window['go']['api']['App']['AuthorizeOAuth2Device'](arg1);
+}
+
 export function CancelQuit() {
   return window['go']['api']['App']['CancelQuit']();
 }
@@ -364,6 +368,10 @@ export function SetEnvironmentVar(arg1, arg2) {
 
 export function SetVariable(arg1, arg2) {
   return window['go']['api']['App']['SetVariable'](arg1, arg2);
+}
+
+export function SetVariables(arg1) {
+  return window['go']['api']['App']['SetVariables'](arg1);
 }
 
 export function Show() {

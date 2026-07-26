@@ -1,7 +1,7 @@
-import { authorizeOAuth2 as requestOAuth2Authorize, fetchOAuth2Token as requestOAuth2Token, refreshOAuth2Token as requestOAuth2Refresh } from '../../backend';
-import type { AuthConfig, OAuth2TokenResponse } from '../../backend';
+import { authorizeOAuth2 as requestOAuth2Authorize, authorizeOAuth2Device as requestOAuth2Device, fetchOAuth2Token as requestOAuth2Token, refreshOAuth2Token as requestOAuth2Refresh } from '../../backend';
+import type { AuthConfig, OAuth2DevicePrompt, OAuth2TokenResponse } from '../../backend';
 import { AUTH_OPTIONS } from '../../constants';
-import type { AuthType, OAuth2GrantType, RequestType, SavedRequest } from '../../types/models';
+import type { AuthType, OAuth2ClientAuth, OAuth2GrantType, RequestType, SavedRequest } from '../../types/models';
 import { authForPersistence as resolveAuthForPersistence, authStateHasData as authHasPersistableData } from '../../utils';
 
 type AuthHost = {
@@ -14,6 +14,7 @@ type AuthHost = {
   awsAccessKey: string;
   awsRegion: string;
   awsSecretKey: string;
+  awsSessionToken: string;
   awsService: string;
   basicPass: string;
   basicUser: string;
@@ -27,9 +28,19 @@ type AuthHost = {
   oauth2TokenURL: string;
   oauth2GrantType: OAuth2GrantType;
   oauth2AuthURL: string;
+  oauth2DeviceAuthURL: string;
+  oauth2Audience: string;
   oauth2RefreshToken: string;
   oauth2TokenExpiry: number;
   oauth2UsePKCE: boolean;
+  oauth2Username: string;
+  oauth2Password: string;
+  oauth2ClientAuth: OAuth2ClientAuth;
+  oauth2AssertionAlgorithm: string;
+  oauth2AssertionPrivateKey: string;
+  oauth2AssertionKeyID: string;
+  oauth2AssertionAudience: string;
+  oauth2DevicePrompt: OAuth2DevicePrompt | null;
   requestType: RequestType;
   requests: SavedRequest[];
   savedRequestSnapshots: Map<string, SavedRequest>;
@@ -42,6 +53,14 @@ type AuthHost = {
   snapshotActiveRequest: (options?: { forPersistence?: boolean }) => SavedRequest;
   environmentValuesForRequest: (req: Pick<SavedRequest, 'collectionId'>, envValues?: Record<string, string>) => Record<string, string>;
 };
+
+function requestOAuth2ForGrant(grant: OAuth2GrantType, cfg: AuthConfig): Promise<OAuth2TokenResponse | null> {
+  switch (grant) {
+    case 'authorization_code': return requestOAuth2Authorize(cfg);
+    case 'device_code': return requestOAuth2Device(cfg);
+    default: return requestOAuth2Token(cfg);
+  }
+}
 
 export const authFeature = {
   authLabel(this: AuthHost, type: AuthType = this.authType) {
@@ -65,11 +84,21 @@ export const authFeature = {
       oauth2Token: this.oauth2Token,
       oauth2GrantType: this.oauth2GrantType,
       oauth2AuthURL: this.oauth2AuthURL,
+      oauth2DeviceAuthURL: this.oauth2DeviceAuthURL,
+      oauth2Audience: this.oauth2Audience,
       oauth2RefreshToken: this.oauth2RefreshToken,
       oauth2TokenExpiry: this.oauth2TokenExpiry,
       oauth2UsePKCE: this.oauth2UsePKCE,
+      oauth2Username: this.oauth2Username,
+      oauth2Password: this.oauth2Password,
+      oauth2ClientAuth: this.oauth2ClientAuth,
+      oauth2AssertionAlgorithm: this.oauth2AssertionAlgorithm,
+      oauth2AssertionPrivateKey: this.oauth2AssertionPrivateKey,
+      oauth2AssertionKeyID: this.oauth2AssertionKeyID,
+      oauth2AssertionAudience: this.oauth2AssertionAudience,
       awsAccessKey: this.awsAccessKey,
       awsSecretKey: this.awsSecretKey,
+      awsSessionToken: this.awsSessionToken,
       awsRegion: this.awsRegion,
       awsService: this.awsService,
     };
@@ -91,6 +120,8 @@ export const authFeature = {
     if (this.authType === 'oauth2') {
       if (this.oauth2Token) return true;
       if (this.oauth2GrantType === 'authorization_code') return Boolean(this.oauth2AuthURL && this.oauth2TokenURL && this.oauth2ClientID);
+      if (this.oauth2GrantType === 'device_code') return Boolean(this.oauth2DeviceAuthURL && this.oauth2TokenURL && this.oauth2ClientID);
+      if (this.oauth2GrantType === 'password') return Boolean(this.oauth2TokenURL && this.oauth2Username);
       return Boolean(this.oauth2TokenURL && this.oauth2ClientID);
     }
     if (this.authType === 'aws') return Boolean(this.awsAccessKey && this.awsSecretKey && this.awsRegion && this.awsService);
@@ -127,12 +158,21 @@ export const authFeature = {
       oauth2GrantType: this.oauth2GrantType,
       oauth2TokenURL: this.resolveTemplate(this.oauth2TokenURL, values),
       oauth2AuthURL: this.resolveTemplate(this.oauth2AuthURL, values),
+      oauth2DeviceAuthURL: this.resolveTemplate(this.oauth2DeviceAuthURL, values),
       oauth2ClientID: this.resolveTemplate(this.oauth2ClientID, values),
       oauth2Secret: this.resolveTemplate(this.oauth2Secret, values),
       oauth2Scope: this.resolveTemplate(this.oauth2Scope, values),
+      oauth2Audience: this.resolveTemplate(this.oauth2Audience, values),
       oauth2UsePKCE: this.oauth2UsePKCE,
       oauth2RefreshToken: this.oauth2RefreshToken,
       oauth2InsecureSkipVerify: !this.enableSSLVerification,
+      oauth2Username: this.resolveTemplate(this.oauth2Username, values),
+      oauth2Password: this.resolveTemplate(this.oauth2Password, values),
+      oauth2ClientAuth: this.oauth2ClientAuth,
+      oauth2AssertionAlgorithm: this.oauth2AssertionAlgorithm,
+      oauth2AssertionPrivateKey: this.resolveTemplate(this.oauth2AssertionPrivateKey, values),
+      oauth2AssertionKeyID: this.resolveTemplate(this.oauth2AssertionKeyID, values),
+      oauth2AssertionAudience: this.resolveTemplate(this.oauth2AssertionAudience, values),
       awsAccessKey: '',
       awsSecretKey: '',
       awsRegion: '',
@@ -152,15 +192,15 @@ export const authFeature = {
     this.oauth2Loading = true;
     try {
       const cfg = this.oauth2ConfigForRequest();
-      const result = this.oauth2GrantType === 'authorization_code'
-        ? await requestOAuth2Authorize(cfg)
-        : await requestOAuth2Token(cfg);
+      if (this.oauth2GrantType === 'device_code') this.oauth2DevicePrompt = null;
+      const result = await requestOAuth2ForGrant(this.oauth2GrantType, cfg);
       if (result?.error) void this.openAlertDialog('OAuth2 error', `${result.error}${result.error_description ? ' — ' + result.error_description : ''}`);
       else if (result?.access_token) this.applyOAuth2Result(result);
     } catch (e) {
       void this.openAlertDialog('OAuth2 error', String(e));
     } finally {
       this.oauth2Loading = false;
+      this.oauth2DevicePrompt = null;
     }
   },
 
