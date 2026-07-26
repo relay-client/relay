@@ -33,8 +33,11 @@ type cliOptions struct {
 	envFile             string
 	dataFile            string
 	timeoutMs           int
+	scriptTimeoutMs     int
+	allowSendRequest    bool
 	delayMs             int
 	iterations          int
+	iterationCount      int
 	failFast            bool
 	insecure            bool
 	verbose             bool
@@ -104,6 +107,8 @@ func parseCLIArgs(args []string, stdout, stderr io.Writer) (cliOptions, error) {
 	fs.StringVar(&opts.envFile, "env-file", "", "KEY=VALUE file whose values override environment variables")
 	fs.StringVar(&opts.dataFile, "data", "", "CSV or JSON data file; each row is one iteration")
 	fs.IntVar(&opts.timeoutMs, "timeout", 0, "per-request timeout in milliseconds (overrides request settings)")
+	fs.IntVar(&opts.scriptTimeoutMs, "script-timeout", 0, "per-script execution timeout in milliseconds (default 2000, max 60000)")
+	fs.BoolVar(&opts.allowSendRequest, "allow-send-request", false, "allow pm.sendRequest to make HTTP calls from scripts")
 	fs.IntVar(&opts.delayMs, "delay", 0, "delay in milliseconds between requests")
 	fs.IntVar(&opts.iterations, "iterations", 1, "number of times to run the selected set (ignored when --data is set)")
 	fs.BoolVar(&opts.failFast, "fail-fast", false, "stop at the first failing request")
@@ -247,11 +252,21 @@ func runCLI(opts cliOptions) int {
 	if len(dataRows) > 0 {
 		iterations = len(dataRows)
 	}
+	opts.iterationCount = iterations
 
 	selected := selectCLIRequests(requests, opts)
 	if len(selected) == 0 {
 		fmt.Fprintln(opts.stderr, "relay run: no runnable requests matched the selection")
 		return 2
+	}
+	// Fold in each collection's defaults up front, so the rest of the run sees
+	// the same resolved request the app would send.
+	collectionsByID := make(map[string]*cliCollection, len(collections))
+	for i := range collections {
+		collectionsByID[collections[i].ID] = &collections[i]
+	}
+	for i := range selected {
+		selected[i] = applyCollectionDefaults(selected[i], collectionsByID[selected[i].CollectionID])
 	}
 
 	sm := state.New()
@@ -329,6 +344,11 @@ func runCLIRequest(sm *state.Manager, jars *cookieJarRegistry, cache *preflightC
 
 	httpReq := buildHTTPRequest(req, values, secretValues, opts.timeoutMs)
 	httpReq.IterationData = dataRow
+	httpReq.Name = req.Name
+	httpReq.Iteration = iteration
+	httpReq.IterationCount = opts.iterationCount
+	httpReq.ScriptTimeoutMs = opts.scriptTimeoutMs
+	httpReq.AllowSendRequest = opts.allowSendRequest
 	if opts.insecure {
 		httpReq.EnableSSLVerification = false
 	}
@@ -336,6 +356,13 @@ func runCLIRequest(sm *state.Manager, jars *cookieJarRegistry, cache *preflightC
 	base.URL = httpReq.URL
 
 	resp := sendRequest(context.Background(), httpReq, sm, jars, cache)
+
+	if resp.Skipped {
+		base.Skipped = true
+		base.SkipReason = resp.SkipReason
+		return base
+	}
+
 	base.StatusCode = resp.StatusCode
 	base.DurationMs = resp.Duration
 	base.Size = resp.Size

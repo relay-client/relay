@@ -2,6 +2,9 @@ package api
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -299,5 +302,248 @@ func TestRunCLIInsecureFlagDisablesVerification(t *testing.T) {
 	})
 	if code != 0 {
 		t.Fatalf("expected --insecure to let the self-signed request through, got exit %d\n%s", code, out.String())
+	}
+}
+
+func writeScriptWorkspace(t *testing.T, baseURL, preScript, testScript string) string {
+	t.Helper()
+	root := t.TempDir()
+	write := func(rel, content string) {
+		path := filepath.Join(root, rel)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatalf("mkdir: %v", err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+			t.Fatalf("write: %v", err)
+		}
+	}
+	indent := func(src string) string {
+		lines := strings.Split(strings.TrimRight(src, "\n"), "\n")
+		for i, line := range lines {
+			lines[i] = "    " + line
+		}
+		return strings.Join(lines, "\n")
+	}
+	write("relay.yml", "version: 1\nformat: relay.workspace.yaml.v1\nworkspaceOrder:\n  - ws\n")
+	write("workspaces/Demo/workspace.yml", "version: 1\nworkspace:\n  id: ws\n  name: Demo\n  filesystemName: Demo\n  collectionOrder:\n    - col\n")
+	write("workspaces/Demo/collections/Smoke/collection.yml", strings.Join([]string{
+		"version: 1",
+		"collection:",
+		"  id: col",
+		"  workspaceId: ws",
+		"  name: Smoke",
+		"  filesystemName: Smoke",
+		"  requestOrder: [req]",
+		"  defaults:",
+		"    settings: {}",
+		"",
+	}, "\n"))
+	write("workspaces/Demo/environments/Local.yml", strings.Join([]string{
+		"version: 1",
+		"environment:",
+		"  id: env",
+		"  workspaceId: ws",
+		"  name: Local",
+		"  filesystemName: Local",
+		"  values:",
+		"    - id: 1",
+		"      enabled: true",
+		"      key: baseUrl",
+		"      value: " + baseURL,
+		"",
+	}, "\n"))
+	lines := []string{
+		"version: 1",
+		"request:",
+		"  id: req",
+		"  name: Scripted",
+		"  filesystemName: GET-scripted",
+		"  requestType: http",
+		"  isDraft: false",
+		"  collectionId: col",
+		"  collection: Smoke",
+		"  folderPath: []",
+		"  method: GET",
+		"  url: \"{{baseUrl}}/target\"",
+		"  auth:",
+		"    type: none",
+		"  bodyType: none",
+		"  bodyContent: \"\"",
+	}
+	if strings.TrimSpace(preScript) != "" {
+		lines = append(lines, "  preRequestScriptJs: |", indent(preScript))
+	}
+	if strings.TrimSpace(testScript) != "" {
+		lines = append(lines, "  testScriptJs: |", indent(testScript))
+	}
+	lines = append(lines, "  settings: {}", "")
+	write("workspaces/Demo/collections/Smoke/requests/GET-scripted.yml", strings.Join(lines, "\n"))
+	return root
+}
+
+func TestRunCLIAllowSendRequestFlag(t *testing.T) {
+	httpTransports.closeAll()
+	t.Cleanup(httpTransports.closeAll)
+
+	var helperHits int
+	helper := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		helperHits++
+		_, _ = w.Write([]byte(`{"token":"cli-tok"}`))
+	}))
+	defer helper.Close()
+
+	var sawAuth string
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sawAuth = r.Header.Get("Authorization")
+		_, _ = w.Write([]byte("{}"))
+	}))
+	defer target.Close()
+
+	pre := `const res = pm.sendRequest("` + helper.URL + `/token")
+pm.request.headers.set("Authorization", "Bearer " + res.json().token)`
+	root := writeScriptWorkspace(t, target.URL, pre, "")
+
+	var out bytes.Buffer
+	code := runCLI(cliOptions{workspace: root, env: "Local", reporters: []string{"cli"}, iterations: 1, stdout: &out, stderr: &out})
+	if code == 0 {
+		t.Fatalf("expected a non-zero exit without --allow-send-request\n%s", out.String())
+	}
+	if helperHits != 0 {
+		t.Errorf("helper endpoint was called %d times without the flag", helperHits)
+	}
+
+	out.Reset()
+	code = runCLI(cliOptions{
+		workspace: root, env: "Local", reporters: []string{"cli"}, iterations: 1,
+		allowSendRequest: true, stdout: &out, stderr: &out,
+	})
+	if code != 0 {
+		t.Fatalf("expected exit 0 with --allow-send-request, got %d\n%s", code, out.String())
+	}
+	if sawAuth != "Bearer cli-tok" {
+		t.Errorf("Authorization = %q, want the token pm.sendRequest fetched", sawAuth)
+	}
+}
+
+func TestRunCLIScriptTimeoutFlag(t *testing.T) {
+	httpTransports.closeAll()
+	t.Cleanup(httpTransports.closeAll)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("{}"))
+	}))
+	defer server.Close()
+
+	pre := `const start = Date.now()
+while (Date.now() - start < 2400) { }`
+	root := writeScriptWorkspace(t, server.URL, pre, "")
+
+	var out bytes.Buffer
+	if code := runCLI(cliOptions{workspace: root, env: "Local", reporters: []string{"cli"}, iterations: 1, stdout: &out, stderr: &out}); code == 0 {
+		t.Fatalf("expected the default 2s script cap to fail the run\n%s", out.String())
+	}
+
+	out.Reset()
+	code := runCLI(cliOptions{
+		workspace: root, env: "Local", reporters: []string{"cli"}, iterations: 1,
+		scriptTimeoutMs: 10_000, stdout: &out, stderr: &out,
+	})
+	if code != 0 {
+		t.Fatalf("expected exit 0 with --script-timeout, got %d\n%s", code, out.String())
+	}
+}
+
+func TestRunCLISkipRequestIsNotAFailure(t *testing.T) {
+	httpTransports.closeAll()
+	t.Cleanup(httpTransports.closeAll)
+
+	var hits int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits++
+	}))
+	defer server.Close()
+
+	root := writeScriptWorkspace(t, server.URL, `pm.execution.skipRequest()`, "")
+
+	var out bytes.Buffer
+	code := runCLI(cliOptions{workspace: root, env: "Local", reporters: []string{"json"}, iterations: 1, stdout: &out, stderr: &out})
+	if code != 0 {
+		t.Fatalf("a skipped request must not fail the run, got exit %d\n%s", code, out.String())
+	}
+	if hits != 0 {
+		t.Errorf("the request was sent %d times despite skipRequest()", hits)
+	}
+
+	var payload struct {
+		Results []struct {
+			Skipped    bool   `json:"skipped"`
+			SkipReason string `json:"skipReason"`
+		} `json:"results"`
+	}
+	if err := json.Unmarshal(out.Bytes(), &payload); err != nil {
+		t.Fatalf("json report: %v\n%s", err, out.String())
+	}
+	if len(payload.Results) != 1 || !payload.Results[0].Skipped {
+		t.Errorf("report should mark the request skipped: %s", out.String())
+	}
+	if payload.Results[0].SkipReason == "" {
+		t.Error("report should carry a skip reason")
+	}
+}
+
+func TestRunCLIPmInfoIterationCount(t *testing.T) {
+	httpTransports.closeAll()
+	t.Cleanup(httpTransports.closeAll)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("{}"))
+	}))
+	defer server.Close()
+
+	test := `pm.test("request name", () => pm.expect(pm.info.requestName).to.equal("Scripted"))
+pm.test("iteration count", () => pm.expect(pm.info.iterationCount).to.equal(3))
+pm.test("iteration in range", () => pm.expect(pm.info.iteration).to.be.within(1, 3))`
+	root := writeScriptWorkspace(t, server.URL, "", test)
+
+	var out bytes.Buffer
+	code := runCLI(cliOptions{workspace: root, env: "Local", reporters: []string{"json"}, iterations: 3, stdout: &out, stderr: &out})
+	if code != 0 {
+		t.Fatalf("expected exit 0, got %d\n%s", code, out.String())
+	}
+	var payload struct {
+		Summary struct {
+			Assertions int `json:"assertions"`
+			Failed     int `json:"failed"`
+		} `json:"summary"`
+	}
+	json.Unmarshal(out.Bytes(), &payload)
+	if payload.Summary.Assertions != 9 {
+		t.Errorf("expected 9 assertions across 3 iterations, got %d\n%s", payload.Summary.Assertions, out.String())
+	}
+}
+
+func TestRunCLICryptoAvailable(t *testing.T) {
+	httpTransports.closeAll()
+	t.Cleanup(httpTransports.closeAll)
+
+	var sawSig string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sawSig = r.Header.Get("X-Signature")
+		_, _ = w.Write([]byte("{}"))
+	}))
+	defer server.Close()
+
+	pre := `pm.request.headers.set("X-Signature", CryptoJS.HmacSHA256("payload", "key").toString())`
+	root := writeScriptWorkspace(t, server.URL, pre, "")
+
+	var out bytes.Buffer
+	if code := runCLI(cliOptions{workspace: root, env: "Local", reporters: []string{"cli"}, iterations: 1, stdout: &out, stderr: &out}); code != 0 {
+		t.Fatalf("expected exit 0, got %d\n%s", code, out.String())
+	}
+	mac := hmac.New(sha256.New, []byte("key"))
+	mac.Write([]byte("payload"))
+	want := hex.EncodeToString(mac.Sum(nil))
+	if sawSig != want {
+		t.Errorf("signature = %q, want %q", sawSig, want)
 	}
 }
