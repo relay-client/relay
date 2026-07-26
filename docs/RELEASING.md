@@ -23,6 +23,18 @@ tag and pushes it; CI takes over from there.
 Update `CHANGELOG.md` and `apps/web/src/content/docs/changelog.md` before tagging — the
 release notes are assembled from the changelog, not from commit messages.
 
+The GitHub release body is the tag's annotation, so write it as the notes you want
+published. When passing a message with `-F`, add `--cleanup=verbatim`: git's default
+cleanup strips every line beginning with `#`, which silently removes markdown headings
+from the release page.
+
+```bash
+git tag -a v1.2.3 --cleanup=verbatim -F notes.md
+```
+
+`DOCS_COVERAGE.md` can only be updated *after* the tag exists — `web:check-docs` compares
+the recorded tag against the newest `v*` tag, so record the audit in a follow-up commit.
+
 ## Update signing
 
 Relay's auto-updater verifies two things before installing a binary: the SHA-256 recorded
