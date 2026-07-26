@@ -1,6 +1,8 @@
 package script
 
 import (
+	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"strings"
 	"time"
@@ -28,8 +30,9 @@ func runJS(src string, ctx *Context, hasResponse bool) string {
 		return "setup error: " + err.Error()
 	}
 
-	timer := time.AfterFunc(scriptExecutionTimeout, func() {
-		vm.Interrupt("script timed out after " + scriptExecutionTimeout.String())
+	timeout := resolveTimeout(ctx.Timeout)
+	timer := time.AfterFunc(timeout, func() {
+		vm.Interrupt("script timed out after " + timeout.String())
 	})
 	defer timer.Stop()
 
@@ -81,7 +84,7 @@ func buildJSHost(vm *goja.Runtime, ctx *Context, hasResponse bool) map[string]in
 
 	host := map[string]interface{}{
 		"varGet": func(k string) goja.Value {
-			if v, ok := ctx.Variables[k]; ok {
+			if v, ok := ctx.ResolveVariable(k); ok {
 				return vm.ToValue(v)
 			}
 			return undef
@@ -91,6 +94,29 @@ func buildJSHost(vm *goja.Runtime, ctx *Context, hasResponse bool) map[string]in
 		"varClear": func() {
 			for k := range ctx.Variables {
 				delete(ctx.Variables, k)
+			}
+		},
+
+		"globalGet": func(k string) goja.Value {
+			if v, ok := ctx.Variables[k]; ok {
+				return vm.ToValue(v)
+			}
+			return undef
+		},
+
+		"collGet": func(k string) goja.Value {
+			if v, ok := ctx.CollectionVariables[k]; ok {
+				return vm.ToValue(v)
+			}
+			return undef
+		},
+		"collSet": func(k, v string) {
+			ctx.CollectionVariables[limitJSHostString(k)] = limitJSHostString(v)
+		},
+		"collUnset": func(k string) { delete(ctx.CollectionVariables, limitJSHostString(k)) },
+		"collClear": func() {
+			for k := range ctx.CollectionVariables {
+				delete(ctx.CollectionVariables, k)
 			}
 		},
 
@@ -170,7 +196,109 @@ func buildJSHost(vm *goja.Runtime, ctx *Context, hasResponse bool) map[string]in
 			ctx.Logs = append(ctx.Logs, limitJSHostString(msg))
 		},
 
+		"infoRequestName":    func() string { return ctx.Info.RequestName },
+		"infoIteration":      func() int { return ctx.Info.Iteration },
+		"infoIterationCount": func() int { return ctx.Info.IterationCount },
+
+		"skipRequest": func() {
+			if !hasResponse {
+				ctx.SkipRequest = true
+			}
+		},
+
+		"cookieGet": func(name string) goja.Value {
+			for _, cookie := range ctx.Cookies {
+				if cookie.Name == name {
+					return vm.ToValue(cookie.Value)
+				}
+			}
+			return undef
+		},
+		"cookieHas": func(name string) bool {
+			for _, cookie := range ctx.Cookies {
+				if cookie.Name == name {
+					return true
+				}
+			}
+			return false
+		},
+		"cookieNames": func() goja.Value {
+			names := make([]string, 0, len(ctx.Cookies))
+			for _, cookie := range ctx.Cookies {
+				names = append(names, cookie.Name)
+			}
+			return vm.ToValue(names)
+		},
+
+		"cryptoHash": func(algorithm, data, encoding string) goja.Value {
+			digest, err := hashDigest(algorithm, data)
+			if err != nil {
+				panic(vm.NewTypeError(err.Error()))
+			}
+			return vm.ToValue(encodeDigest(digest, encoding))
+		},
+		"cryptoHmac": func(algorithm, key, data, encoding string) goja.Value {
+			digest, err := hmacDigest(algorithm, key, data)
+			if err != nil {
+				panic(vm.NewTypeError(err.Error()))
+			}
+			return vm.ToValue(encodeDigest(digest, encoding))
+		},
+		"cryptoReencode": func(hexDigest, encoding string) goja.Value {
+			raw, err := hex.DecodeString(hexDigest)
+			if err != nil {
+				panic(vm.NewTypeError("not a hex digest: " + err.Error()))
+			}
+			return vm.ToValue(encodeDigest(raw, encoding))
+		},
+		"cryptoBase64Encode": func(data string) string {
+			return base64.StdEncoding.EncodeToString([]byte(data))
+		},
+		"cryptoBase64Decode": func(data string) goja.Value {
+			decoded, err := base64.StdEncoding.DecodeString(strings.TrimSpace(data))
+			if err != nil {
+				panic(vm.NewTypeError("base64 decode failed: " + err.Error()))
+			}
+			return vm.ToValue(string(decoded))
+		},
+		"cryptoRandomHex": func(n int) goja.Value {
+			out, err := randomHex(n)
+			if err != nil {
+				panic(vm.NewTypeError(err.Error()))
+			}
+			return vm.ToValue(out)
+		},
+		"cryptoUUID": func() goja.Value {
+			out, err := randomUUID()
+			if err != nil {
+				panic(vm.NewTypeError(err.Error()))
+			}
+			return vm.ToValue(out)
+		},
+
 		"hasResponse": hasResponse && ctx.Response != nil,
+		"canSend":     ctx.Send != nil,
+	}
+
+	if ctx.Send != nil {
+		host["sendRequest"] = func(method, url string, headers map[string]string, body string) goja.Value {
+			resp := ctx.Send(SendRequest{
+				Method:  method,
+				URL:     url,
+				Headers: headers,
+				Body:    body,
+			})
+			out := map[string]any{
+				"code":         resp.StatusCode,
+				"status":       resp.Status,
+				"body":         resp.Body,
+				"responseTime": resp.DurationMs,
+				"size":         resp.Size,
+				"headers":      resp.Headers,
+				"error":        resp.Error,
+			}
+			return vm.ToValue(out)
+		}
 	}
 
 	if hasResponse && ctx.Response != nil {
@@ -336,9 +464,50 @@ var __relayAPI = (function (host) {
     };
   }
 
+  function hostHash(alg) {
+    return function (data, enc) { return host.cryptoHash(alg, valStr(data), enc === undefined ? 'hex' : String(enc)); };
+  }
+  function hostHmac(alg) {
+    return function (data, key, enc) { return host.cryptoHmac(alg, valStr(key), valStr(data), enc === undefined ? 'hex' : String(enc)); };
+  }
+
+  var crypto = {
+    md5: hostHash('md5'),
+    sha1: hostHash('sha1'),
+    sha256: hostHash('sha256'),
+    sha384: hostHash('sha384'),
+    sha512: hostHash('sha512'),
+    hash: function (alg, data, enc) { return host.cryptoHash(String(alg), valStr(data), enc === undefined ? 'hex' : String(enc)); },
+    hmacSha1: hostHmac('sha1'),
+    hmacSha256: hostHmac('sha256'),
+    hmacSha384: hostHmac('sha384'),
+    hmacSha512: hostHmac('sha512'),
+    hmac: function (alg, data, key, enc) { return host.cryptoHmac(String(alg), valStr(key), valStr(data), enc === undefined ? 'hex' : String(enc)); },
+    base64Encode: function (data) { return host.cryptoBase64Encode(valStr(data)); },
+    base64Decode: function (data) { return host.cryptoBase64Decode(valStr(data)); },
+    randomHex: function (n) { return host.cryptoRandomHex(n === undefined ? 16 : Number(n)); },
+    uuid: function () { return host.cryptoUUID(); }
+  };
+
   var pm = {
     variables: kv('varGet', 'varSet', 'varUnset', 'varClear'),
     environment: kv('envGet', 'envSet', 'envUnset', 'envClear'),
+    globals: {
+      get: function (k) { return host.globalGet(String(k)); },
+      set: function (k, v) { host.varSet(String(k), valStr(v)); },
+      unset: function (k) { host.varUnset(String(k)); },
+      clear: function () { host.varClear(); }
+    },
+    collectionVariables: kv('collGet', 'collSet', 'collUnset', 'collClear'),
+    crypto: crypto,
+    cookies: {
+      get: function (k) { return host.cookieGet(String(k)); },
+      has: function (k) { return host.cookieHas(String(k)); },
+      names: function () { return host.cookieNames(); }
+    },
+    execution: {
+      skipRequest: function () { host.skipRequest(); }
+    },
     iterationData: { get: function (k) { return host.iterGet(String(k)); } },
     request: {
       set_url: function (u) { host.reqSetUrl(String(u)); },
@@ -371,6 +540,81 @@ var __relayAPI = (function (host) {
   Object.defineProperty(pm.request, 'url', { get: function () { return host.reqGetUrl(); }, configurable: true });
   Object.defineProperty(pm.request, 'method', { get: function () { return host.reqGetMethod(); }, configurable: true });
 
+  pm.info = {};
+  Object.defineProperty(pm.info, 'requestName', { get: function () { return host.infoRequestName(); }, configurable: true });
+  Object.defineProperty(pm.info, 'iteration', { get: function () { return host.infoIteration(); }, configurable: true });
+  Object.defineProperty(pm.info, 'iterationCount', { get: function () { return host.infoIterationCount(); }, configurable: true });
+  Object.defineProperty(pm.info, 'eventName', { get: function () { return host.hasResponse ? 'test' : 'prerequest'; }, configurable: true });
+
+  function wrapSentResponse(raw) {
+    var headers = raw.headers || {};
+    var res = {
+      code: raw.code,
+      status: raw.status,
+      responseTime: raw.responseTime,
+      time: raw.responseTime,
+      size: raw.size,
+      text: function () { return raw.body; },
+      body: function () { return raw.body; },
+      json: function () { return JSON.parse(raw.body); },
+      headers: {
+        get: function (name) {
+          var want = String(name).toLowerCase();
+          for (var key in headers) {
+            if (String(key).toLowerCase() === want) return headers[key];
+          }
+          return undefined;
+        }
+      }
+    };
+    Object.defineProperty(res, 'to', { get: function () { return new Assertion(res); }, configurable: true });
+    return res;
+  }
+
+  pm.sendRequest = function (options, callback) {
+    if (!host.canSend) {
+      var disabled = new Error('pm.sendRequest is disabled — turn on "Allow pm.sendRequest" in the Settings tab of this request, or pass --allow-send-request to relay run');
+      if (typeof callback === 'function') return callback(disabled, undefined);
+      throw disabled;
+    }
+
+    var method = 'GET', url = '', headers = {}, body = '';
+    if (typeof options === 'string') {
+      url = options;
+    } else if (options && typeof options === 'object') {
+      url = String(options.url || '');
+      if (options.method) method = String(options.method).toUpperCase();
+      var h = options.header || options.headers;
+      if (Array.isArray(h)) {
+        for (var i = 0; i < h.length; i++) {
+          if (h[i] && h[i].key !== undefined) headers[String(h[i].key)] = valStr(h[i].value);
+        }
+      } else if (h && typeof h === 'object') {
+        for (var k in h) headers[String(k)] = valStr(h[k]);
+      }
+      if (options.body !== undefined && options.body !== null) {
+        var b = options.body;
+        if (typeof b === 'string') body = b;
+        else if (b.raw !== undefined) body = valStr(b.raw);
+        else if (b.mode === 'raw') body = valStr(b.raw);
+        else body = valStr(b);
+      }
+    } else {
+      throw new Error('pm.sendRequest expects a URL string or an options object');
+    }
+    if (!url) throw new Error('pm.sendRequest requires a url');
+
+    var raw = host.sendRequest(method, url, headers, body);
+    if (raw.error) {
+      var err = new Error(raw.error);
+      if (typeof callback === 'function') return callback(err, undefined);
+      throw err;
+    }
+    var wrapped = wrapSentResponse(raw);
+    if (typeof callback === 'function') return callback(null, wrapped);
+    return wrapped;
+  };
+
   if (host.hasResponse) {
     var resp = {
       text: function () { return host.resBody(); },
@@ -389,12 +633,50 @@ var __relayAPI = (function (host) {
 
   var console = { log: pm.log, info: pm.log, warn: pm.log, error: pm.log, debug: pm.log };
 
-  return { pm: pm, expect: expect, console: console };
+  function wordArray(hex) {
+    return {
+      __relayDigestHex: hex,
+      toString: function (encoder) {
+        if (encoder && encoder.__relayEnc && encoder.__relayEnc !== 'hex') return host.cryptoReencode(hex, encoder.__relayEnc);
+        return hex;
+      }
+    };
+  }
+  function cryptoJSDigest(alg) {
+    return function (message) { return wordArray(host.cryptoHash(alg, valStr(message), 'hex')); };
+  }
+  function cryptoJSHmac(alg) {
+    return function (message, key) { return wordArray(host.cryptoHmac(alg, valStr(key), valStr(message), 'hex')); };
+  }
+  var CryptoJS = {
+    MD5: cryptoJSDigest('md5'),
+    SHA1: cryptoJSDigest('sha1'),
+    SHA256: cryptoJSDigest('sha256'),
+    SHA384: cryptoJSDigest('sha384'),
+    SHA512: cryptoJSDigest('sha512'),
+    HmacMD5: cryptoJSHmac('md5'),
+    HmacSHA1: cryptoJSHmac('sha1'),
+    HmacSHA256: cryptoJSHmac('sha256'),
+    HmacSHA384: cryptoJSHmac('sha384'),
+    HmacSHA512: cryptoJSHmac('sha512'),
+    enc: {
+      Hex: { __relayEnc: 'hex', stringify: function (wa) { return wa.toString(); } },
+      Base64: { __relayEnc: 'base64', stringify: function (wa) { return wa.toString({ __relayEnc: 'base64' }); } },
+      Utf8: {
+        __relayEnc: 'hex',
+        parse: function (s) { return valStr(s); },
+        stringify: function (wa) { return wa.toString(); }
+      }
+    }
+  };
+
+  return { pm: pm, expect: expect, console: console, CryptoJS: CryptoJS };
 })(__relayHost);
 
 var pm = __relayAPI.pm;
 var expect = __relayAPI.expect;
 var console = __relayAPI.console;
+var CryptoJS = __relayAPI.CryptoJS;
 __relayHost = undefined;
 __relayAPI = undefined;
 `

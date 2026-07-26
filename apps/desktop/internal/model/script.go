@@ -10,4 +10,9 @@ type ScriptResult struct {
 	Tests []TestResult `json:"tests"`
 	Logs  []string     `json:"logs,omitempty"`
 	Error string       `json:"error,omitempty"`
+
+	SkippedRequest bool `json:"skippedRequest,omitempty"`
+
+	CollectionVariables        map[string]string `json:"collectionVariables,omitempty"`
+	CollectionVariablesRemoved []string          `json:"collectionVariablesRemoved,omitempty"`
 }
