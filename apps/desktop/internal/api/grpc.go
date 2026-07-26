@@ -182,6 +182,7 @@ func sendGrpcRequest(requestCtx context.Context, req model.GrpcRequest, sm *stat
 	scope := beginScriptScope(sm, req.CollectionVariables)
 	ctx := scope.ctx
 	populateScriptGrpcRequestContext(ctx, req)
+	ctx.Send = newScriptSender(requestCtx, req.AllowSendRequest, !req.EnableSSLVerification)
 
 	var preResult model.ScriptResult
 	if req.PreRequestScript != "" {
@@ -206,6 +207,7 @@ func sendGrpcRequest(requestCtx context.Context, req model.GrpcRequest, sm *stat
 		testScope := beginScriptScope(sm, req.CollectionVariables)
 		testCtx := testScope.ctx
 		populateScriptGrpcRequestContext(testCtx, req)
+		testCtx.Send = newScriptSender(requestCtx, req.AllowSendRequest, !req.EnableSSLVerification)
 		testCtx.Response = grpcResponseAsHTTP(resp)
 		resp.TestResult = script.RunTests(req.ScriptEngine, req.TestScript, testCtx)
 		resp.TestResult = redactScriptResult(resp.TestResult, req.SecretEnvironmentValues)
@@ -777,6 +779,10 @@ func grpcResponseBody(messages []model.GrpcMessage) string {
 func populateScriptGrpcRequestContext(ctx *script.Context, req model.GrpcRequest) {
 	ctx.RequestURL = req.Target
 	ctx.RequestMethod = normalizeGrpcMethodName(req.FullMethod)
+	ctx.Info = script.Info{RequestName: req.Name}
+	if req.ScriptTimeoutMs > 0 {
+		ctx.Timeout = time.Duration(req.ScriptTimeoutMs) * time.Millisecond
+	}
 	for _, row := range req.Metadata {
 		if row.Enabled && row.Key != "" {
 			ctx.RequestHeaders[row.Key] = row.Value

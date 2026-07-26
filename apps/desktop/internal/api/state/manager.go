@@ -49,6 +49,12 @@ func (m *Manager) SetEnvironment(values map[string]string) {
 	m.environment = util.CloneMap(values)
 }
 
+func (m *Manager) SetVariables(values map[string]string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.variables = util.CloneMap(values)
+}
+
 func (m *Manager) DeleteVariable(key string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
