@@ -2,18 +2,18 @@
 
 This matrix keeps documentation work honest. Update it whenever a feature ships or a guide changes.
 
-Last factual audit: **2026-07-24**, against desktop tag **v1.1.1**.
+Last factual audit: **2026-07-26**, against desktop tag **v1.2.0**.
 
 | Area | User docs | Reference / source of truth | Screenshot status | Notes |
 |------|-----------|-----------------------------|-------------------|-------|
 | Installation and updates | `docs/getting-started/installation`, `docs/troubleshooting` | `privacy`, `changelog`, `.github/workflows/release.yml` | Partial | Signing status is artifact-specific. Updater signatures do not imply installer code signing. |
 | First request | `docs/getting-started/first-request` | `docs/reference/keyboard-shortcuts` | Good | Filled request editor, headers tab, and send/response flow are captured. |
-| Workspaces, collections, folders | `docs/guides/workspaces`, `docs/guides/collection-defaults` | `docs/reference/relay-yaml-format`, `collectionDefaults.ts`, `constants.ts` | Good | Defaults are collection-level only. Keep folder depth and request caps in sync with code. |
+| Workspaces, collections, folders | `docs/guides/workspaces`, `docs/guides/collection-defaults` | `docs/reference/relay-yaml-format`, `collectionDefaults.ts`, `constants.ts` | Good | Defaults are collection-level only — folders carry no defaults of their own. Keep folder depth and request caps in sync with code. |
 | Request types | `docs/guides/request-types` | `docs/reference/relay-yaml-format` | Good | GraphQL, SSE, WebSocket, Socket.IO, and gRPC flows are captured. |
-| Auth | `docs/guides/authentication` | `privacy`, `AuthTab.svelte`, `internal/api/auth` | Good | Bearer and OAuth Client Credentials screens are captured. Authorization Code + PKCE is documented and verified by code/tests; AWS session tokens are not supported. |
+| Auth | `docs/guides/authentication` | `privacy`, `AuthTab.svelte`, `internal/api/auth` | Good | Bearer and OAuth Client Credentials screens are captured. Authorization Code + PKCE, Device Code, Password, the client-assertion methods, RFC 7616 digest algorithms and AWS session tokens are documented and verified by code/tests. |
 | Environments and variables | `docs/guides/environments` | `docs/reference/scripting-api` | Good | Populated environment and masked secret are captured. |
 | Cookies | `docs/guides/cookies`, `docs/guides/request-settings` | `privacy` | Good | Empty state and populated domain cookie editor are captured. |
-| Response viewer | `docs/guides/response-viewer` | `response.ts`, `executor.go` | Good | JSON body, search, large-body virtualization, metadata, script output, and passing tests are captured. The 10 MB paging threshold, 512 KiB render pages, and 100 MB read cap are verified. |
+| Response viewer | `docs/guides/response-viewer` | `response.ts`, `executor.go` | Good | JSON body, search, large-body virtualization, metadata, script output, and passing tests are captured. The 10 MB paging threshold, 512 KiB render pages, and 100 MB read cap are verified. Binary detection and the Preview tab are documented; no screenshot yet. |
 | Scripting | `docs/guides/scripting` | `docs/reference/scripting-api` | Good | JavaScript and legacy Tengo script surfaces are captured. |
 | Import/export | `docs/guides/import-export`, `docs/getting-started/migrating` | `docs/reference/relay-yaml-format` | Good | Import-source selection is captured; backup/restore is split into its own guide. |
 | Backup and restore | `docs/guides/backup-recovery`, `docs/faq`, `privacy` | `dataBackup.ts`, `secure_store.go` | Good | Export warning is captured. Plaintext secret-bearing export, exclusions, recovery-key behavior, and destructive restore are documented. |
