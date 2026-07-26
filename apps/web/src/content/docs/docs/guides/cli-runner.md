@@ -26,9 +26,15 @@ The first argument is the workspace directory (the folder that contains `relay.y
 
 - **HTTP and GraphQL requests**, in the order they load from the workspace.
 - **Pre-request and test scripts** — the same sandboxed JavaScript `pm.*` API as the app. Assertions become the pass/fail signal.
+- **Collection defaults** — a collection's auth, headers, scripts, and settings are applied exactly as they are in the app, so a request set to **Inherit Auth** authenticates in CI too.
 - **Variable chaining**: a value a test writes with `pm.environment.set(...)` is visible to later requests in the same run, so a login step can hand a token to the requests after it.
 
-Realtime request types (WebSocket, SSE, Socket.IO, gRPC) need a live session and are skipped.
+Realtime request types (WebSocket, SSE, Socket.IO, gRPC) need a live session and are skipped. A request whose pre-request script calls `pm.execution.skipRequest()` is also skipped — reported as such, and it does not fail the run.
+
+Scripts get the same sandbox as the app, including [`pm.crypto` and `CryptoJS`](/docs/reference/scripting-api/#pmcrypto) for request signing. Two capabilities are opt-in because they change what a run can do:
+
+- `pm.sendRequest` needs `--allow-send-request`. Without it, a script that calls it fails, which keeps a CI run from making unannounced HTTP calls.
+- Scripts are capped at 2000 ms; raise it with `--script-timeout` when a heavy assertion suite or signing step needs longer.
 
 ## Variables
 
@@ -124,6 +130,8 @@ relay run . --env CI --folder "Billing/Refunds"      # a folder subtree
 | `--export-environment <file>` | Write final environment variables after the run. |
 | `--export-globals <file>` | Write final global variables after the run. |
 | `--timeout <ms>` | Per-request timeout, overriding request settings. |
+| `--script-timeout <ms>` | Per-script execution timeout (default `2000`, max `60000`). |
+| `--allow-send-request` | Allow `pm.sendRequest` to make HTTP calls from scripts. |
 | `--delay <ms>` | Delay between requests. |
 | `--iterations <n>` | Run the selected set `n` times (ignored with `--data`). |
 | `--fail-fast`, `--bail` | Stop at the first failing request. |

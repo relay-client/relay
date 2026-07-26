@@ -72,6 +72,12 @@ The timeout includes:
 
 If the timeout fires, the response shows a friendly error: *"The request timed out after 30 s. Check the URL and try again."* The duration counter still shows how long Relay actually waited.
 
+## Script settings
+
+**Script timeout (ms)** caps how long a single pre-request or test script may run. Leave it at `0` for the default **2 000 ms**; raise it for a heavy assertion suite or a signing step. The ceiling is 60 000 ms, so a runaway loop can never wedge a send.
+
+**Allow pm.sendRequest** lets this request's scripts make their own HTTP calls — fetching a token before the send, or chaining setup. It is **off** by default: the script sandbox has no network access unless you ask for it. Set it on a collection to reuse across requests. See [`pm.sendRequest`](/docs/reference/scripting-api/#pmsendrequest) for its limits.
+
 ## Cookie jar
 
 The toggle **Use the cookie jar** controls whether `Set-Cookie` responses are stored and replayed:
