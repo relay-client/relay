@@ -21,22 +21,23 @@ type cliKV struct {
 }
 
 type cliAuth struct {
-	Type           string `json:"type"`
-	BearerToken    string `json:"bearerToken"`
-	BasicUser      string `json:"basicUser"`
-	BasicPass      string `json:"basicPass"`
-	APIKeyName     string `json:"apiKeyName"`
-	APIKeyValue    string `json:"apiKeyValue"`
-	APIKeyIn       string `json:"apiKeyIn"`
-	OAuth2Token    string `json:"oauth2Token"`
-	OAuth2TokenURL string `json:"oauth2TokenURL"`
-	OAuth2ClientID string `json:"oauth2ClientID"`
-	OAuth2Secret   string `json:"oauth2Secret"`
-	OAuth2Scope    string `json:"oauth2Scope"`
-	AWSAccessKey   string `json:"awsAccessKey"`
-	AWSSecretKey   string `json:"awsSecretKey"`
-	AWSRegion      string `json:"awsRegion"`
-	AWSService     string `json:"awsService"`
+	Type            string `json:"type"`
+	BearerToken     string `json:"bearerToken"`
+	BasicUser       string `json:"basicUser"`
+	BasicPass       string `json:"basicPass"`
+	APIKeyName      string `json:"apiKeyName"`
+	APIKeyValue     string `json:"apiKeyValue"`
+	APIKeyIn        string `json:"apiKeyIn"`
+	OAuth2Token     string `json:"oauth2Token"`
+	OAuth2TokenURL  string `json:"oauth2TokenURL"`
+	OAuth2ClientID  string `json:"oauth2ClientID"`
+	OAuth2Secret    string `json:"oauth2Secret"`
+	OAuth2Scope     string `json:"oauth2Scope"`
+	AWSAccessKey    string `json:"awsAccessKey"`
+	AWSSecretKey    string `json:"awsSecretKey"`
+	AWSSessionToken string `json:"awsSessionToken"`
+	AWSRegion       string `json:"awsRegion"`
+	AWSService      string `json:"awsService"`
 }
 
 type cliSettings struct {
@@ -79,12 +80,21 @@ type cliSavedRequest struct {
 	Settings           cliSettings `json:"settings"`
 }
 
+type cliCollectionDefaults struct {
+	Variables          []cliKV     `json:"variables"`
+	Headers            []cliKV     `json:"headers"`
+	Auth               cliAuth     `json:"auth"`
+	PreRequestScript   string      `json:"preRequestScript"`
+	TestScript         string      `json:"testScript"`
+	PreRequestScriptJs string      `json:"preRequestScriptJs"`
+	TestScriptJs       string      `json:"testScriptJs"`
+	Settings           cliSettings `json:"settings"`
+}
+
 type cliCollection struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Defaults struct {
-		Variables []cliKV `json:"variables"`
-	} `json:"defaults"`
+	ID       string                `json:"id"`
+	Name     string                `json:"name"`
+	Defaults cliCollectionDefaults `json:"defaults"`
 }
 
 type cliEnvironment struct {
@@ -200,17 +210,18 @@ func buildHTTPRequest(req cliSavedRequest, values map[string]string, secretValue
 		Params:    params,
 		Headers:   headers,
 		Auth: model.AuthConfig{
-			Type:         req.Auth.Type,
-			Token:        resolve(token),
-			Username:     resolve(req.Auth.BasicUser),
-			Password:     resolve(req.Auth.BasicPass),
-			KeyName:      resolve(req.Auth.APIKeyName),
-			KeyValue:     resolve(req.Auth.APIKeyValue),
-			KeyIn:        req.Auth.APIKeyIn,
-			AWSAccessKey: resolve(req.Auth.AWSAccessKey),
-			AWSSecretKey: resolve(req.Auth.AWSSecretKey),
-			AWSRegion:    resolve(req.Auth.AWSRegion),
-			AWSService:   resolve(req.Auth.AWSService),
+			Type:            req.Auth.Type,
+			Token:           resolve(token),
+			Username:        resolve(req.Auth.BasicUser),
+			Password:        resolve(req.Auth.BasicPass),
+			KeyName:         resolve(req.Auth.APIKeyName),
+			KeyValue:        resolve(req.Auth.APIKeyValue),
+			KeyIn:           req.Auth.APIKeyIn,
+			AWSAccessKey:    resolve(req.Auth.AWSAccessKey),
+			AWSSecretKey:    resolve(req.Auth.AWSSecretKey),
+			AWSSessionToken: resolve(req.Auth.AWSSessionToken),
+			AWSRegion:       resolve(req.Auth.AWSRegion),
+			AWSService:      resolve(req.Auth.AWSService),
 		},
 		BodyType:                bodyType,
 		Body:                    body,
