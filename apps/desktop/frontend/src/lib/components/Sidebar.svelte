@@ -104,6 +104,8 @@
     saveHistoryEntryToNewCollection,
     deleteHistoryEntry,
     createEnvironment,
+    openGlobals,
+    globalVariableCount,
     selectEnvironment,
     openEnvironment,
     environmentValueCount,
@@ -166,6 +168,8 @@
     saveHistoryEntryToNewCollection: (entryId: string) => void;
     deleteHistoryEntry: (entryId: string) => void;
     createEnvironment: () => void;
+    openGlobals: () => void;
+    globalVariableCount: number;
     selectEnvironment: (environmentId: string) => void;
     openEnvironment: (environmentId: string) => void;
     environmentValueCount: (environment: Environment) => number;
@@ -742,6 +746,10 @@
         <span>Environments</span>
         <button class="collection-add" type="button" onclick={createEnvironment} aria-label="New environment" disabled={workspaceBlocked}>+</button>
       </div>
+      <button class="environment-globals-item" class:active={topView === 'globals'} type="button" onclick={openGlobals} disabled={workspaceBlocked}>
+        <span>Globals</span>
+        <small>{globalVariableCount} variables · every workspace</small>
+      </button>
       {#if activeWorkspaceEnvironments.length}
         <div class="environment-list" bind:this={environmentListEl} onscroll={onEnvironmentScroll}>
           <div class="sidebar-virtual-spacer" style={`height: ${visibleEnvironmentRows.before}px`}></div>

@@ -79,6 +79,8 @@ type RequestExecutionHost = {
   sseSessionIsActive: () => boolean;
   syncActiveEnvironmentFromBackend: () => Promise<void>;
   syncBackendEnvironment: () => Promise<void>;
+  syncBackendGlobals: () => Promise<void>;
+  syncGlobalsFromBackend: () => Promise<boolean>;
   webSocketConnect: () => Promise<void>;
   webSocketDisconnect: () => Promise<void>;
 };
@@ -163,6 +165,7 @@ export const requestExecutionFeature = {
     try {
       await this.persistActiveRequestNow();
       try { await this.syncBackendEnvironment(); } catch {  }
+      try { await this.syncBackendGlobals(); } catch {}
       const serialized = this.savedRequestToRunnableHttpRequest(requestSnapshot, envValues, secretValues, secretKeys, requestId);
       let resp: HttpResponse;
       let downloadedPath = '';
@@ -174,6 +177,7 @@ export const requestExecutionFeature = {
         resp = await sendHttpRequest(serialized);
       }
       try { await this.syncActiveEnvironmentFromBackend(); } catch {}
+      try { await this.syncGlobalsFromBackend(); } catch {}
       if (requestSnapshot.method === 'GET' && this.isEventStreamResponse(resp)) {
         if (this.requestIsActive(requestId)) {
           this.setActiveResponse(null, requestId);
@@ -194,7 +198,12 @@ export const requestExecutionFeature = {
         this.setActiveResponse(resp, requestId);
         this.responseBodyPage = 0;
         this.responseSearchIndex = 0;
-        this.setActiveResponseTab(resp.testResult?.tests?.length ? 'test-results' : 'body', requestId);
+        // A binary body is unreadable in the text view, so prefer Preview when
+        // there is one — unless the request has assertions worth showing first.
+        const defaultTab = resp.testResult?.tests?.length
+          ? 'test-results'
+          : (resp.previewImageBase64 ? 'preview' : 'body');
+        this.setActiveResponseTab(defaultTab, requestId);
       }
       if (downloadedPath && this.requestIsActive(requestId)) {
         this.savedResponse = true;

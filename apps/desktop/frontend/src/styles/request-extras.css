@@ -893,6 +893,7 @@
   gap: 8px 16px;
 }
 .auth-grid-2 > div { display: flex; flex-direction: column; gap: 6px; }
+.auth-grid-2 > .auth-grid-span { grid-column: 1 / -1; }
 
 .oauth2-token-row {
   display: flex;
@@ -922,6 +923,44 @@
   margin-top: 4px;
   font-size: 11px;
   color: var(--text-2);
+}
+
+.oauth2-device-prompt {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--bg-2);
+  text-align: center;
+}
+
+.oauth2-device-lead {
+  margin: 0 0 8px;
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+.oauth2-device-code {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--text-1);
+  user-select: all;
+}
+
+.oauth2-device-uri {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--text-2);
+  word-break: break-all;
+}
+
+.oauth2-key-input {
+  min-height: 88px;
+  resize: vertical;
+  line-height: 1.45;
 }
 
 .field-mono {
@@ -1281,10 +1320,6 @@ input::-webkit-calendar-picker-indicator { opacity: 0; }
 .resizing-col { cursor: col-resize !important; user-select: none !important; }
 .resizing-sidebar *, .resizing-row *, .resizing-col * { user-select: none !important; }
 
-
-
-
-
 .save-status {
   position: fixed;
   right: 24px;
@@ -1472,4 +1507,34 @@ input::-webkit-calendar-picker-indicator { opacity: 0; }
 @keyframes git-toast-in {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+.response-binary-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: auto;
+  padding: 32px 24px;
+  max-width: 420px;
+  color: var(--text-3);
+  text-align: center;
+}
+
+.response-binary-body strong {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.response-binary-body p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.response-binary-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
 }

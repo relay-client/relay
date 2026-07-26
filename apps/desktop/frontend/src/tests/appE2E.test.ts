@@ -171,6 +171,7 @@ class TestApp {
   workspaces: Workspace[] = [];
   collections: Collection[] = [];
   environments: Environment[] = [];
+  globalVariables: KVRow[] = [];
   requests: SavedRequest[] = [];
   requestHistory: any[] = [];
   workspaceCookies: Record<string, any[]> = {};

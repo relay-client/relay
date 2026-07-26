@@ -1123,13 +1123,15 @@
 }
 
 .environment-none-item,
+.environment-globals-item,
 .environment-item {
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
 }
 
-.environment-none-item {
+.environment-none-item,
+.environment-globals-item {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -1140,6 +1142,10 @@
   text-align: left;
 }
 
+.environment-globals-item {
+  margin-bottom: 6px;
+}
+
 .environment-item {
   display: flex;
   flex-direction: column;
@@ -1148,6 +1154,8 @@
 
 .environment-none-item:hover,
 .environment-none-item.active,
+.environment-globals-item:hover,
+.environment-globals-item.active,
 .environment-item:hover,
 .environment-item.active {
   border-color: var(--border);
@@ -1156,6 +1164,7 @@
 }
 
 .environment-none-item span,
+.environment-globals-item span,
 .environment-item-main span {
   color: var(--text);
   font-size: 12px;
@@ -1163,6 +1172,7 @@
 }
 
 .environment-none-item small,
+.environment-globals-item small,
 .environment-item-main small {
   color: var(--text-3);
   font-size: 11px;

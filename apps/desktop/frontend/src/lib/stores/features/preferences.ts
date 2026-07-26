@@ -27,6 +27,8 @@ type PreferencesHost = {
   disableCookieJar: boolean;
   maxRedirects: number;
   timeoutMs: number;
+  scriptTimeoutMs: number;
+  allowSendRequest: boolean;
   proxyUrl: string;
   clientCertPath: string;
   clientKeyPath: string;
@@ -134,6 +136,8 @@ export const preferencesFeature = {
       disableCookieJar: this.disableCookieJar,
       maxRedirects: this.maxRedirects,
       timeoutMs: this.timeoutMs,
+      scriptTimeoutMs: this.scriptTimeoutMs,
+      allowSendRequest: this.allowSendRequest,
       proxyUrl: this.proxyUrl,
       clientCertPath: this.clientCertPath,
       clientKeyPath: this.clientKeyPath,
@@ -169,6 +173,8 @@ export const preferencesFeature = {
     this.disableCookieJar = settings.disableCookieJar ?? DEFAULT_REQUEST_SETTINGS.disableCookieJar;
     this.maxRedirects = settings.maxRedirects ?? DEFAULT_REQUEST_SETTINGS.maxRedirects;
     this.timeoutMs = settings.timeoutMs ?? DEFAULT_REQUEST_SETTINGS.timeoutMs;
+    this.scriptTimeoutMs = settings.scriptTimeoutMs ?? DEFAULT_REQUEST_SETTINGS.scriptTimeoutMs;
+    this.allowSendRequest = settings.allowSendRequest ?? DEFAULT_REQUEST_SETTINGS.allowSendRequest;
     this.proxyUrl = settings.proxyUrl ?? DEFAULT_REQUEST_SETTINGS.proxyUrl;
     this.clientCertPath = settings.clientCertPath ?? DEFAULT_REQUEST_SETTINGS.clientCertPath;
     this.clientKeyPath = settings.clientKeyPath ?? DEFAULT_REQUEST_SETTINGS.clientKeyPath;
@@ -394,7 +400,6 @@ export const preferencesFeature = {
     } catch {
       this.proxyConfig = normalizeProxyConfig(DEFAULT_PROXY_CONFIG);
     }
-
 
     if (this.proxyConfig.auth.password) persistProxyConfigSansPassword(this.proxyConfig);
   },

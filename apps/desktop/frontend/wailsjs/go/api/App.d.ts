@@ -9,6 +9,8 @@ export function ApplyUpdate(arg1:model.UpdateInfo):Promise<string>;
 
 export function AuthorizeOAuth2(arg1:model.AuthConfig):Promise<model.OAuth2TokenResponse>;
 
+export function AuthorizeOAuth2Device(arg1:model.AuthConfig):Promise<model.OAuth2TokenResponse>;
+
 export function CancelQuit():Promise<void>;
 
 export function CancelRequest(arg1:string):Promise<void>;
@@ -184,6 +186,8 @@ export function SetEnvironment(arg1:Record<string, string>):Promise<void>;
 export function SetEnvironmentVar(arg1:string,arg2:string):Promise<void>;
 
 export function SetVariable(arg1:string,arg2:string):Promise<void>;
+
+export function SetVariables(arg1:Record<string, string>):Promise<void>;
 
 export function Show():Promise<void>;
 

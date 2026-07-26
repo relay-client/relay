@@ -21,6 +21,7 @@ import type {
   KVRow,
   Method,
   OAuth2GrantType,
+  OAuth2ClientAuth,
   RawBodyType,
   RequestSettings,
   RequestSettingsOverrides,
@@ -53,6 +54,7 @@ type RequestStateHost = {
   awsAccessKey: string;
   awsRegion: string;
   awsSecretKey: string;
+  awsSessionToken: string;
   awsService: string;
   basicPass: string;
   basicUser: string;
@@ -88,13 +90,22 @@ type RequestStateHost = {
   oauth2ClientID: string;
   oauth2GrantType: OAuth2GrantType;
   oauth2AuthURL: string;
+  oauth2DeviceAuthURL: string;
   oauth2Scope: string;
+  oauth2Audience: string;
   oauth2Secret: string;
   oauth2Token: string;
   oauth2TokenURL: string;
   oauth2RefreshToken: string;
   oauth2TokenExpiry: number;
   oauth2UsePKCE: boolean;
+  oauth2Username: string;
+  oauth2Password: string;
+  oauth2ClientAuth: OAuth2ClientAuth;
+  oauth2AssertionAlgorithm: string;
+  oauth2AssertionPrivateKey: string;
+  oauth2AssertionKeyID: string;
+  oauth2AssertionAudience: string;
   params: KVRow[];
   preRequestScript: string;
   preRequestScriptJs: string;
@@ -309,8 +320,13 @@ export const requestStateFeature = {
     this.oauth2TokenURL = req.auth.oauth2TokenURL; this.oauth2ClientID = req.auth.oauth2ClientID; this.oauth2Secret = req.auth.oauth2Secret;
     this.oauth2Scope = req.auth.oauth2Scope; this.oauth2Token = req.auth.oauth2Token;
     this.oauth2GrantType = req.auth.oauth2GrantType ?? 'client_credentials'; this.oauth2AuthURL = req.auth.oauth2AuthURL ?? '';
+    this.oauth2DeviceAuthURL = req.auth.oauth2DeviceAuthURL ?? ''; this.oauth2Audience = req.auth.oauth2Audience ?? '';
     this.oauth2RefreshToken = req.auth.oauth2RefreshToken ?? ''; this.oauth2TokenExpiry = req.auth.oauth2TokenExpiry ?? 0; this.oauth2UsePKCE = req.auth.oauth2UsePKCE ?? true;
-    this.awsAccessKey = req.auth.awsAccessKey; this.awsSecretKey = req.auth.awsSecretKey; this.awsRegion = req.auth.awsRegion; this.awsService = req.auth.awsService;
+    this.oauth2Username = req.auth.oauth2Username ?? ''; this.oauth2Password = req.auth.oauth2Password ?? '';
+    this.oauth2ClientAuth = req.auth.oauth2ClientAuth ?? 'basic';
+    this.oauth2AssertionAlgorithm = req.auth.oauth2AssertionAlgorithm ?? ''; this.oauth2AssertionPrivateKey = req.auth.oauth2AssertionPrivateKey ?? '';
+    this.oauth2AssertionKeyID = req.auth.oauth2AssertionKeyID ?? ''; this.oauth2AssertionAudience = req.auth.oauth2AssertionAudience ?? '';
+    this.awsAccessKey = req.auth.awsAccessKey; this.awsSecretKey = req.auth.awsSecretKey; this.awsSessionToken = req.auth.awsSessionToken ?? ''; this.awsRegion = req.auth.awsRegion; this.awsService = req.auth.awsService;
     if (this.requestType === 'grpc' && !['none', 'apikey', 'basic', 'bearer', 'oauth2'].includes(this.authType)) this.authType = 'none';
     if (this.requestType === 'grpc') this.apiKeyIn = 'header';
     if (this.requestType === 'graphql') {

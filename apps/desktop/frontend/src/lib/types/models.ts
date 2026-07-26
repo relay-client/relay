@@ -120,7 +120,7 @@ export type RawBodyType = 'text' | 'json' | 'html' | 'xml';
 export type HttpVersion = 'auto' | '1.1' | '2';
 export type RequestTab = 'docs' | 'params' | 'query' | 'auth' | 'headers' | 'metadata' | 'body' | 'schema' | 'service' | 'events' | 'scripts' | 'settings';
 export type ScriptTab = 'pre-request' | 'tests';
-export type ResponseTab = 'body' | 'headers' | 'test-results' | 'timeline' | 'diff';
+export type ResponseTab = 'body' | 'preview' | 'headers' | 'test-results' | 'timeline' | 'diff';
 export type GrpcResponseTab = 'messages' | 'metadata' | 'trailers' | 'scripts';
 export type AuthType = 'inherit' | 'none' | 'bearer' | 'basic' | 'apikey' | 'oauth2' | 'aws' | 'digest';
 export type SidebarView = 'collections' | 'environments' | 'history';
@@ -144,15 +144,21 @@ export type Workspace = {
   workspaceDiagnostics?: WorkspaceDiagnostic[];
   isInvalid?: boolean;
 };
-export type OAuth2GrantType = 'client_credentials' | 'authorization_code';
+export type OAuth2GrantType = 'client_credentials' | 'authorization_code' | 'password' | 'device_code';
+export type OAuth2ClientAuth = 'basic' | 'body' | 'client_secret_jwt' | 'private_key_jwt';
 export type AuthState = {
   type: AuthType; bearerToken: string; basicUser: string; basicPass: string;
   apiKeyName: string; apiKeyValue: string; apiKeyIn: 'header' | 'query';
   oauth2TokenURL: string; oauth2ClientID: string; oauth2Secret: string;
   oauth2Scope: string; oauth2Token: string;
-  oauth2GrantType?: OAuth2GrantType; oauth2AuthURL?: string;
+  oauth2GrantType?: OAuth2GrantType; oauth2AuthURL?: string; oauth2DeviceAuthURL?: string;
   oauth2RefreshToken?: string; oauth2TokenExpiry?: number; oauth2UsePKCE?: boolean;
-  awsAccessKey: string; awsSecretKey: string; awsRegion: string; awsService: string;
+  oauth2Audience?: string;
+  oauth2Username?: string; oauth2Password?: string;
+  oauth2ClientAuth?: OAuth2ClientAuth;
+  oauth2AssertionAlgorithm?: string; oauth2AssertionPrivateKey?: string;
+  oauth2AssertionKeyID?: string; oauth2AssertionAudience?: string;
+  awsAccessKey: string; awsSecretKey: string; awsSessionToken?: string; awsRegion: string; awsService: string;
 };
 export type CollectionDefaults = {
   headers: KVRow[];
@@ -180,6 +186,7 @@ export type RequestSettings = {
   httpVersion: HttpVersion; enableSSLVerification: boolean; followRedirects: boolean;
   followOriginalMethod: boolean; followAuthorizationHeader: boolean; removeRefererHeader: boolean;
   encodeUrlAutomatically: boolean; disableCookieJar: boolean; maxRedirects: number; timeoutMs: number;
+  scriptTimeoutMs: number; allowSendRequest: boolean;
   proxyUrl: string; clientCertPath: string; clientKeyPath: string; clientKeyPassword: string;
   browserEmulation: boolean; browserOrigin: string; browserWithCredentials: boolean;
   browserEnforceCORS: boolean; browserEnforceCSP: boolean; browserCSP: string;
@@ -304,7 +311,7 @@ export type RequestStore = {
   version: number; activeId: string; activeWorkspaceId: string; activeEnvironmentId?: string;
   openIds: string[]; folderCollapsed?: Record<string, boolean>;
   workspaces: Workspace[]; collections: Collection[]; environments?: Environment[];
-  requests: SavedRequest[]; history?: RequestHistoryEntry[];
+  requests: SavedRequest[]; history?: RequestHistoryEntry[]; globals?: KVRow[];
   workspaceCookies?: Record<string, CookieJarEntry[]>;
 };
 export type FolderGroup = {

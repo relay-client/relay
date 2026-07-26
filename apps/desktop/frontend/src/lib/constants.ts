@@ -23,6 +23,8 @@ export const DEFAULT_REQUEST_SETTINGS: RequestSettings = {
   disableCookieJar: false,
   maxRedirects: 10,
   timeoutMs: 30000,
+  scriptTimeoutMs: 0,
+  allowSendRequest: false,
   proxyUrl: '',
   clientCertPath: '',
   clientKeyPath: '',

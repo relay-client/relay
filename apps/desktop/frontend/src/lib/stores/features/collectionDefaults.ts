@@ -26,9 +26,57 @@ type CollectionDefaultsHost = {
   maskedProxyUrl: (value: string) => string;
   previewNames: (names: string[], limit?: number) => string;
   snapshotActiveRequest: (options?: { forPersistence?: boolean }) => SavedRequest;
+  persistRequestStore: () => Promise<boolean>;
+  guardWorkspaceWritable: (action?: string) => boolean;
 };
 
 export const collectionDefaultsFeature = {
+  async applyCollectionVariableUpdates(
+    this: CollectionDefaultsHost,
+    req: Pick<SavedRequest, 'collectionId'>,
+    updates: Record<string, string> | undefined,
+    removed: string[] | undefined,
+  ): Promise<boolean> {
+    const hasUpdates = updates && Object.keys(updates).length > 0;
+    const hasRemovals = removed && removed.length > 0;
+    if (!hasUpdates && !hasRemovals) return false;
+
+    const collection = this.collectionForRequest(req);
+    if (!collection) return false;
+    if (!this.guardWorkspaceWritable('Collection variables')) return false;
+
+    const rows = [...(collection.defaults.variables ?? [])];
+    let changed = false;
+
+    for (const key of removed ?? []) {
+      const index = rows.findIndex(row => row.key.trim() === key);
+      if (index >= 0) {
+        rows.splice(index, 1);
+        changed = true;
+      }
+    }
+    for (const [key, value] of Object.entries(updates ?? {})) {
+      const index = rows.findIndex(row => row.key.trim() === key);
+      if (index >= 0) {
+        if (rows[index].value === value) continue;
+        rows[index] = { ...rows[index], value };
+      } else {
+        const nextId = rows.reduce((max, row) => Math.max(max, row.id), 0) + 1;
+        rows.push({ id: nextId, enabled: true, key, value, description: '' });
+      }
+      changed = true;
+    }
+    if (!changed) return false;
+
+    this.collections = this.collections.map(candidate =>
+      candidate.id === collection.id
+        ? { ...candidate, defaults: { ...candidate.defaults, variables: rows } }
+        : candidate,
+    );
+    await this.persistRequestStore();
+    return true;
+  },
+
   currentRequestSettingsOverrides(this: CollectionDefaultsHost): RequestSettingsOverrides {
     const overrides: RequestSettingsOverrides = {};
     for (const key of REQUEST_SETTING_KEYS) {
@@ -81,6 +129,8 @@ export const collectionDefaultsFeature = {
       disableCookieJar: 'Disable cookie jar',
       maxRedirects: 'Max redirects',
       timeoutMs: 'Timeout',
+      scriptTimeoutMs: 'Script timeout',
+      allowSendRequest: 'Allow pm.sendRequest',
       proxyUrl: 'HTTP proxy',
       clientCertPath: 'Client certificate',
       clientKeyPath: 'Client key',
@@ -113,7 +163,7 @@ export const collectionDefaultsFeature = {
       if (value === '2') return 'HTTP/2 preferred';
       return 'Auto';
     }
-    if (key === 'timeoutMs' || key === 'wsHandshakeTimeoutMs' || key === 'wsReconnectIntervalMs') return `${value} ms`;
+    if (key === 'timeoutMs' || key === 'scriptTimeoutMs' || key === 'wsHandshakeTimeoutMs' || key === 'wsReconnectIntervalMs') return `${value} ms`;
     if (key === 'wsMaxMessageSizeMb') return `${value} MB`;
     if (key === 'grpcMaxResponseMessageSizeMb') return `${value} MB`;
     if (key === 'proxyUrl') return this.maskedProxyUrl(String(value).trim());

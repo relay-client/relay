@@ -57,6 +57,7 @@ describe('workspace scoped cookies', () => {
       collections: [],
       requests: [],
       environments: [],
+      globalVariables: [],
       openRequestIds: [],
       requestHistory: [],
       pruneHistory: (history: unknown[]) => history,

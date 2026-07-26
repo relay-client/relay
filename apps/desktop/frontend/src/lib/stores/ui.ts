@@ -1,4 +1,4 @@
-export type TopView = 'overview' | 'request' | 'environment' | 'git' | 'runner' | 'collection';
+export type TopView = 'overview' | 'request' | 'environment' | 'globals' | 'git' | 'runner' | 'collection';
 export type SettingsTab = 'general' | 'theme' | 'proxy' | 'shortcuts' | 'updates' | 'support' | 'about';
 export type SnippetLanguage =
   | 'curl'

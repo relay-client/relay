@@ -222,15 +222,25 @@ export type AuthConfig = {
   oauth2GrantType?: string;
   oauth2TokenURL: string;
   oauth2AuthURL?: string;
+  oauth2DeviceAuthURL?: string;
   oauth2RedirectURL?: string;
   oauth2ClientID: string;
   oauth2Secret: string;
   oauth2Scope: string;
+  oauth2Audience?: string;
   oauth2UsePKCE?: boolean;
   oauth2RefreshToken?: string;
   oauth2InsecureSkipVerify?: boolean;
+  oauth2Username?: string;
+  oauth2Password?: string;
+  oauth2ClientAuth?: string;
+  oauth2AssertionAlgorithm?: string;
+  oauth2AssertionPrivateKey?: string;
+  oauth2AssertionKeyID?: string;
+  oauth2AssertionAudience?: string;
   awsAccessKey: string;
   awsSecretKey: string;
+  awsSessionToken?: string;
   awsRegion: string;
   awsService: string;
 };
@@ -241,8 +251,17 @@ export type OAuth2TokenResponse = {
   expires_in: number;
   refresh_token?: string;
   scope?: string;
+  id_token?: string;
   error?: string;
   error_description?: string;
+};
+
+export type OAuth2DevicePrompt = {
+  userCode: string;
+  verificationUri: string;
+  verificationUriComplete?: string;
+  expiresIn: number;
+  interval: number;
 };
 
 export type CookieJarEntry = {
@@ -275,6 +294,9 @@ export type ScriptResult = {
   tests: TestResult[];
   logs?: string[];
   error?: string;
+  skippedRequest?: boolean;
+  collectionVariables?: Record<string, string>;
+  collectionVariablesRemoved?: string[];
 };
 
 export type ResponseTimings = {
@@ -307,6 +329,11 @@ export type HttpRequest = {
   preRequestScript: string;
   testScript: string;
   scriptEngine?: string;
+  name?: string;
+  scriptTimeoutMs?: number;
+  allowSendRequest?: boolean;
+  iteration?: number;
+  iterationCount?: number;
   followRedirects: boolean;
   timeoutMs: number;
   httpVersion: string;
@@ -384,6 +411,16 @@ export type HttpResponse = {
   sentRequests?: SentRequest[];
   connection?: ConnectionInfo;
   timeline?: TimelineEvent[];
+  skipped?: boolean;
+  skipReason?: string;
+  previewImageBase64?: string;
+  previewMediaType?: string;
+  // Set by the backend from the real bytes: by the time body reaches here it is
+  // a string and the distinction is unrecoverable.
+  bodyIsBinary?: boolean;
+  bodySniffedType?: string;
+  collectionVariableUpdates?: Record<string, string>;
+  collectionVariablesRemoved?: string[];
 };
 
 export type GrpcMethodInfo = {
@@ -423,6 +460,9 @@ export type GrpcRequest = {
   preRequestScript: string;
   testScript: string;
   scriptEngine?: string;
+  name?: string;
+  scriptTimeoutMs?: number;
+  allowSendRequest?: boolean;
   secretEnvironmentKeys?: string[];
   secretEnvironmentValues?: string[];
   collectionVariables?: Record<string, string>;
@@ -536,6 +576,8 @@ declare global {
           GrpcDiscover?: (req: GrpcRequest) => Promise<GrpcServiceDefinition>;
           CancelRequest?: (requestId: string) => Promise<void>;
           GetEnvironment?: () => Promise<Record<string, string>>;
+          GetVariables?: () => Promise<Record<string, string>>;
+          SetVariables?: (values: Record<string, string>) => Promise<void>;
           ClipboardSet?: (text: string) => Promise<void>;
           OpenFileDialog?: (title: string) => Promise<string>;
           OpenDirectoryDialog?: (title: string) => Promise<string>;
@@ -605,6 +647,7 @@ declare global {
           SetAppThemeBackground?: (theme: 'dark' | 'light', background: string) => Promise<void>;
           FetchOAuth2Token?: (auth: AuthConfig) => Promise<OAuth2TokenResponse>;
           AuthorizeOAuth2?: (auth: AuthConfig) => Promise<OAuth2TokenResponse>;
+          AuthorizeOAuth2Device?: (auth: AuthConfig) => Promise<OAuth2TokenResponse>;
           RefreshOAuth2Token?: (auth: AuthConfig) => Promise<OAuth2TokenResponse>;
           ListCookies?: (workspaceId: string) => Promise<CookieJarEntry[]>;
           UpsertCookie?: (workspaceId: string, cookie: CookieJarEntry) => Promise<CookieJarResult>;
@@ -710,6 +753,18 @@ export async function setEnvironment(values: Record<string, string>): Promise<vo
   const app = window.go?.api?.App;
   if (!app?.SetEnvironment) return;
   await app.SetEnvironment(values);
+}
+
+export async function getGlobalVariables(): Promise<Record<string, string>> {
+  const app = window.go?.api?.App;
+  if (!app?.GetVariables) return {};
+  return app.GetVariables();
+}
+
+export async function setGlobalVariables(values: Record<string, string>): Promise<void> {
+  const app = window.go?.api?.App;
+  if (!app?.SetVariables) return;
+  await app.SetVariables(values);
 }
 
 const REQUEST_STORE_FALLBACK_KEY = 'relay.request.store.v1';
@@ -1097,6 +1152,10 @@ export async function fetchOAuth2Token(auth: AuthConfig): Promise<OAuth2TokenRes
 
 export async function authorizeOAuth2(auth: AuthConfig): Promise<OAuth2TokenResponse | null> {
   return (await window.go?.api?.App?.AuthorizeOAuth2?.(auth)) ?? null;
+}
+
+export async function authorizeOAuth2Device(auth: AuthConfig): Promise<OAuth2TokenResponse | null> {
+  return (await window.go?.api?.App?.AuthorizeOAuth2Device?.(auth)) ?? null;
 }
 
 export async function refreshOAuth2Token(auth: AuthConfig): Promise<OAuth2TokenResponse | null> {

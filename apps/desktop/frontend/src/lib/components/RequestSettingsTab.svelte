@@ -201,6 +201,31 @@
 
     <label class="postman-setting">
       <span class="setting-copy">
+        <strong>Script timeout</strong>
+        <span>How long a pre-request or test script may run. Leave at 0 for the 2000 ms default; raise it for heavy assertion suites or request signing.</span>
+        {#if vm.collectionSettingDefaultNote('scriptTimeoutMs')}<em class:setting-default-muted={!vm.collectionSettingIsInherited('scriptTimeoutMs')}>{vm.collectionSettingDefaultNote('scriptTimeoutMs')}</em>{/if}
+      </span>
+      <span class="setting-inline-number">
+        <input class="setting-number" type="number" bind:value={vm.scriptTimeoutMs} min="0" max="60000" step="500" oninput={() => vm.markRequestSettingOverride('scriptTimeoutMs')} />
+        <span>ms</span>
+      </span>
+    </label>
+
+    <label class="postman-setting">
+      <span class="setting-copy">
+        <strong>Allow pm.sendRequest</strong>
+        <span>Let this request's scripts make their own HTTP calls — for fetching a token before the send, or chaining setup. Off by default: scripts have no network access otherwise.</span>
+        {#if vm.collectionSettingDefaultNote('allowSendRequest')}<em class:setting-default-muted={!vm.collectionSettingIsInherited('allowSendRequest')}>{vm.collectionSettingDefaultNote('allowSendRequest')}</em>{/if}
+      </span>
+      <span class="switch-control">
+        <input type="checkbox" bind:checked={vm.allowSendRequest} onchange={() => vm.markRequestSettingOverride('allowSendRequest')} />
+        <span class="switch-track"></span>
+        <span class="switch-state">{vm.allowSendRequest ? 'ON' : 'OFF'}</span>
+      </span>
+    </label>
+
+    <label class="postman-setting">
+      <span class="setting-copy">
         <strong>HTTP proxy</strong>
         <span>Route this request through a proxy. Leave empty to use the system proxy (HTTP_PROXY env var).</span>
         {#if vm.collectionSettingDefaultNote('proxyUrl')}<em class:setting-default-muted={!vm.collectionSettingIsInherited('proxyUrl')}>{vm.collectionSettingDefaultNote('proxyUrl')}</em>{/if}
