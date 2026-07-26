@@ -61,6 +61,14 @@ A common pattern: a "login" request fetches a token and stores it under `authTok
 
 Mark a variable as **secret** in the environment editor — its value is masked in the UI and excluded from collection exports. Useful for tokens and keys.
 
+## Global variables
+
+**Environments → Globals** holds variables that apply to every request in every workspace. They are the lowest-priority scope: an environment (or collection) value with the same name wins.
+
+Use them for values that are not tied to one environment — a personal API key, a machine-specific port, or something a script produced that later requests need. Scripts read and write them with [`pm.globals`](/docs/reference/scripting-api/#variable-scopes), and a value written during a send shows up in the editor once the request finishes.
+
+Globals are saved with your local data rather than in the Git-backed workspace YAML, so they do not travel to teammates in a shared repository.
+
 ## Manual save vs autosave
 
 Environment edits follow the same save mode as requests:

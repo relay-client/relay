@@ -17,7 +17,11 @@ Username + password. Relay base64-encodes for you.
 
 ## Digest Auth
 
-Full RFC 2617 MD5 challenge-response. Relay sends the first request unauthenticated, parses the `WWW-Authenticate` header, and replays with the digest. No configuration beyond username/password.
+Relay sends the first request unauthenticated, parses the `WWW-Authenticate` header, and replays with the digest. No configuration beyond username/password.
+
+Supported algorithms (RFC 7616): `MD5`, `SHA-256`, `SHA-512-256`, and their `-sess` session variants. Relay echoes the algorithm token back exactly as the server named it. Both `qop=auth` and `qop=auth-int` work — when a server offers both, plain `auth` is used so the body never has to be buffered. Servers that advertise `userhash=true` get a hashed username. A challenge with no `qop` falls back to the legacy RFC 2069 form.
+
+`qop=auth-int` signs the entity body, so the whole body has to be hashed before the request goes out; a body over 32 MB, or one that cannot be re-read, fails with a clear message instead.
 
 ## API Key
 
@@ -26,18 +30,29 @@ Full RFC 2617 MD5 challenge-response. Relay sends the first request unauthentica
 
 ## OAuth 2.0
 
-Relay supports two grant types:
+Relay supports four grant types:
 
 - **Client Credentials** — enter the token URL, client ID, client secret, and optional scope, then click **Get Access Token**.
 - **Authorization Code** — enter the authorization URL, token URL, client ID, optional client secret, and scope, then click **Authorize in browser**. Relay opens the system browser and receives the callback through a temporary loopback listener on `127.0.0.1`.
+- **Device Code** (RFC 8628) — enter the device authorization URL, token URL, and client ID, then click **Start device sign-in**. Relay shows the user code, opens the verification page, and polls the token endpoint until you approve. It honours the server's `interval` and backs off on `slow_down`. This is the grant to use where a loopback redirect cannot work — a headless machine or a remote session.
+- **Password** — the RFC 6749 resource-owner grant: token URL, username, and password. Legacy by design, but still required by some internal token endpoints.
 
 ![OAuth 2.0 Client Credentials form with token controls](../../../../assets/screenshots/auth-oauth2-token-fetch.png)
 
-For Authorization Code, **Use PKCE** is enabled as the recommended option for public clients. Relay uses S256 PKCE. A client secret is optional when PKCE is used; confidential clients with a secret authenticate to the token endpoint with HTTP Basic.
+For Authorization Code, **Use PKCE** is enabled as the recommended option for public clients. Relay uses S256 PKCE. A client secret is optional when PKCE is used.
+
+**Client authentication** selects how the client identifies itself at the token endpoint:
+
+- **Send as Basic auth header** — HTTP Basic, the RFC 6749 default when a secret is set.
+- **Send client credentials in body** — `client_id` + `client_secret` as form fields (`client_secret_post`), which some providers require instead.
+- **Client secret JWT** — an RFC 7523 assertion signed with the client secret (HS256).
+- **Private key JWT** — an RFC 7523 assertion signed with an RSA or ECDSA private key. Paste the key in PEM form (PKCS#1, PKCS#8, or SEC1); the algorithm is inferred from the key unless you set it. The key field accepts a `{{variable}}`, so it can live in workspace secrets rather than in the YAML.
+
+For both assertion methods the audience defaults to the token URL, which is what providers expect; override it if yours differs. Assertions are minted fresh per request with a random `jti` and a five-minute lifetime.
+
+**Audience** sends an `audience` parameter alongside the token request. It is not part of RFC 6749 but Auth0 requires it and several other providers accept it.
 
 The acquired `access_token` is injected as `Authorization: Bearer ...` on send. If the provider returns a refresh token, Relay exposes **Refresh token** and automatically refreshes an expired access token before sending a request.
-
-The OAuth Password grant and Device Authorization grant are not supported. Fetch those tokens externally and use Bearer auth when needed.
 
 ## AWS Signature v4
 
@@ -48,7 +63,7 @@ Sign requests to AWS APIs (S3, API Gateway, etc.).
 - Region (e.g. `us-east-1`).
 Relay computes the canonical request, derives the signing key, and adds `Authorization`, `x-amz-date`, and `x-amz-content-sha256` headers automatically.
 
-Temporary AWS credentials that require an STS session token are not currently represented by the AWS auth form.
+**Session token** covers temporary credentials from STS, an assumed role, or AWS SSO. Relay sends it as `x-amz-security-token` and includes it in `SignedHeaders`, which is what AWS requires — a token that is sent but not signed is rejected.
 
 ## Inheriting auth
 

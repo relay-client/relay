@@ -56,7 +56,7 @@ The NSIS installer is not currently Authenticode-signed, so SmartScreen may flag
 
 ## Postman compatibility — what doesn't carry over?
 
-See [Import & export](/docs/guides/import-export/). Short version: common `pm.*` scripts import into Relay's sandboxed script fields, but anything requiring Node.js modules, external packages, Visualizers, or cloud-only Postman features needs a rewrite. Monitors and Mock Servers are not supported.
+See [Import & export](/docs/guides/import-export/). Short version: common `pm.*` scripts import into Relay's sandboxed script fields — including `pm.sendRequest`, `pm.collectionVariables`, and `CryptoJS` request signing. What still needs a rewrite: scripts that `require` a Node.js module or external package, anything using `async`/`await` or `setTimeout`, Visualizers, and cloud-only Postman features. Monitors and Mock Servers are not supported.
 
 ## Roadmap?
 

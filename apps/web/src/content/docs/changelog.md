@@ -5,6 +5,26 @@ description: Notable Relay changes and links to the exact notes for each publish
 
 This page summarizes the notable-change log maintained in the source repository. For the exact notes and artifacts attached to every published tag, use the [Relay releases page](https://github.com/relay-client/relay/releases).
 
+## 1.2.0
+
+### Added
+
+- **OAuth 2.0: Device Code and Password grants** — Device Code (RFC 8628) shows the user code, opens the verification page and polls for approval, which is how you sign in on a machine where a browser redirect cannot come back. See [Authentication](/docs/guides/authentication/#oauth-20).
+- **OAuth 2.0: client authentication methods** — alongside HTTP Basic, the token endpoint can be given credentials in the body, a client secret JWT, or a private key JWT (RSA/ECDSA, RFC 7523). The private key accepts a `{{variable}}`, so it can live in workspace secrets. An `audience` parameter is sent when set.
+- **Digest auth beyond MD5** — `SHA-256`, `SHA-512-256` and the `-sess` variants from RFC 7616, plus `qop=auth-int` and `userhash`. A modern Digest server previously failed before the request went out.
+- **AWS Signature v4: session tokens** — temporary credentials from STS, an assumed role or AWS SSO now work.
+- **`pm.sendRequest`** — scripts can make their own HTTP calls, for fetching a token before the send or chaining setup. Off by default; enable **Allow pm.sendRequest** on a request or pass `--allow-send-request` to the CLI runner. See [Scripting API](/docs/reference/scripting-api/#pmsendrequest).
+- **Request signing in scripts** — `pm.crypto` for hashes, HMAC and encodings, plus a `CryptoJS` shim so signing scripts imported from Postman work unchanged.
+- **The missing `pm.*` scopes** — `pm.collectionVariables` (written back to the collection), `pm.globals`, `pm.info`, `pm.cookies`, and `pm.execution.skipRequest()` for a request that should be skipped rather than failed.
+- **Global variables** — persisted across restarts, shared by every workspace, and edited under **Environments → Globals**. See [Environments](/docs/guides/environments/#global-variables).
+- **Response Preview** — images and HTML render properly instead of appearing as unreadable text. See [Response viewer](/docs/guides/response-viewer/#preview).
+- **Configurable script timeout** — raise the 2000 ms cap per request or with `relay run --script-timeout` when an assertion suite or a signing step needs longer.
+
+### Fixed
+
+- **`relay run` could not run a collection that used inherited auth.** A request set to **Inherit Auth** aborted the run with `unsupported auth type "inherit"`, because the runner ignored everything but a collection's variables. Collection auth, headers, scripts and settings now apply exactly as they do in the app. See [CLI runner](/docs/guides/cli-runner/).
+- **A binary response no longer fills the Body tab with replacement characters.** Relay identifies a non-text body from its actual bytes, so a payload mislabelled as `text/html` is caught too, and shows what it is with links to preview or save it.
+
 ## 1.1.1
 
 ### Added

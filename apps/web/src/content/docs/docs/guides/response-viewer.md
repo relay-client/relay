@@ -105,6 +105,19 @@ For the full script API, see the [Scripting API reference](/docs/reference/scrip
 - **"Response body is empty"** with a non-2xx status. Some APIs return a status code but no body (e.g. 204 No Content). This is shown as an empty body view, not an error.
 - **Slow rendering on huge JSON.** If your response is over a few MB of densely nested JSON, switch the body view to *Raw* in the editor settings to skip syntax highlighting.
 
+## Binary responses
+
+A body that is not text — an image, a PDF, an archive, a font — is not rendered as text. Relay inspects the actual bytes rather than trusting `Content-Type`, so a payload mislabelled as `text/html` is still recognised, and shows what it found (the sniffed type and the size) with buttons to open the [preview](#preview) or save the body to a file.
+
+## Preview
+
+A **Preview** tab appears next to Body when the response is something worth rendering:
+
+- **Images** (PNG, JPEG, GIF, WebP, BMP, AVIF, SVG, ICO) render on a checkerboard with their dimensions and size. An image response opens on this tab automatically, since the raw bytes are meaningless in the text view. An image served as `application/octet-stream` is still detected by sniffing its contents.
+- **HTML** renders in a fully sandboxed frame. Scripts do not run and the page cannot reach the network or the app around it, so the preview is safe for a response from any server. It is a rendering aid, not a browser.
+
+Images travel to the viewer through a separate lossless channel, because the response body crosses to the interface as text and binary bytes would not survive intact. Images over 16 MB, and any truncated response, are not previewed.
+
 ## Related
 
 - [Per-request settings](/docs/guides/request-settings/) — `httpVersion`, redirect policy, timeout, cookie jar
