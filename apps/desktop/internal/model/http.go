@@ -23,18 +23,30 @@ type AuthConfig struct {
 	OAuth2GrantType          string `json:"oauth2GrantType"`
 	OAuth2TokenURL           string `json:"oauth2TokenURL"`
 	OAuth2AuthURL            string `json:"oauth2AuthURL"`
+	OAuth2DeviceAuthURL      string `json:"oauth2DeviceAuthURL"`
 	OAuth2RedirectURL        string `json:"oauth2RedirectURL"`
 	OAuth2ClientID           string `json:"oauth2ClientID"`
 	OAuth2Secret             string `json:"oauth2Secret"`
 	OAuth2Scope              string `json:"oauth2Scope"`
+	OAuth2Audience           string `json:"oauth2Audience"`
 	OAuth2UsePKCE            bool   `json:"oauth2UsePKCE"`
 	OAuth2RefreshToken       string `json:"oauth2RefreshToken"`
 	OAuth2InsecureSkipVerify bool   `json:"oauth2InsecureSkipVerify"`
 
-	AWSAccessKey string `json:"awsAccessKey"`
-	AWSSecretKey string `json:"awsSecretKey"`
-	AWSRegion    string `json:"awsRegion"`
-	AWSService   string `json:"awsService"`
+	OAuth2Username string `json:"oauth2Username"`
+	OAuth2Password string `json:"oauth2Password"`
+
+	OAuth2ClientAuth          string `json:"oauth2ClientAuth"`
+	OAuth2AssertionAlgorithm  string `json:"oauth2AssertionAlgorithm"`
+	OAuth2AssertionPrivateKey string `json:"oauth2AssertionPrivateKey"`
+	OAuth2AssertionKeyID      string `json:"oauth2AssertionKeyID"`
+	OAuth2AssertionAudience   string `json:"oauth2AssertionAudience"`
+
+	AWSAccessKey    string `json:"awsAccessKey"`
+	AWSSecretKey    string `json:"awsSecretKey"`
+	AWSSessionToken string `json:"awsSessionToken"`
+	AWSRegion       string `json:"awsRegion"`
+	AWSService      string `json:"awsService"`
 }
 
 type OAuth2TokenResponse struct {
@@ -43,8 +55,17 @@ type OAuth2TokenResponse struct {
 	ExpiresIn    int    `json:"expires_in"`
 	RefreshToken string `json:"refresh_token,omitempty"`
 	Scope        string `json:"scope,omitempty"`
+	IDToken      string `json:"id_token,omitempty"`
 	Error        string `json:"error,omitempty"`
 	ErrorDesc    string `json:"error_description,omitempty"`
+}
+
+type OAuth2DevicePrompt struct {
+	UserCode                string `json:"userCode"`
+	VerificationURI         string `json:"verificationUri"`
+	VerificationURIComplete string `json:"verificationUriComplete,omitempty"`
+	ExpiresIn               int    `json:"expiresIn"`
+	Interval                int    `json:"interval"`
 }
 
 type Cookie struct {
@@ -84,6 +105,12 @@ type HttpRequest struct {
 	ScriptEngine     string     `json:"scriptEngine"`
 	FollowRedirects  bool       `json:"followRedirects"`
 	TimeoutMs        int        `json:"timeoutMs"`
+
+	Name             string `json:"name"`
+	ScriptTimeoutMs  int    `json:"scriptTimeoutMs"`
+	AllowSendRequest bool   `json:"allowSendRequest"`
+	Iteration        int    `json:"iteration,omitempty"`
+	IterationCount   int    `json:"iterationCount,omitempty"`
 
 	HTTPVersion                  string            `json:"httpVersion"`
 	EnableSSLVerification        bool              `json:"enableSSLVerification"`
@@ -136,6 +163,23 @@ type HttpResponse struct {
 	SentRequests     []SentRequest   `json:"sentRequests,omitempty"`
 	Connection       ConnectionInfo  `json:"connection"`
 	Timeline         []TimelineEvent `json:"timeline,omitempty"`
+
+	Skipped    bool   `json:"skipped,omitempty"`
+	SkipReason string `json:"skipReason,omitempty"`
+
+	// PreviewImageBase64 carries an image response losslessly. Body crosses the
+	// bridge as a JSON string, which mangles non-UTF-8 bytes.
+	PreviewImageBase64 string `json:"previewImageBase64,omitempty"`
+	PreviewMediaType   string `json:"previewMediaType,omitempty"`
+
+	// BodyIsBinary marks a body that is not text. Body has already lost those
+	// bytes by the time it is JSON-encoded, so the viewer needs to be told
+	// rather than guess from the mangled string.
+	BodyIsBinary    bool   `json:"bodyIsBinary,omitempty"`
+	BodySniffedType string `json:"bodySniffedType,omitempty"`
+
+	CollectionVariableUpdates  map[string]string `json:"collectionVariableUpdates,omitempty"`
+	CollectionVariablesRemoved []string          `json:"collectionVariablesRemoved,omitempty"`
 }
 
 // SentRequest is what actually went out on the wire, captured at the transport

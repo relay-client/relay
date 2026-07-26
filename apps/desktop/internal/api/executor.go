@@ -51,6 +51,8 @@ func sendRequestWithBodySink(requestCtx context.Context, req model.HttpRequest, 
 	scope := beginScriptScope(sm, req.CollectionVariables)
 	ctx := scope.ctx
 	populateScriptRequestContext(ctx, req)
+	populateScriptCookies(ctx, req, jars)
+	ctx.Send = newScriptSender(requestCtx, req.AllowSendRequest, !req.EnableSSLVerification)
 
 	var preResult model.ScriptResult
 	if req.PreRequestScript != "" {
@@ -66,6 +68,13 @@ func sendRequestWithBodySink(requestCtx context.Context, req model.HttpRequest, 
 				PreRequestResult: preResult,
 			}
 		}
+		if preResult.SkippedRequest {
+			return model.HttpResponse{
+				Skipped:          true,
+				SkipReason:       "skipped by pm.execution.skipRequest()",
+				PreRequestResult: preResult,
+			}
+		}
 	}
 
 	resp := doRequestWithBodySink(requestCtx, req, jar, cache, sinkFactory)
@@ -76,12 +85,45 @@ func sendRequestWithBodySink(requestCtx context.Context, req model.HttpRequest, 
 		testCtx := testScope.ctx
 		testCtx.Response = &resp
 		populateScriptRequestContext(testCtx, req)
+		populateScriptCookies(testCtx, req, jars)
+		testCtx.Send = newScriptSender(requestCtx, req.AllowSendRequest, !req.EnableSSLVerification)
 		resp.TestResult = script.RunTests(req.ScriptEngine, req.TestScript, testCtx)
 		resp.TestResult = redactScriptResult(resp.TestResult, req.SecretEnvironmentValues)
 		testScope.commit(sm)
 	}
 
+	resp.CollectionVariableUpdates, resp.CollectionVariablesRemoved = mergeCollectionVariableResults(preResult, resp.TestResult)
+
 	return resp
+}
+
+func mergeCollectionVariableResults(results ...model.ScriptResult) (map[string]string, []string) {
+	var updates map[string]string
+	removed := map[string]struct{}{}
+	for _, result := range results {
+		for key, value := range result.CollectionVariables {
+			if updates == nil {
+				updates = make(map[string]string)
+			}
+			updates[key] = value
+			delete(removed, key)
+		}
+		for _, key := range result.CollectionVariablesRemoved {
+			if updates != nil {
+				delete(updates, key)
+			}
+			removed[key] = struct{}{}
+		}
+	}
+	if len(removed) == 0 {
+		return updates, nil
+	}
+	keys := make([]string, 0, len(removed))
+	for key := range removed {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return updates, keys
 }
 
 // scriptStateScope captures the variable/environment snapshot a request starts
@@ -90,51 +132,27 @@ func sendRequestWithBodySink(requestCtx context.Context, req model.HttpRequest, 
 // the script mutates; before* hold the pristine snapshot.
 type scriptStateScope struct {
 	ctx        *script.Context
-	injected   map[string]string
 	beforeVars map[string]string
 	beforeEnv  map[string]string
 }
 
-// beginScriptScope snapshots shared state, injects the request's collection
-// variables, and returns a scope whose ctx is handed to the script engine.
 func beginScriptScope(sm *state.Manager, collectionVariables map[string]string) *scriptStateScope {
 	vars, env := sm.Snapshot()
 	beforeVars := util.CloneMap(vars)
 	beforeEnv := util.CloneMap(env)
-	injected := applyCollectionVariables(vars, collectionVariables)
+	ctx := script.NewContext(vars, env)
+	for key, value := range collectionVariables {
+		ctx.CollectionVariables[key] = value
+	}
 	return &scriptStateScope{
-		ctx:        script.NewContext(vars, env),
-		injected:   injected,
+		ctx:        ctx,
 		beforeVars: beforeVars,
 		beforeEnv:  beforeEnv,
 	}
 }
 
-// commit drops the collection variables that were only injected for the
-// script's benefit, then merges the script's actual changes back into shared
-// state.
 func (s *scriptStateScope) commit(sm *state.Manager) {
-	stripInjectedCollectionVariables(s.ctx.Variables, s.injected)
 	sm.Merge(s.beforeVars, s.ctx.Variables, s.beforeEnv, s.ctx.Environment)
-}
-
-func applyCollectionVariables(vars map[string]string, collectionVariables map[string]string) map[string]string {
-	injected := make(map[string]string)
-	for key, value := range collectionVariables {
-		if _, exists := vars[key]; !exists {
-			vars[key] = value
-			injected[key] = value
-		}
-	}
-	return injected
-}
-
-func stripInjectedCollectionVariables(vars map[string]string, injected map[string]string) {
-	for key, value := range injected {
-		if vars[key] == value {
-			delete(vars, key)
-		}
-	}
 }
 
 func redactScriptResult(result model.ScriptResult, secrets []string) model.ScriptResult {
@@ -174,6 +192,14 @@ func populateScriptRequestContext(ctx *script.Context, req model.HttpRequest) {
 	ctx.RequestURL = req.URL
 	ctx.RequestMethod = req.Method
 	ctx.IterationData = req.IterationData
+	ctx.Info = script.Info{
+		RequestName:    req.Name,
+		Iteration:      req.Iteration,
+		IterationCount: req.IterationCount,
+	}
+	if req.ScriptTimeoutMs > 0 {
+		ctx.Timeout = time.Duration(req.ScriptTimeoutMs) * time.Millisecond
+	}
 	for _, h := range req.Headers {
 		if h.Enabled && h.Key != "" {
 			ctx.RequestHeaders[h.Key] = h.Value
@@ -183,6 +209,23 @@ func populateScriptRequestContext(ctx *script.Context, req model.HttpRequest) {
 		if p.Enabled && p.Key != "" {
 			ctx.RequestParams[p.Key] = p.Value
 		}
+	}
+}
+
+func populateScriptCookies(ctx *script.Context, req model.HttpRequest, jars *cookieJarRegistry) {
+	if jars == nil || req.DisableCookieJar {
+		return
+	}
+	target, err := url.Parse(normalizeRequestURL(req.URL))
+	if err != nil || target.Host == "" {
+		return
+	}
+	jar := jars.jar(req.WorkspaceID)
+	if jar == nil {
+		return
+	}
+	for _, cookie := range jar.Cookies(target) {
+		ctx.Cookies = append(ctx.Cookies, model.Cookie{Name: cookie.Name, Value: cookie.Value})
 	}
 }
 
@@ -404,6 +447,8 @@ func doRequestWithBodySink(ctx context.Context, req model.HttpRequest, jar http.
 		Timings:    timings.snapshot(finish),
 		Size:       bodySize,
 	}
+	resp.PreviewImageBase64, resp.PreviewMediaType = buildPreviewImage(bodyBytes, respHeaders, truncated)
+	resp.BodyIsBinary, resp.BodySniffedType = classifyResponseBody(bodyBytes, respHeaders)
 	switch {
 	case readErr != nil:
 		if streamedToSink {

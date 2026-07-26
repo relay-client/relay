@@ -279,10 +279,14 @@ func (a *App) GetEnvironment() map[string]string       { return a.state.GetEnvir
 func (a *App) SetVariable(key, value string)           { a.state.SetVariable(key, value) }
 func (a *App) SetEnvironmentVar(key, value string)     { a.state.SetEnvironmentVar(key, value) }
 func (a *App) SetEnvironment(values map[string]string) { a.state.SetEnvironment(values) }
+func (a *App) SetVariables(values map[string]string)   { a.state.SetVariables(values) }
 func (a *App) DeleteVariable(key string)               { a.state.DeleteVariable(key) }
 func (a *App) ClearVariables()                         { a.state.ClearVariables() }
 
 func (a *App) FetchOAuth2Token(cfg model.AuthConfig) model.OAuth2TokenResponse {
+	if cfg.OAuth2GrantType == "password" {
+		return auth.FetchTokenPassword(cfg)
+	}
 	return auth.FetchToken(cfg)
 }
 
@@ -291,12 +295,26 @@ func (a *App) AuthorizeOAuth2(cfg model.AuthConfig) model.OAuth2TokenResponse {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	return auth.AuthorizeCode(ctx, cfg, func(target string) error {
+	return auth.AuthorizeCode(ctx, cfg, a.openAuthorizeURL)
+}
+
+func (a *App) AuthorizeOAuth2Device(cfg model.AuthConfig) model.OAuth2TokenResponse {
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return auth.AuthorizeDevice(ctx, cfg, func(prompt model.OAuth2DevicePrompt) {
 		if a.ctx != nil {
-			runtime.BrowserOpenURL(a.ctx, target)
+			runtime.EventsEmit(a.ctx, "oauth2:device-prompt", prompt)
 		}
-		return nil
-	})
+	}, a.openAuthorizeURL)
+}
+
+func (a *App) openAuthorizeURL(target string) error {
+	if a.ctx != nil {
+		runtime.BrowserOpenURL(a.ctx, target)
+	}
+	return nil
 }
 
 func (a *App) RefreshOAuth2Token(cfg model.AuthConfig) model.OAuth2TokenResponse {

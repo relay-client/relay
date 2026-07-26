@@ -23,6 +23,9 @@ type GrpcRequest struct {
 	PreRequestScript        string            `json:"preRequestScript"`
 	TestScript              string            `json:"testScript"`
 	ScriptEngine            string            `json:"scriptEngine"`
+	Name                    string            `json:"name"`
+	ScriptTimeoutMs         int               `json:"scriptTimeoutMs"`
+	AllowSendRequest        bool              `json:"allowSendRequest"`
 	SecretEnvironmentKeys   []string          `json:"secretEnvironmentKeys"`
 	SecretEnvironmentValues []string          `json:"secretEnvironmentValues"`
 	CollectionVariables     map[string]string `json:"collectionVariables"`
