@@ -215,32 +215,86 @@ func newLoopbackListener(override string) (net.Listener, string, error) {
 	return listener, override, nil
 }
 
-// postTokenRequest performs the form-encoded POST to the token endpoint shared by
-// every grant. Confidential clients (a secret is set) authenticate with HTTP
-// Basic; public clients (PKCE, no secret) send client_id in the body.
-func postTokenRequest(cfg model.AuthConfig, form url.Values) model.OAuth2TokenResponse {
-	useBasicAuth := cfg.OAuth2Secret != ""
-	if cfg.OAuth2ClientID != "" && !useBasicAuth {
+func applyClientAuth(form url.Values, cfg model.AuthConfig, audience string) (useBasic bool, err error) {
+	method := resolveClientAuth(cfg.OAuth2ClientAuth, cfg.OAuth2Secret)
+
+	switch method {
+	case ClientAuthBasic:
+		if cfg.OAuth2ClientID == "" {
+			return false, fmt.Errorf("oauth2: client ID is required for HTTP Basic client authentication")
+		}
+		return true, nil
+
+	case ClientAuthClientSecretJWT, ClientAuthPrivateKeyJWT:
+		assertionAudience := cfg.OAuth2AssertionAudience
+		if assertionAudience == "" {
+			assertionAudience = audience
+		}
+		assertion, err := buildClientAssertion(
+			cfg.OAuth2ClientID,
+			assertionAudience,
+			cfg.OAuth2AssertionAlgorithm,
+			cfg.OAuth2AssertionKeyID,
+			cfg.OAuth2Secret,
+			cfg.OAuth2AssertionPrivateKey,
+			method,
+		)
+		if err != nil {
+			return false, err
+		}
+		form.Set("client_assertion_type", clientAssertionType)
+		form.Set("client_assertion", assertion)
 		form.Set("client_id", cfg.OAuth2ClientID)
-	}
+		return false, nil
 
-	req, err := http.NewRequest(http.MethodPost, cfg.OAuth2TokenURL, strings.NewReader(form.Encode()))
-	if err != nil {
-		return model.OAuth2TokenResponse{Error: err.Error()}
+	default:
+		if cfg.OAuth2ClientID != "" {
+			form.Set("client_id", cfg.OAuth2ClientID)
+		}
+		if cfg.OAuth2Secret != "" {
+			form.Set("client_secret", cfg.OAuth2Secret)
+		}
+		return false, nil
 	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Accept", "application/json")
-	if useBasicAuth {
-		req.SetBasicAuth(cfg.OAuth2ClientID, cfg.OAuth2Secret)
-	}
+}
 
+func oauth2HTTPClient(cfg model.AuthConfig) *http.Client {
 	transport := &http.Transport{}
 	if cfg.OAuth2InsecureSkipVerify {
 		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
-	client := &http.Client{Timeout: 15 * time.Second, Transport: transport}
+	return &http.Client{Timeout: 15 * time.Second, Transport: transport}
+}
 
-	resp, err := client.Do(req)
+func newTokenFormRequest(endpoint string, form url.Values) (*http.Request, error) {
+	req, err := http.NewRequest(http.MethodPost, endpoint, strings.NewReader(form.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Accept", "application/json")
+	return req, nil
+}
+
+func postTokenRequest(cfg model.AuthConfig, form url.Values) model.OAuth2TokenResponse {
+	if cfg.OAuth2Audience != "" && form.Get("audience") == "" {
+		form.Set("audience", cfg.OAuth2Audience)
+	}
+
+	useBasicAuth, err := applyClientAuth(form, cfg, cfg.OAuth2TokenURL)
+	if err != nil {
+		return model.OAuth2TokenResponse{Error: err.Error()}
+	}
+
+	req, err := newTokenFormRequest(cfg.OAuth2TokenURL, form)
+	if err != nil {
+		return model.OAuth2TokenResponse{Error: err.Error()}
+	}
+	if useBasicAuth {
+		req.SetBasicAuth(cfg.OAuth2ClientID, cfg.OAuth2Secret)
+	}
+
+	resp, err := oauth2HTTPClient(cfg).Do(req)
 	if err != nil {
 		return model.OAuth2TokenResponse{Error: err.Error()}
 	}
