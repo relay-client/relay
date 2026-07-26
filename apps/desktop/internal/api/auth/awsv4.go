@@ -40,6 +40,10 @@ func Sign(req *http.Request, cfg model.AuthConfig) error {
 	req.Header.Set("Host", host)
 
 	signedHeaders := []string{"host", "x-amz-content-sha256", "x-amz-date"}
+	if cfg.AWSSessionToken != "" {
+		req.Header.Set("x-amz-security-token", cfg.AWSSessionToken)
+		signedHeaders = append(signedHeaders, "x-amz-security-token")
+	}
 	sort.Strings(signedHeaders)
 
 	var canonicalHeaders strings.Builder
