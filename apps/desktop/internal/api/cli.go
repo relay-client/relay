@@ -347,8 +347,14 @@ func runCLIRequest(sm *state.Manager, jars *cookieJarRegistry, cache *preflightC
 	httpReq.Name = req.Name
 	httpReq.Iteration = iteration
 	httpReq.IterationCount = opts.iterationCount
-	httpReq.ScriptTimeoutMs = opts.scriptTimeoutMs
-	httpReq.AllowSendRequest = opts.allowSendRequest
+	// The flags are a run-wide override; without them the request keeps what it
+	// (or its collection) was configured with, so a workspace behaves the same
+	// in CI as it does in the app.
+	httpReq.ScriptTimeoutMs = req.Settings.ScriptTimeoutMs
+	if opts.scriptTimeoutMs > 0 {
+		httpReq.ScriptTimeoutMs = opts.scriptTimeoutMs
+	}
+	httpReq.AllowSendRequest = opts.allowSendRequest || req.Settings.AllowSendRequest
 	if opts.insecure {
 		httpReq.EnableSSLVerification = false
 	}

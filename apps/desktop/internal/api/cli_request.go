@@ -49,6 +49,8 @@ type cliSettings struct {
 	DisableCookieJar       bool   `json:"disableCookieJar"`
 	MaxRedirects           int    `json:"maxRedirects"`
 	TimeoutMs              int    `json:"timeoutMs"`
+	ScriptTimeoutMs        int    `json:"scriptTimeoutMs"`
+	AllowSendRequest       bool   `json:"allowSendRequest"`
 	ProxyURL               string `json:"proxyUrl"`
 	ClientCertPath         string `json:"clientCertPath"`
 	ClientKeyPath          string `json:"clientKeyPath"`

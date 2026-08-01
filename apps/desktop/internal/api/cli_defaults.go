@@ -96,6 +96,12 @@ func mergeCollectionSettings(defaults, req cliSettings) cliSettings {
 	if req.TimeoutMs == 0 {
 		req.TimeoutMs = defaults.TimeoutMs
 	}
+	if req.ScriptTimeoutMs == 0 {
+		req.ScriptTimeoutMs = defaults.ScriptTimeoutMs
+	}
+	if !req.AllowSendRequest {
+		req.AllowSendRequest = defaults.AllowSendRequest
+	}
 	if req.ProxyURL == "" {
 		req.ProxyURL = defaults.ProxyURL
 	}

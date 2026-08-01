@@ -122,6 +122,54 @@ func TestRunCLIInheritWithoutCollectionAuthSendsNone(t *testing.T) {
 	}
 }
 
+// A workspace that raises the script timeout or opens up pm.sendRequest has to
+// behave the same in CI as it does in the app. Both settings used to be read
+// only from the command line, so a run silently ignored what the collection
+// (and the request) were configured with.
+func TestRunCLIAppliesCollectionScriptSettings(t *testing.T) {
+	httpTransports.closeAll()
+	t.Cleanup(httpTransports.closeAll)
+
+	helper := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"token":"from-helper"}`))
+	}))
+	defer helper.Close()
+
+	var sawAuth string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sawAuth = r.Header.Get("Authorization")
+		fmt.Fprint(w, "{}")
+	}))
+	defer server.Close()
+
+	root := writeDefaultsWorkspace(t, server.URL, strings.Join([]string{
+		"    settings:",
+		"      scriptTimeoutMs: 8000",
+		"      allowSendRequest: true",
+	}, "\n"), strings.Join([]string{
+		"  auth:",
+		"    type: none",
+		"  bodyType: none",
+		"  bodyContent: \"\"",
+		"  scriptEngine: js",
+		"  preRequestScriptJs: |",
+		"    const start = Date.now()",
+		"    while (Date.now() - start < 2400) { }",
+		"    const res = pm.sendRequest(\"" + helper.URL + "/token\")",
+		"    pm.request.headers.set(\"Authorization\", \"Bearer \" + res.json().token)",
+		"  settings: {}",
+	}, "\n"))
+
+	var out bytes.Buffer
+	code := runCLI(cliOptions{workspace: root, reporters: []string{"cli"}, iterations: 1, stdout: &out, stderr: &out})
+	if code != 0 {
+		t.Fatalf("expected exit 0 with the collection's script settings, got %d\n%s", code, out.String())
+	}
+	if sawAuth != "Bearer from-helper" {
+		t.Errorf("Authorization = %q, want the token pm.sendRequest fetched", sawAuth)
+	}
+}
+
 func TestRunCLIAppliesCollectionHeadersAndScripts(t *testing.T) {
 	httpTransports.closeAll()
 	t.Cleanup(httpTransports.closeAll)
