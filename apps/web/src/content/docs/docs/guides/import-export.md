@@ -9,7 +9,7 @@ Relay supports both one-off interchange formats and full Relay backups. Imports 
 
 | Source | What Relay imports |
 |--------|--------------------|
-| Postman Collection v2.1 | Collections, nested folders, requests, auth, bodies, GraphQL, scripts, and environments through the environment importer. |
+| Postman Collection v2.1 | Collections, nested folders, requests, auth, bodies, GraphQL, scripts, collection variables, and request documentation. Environment and globals exports import through the same picker. |
 | Insomnia v4 JSON | Workspaces, folders, requests, auth, bodies, and environments. |
 | Bruno/OpenCollection | Collections, explicit empty folders, requests, GraphQL, and supported metadata. |
 | OpenAPI/Swagger | HTTP/SSE requests generated from operations. |
@@ -31,12 +31,20 @@ Relay reads Postman Collection v2.1 — the JSON export, not the cloud-sync form
 
 What carries over:
 
-- Folder hierarchy, request names, methods, URLs.
+- Folder hierarchy — including folders that hold no requests — request names, methods, URLs.
 - Headers, query params, body (JSON, form-data, raw, urlencoded).
 - Pre-request and test scripts. JavaScript scripts map to Relay's sandboxed JavaScript fields; legacy Tengo fields remain available for existing requests.
-- Environments — imported from the sidebar's *Environments* view via its own import flow.
+- Request descriptions, which become the request's **Docs** tab.
+- Collection-level variables, auth, and scripts, which become the collection's [defaults](/docs/guides/collection-defaults/). A request that declared no auth of its own is set to **Inherit Auth**, so the collection's auth applies exactly as it did in Postman.
+- The whole OAuth 2.0 configuration, not just a stored access token: grant type, authorization and token URLs, client id and secret, scope, audience, and refresh token.
 
-What doesn't:
+Folders in Postman can carry their own scripts. Relay has no folder layer, so a folder's script is copied into each request it contains, marked with a `// --- from Postman folder "…" ---` comment.
+
+### Environments and globals
+
+Postman exports environments and globals as separate JSON files. Pick **Postman Collection** in the import dialog and choose one of those files — Relay recognises it and imports it as an environment (made active) or merges it into **Globals**. Values Postman marked as secrets stay marked as secrets.
+
+What doesn't carry over:
 
 - Postman cloud Mock Servers / Monitors.
 - Visualizer scripts.
