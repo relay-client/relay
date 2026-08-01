@@ -1015,6 +1015,61 @@ textarea.url-input {
   font-family: var(--font-mono);
 }
 
+.bulk-edit-toggle {
+  margin-left: auto;
+  padding: 3px 9px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+.bulk-edit-toggle:hover {
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.bulk-edit-toggle[aria-pressed='true'] {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.bulk-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px 14px;
+}
+
+.bulk-edit-input {
+  min-height: 190px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: var(--elevated);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.7;
+  resize: vertical;
+}
+
+.bulk-edit-input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.bulk-edit-hint {
+  margin: 0;
+  color: var(--text-3);
+  font-size: 11px;
+}
+
 .request-panel-empty {
   display: flex;
   flex-direction: column;
@@ -1643,6 +1698,29 @@ textarea.url-input {
   font-family: var(--font-mono);
   white-space: nowrap;
   cursor: default;
+}
+
+.script-snippet {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background: var(--elevated);
+  color: var(--text-2);
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+.script-snippet:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.script-snippet:active {
+  transform: translateY(1px);
 }
 
 .script-editor {

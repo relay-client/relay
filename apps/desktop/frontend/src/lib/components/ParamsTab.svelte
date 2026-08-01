@@ -2,12 +2,24 @@
   import { vm } from '../stores/app.svelte';
   import { guardTrailing, removeRow, activeCount } from '../utils';
   import VariableInput from './VariableInput.svelte';
+  import BulkEditPanel from './BulkEditPanel.svelte';
 </script>
 
 <div class="request-section-bar">
   <span class="request-section-title">Query Params</span>
   <span class="request-section-meta">{activeCount(vm.params)} active</span>
+  <button
+    class="bulk-edit-toggle"
+    type="button"
+    aria-pressed={vm.bulkEditTables.params}
+    onclick={() => (vm.bulkEditTables.params = !vm.bulkEditTables.params)}
+  >
+    {vm.bulkEditTables.params ? 'Key-value edit' : 'Bulk edit'}
+  </button>
 </div>
+{#if vm.bulkEditTables.params}
+  <BulkEditPanel rows={vm.params} apply={(next) => { vm.params = next; vm.syncUrlFromParams(); }} />
+{:else}
 <div class="kv-table headers-kv-table" style="--kw: {vm.kvKeyW}px; --vw: {vm.kvValW}px">
   <div class="kv-head">
     <span></span>
@@ -28,3 +40,4 @@
     </div>
   {/each}
 </div>
+{/if}

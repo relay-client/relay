@@ -30,6 +30,18 @@ The response panel shows the JSON body with syntax highlighting, response header
 
 > Tip: you can paste a `curl ...` command into the URL field — Relay will parse method, headers, params, and body automatically.
 
+### Bulk edit
+
+**Params**, **Headers**, and the form body types each have a **Bulk edit** toggle that swaps the table for its text form — one `key:value` per line, with `//` in front of a line to disable it:
+
+```
+Content-Type:application/json
+Authorization:Bearer {{token}}
+//X-Debug:1
+```
+
+It is the quickest way to paste a block of headers from somewhere else, or to add and reorder a dozen rows at once. Switching back rebuilds the table. Descriptions and attached files stay with their key, so a round trip through bulk edit does not lose them.
+
 ## 3. Save it to a collection
 
 - Click **Save** (or `Cmd/Ctrl S`).
