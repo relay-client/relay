@@ -5,6 +5,23 @@ description: Notable Relay changes and links to the exact notes for each publish
 
 This page summarizes the notable-change log maintained in the source repository. For the exact notes and artifacts attached to every published tag, use the [Relay releases page](https://github.com/relay-client/relay/releases).
 
+## 1.3.0
+
+### Added
+
+- **`pm.request.body` in scripts** — read, rewrite, and sign the body that actually goes out. `.raw` is readable and writable, `.json()` parses it, `.update()` replaces it, and form or urlencoded bodies are edited field by field through `.urlencoded` / `.formdata`. See [Scripting API](/docs/reference/scripting-api/#pmrequest).
+- **JSON Schema assertions** — `pm.response.to.have.jsonSchema(schema)` validates a response against a draft-07 subset and reports each failure with its path; `pm.response.to.have.jsonBody(path, value)` checks a single dotted path.
+- **`require()` for the libraries Postman scripts expect** — `lodash` (also as `_`), `ajv`, `tv4`, `uuid`, `crypto-js`, and `chai` resolve to Relay implementations, so imported test scripts run unchanged. Anything outside that surface fails with a message naming what was asked for.
+- **Bulk edit for key/value tables** — params, headers, and both form body types switch between the table and a `key:value` text form, `//` disabling a line. It is Postman's format, so a block of headers pastes straight across.
+- **Insertable script snippets** — the Scripts tab's reference row is now a snippet library: set a variable, add a header, sign the body, assert a status or a schema.
+
+### Fixed
+
+- **Importing a Postman collection dropped scripts, docs, and everything on the collection itself.** Pre-request and test scripts, request descriptions, collection variables, collection auth, and collection scripts were all discarded; OAuth 2.0 imports kept only the access token, so a request started failing with a 401 as soon as it expired. All of it carries over now, and Postman environment and globals files can be imported too. See [Import and export](/docs/guides/import-export/).
+- **A collection's script timeout and `pm.sendRequest` permission were ignored** — both were missing from the settings a request inherits, while the Settings tab claimed they applied. They inherit now, they can be set from **Collection settings → Settings** (alongside the client certificate), and `relay run` reads them from the workspace instead of only from its flags.
+- **Scripts could not edit a form or urlencoded body**, and `pm.request.body.mode` reported Relay's own names instead of Postman's, so an imported `if (mode === "raw")` silently took the wrong branch.
+- **A JSON Schema failure list stopped at 20 without saying so.**
+
 ## 1.2.0
 
 ### Added

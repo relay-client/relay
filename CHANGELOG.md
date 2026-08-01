@@ -5,6 +5,28 @@ All notable changes to Relay are documented here. This project follows
 
 ---
 
+## [1.3.0] - 2026-08-01
+
+### Added
+- **`pm.request.body` — scripts can read and rewrite the body that is sent.** The pre-request sandbox had no access to the body at all, so the single most common reason to write a pre-request script — generating a payload, or signing one with HMAC — was impossible. `pm.request.body.raw` is readable and writable, `.json()` parses it, `.update(value)` replaces it (objects are stringified), and `.mode` reports the body type. Tengo gets the same surface as `pm.request.body` / `pm.request.set_body()`. A body written onto a request that had none is still sent — Relay picks `json` or `text` from the content — while a binary file body is left alone, since the script never saw those bytes. Test scripts see the body that actually went out.
+- **JSON Schema assertions.** `pm.response.to.have.jsonSchema(schema)` validates the response against a draft-07 subset, and reports each failure with its path (`/items/1: missing required property "sku"`). `pm.response.to.have.jsonBody(path, value)` checks a single dotted path. The validator is shared with the `tv4` global and `require("ajv")`, so collections written against either report the same failures.
+- **`require()` for the libraries imported Postman scripts expect.** `lodash` (also as the `_` global), `ajv`, `tv4`, `uuid`, `crypto-js`, and `chai` resolve to Relay implementations covering the calls that appear in test scripts; `atob`/`btoa` are globals now too. Anything else — including an unsupported lodash member — fails with a message naming what was asked for, instead of a downstream `undefined is not a function`. The sandbox globals are no longer `var`-declared, so a script can open with `const _ = require("lodash")` or `const expect = require("chai").expect` without a parse error.
+- **Bulk edit for key/value tables.** Params, headers, and both form body types switch between the table and a `key:value` text form, `//` disabling a line — Postman's format, so a block of headers pastes straight across. Descriptions, secret flags, and attached files stay with their key across a round trip.
+- **Insertable script snippets.** The Scripts tab's reference row is now a snippet library: clicking one appends working code — set a variable, add a header, edit or sign the body, assert a status, check a JSON schema — to the script being edited. The list follows the active engine.
+
+### Fixed
+- **A collection's script timeout and `pm.sendRequest` permission were ignored.** Both settings were left out of the list of defaults a request inherits, so a collection that raised the script cap or opened up `pm.sendRequest` changed nothing — while the request's Settings tab displayed *"Applied from collection"* next to the value it was not applying. They inherit now, they can be set from **Collection settings → Settings** (alongside the client certificate, which the documentation promised but the interface never offered), and `relay run` reads both from the workspace instead of only from `--script-timeout` / `--allow-send-request`, so a run behaves in CI the way it does in the app. The inherited set is now checked against the settings model by a test, so the next setting cannot quietly go missing.
+- **Scripts could not edit a form or urlencoded body.** Those two modes are sent from their fields, and `pm.request.body.raw` writes went nowhere — no error, no log, just a request that ignored the script. `pm.request.body.urlencoded` and `pm.request.body.formdata` now expose Postman's field list (`add`, `upsert`, `remove`, `each`, `toObject`, …), a file field keeps its attachment when a script rewrites its value, and a raw write on a form body is reported in the script log instead of vanishing. `pm.request.body.update({ mode, urlencoded })` replaces every field at once. A **binary** request with no file chosen also keeps a body the script builds, rather than sending nothing.
+- **`pm.request.body.mode` reported Relay's names, not Postman's.** It returned `json`, `text`, or `form`, so an imported `if (pm.request.body.mode === "raw")` never matched and the script took the wrong branch in silence. Every text body is `raw` now, form-data is `formdata`, a file body is `file` — Postman's vocabulary throughout.
+- **A JSON Schema failure list stopped at 20 without saying so.** A response far off its schema reported exactly twenty problems as though they were all of them; the report now ends with how many more there were.
+- **Importing a Postman collection dropped every script.** The importer never read `item.event`, so pre-request and test scripts — often the reason the collection exists — were silently discarded, and even a Relay → Postman → Relay round trip lost them. Scripts now import, along with request descriptions (which become the request's Docs tab). Folder-level scripts, which have no equivalent layer in Relay, are copied into each request the folder contains and labelled with their origin.
+- **Importing a Postman collection dropped everything defined on the collection itself.** Collection variables, collection auth, and the collection's pre-request/test scripts were ignored; only `item` and the top-level `auth` were read. They now land in the collection's defaults, which is where Relay applies them for every request. A request that declared no auth of its own is marked **Inherit Auth** rather than getting a copy, so changing the collection's auth after the import works. Folders that hold no requests are preserved.
+- **Postman OAuth 2.0 imports kept only the access token.** The grant type, authorization and token URLs, client id and secret, scope, audience, refresh token, and client authentication method were all discarded, so an imported request started failing with a 401 as soon as the stored token expired. The whole configuration now carries over. AWS SigV4 session tokens import too.
+- **Postman environment and globals files could not be imported.** They export as separate JSON files that look nothing like a collection, so the import failed with "Expected a Postman collection JSON file" — leaving every `{{variable}}` in the freshly imported collection unresolved. The Postman importer now recognises them and imports an environment (made active) or merges into Globals, preserving secret flags.
+- **Postman exports put `event` in the wrong place.** Scripts were written under `request.event`; the v2.1 schema hangs `event` off the item, which is where Postman looks. Exports also now carry the collection's variables, auth, and scripts, plus each request's documentation.
+
+---
+
 ## [1.2.0] - 2026-07-26
 
 ### Added
@@ -105,5 +127,6 @@ this repository.
 - Configurable keyboard shortcuts throughout, global search (`⌘K`), quick send (`⌘Enter`), and tab switching (`⌘1`–`⌘9`).
 - Settings search and full keyboard navigation, theme previews, and onboarding empty states.
 
-[Unreleased]: https://github.com/relay-client/relay/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/relay-client/relay/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/relay-client/relay/compare/v1.2.0...v1.3.0
 [1.0.0]: https://github.com/relay-client/relay/releases/tag/v1.0.0
