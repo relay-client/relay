@@ -15,6 +15,8 @@ export const REQUEST_SETTING_KEYS: RequestSettingKey[] = [
   'disableCookieJar',
   'maxRedirects',
   'timeoutMs',
+  'scriptTimeoutMs',
+  'allowSendRequest',
   'proxyUrl',
   'clientCertPath',
   'clientKeyPath',

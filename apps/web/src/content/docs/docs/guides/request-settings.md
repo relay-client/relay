@@ -54,7 +54,7 @@ For servers that require **mutual TLS**, present a client certificate under *Set
 - **Private key (optional)** — the key file. Leave it blank when the key is in the same file as the certificate (a combined PEM).
 - **Key passphrase** — only for an encrypted key. It accepts a `{{variable}}`, so you can point it at a workspace secret instead of storing it in the YAML.
 
-Set it on a **collection** (via collection defaults) to reuse one certificate across every request in it, the same way other settings inherit.
+Set it under *Collection settings → Settings* to reuse one certificate across every request in the collection, the same way other settings inherit.
 
 A missing file, a mismatched certificate/key pair, or a wrong passphrase fails the request before it dials, with a message that says which. Relay supports PEM keys, including the legacy openssl encrypted format; PKCS#8-encrypted keys need converting first (`openssl pkcs8 -in key.pem -out key.dec.pem`).
 
@@ -76,7 +76,9 @@ If the timeout fires, the response shows a friendly error: *"The request timed o
 
 **Script timeout (ms)** caps how long a single pre-request or test script may run. Leave it at `0` for the default **2 000 ms**; raise it for a heavy assertion suite or a signing step. The ceiling is 60 000 ms, so a runaway loop can never wedge a send.
 
-**Allow pm.sendRequest** lets this request's scripts make their own HTTP calls — fetching a token before the send, or chaining setup. It is **off** by default: the script sandbox has no network access unless you ask for it. Set it on a collection to reuse across requests. See [`pm.sendRequest`](/docs/reference/scripting-api/#pmsendrequest) for its limits.
+**Allow pm.sendRequest** lets this request's scripts make their own HTTP calls — fetching a token before the send, or chaining setup. It is **off** by default: the script sandbox has no network access unless you ask for it. See [`pm.sendRequest`](/docs/reference/scripting-api/#pmsendrequest) for its limits.
+
+Both live under *Collection settings → Settings* as well, and a request that has not touched them inherits the collection's value — in the app and in [`relay run`](/docs/guides/cli-runner/) alike. `--script-timeout` and `--allow-send-request` override the whole run.
 
 ## Cookie jar
 

@@ -9,6 +9,7 @@ import {
   mergeDefaultRows,
   normalizeCollectionDefaults,
   valuesWithBrunoPriority,
+  REQUEST_SETTING_KEYS,
 } from '../lib/collectionDefaults';
 import { DEFAULT_REQUEST_SETTINGS, mkRow } from '../lib/constants';
 import type { Collection, SavedRequest } from '../lib/types/models';
@@ -111,6 +112,24 @@ describe('collection defaults', () => {
   it('treats a JS-only default script as collection content', () => {
     const defaults = emptyCollectionDefaults();
     defaults.preRequestScriptJs = 'console.log("only js")';
+    expect(collectionDefaultsHaveContent(defaults)).toBe(true);
+  });
+
+  it('inherits every request setting the collection can carry, script settings included', () => {
+    // The inherited set is a hand-written list, so a setting added to the model
+    // and left out of it silently stops inheriting while the UI still promises
+    // it does. Compare against the model instead of spot-checking keys.
+    expect([...REQUEST_SETTING_KEYS].sort()).toEqual(Object.keys(DEFAULT_REQUEST_SETTINGS).sort());
+  });
+
+  it('inherits the script timeout and the pm.sendRequest permission from the collection', () => {
+    const defaults = emptyCollectionDefaults();
+    defaults.settings = { ...DEFAULT_REQUEST_SETTINGS, scriptTimeoutMs: 15000, allowSendRequest: true };
+
+    const merged = applyCollectionDefaultsToRequest(baseRequest, collection(defaults));
+
+    expect(merged.settings.scriptTimeoutMs).toBe(15000);
+    expect(merged.settings.allowSendRequest).toBe(true);
     expect(collectionDefaultsHaveContent(defaults)).toBe(true);
   });
 

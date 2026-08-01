@@ -4,6 +4,7 @@
   import { HEADER_PICKER_NAMES, getHeaderValues } from '../headers';
   import { collectionSettingsFingerprint, emptyCollectionDefaults, normalizeCollectionDefaults } from '../collectionDefaults';
   import { activeCount, cloneRowsForStore, guardTrailing, removeRow, restoreRows, scriptLineCount } from '../utils';
+  import { openFileDialog } from '../backend';
   import type { AuthState, Collection, CollectionDefaults, KVRow, RequestSettings, ScriptEngine } from '../types/models';
   import type { VariableSuggestion } from '../variables';
   import CodeEditor from '../CodeEditor.svelte';
@@ -134,6 +135,21 @@
   function inputNumber(event: Event): number {
     const target = event.currentTarget;
     return target instanceof HTMLInputElement ? Number(target.value) : 0;
+  }
+
+  async function pickCollectionCertFile(field: 'clientCertPath' | 'clientKeyPath') {
+    const path = await openFileDialog(field === 'clientCertPath' ? 'Select client certificate' : 'Select client key');
+    if (path) settings[field] = path;
+  }
+
+  // Dropping the certificate takes the key and passphrase with it: a key on its
+  // own is not a configuration any request can use.
+  function clearCollectionCertField(field: 'clientCertPath' | 'clientKeyPath') {
+    settings[field] = '';
+    if (field === 'clientCertPath') {
+      settings.clientKeyPath = '';
+      settings.clientKeyPassword = '';
+    }
   }
 
   function draftDefaults(): CollectionDefaults {
@@ -404,9 +420,56 @@
                 <span class="setting-inline-number"><input class="setting-number" type="number" value={settings.timeoutMs} min="100" max="300000" step="1000" oninput={(event) => (settings.timeoutMs = inputNumber(event))} /><span>ms</span></span>
               </label>
               <label class="postman-setting">
+                <span class="setting-copy"><strong>Script timeout</strong><span>How long a pre-request or test script may run. 0 keeps the 2000 ms default.</span></span>
+                <span class="setting-inline-number"><input class="setting-number" type="number" value={settings.scriptTimeoutMs} min="0" max="60000" step="500" oninput={(event) => (settings.scriptTimeoutMs = inputNumber(event))} /><span>ms</span></span>
+              </label>
+              <label class="postman-setting">
+                <span class="setting-copy"><strong>Allow pm.sendRequest</strong><span>Let scripts in this collection make their own HTTP calls. Off means the sandbox has no network.</span></span>
+                <span class="switch-control"><input type="checkbox" bind:checked={settings.allowSendRequest} /><span class="switch-track"></span><span class="switch-state">{settings.allowSendRequest ? 'ON' : 'OFF'}</span></span>
+              </label>
+              <label class="postman-setting">
                 <span class="setting-copy"><strong>HTTP proxy</strong><span>Route requests through a proxy. Leave empty to use system proxy settings.</span></span>
                 <input class="kv-input setting-proxy" type="text" placeholder="http://localhost:8080" bind:value={settings.proxyUrl} spellcheck="false" autocomplete="off" />
               </label>
+              <div class="postman-setting client-cert-setting">
+                <span class="setting-copy">
+                  <strong>Client certificate (mTLS)</strong>
+                  <span>Presented by every request in this collection that does not set its own.</span>
+                </span>
+                <div class="client-cert-fields">
+                  <div class="client-cert-row">
+                    <span class="client-cert-label">Certificate (CRT/PEM)</span>
+                    {#if settings.clientCertPath}
+                      <span class="client-cert-path" title={settings.clientCertPath}>{settings.clientCertPath}</span>
+                      <button class="btn-secondary btn-sm" type="button" onclick={() => clearCollectionCertField('clientCertPath')}>Clear</button>
+                    {:else}
+                      <button class="btn-secondary btn-sm" type="button" onclick={() => pickCollectionCertFile('clientCertPath')}>Choose file…</button>
+                    {/if}
+                  </div>
+                  <div class="client-cert-row">
+                    <span class="client-cert-label">Private key (optional)</span>
+                    {#if settings.clientKeyPath}
+                      <span class="client-cert-path" title={settings.clientKeyPath}>{settings.clientKeyPath}</span>
+                      <button class="btn-secondary btn-sm" type="button" onclick={() => clearCollectionCertField('clientKeyPath')}>Clear</button>
+                    {:else}
+                      <button class="btn-secondary btn-sm" type="button" onclick={() => pickCollectionCertFile('clientKeyPath')} disabled={!settings.clientCertPath}>Choose file…</button>
+                    {/if}
+                  </div>
+                  <div class="client-cert-row">
+                    <span class="client-cert-label">Key passphrase</span>
+                    <input
+                      class="field-input client-cert-pass"
+                      type="password"
+                      placeholder="Leave blank if the key is unencrypted"
+                      autocomplete="off"
+                      spellcheck="false"
+                      bind:value={settings.clientKeyPassword}
+                      disabled={!settings.clientCertPath}
+                    />
+                  </div>
+                  <p class="client-cert-hint">The key file defaults to the certificate file when left blank (combined PEM). Use <code>&#123;&#123;variable&#125;&#125;</code> in the passphrase to keep it in workspace secrets.</p>
+                </div>
+              </div>
               <label class="postman-setting">
                 <span class="setting-copy"><strong>Browser request emulation</strong><span>Send browser-like Origin, User-Agent, and Sec-Fetch headers by default.</span></span>
                 <span class="switch-control"><input type="checkbox" bind:checked={settings.browserEmulation} /><span class="switch-track"></span><span class="switch-state">{settings.browserEmulation ? 'ON' : 'OFF'}</span></span>
