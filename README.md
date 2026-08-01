@@ -51,18 +51,22 @@ Guides, the scripting reference, and the YAML workspace format live in the **[do
 - OAuth 2.0 — Client Credentials and Authorization Code (with PKCE) grants; loopback browser sign-in, refresh tokens, and automatic token refresh before each send
 - AWS Signature v4
 - Client certificates (mutual TLS), per request or inherited from a collection
-- Per-request, collection, and folder defaults with inheritance
+- Per-request and collection defaults with inheritance
 
 **Scripting** — pre-request and test scripts in sandboxed JavaScript, with legacy [Tengo](https://github.com/d5/tengo) support:
 ```js
 // pre-request: inject a header
 pm.request.headers.set("X-Client", "relay")
 
-// test: assert status and parse JSON
+// pre-request: rewrite and sign the body
+pm.request.body.update(JSON.stringify({ ...pm.request.body.json(), nonce: pm.crypto.randomHex(8) }))
+
+// test: assert status and shape
 pm.test("status is 200", () => pm.response.to.have.status(200))
-const body = pm.response.json()
-pm.test("has id", () => pm.expect(body).to.have.property("id"))
+pm.test("has an id", () => pm.response.to.have.jsonSchema({ type: "object", required: ["id"] }))
 ```
+
+`require` resolves bundled stand-ins for `lodash`, `ajv`, `tv4`, `uuid`, `crypto-js`, and `chai`, so imported Postman scripts keep working.
 
 **Environments & Variables**
 - Multiple environments per workspace, switch with one click
