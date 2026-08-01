@@ -50,6 +50,26 @@ type Info struct {
 	IterationCount int
 }
 
+// PostmanBodyMode translates Relay's body type into the name Postman's
+// scripting API reports, so an imported `if (pm.request.body.mode === "raw")`
+// still takes the branch its author meant.
+func PostmanBodyMode(bodyType string) string {
+	switch strings.ToLower(strings.TrimSpace(bodyType)) {
+	case "urlencoded":
+		return "urlencoded"
+	case "form":
+		return "formdata"
+	case "binary":
+		return "file"
+	case "graphql":
+		return "graphql"
+	case "", "none":
+		return "none"
+	default:
+		return "raw"
+	}
+}
+
 type SendFunc func(SendRequest) SendResponse
 
 type Context struct {
@@ -66,6 +86,25 @@ type Context struct {
 	RequestParams  map[string]string
 	RemovedHeaders map[string]struct{}
 	RemovedParams  map[string]struct{}
+
+	// RequestBody is the raw body the request will send. Scripts that sign a
+	// payload or build it at send time need to read and rewrite it, so
+	// RequestBodyChanged records whether the script actually wrote one —
+	// an empty body a script set on purpose is not the same as one it never
+	// touched.
+	RequestBody        string
+	RequestBodyType    string
+	RequestBodyChanged bool
+
+	// RequestBodyFilePath is set when the body is a file read from disk. The
+	// script never sees those bytes, so a raw write cannot replace them.
+	RequestBodyFilePath string
+
+	// RequestFormData holds the rows a form-data or urlencoded body is built
+	// from. They are the body for those two modes — a raw string is not — so
+	// pm.request.body.urlencoded / .formdata edit these instead.
+	RequestFormData        []model.KeyValue
+	RequestFormDataChanged bool
 
 	Response *model.HttpResponse
 

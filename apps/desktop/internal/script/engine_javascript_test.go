@@ -1,6 +1,7 @@
 package script
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -309,5 +310,344 @@ func TestJSEmptyScriptNoop(t *testing.T) {
 	res := jsPre("   \n  ", NewContext(nil, nil))
 	if res.Error != "" {
 		t.Fatalf("empty script should be a no-op, got %q", res.Error)
+	}
+}
+
+func TestJSRequestBodyReadAndRewrite(t *testing.T) {
+	ctx := NewContext(nil, nil)
+	ctx.RequestBody = `{"amount":10}`
+	ctx.RequestBodyType = "json"
+	res := jsPre(`
+pm.variables.set("mode", pm.request.body.mode);
+pm.variables.set("raw", pm.request.body.raw);
+const parsed = pm.request.body.json();
+parsed.amount = parsed.amount * 2;
+pm.request.body.update(parsed);
+`, ctx)
+	if res.Error != "" {
+		t.Fatalf("unexpected error: %s", res.Error)
+	}
+	// Postman calls every text body "raw", and imported scripts branch on it.
+	if ctx.Variables["mode"] != "raw" {
+		t.Fatalf("mode = %q", ctx.Variables["mode"])
+	}
+	if ctx.Variables["raw"] != `{"amount":10}` {
+		t.Fatalf("raw = %q", ctx.Variables["raw"])
+	}
+	if ctx.RequestBody != `{"amount":20}` {
+		t.Fatalf("body = %q", ctx.RequestBody)
+	}
+	if !ctx.RequestBodyChanged {
+		t.Fatal("RequestBodyChanged should be set after a write")
+	}
+}
+
+func TestJSRequestBodyAssignmentAndSigning(t *testing.T) {
+	ctx := NewContext(nil, nil)
+	ctx.RequestBody = "payload"
+	res := jsPre(`
+pm.request.headers.set("X-Signature", pm.crypto.hmacSha256(pm.request.body.raw, "key"));
+pm.request.body.raw = "replaced";
+`, ctx)
+	if res.Error != "" {
+		t.Fatalf("unexpected error: %s", res.Error)
+	}
+	if ctx.RequestBody != "replaced" {
+		t.Fatalf("body = %q", ctx.RequestBody)
+	}
+	if ctx.RequestHeaders["X-Signature"] == "" {
+		t.Fatalf("signature header missing: %+v", ctx.RequestHeaders)
+	}
+}
+
+func TestJSRequestBodyUntouchedStaysUnchanged(t *testing.T) {
+	ctx := NewContext(nil, nil)
+	ctx.RequestBody = "keep"
+	if res := jsPre(`pm.variables.set("seen", pm.request.body.toString());`, ctx); res.Error != "" {
+		t.Fatalf("unexpected error: %s", res.Error)
+	}
+	if ctx.RequestBodyChanged {
+		t.Fatal("reading the body must not mark it changed")
+	}
+	if ctx.Variables["seen"] != "keep" {
+		t.Fatalf("seen = %q", ctx.Variables["seen"])
+	}
+}
+
+func TestJSBodyModeUsesPostmanNames(t *testing.T) {
+	for bodyType, want := range map[string]string{
+		"json":       "raw",
+		"text":       "raw",
+		"xml":        "raw",
+		"graphql":    "graphql",
+		"urlencoded": "urlencoded",
+		"form":       "formdata",
+		"binary":     "file",
+		"none":       "none",
+		"":           "none",
+	} {
+		ctx := NewContext(nil, nil)
+		ctx.RequestBodyType = bodyType
+		if res := jsPre(`pm.variables.set("mode", pm.request.body.mode);`, ctx); res.Error != "" {
+			t.Fatalf("%s: unexpected error: %s", bodyType, res.Error)
+		}
+		if ctx.Variables["mode"] != want {
+			t.Fatalf("body type %q reported mode %q, want %q", bodyType, ctx.Variables["mode"], want)
+		}
+	}
+}
+
+func TestJSUrlencodedBodyEdits(t *testing.T) {
+	ctx := NewContext(nil, nil)
+	ctx.RequestBodyType = "urlencoded"
+	ctx.RequestFormData = []model.KeyValue{
+		{Key: "grant_type", Value: "password", Enabled: true},
+		{Key: "scope", Value: "read", Enabled: true},
+	}
+	res := jsPre(`
+pm.variables.set("before", pm.request.body.urlencoded.get("grant_type"));
+pm.variables.set("count", String(pm.request.body.urlencoded.count()));
+pm.request.body.urlencoded.upsert({ key: "scope", value: "read write" });
+pm.request.body.urlencoded.add({ key: "client_id", value: "abc" });
+pm.request.body.urlencoded.remove("grant_type");
+pm.variables.set("after", JSON.stringify(pm.request.body.urlencoded.toObject()));
+pm.variables.set("formdata", String(pm.request.body.formdata));
+`, ctx)
+	if res.Error != "" {
+		t.Fatalf("unexpected error: %s", res.Error)
+	}
+	if ctx.Variables["before"] != "password" || ctx.Variables["count"] != "2" {
+		t.Fatalf("read back %q / %q", ctx.Variables["before"], ctx.Variables["count"])
+	}
+	if !ctx.RequestFormDataChanged {
+		t.Fatal("RequestFormDataChanged should be set after an edit")
+	}
+	want := []model.KeyValue{
+		{Key: "scope", Value: "read write", Enabled: true},
+		{Key: "client_id", Value: "abc", Enabled: true},
+	}
+	if !reflect.DeepEqual(ctx.RequestFormData, want) {
+		t.Fatalf("form data = %+v, want %+v", ctx.RequestFormData, want)
+	}
+	// The list for the mode the request is not in has to stay absent, because
+	// scripts branch on it.
+	if ctx.Variables["formdata"] != "undefined" {
+		t.Fatalf("formdata on a urlencoded body = %q", ctx.Variables["formdata"])
+	}
+}
+
+func TestJSFormDataKeepsAttachments(t *testing.T) {
+	ctx := NewContext(nil, nil)
+	ctx.RequestBodyType = "form"
+	ctx.RequestFormData = []model.KeyValue{
+		{Key: "avatar", Value: "/tmp/a.png", Enabled: true, IsFile: true, FileName: "a.png"},
+		{Key: "note", Value: "hi", Enabled: true},
+	}
+	res := jsPre(`
+pm.request.body.formdata.upsert({ key: "note", value: "signed" });
+pm.variables.set("kind", pm.request.body.formdata.one("avatar").type);
+`, ctx)
+	if res.Error != "" {
+		t.Fatalf("unexpected error: %s", res.Error)
+	}
+	if ctx.Variables["kind"] != "file" {
+		t.Fatalf("attachment reported as %q", ctx.Variables["kind"])
+	}
+	want := []model.KeyValue{
+		{Key: "avatar", Value: "/tmp/a.png", Enabled: true, IsFile: true, FileName: "a.png"},
+		{Key: "note", Value: "signed", Enabled: true},
+	}
+	if !reflect.DeepEqual(ctx.RequestFormData, want) {
+		t.Fatalf("form data = %+v, want %+v", ctx.RequestFormData, want)
+	}
+}
+
+func TestJSRawWriteOnFormBodyWarns(t *testing.T) {
+	ctx := NewContext(nil, nil)
+	ctx.RequestBodyType = "urlencoded"
+	res := jsPre(`pm.request.body.raw = "a=1"; pm.request.body.raw = "a=2";`, ctx)
+	if res.Error != "" {
+		t.Fatalf("unexpected error: %s", res.Error)
+	}
+	if len(res.Logs) != 1 {
+		t.Fatalf("expected exactly one warning, got %v", res.Logs)
+	}
+	if !strings.Contains(res.Logs[0], "pm.request.body.urlencoded") {
+		t.Fatalf("warning does not point at the fix: %q", res.Logs[0])
+	}
+}
+
+func TestJSBodyUpdateWithModeObject(t *testing.T) {
+	ctx := NewContext(nil, nil)
+	ctx.RequestBodyType = "urlencoded"
+	res := jsPre(`pm.request.body.update({ mode: "urlencoded", urlencoded: [{ key: "a", value: "1" }, { key: "b", value: "2", disabled: true }] });`, ctx)
+	if res.Error != "" {
+		t.Fatalf("unexpected error: %s", res.Error)
+	}
+	want := []model.KeyValue{
+		{Key: "a", Value: "1", Enabled: true},
+		{Key: "b", Value: "2", Enabled: false},
+	}
+	if !reflect.DeepEqual(ctx.RequestFormData, want) {
+		t.Fatalf("form data = %+v, want %+v", ctx.RequestFormData, want)
+	}
+}
+
+func TestJSTestScriptSeesTheSentBody(t *testing.T) {
+	ctx := NewContext(nil, nil)
+	ctx.RequestBody = `{"id":7}`
+	ctx.Response = &model.HttpResponse{Status: "200 OK", StatusCode: 200, Body: `{"ok":true}`}
+	res := jsTests(`pm.test("echoes the id", () => pm.expect(pm.request.body.json().id).to.eql(7));`, ctx)
+	if res.Error != "" {
+		t.Fatalf("unexpected error: %s", res.Error)
+	}
+	if len(res.Tests) != 1 || !res.Tests[0].Passed {
+		t.Fatalf("tests = %+v", res.Tests)
+	}
+}
+
+func jsonResponseCtx(body string) *Context {
+	ctx := NewContext(nil, nil)
+	ctx.Response = &model.HttpResponse{Status: "200 OK", StatusCode: 200, Body: body}
+	return ctx
+}
+
+func TestJSResponseJSONSchemaAssertion(t *testing.T) {
+	ctx := jsonResponseCtx(`{"id":7,"name":"Ada"}`)
+	res := jsTests(`
+const schema = { type: "object", required: ["id", "name"], properties: { id: { type: "integer" }, name: { type: "string" } } };
+pm.test("matches", () => pm.response.to.have.jsonSchema(schema));
+pm.test("rejects", () => pm.response.to.have.jsonSchema({ type: "object", required: ["missing"] }));
+`, ctx)
+	if res.Error != "" {
+		t.Fatalf("unexpected error: %s", res.Error)
+	}
+	if len(res.Tests) != 2 || !res.Tests[0].Passed {
+		t.Fatalf("tests = %+v", res.Tests)
+	}
+	if res.Tests[1].Passed {
+		t.Fatal("the second assertion should have failed")
+	}
+	if !strings.Contains(res.Tests[1].Error, "missing") {
+		t.Fatalf("failure should name the missing property: %q", res.Tests[1].Error)
+	}
+}
+
+func TestJSJsonBodyAssertion(t *testing.T) {
+	ctx := jsonResponseCtx(`{"user":{"id":7},"ok":true}`)
+	res := jsTests(`
+pm.test("has path", () => pm.response.to.have.jsonBody("user.id"));
+pm.test("path value", () => pm.response.to.have.jsonBody("user.id", 7));
+pm.test("wrong value", () => pm.response.to.have.jsonBody("user.id", 8));
+`, ctx)
+	if res.Error != "" {
+		t.Fatalf("unexpected error: %s", res.Error)
+	}
+	if !res.Tests[0].Passed || !res.Tests[1].Passed || res.Tests[2].Passed {
+		t.Fatalf("tests = %+v", res.Tests)
+	}
+}
+
+func TestJSTv4AndAjvModules(t *testing.T) {
+	ctx := jsonResponseCtx(`{"id":7}`)
+	res := jsTests(`
+const schema = { type: "object", required: ["id"], properties: { id: { type: "integer" } } };
+pm.test("tv4 valid", () => pm.expect(tv4.validate(pm.response.json(), schema)).to.be.true);
+pm.test("tv4 invalid", () => pm.expect(tv4.validate({}, schema)).to.be.false);
+const Ajv = require("ajv");
+const ajv = new Ajv();
+pm.test("ajv valid", () => pm.expect(ajv.validate(schema, pm.response.json())).to.be.true);
+const validate = ajv.compile(schema);
+pm.test("ajv compile", () => pm.expect(validate({})).to.be.false);
+pm.variables.set("errText", ajv.errorsText());
+`, ctx)
+	if res.Error != "" {
+		t.Fatalf("unexpected error: %s", res.Error)
+	}
+	for _, test := range res.Tests {
+		if !test.Passed {
+			t.Fatalf("test %q failed: %s", test.Name, test.Error)
+		}
+	}
+	if !strings.Contains(ctx.Variables["errText"], "id") {
+		t.Fatalf("errorsText = %q", ctx.Variables["errText"])
+	}
+}
+
+func TestJSRequireLodashAndUuid(t *testing.T) {
+	ctx := NewContext(nil, nil)
+	res := jsPre(`
+const _ = require("lodash");
+const data = { user: { roles: ["admin", "user", "admin"] } };
+pm.variables.set("role", _.get(data, "user.roles[0]"));
+pm.variables.set("missing", _.get(data, "user.absent", "fallback"));
+pm.variables.set("unique", _.uniq(_.get(data, "user.roles")).join(","));
+pm.variables.set("grouped", JSON.stringify(_.groupBy([{ t: "a" }, { t: "b" }, { t: "a" }], "t").a.length));
+pm.variables.set("id", require("uuid").v4());
+`, ctx)
+	if res.Error != "" {
+		t.Fatalf("unexpected error: %s", res.Error)
+	}
+	if ctx.Variables["role"] != "admin" {
+		t.Fatalf("role = %q", ctx.Variables["role"])
+	}
+	if ctx.Variables["missing"] != "fallback" {
+		t.Fatalf("missing = %q", ctx.Variables["missing"])
+	}
+	if ctx.Variables["unique"] != "admin,user" {
+		t.Fatalf("unique = %q", ctx.Variables["unique"])
+	}
+	if ctx.Variables["grouped"] != "2" {
+		t.Fatalf("grouped = %q", ctx.Variables["grouped"])
+	}
+	if len(ctx.Variables["id"]) != 36 {
+		t.Fatalf("uuid = %q", ctx.Variables["id"])
+	}
+}
+
+func TestJSRequireUnknownModuleFailsClearly(t *testing.T) {
+	res := jsPre(`require("cheerio")`, NewContext(nil, nil))
+	if !strings.Contains(res.Error, "cheerio") || !strings.Contains(res.Error, "sandbox") {
+		t.Fatalf("error = %q", res.Error)
+	}
+}
+
+func TestJSUnsupportedLodashMemberFailsClearly(t *testing.T) {
+	res := jsPre(`require("lodash").debounce(function () {}, 10)`, NewContext(nil, nil))
+	if !strings.Contains(res.Error, "lodash.debounce") {
+		t.Fatalf("error = %q", res.Error)
+	}
+}
+
+func TestJSBase64Globals(t *testing.T) {
+	ctx := NewContext(nil, nil)
+	res := jsPre(`
+pm.variables.set("encoded", btoa("user:pass"));
+pm.variables.set("decoded", atob(btoa("user:pass")));
+`, ctx)
+	if res.Error != "" {
+		t.Fatalf("unexpected error: %s", res.Error)
+	}
+	if ctx.Variables["encoded"] != "dXNlcjpwYXNz" {
+		t.Fatalf("encoded = %q", ctx.Variables["encoded"])
+	}
+	if ctx.Variables["decoded"] != "user:pass" {
+		t.Fatalf("decoded = %q", ctx.Variables["decoded"])
+	}
+}
+
+func TestJSScriptCanRedeclareSandboxGlobals(t *testing.T) {
+	ctx := NewContext(nil, nil)
+	res := jsPre(`
+const _ = require("lodash");
+const expect = require("chai").expect;
+const Ajv = require("ajv");
+pm.variables.set("ok", String(_.size([1, 2]) === 2 && typeof expect === "function" && typeof Ajv === "function"));
+`, ctx)
+	if res.Error != "" {
+		t.Fatalf("unexpected error: %s", res.Error)
+	}
+	if ctx.Variables["ok"] != "true" {
+		t.Fatalf("ok = %q", ctx.Variables["ok"])
 	}
 }

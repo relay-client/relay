@@ -5,7 +5,7 @@ description: Full pm.* reference for pre-request and test scripts.
 
 Scripts run in a sandboxed JavaScript VM by default. Existing requests can still use the legacy [Tengo](https://github.com/d5/tengo) engine. Both engines expose the same `pm.*` surface for request mutation, response assertions, variables, environments, and logs.
 
-Imports, `require`, process access, and filesystem access are disabled. Network access is disabled too, unless a request opts into [`pm.sendRequest`](#pmsendrequest). Execution is capped at 2 seconds by default — see [Script timeout](#script-timeout).
+Module imports, process access, and filesystem access are disabled; `require` resolves only the [bundled stand-ins](#require). Network access is disabled too, unless a request opts into [`pm.sendRequest`](#pmsendrequest). Execution is capped at 2 seconds by default — see [Script timeout](#script-timeout).
 
 ## `pm.request`
 
@@ -19,6 +19,57 @@ Imports, `require`, process access, and filesystem access are disabled. Network 
 | `pm.request.params.get(name)` | Get query param |
 | `pm.request.params.set(name, value)` | Set query param |
 | `pm.request.set_url(url)` | Override URL before sending |
+| `pm.request.body.raw` | Raw request body — readable and writable |
+| `pm.request.body.mode` | Body mode, in Postman's names: `raw`, `urlencoded`, `formdata`, `file`, `graphql`, `none` |
+| `pm.request.body.json()` | Body parsed as JSON |
+| `pm.request.body.update(value)` | Replace the body; objects are stringified |
+| `pm.request.body.urlencoded` | Field list — only when the mode is `urlencoded` |
+| `pm.request.body.formdata` | Field list — only when the mode is `formdata` |
+
+### Rewriting and signing the body
+
+A pre-request script owns the body it writes: the value it sets is what goes on the wire, and a test script sees the same value afterwards.
+
+```js
+const payload = pm.request.body.json()
+payload.timestamp = Date.now()
+pm.request.body.update(JSON.stringify(payload))
+
+// Sign what will actually be sent
+pm.request.headers.set("X-Signature", pm.crypto.hmacSha256(pm.request.body.raw, pm.environment.get("secret")))
+```
+
+Two things to know:
+
+- A body written onto a request that has **no body** is sent anyway — Relay picks `json` or `text` from the content. The same applies to a **binary** request with no file chosen yet.
+- A **binary** body read from a file is left alone. The script never sees those bytes, so it cannot replace them.
+
+### Form and urlencoded bodies
+
+Those two modes are sent from their fields, not from raw text, so they are edited as a list. Writing `.raw` on them changes nothing, and Relay says so in the script log instead of dropping the write silently.
+
+```js
+// mode === "urlencoded"
+pm.request.body.urlencoded.upsert({ key: "grant_type", value: "client_credentials" })
+pm.request.body.urlencoded.add({ key: "scope", value: "read write" })
+pm.request.body.urlencoded.remove("client_secret")
+
+const fields = pm.request.body.urlencoded.toObject()   // { grant_type: "...", scope: "..." }
+```
+
+| Method | Description |
+|--------|-------------|
+| `.get(key)` / `.one(key)` | The value / the whole field |
+| `.has(key)` / `.count()` | Presence / number of fields |
+| `.add(field)` | Append `{ key, value, disabled?, type? }` |
+| `.upsert(field)` | Replace the field with that key, or append it |
+| `.remove(key \| predicate)` | Drop matching fields |
+| `.each(fn)` / `.all()` | Iterate / read the whole list |
+| `.clear()` / `.toObject()` | Empty the body / read it as an object |
+
+A file field keeps its attachment when a script rewrites its value; `type: "file"` marks it in the list. `pm.request.body.update({ mode: "urlencoded", urlencoded: [...] })` replaces every field at once.
+
+In Tengo the same surface is `pm.request.body`, `pm.request.body_type` (Relay's own names, not Postman's), and `pm.request.set_body(value)`. Tengo has no form-field API.
 
 ## `pm.response` (test scripts only)
 
@@ -220,6 +271,46 @@ JavaScript also supports Chai-style aliases for the common Postman patterns:
 | `.to.be.above(n)` | `value > n` |
 | `.to.be.below(n)` | `value < n` |
 | `pm.response.to.have.status(code)` | Response status code check |
+| `pm.response.to.have.header(name)` | Response carries the header |
+| `pm.response.to.have.jsonBody(path?, value?)` | Body is JSON; optionally check a dotted path, optionally its value |
+| `pm.response.to.have.jsonSchema(schema)` | Body matches a JSON Schema |
+
+### JSON Schema
+
+`jsonSchema` validates against a draft-07 subset: `type`, `required`, `properties`, `patternProperties`, `additionalProperties`, `items`, `additionalItems`, `enum`, `const`, `minimum`/`maximum`/`exclusiveMinimum`/`exclusiveMaximum`/`multipleOf`, `minLength`/`maxLength`/`pattern`, `minItems`/`maxItems`/`uniqueItems`, `minProperties`/`maxProperties`, `allOf`/`anyOf`/`oneOf`/`not`, OpenAPI's `nullable`, and local `$ref` (`#/definitions/…`, `#/$defs/…`).
+
+Not implemented: remote `$ref` (the sandbox has no network) and `format` assertions — Ajv does not check formats by default either.
+
+```js
+const schema = {
+  type: "object",
+  required: ["id", "name"],
+  properties: {
+    id: { type: "integer", minimum: 1 },
+    name: { type: "string" }
+  }
+}
+pm.test("body matches the schema", () => pm.response.to.have.jsonSchema(schema))
+```
+
+A failure names the path and the reason, for example `/items/1: missing required property "sku"`.
+
+## `require`
+
+JavaScript scripts can `require` a small set of stand-ins so imported Postman collections keep working. These are Relay implementations, not the npm packages.
+
+| Module | What you get |
+|--------|--------------|
+| `lodash` (also `underscore`) | The common collection/object helpers: `get`, `set`, `has`, `pick`, `omit`, `merge`, `cloneDeep`, `map`, `filter`, `find`, `reduce`, `uniq`/`uniqBy`, `groupBy`, `keyBy`, `countBy`, `sortBy`, `chunk`, `flatten`/`flattenDeep`, `difference`, `intersection`, `sum`/`sumBy`, `maxBy`/`minBy`, `range`, `times`, `isEmpty`/`isEqual`/`isNil`, and friends |
+| `ajv` | Constructor with `validate(schema, data)`, `compile(schema)`, `errors`, and `errorsText()` |
+| `tv4` | `validate(data, schema)`, `validateResult`, `validateMultiple`, `error` |
+| `uuid` | `v4()`, `validate(value)` |
+| `crypto-js` | The same shim exposed as the `CryptoJS` global |
+| `chai` | `{ expect }` |
+
+`_`, `tv4`, `Ajv`, `atob`, and `btoa` are also available as globals, and a script may shadow any of them (`const _ = require("lodash")` works).
+
+Anything outside that list fails with a message naming what was asked for — including an unsupported lodash member, so a missing helper surfaces as `lodash.debounce is not available in Relay's script sandbox` rather than a confusing `undefined is not a function`.
 
 ## Logging
 
@@ -230,7 +321,7 @@ JavaScript also supports Chai-style aliases for the common Postman patterns:
 - JavaScript is the default engine for new requests and Postman-style scripts.
 - Tengo is kept for older requests and teams that already wrote Tengo snippets.
 - Both engines use the same variable/environment mutation contract.
-- Both engines block imports and host APIs. Use Relay requests and the Collection Runner for chained HTTP calls.
+- Both engines block module imports and host APIs; only the [bundled `require` stand-ins](#require) resolve. Use `pm.sendRequest`, Relay requests, and the Collection Runner for chained HTTP calls.
 
 ```js
 // blocked in JavaScript

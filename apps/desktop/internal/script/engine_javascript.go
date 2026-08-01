@@ -3,6 +3,7 @@ package script
 import (
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -51,6 +52,104 @@ func limitJSHostString(s string) string {
 		end--
 	}
 	return s[:end] + fmt.Sprintf("... [truncated after %d bytes]", jsMaxHostValueBytes)
+}
+
+// maxScriptFormRows caps how many fields a script can put in a form body. It
+// is far above any real form and keeps a runaway loop from building a request
+// the sender then has to serialise.
+const maxScriptFormRows = 500
+
+// scriptFormRow is the shape a form field takes inside the sandbox. It follows
+// Postman's naming (`disabled`, `type: "file"`) so a script written against
+// pm.request.body.urlencoded reads the fields it expects.
+type scriptFormRow struct {
+	Key      string `json:"key"`
+	Value    string `json:"value"`
+	Disabled bool   `json:"disabled,omitempty"`
+	Type     string `json:"type,omitempty"`
+	FileName string `json:"fileName,omitempty"`
+}
+
+func encodeScriptFormData(rows []model.KeyValue) string {
+	out := make([]scriptFormRow, 0, len(rows))
+	for _, row := range rows {
+		entry := scriptFormRow{Key: row.Key, Value: row.Value, Disabled: !row.Enabled, Type: "text"}
+		if row.IsFile {
+			entry.Type = "file"
+			entry.FileName = row.FileName
+		}
+		out = append(out, entry)
+	}
+	encoded, err := json.Marshal(out)
+	if err != nil {
+		return "[]"
+	}
+	return string(encoded)
+}
+
+func decodeScriptFormData(payload string, previous []model.KeyValue) ([]model.KeyValue, error) {
+	var incoming []scriptFormRow
+	if err := json.Unmarshal([]byte(payload), &incoming); err != nil {
+		return nil, fmt.Errorf("expected a list of { key, value } fields")
+	}
+	if len(incoming) > maxScriptFormRows {
+		return nil, fmt.Errorf("a form body is limited to %d fields", maxScriptFormRows)
+	}
+	// A file field's name is metadata the script has no reason to carry, so it
+	// is recovered from the row that held the same key.
+	fileNames := make(map[string]string, len(previous))
+	for _, row := range previous {
+		if row.IsFile && row.FileName != "" {
+			fileNames[row.Key] = row.FileName
+		}
+	}
+	rows := make([]model.KeyValue, 0, len(incoming))
+	for _, entry := range incoming {
+		row := model.KeyValue{
+			Key:     limitJSHostString(entry.Key),
+			Value:   limitJSHostString(entry.Value),
+			Enabled: !entry.Disabled,
+			IsFile:  strings.EqualFold(entry.Type, "file"),
+		}
+		if row.IsFile {
+			row.FileName = entry.FileName
+			if row.FileName == "" {
+				row.FileName = fileNames[row.Key]
+			}
+		}
+		rows = append(rows, row)
+	}
+	return rows, nil
+}
+
+// rawBodyWriteWarning explains why a raw write cannot land, for the body modes
+// that are not built from raw text.
+func rawBodyWriteWarning(ctx *Context) string {
+	switch PostmanBodyMode(ctx.RequestBodyType) {
+	case "urlencoded":
+		return "pm.request.body: this request sends an x-www-form-urlencoded body, so a raw write is ignored — edit pm.request.body.urlencoded instead."
+	case "formdata":
+		return "pm.request.body: this request sends a multipart form body, so a raw write is ignored — edit pm.request.body.formdata instead."
+	case "file":
+		if ctx.RequestBodyFilePath != "" {
+			return "pm.request.body: this request sends a file from disk, so a raw write is ignored — the script never saw those bytes."
+		}
+	}
+	return ""
+}
+
+// logScriptWarning records a warning once. Repeating it for every write in a
+// loop would bury the rest of the log.
+func logScriptWarning(ctx *Context, message string) {
+	for _, existing := range ctx.Logs {
+		if existing == message {
+			return
+		}
+	}
+	if len(ctx.Logs) >= jsMaxLogEntries {
+		return
+	}
+	ctx.Logs = append(ctx.Logs, message)
 }
 
 func jsErrorMessage(err error) string {
@@ -144,6 +243,52 @@ func buildJSHost(vm *goja.Runtime, ctx *Context, hasResponse bool) map[string]in
 		"reqGetUrl":    func() string { return ctx.RequestURL },
 		"reqSetUrl":    func(u string) { ctx.RequestURL = limitJSHostString(u) },
 		"reqGetMethod": func() string { return ctx.RequestMethod },
+
+		// The validator lives in Go so tv4, Ajv, and
+		// pm.response.to.have.jsonSchema all report the same failures.
+		"schemaValidate": func(schemaJSON, dataJSON string) string {
+			errs, err := ValidateJSONSchemaText(schemaJSON, dataJSON)
+			payload := map[string]any{}
+			if err != nil {
+				payload["error"] = err.Error()
+			} else {
+				if errs == nil {
+					errs = []string{}
+				}
+				payload["errors"] = errs
+			}
+			encoded, marshalErr := json.Marshal(payload)
+			if marshalErr != nil {
+				return `{"error":"could not encode validation result"}`
+			}
+			return string(encoded)
+		},
+
+		"reqGetBody":     func() string { return ctx.RequestBody },
+		"reqGetBodyMode": func() string { return PostmanBodyMode(ctx.RequestBodyType) },
+		"reqSetBody": func(b string) {
+			ctx.RequestBody = limitJSHostString(b)
+			ctx.RequestBodyChanged = true
+			// A raw write cannot reach a body the request does not build from
+			// one. Saying so beats a request that quietly goes out unchanged.
+			if warning := rawBodyWriteWarning(ctx); warning != "" {
+				logScriptWarning(ctx, warning)
+			}
+		},
+
+		// Form and urlencoded bodies are rows, not text, so they are read and
+		// written as JSON: the sandbox side presents them as Postman's
+		// pm.request.body.urlencoded / .formdata lists.
+		"reqGetFormData": func() string { return encodeScriptFormData(ctx.RequestFormData) },
+		"reqSetFormData": func(payload string) string {
+			rows, err := decodeScriptFormData(payload, ctx.RequestFormData)
+			if err != nil {
+				return err.Error()
+			}
+			ctx.RequestFormData = rows
+			ctx.RequestFormDataChanged = true
+			return ""
+		},
 
 		"reqHeaderGet": func(k string) goja.Value { return headerGet(ctx.RequestHeaders, k) },
 		"reqHeaderSet": func(k, v string) {
@@ -450,6 +595,43 @@ var __relayAPI = (function (host) {
   Assertion.prototype.within = function (a, b) { var x = num(this); return check(this, x >= a && x <= b, 'expected ' + fmt(this._obj) + ' to be within ' + a + '..' + b, 'expected ' + fmt(this._obj) + ' to not be within ' + a + '..' + b); };
   Assertion.prototype.match = function (re) { return check(this, re.test(String(this._obj)), 'expected ' + fmt(this._obj) + ' to match ' + re, 'expected ' + fmt(this._obj) + ' to not match ' + re); };
   Assertion.prototype.oneOf = function (arr) { var o = this._obj, pass = false; for (var i = 0; i < arr.length; i++) { if (deepEqual(arr[i], o)) { pass = true; break; } } return check(this, pass, 'expected ' + fmt(o) + ' to be one of ' + fmt(arr), 'expected ' + fmt(o) + ' to not be one of ' + fmt(arr)); };
+  function schemaErrors(schema, data) {
+    var result = JSON.parse(host.schemaValidate(JSON.stringify(schema === undefined ? null : schema), JSON.stringify(data === undefined ? null : data)));
+    if (result.error) throw new Error(result.error);
+    return result.errors || [];
+  }
+  // Accepts a response (whose body is parsed) or a plain value, matching how
+  // pm.response.to.have.jsonSchema and pm.expect(obj).to.have.jsonSchema read.
+  function assertionSubject(obj) {
+    if (obj && typeof obj.json === 'function') {
+      try { return obj.json(); } catch (e) { throw new Error('response body is not JSON: ' + e.message); }
+    }
+    return obj;
+  }
+  Assertion.prototype.jsonSchema = function (schema) {
+    var errs = schemaErrors(schema, assertionSubject(this._obj));
+    return check(this, errs.length === 0,
+      'expected the value to match the JSON schema (' + errs.join('; ') + ')',
+      'expected the value not to match the JSON schema');
+  };
+  Assertion.prototype.jsonBody = function (path, value) {
+    var body = assertionSubject(this._obj);
+    if (arguments.length === 0) {
+      return check(this, body !== undefined && body !== null, 'expected a JSON body', 'expected no JSON body');
+    }
+    if (typeof path === 'object' && path !== null) {
+      return check(this, deepEqual(body, path), 'expected body ' + fmt(body) + ' to equal ' + fmt(path), 'expected body not to equal ' + fmt(path));
+    }
+    var current = body, parts = String(path).split('.');
+    for (var i = 0; i < parts.length; i++) {
+      if (current === null || current === undefined) { current = undefined; break; }
+      current = current[parts[i]];
+    }
+    if (arguments.length < 2) {
+      return check(this, current !== undefined, 'expected body to have ' + fmt(path), 'expected body to not have ' + fmt(path));
+    }
+    return check(this, deepEqual(current, value), 'expected body ' + fmt(path) + ' to equal ' + fmt(value) + ' but got ' + fmt(current), 'expected body ' + fmt(path) + ' to not equal ' + fmt(value));
+  };
   Assertion.prototype.status = function (n) { var code = (this._obj && typeof this._obj === 'object' && 'code' in this._obj) ? this._obj.code : this._obj; return check(this, code === n, 'expected status ' + fmt(code) + ' to equal ' + fmt(n), 'expected status ' + fmt(code) + ' to not equal ' + fmt(n)); };
   Assertion.prototype.header = function (name) { var o = this._obj; var val = (o && o.headers && o.headers.get) ? o.headers.get(name) : undefined; return check(this, val !== undefined && val !== null, 'expected response to have header ' + fmt(name), 'expected response to not have header ' + fmt(name)); };
 
@@ -539,6 +721,102 @@ var __relayAPI = (function (host) {
   };
   Object.defineProperty(pm.request, 'url', { get: function () { return host.reqGetUrl(); }, configurable: true });
   Object.defineProperty(pm.request, 'method', { get: function () { return host.reqGetMethod(); }, configurable: true });
+
+  // A form body is a list of fields, not text, so it gets Postman's
+  // PropertyList surface (add/remove/each/upsert/toObject) rather than .raw.
+  // Every mutation writes straight back to the host: the script may hold on to
+  // the list, and the request must reflect what it did to it.
+  function formRows() {
+    try { return JSON.parse(host.reqGetFormData()) || []; } catch (e) { return []; }
+  }
+  function writeFormRows(rows) {
+    var problem = host.reqSetFormData(JSON.stringify(rows));
+    if (problem) throw new Error('pm.request.body: ' + problem);
+  }
+  function asFormRow(item, fallbackValue) {
+    if (item === null || item === undefined) throw new Error('pm.request.body: a field needs a key');
+    if (typeof item === 'string') return { key: item, value: valStr(fallbackValue === undefined ? '' : fallbackValue), type: 'text' };
+    var row = { key: String(item.key === undefined ? '' : item.key), value: valStr(item.value === undefined ? '' : item.value) };
+    if (item.disabled === true) row.disabled = true;
+    if (item.type === 'file' || item.src !== undefined) {
+      row.type = 'file';
+      if (item.src !== undefined) row.value = valStr(item.src);
+      if (item.fileName !== undefined) row.fileName = String(item.fileName);
+    } else {
+      row.type = 'text';
+    }
+    return row;
+  }
+  function makeFormList() {
+    return {
+      all: function () { return formRows(); },
+      count: function () { return formRows().length; },
+      one: function (key) {
+        var rows = formRows();
+        for (var i = 0; i < rows.length; i++) { if (rows[i].key === key) return rows[i]; }
+        return undefined;
+      },
+      get: function (key) { var row = this.one(key); return row ? row.value : undefined; },
+      has: function (key) { return this.one(key) !== undefined; },
+      each: function (fn) { var rows = formRows(); for (var i = 0; i < rows.length; i++) fn(rows[i], i); },
+      add: function (item, value) { var rows = formRows(); rows.push(asFormRow(item, value)); writeFormRows(rows); },
+      upsert: function (item, value) {
+        var next = asFormRow(item, value), rows = formRows(), replaced = false;
+        for (var i = 0; i < rows.length; i++) {
+          if (rows[i].key === next.key) {
+            // Keep an attachment attached when a script only rewrites its value.
+            if (rows[i].type === 'file' && next.type !== 'file') { next.type = 'file'; next.fileName = rows[i].fileName; }
+            rows[i] = next; replaced = true; break;
+          }
+        }
+        if (!replaced) rows.push(next);
+        writeFormRows(rows);
+      },
+      remove: function (match) {
+        var rows = formRows(), kept = [];
+        for (var i = 0; i < rows.length; i++) {
+          var drop = typeof match === 'function' ? match(rows[i], i) : rows[i].key === match;
+          if (!drop) kept.push(rows[i]);
+        }
+        writeFormRows(kept);
+      },
+      clear: function () { writeFormRows([]); },
+      toObject: function () {
+        var out = {}, rows = formRows();
+        for (var i = 0; i < rows.length; i++) { if (!rows[i].disabled) out[rows[i].key] = rows[i].value; }
+        return out;
+      },
+      toJSON: function () { return formRows(); }
+    };
+  }
+
+  var formList = makeFormList();
+  var requestBody = {
+    update: function (v) {
+      // Postman's update takes either a string or { mode, raw | urlencoded |
+      // formdata }; both forms show up in imported collections.
+      if (v !== null && typeof v === 'object' && typeof v.mode === 'string') {
+        if (v.mode === 'urlencoded' || v.mode === 'formdata') { writeFormRows((v[v.mode] || []).map(function (item) { return asFormRow(item); })); return; }
+        host.reqSetBody(valStr(v.raw === undefined ? '' : v.raw));
+        return;
+      }
+      host.reqSetBody(valStr(v));
+    },
+    toString: function () { return host.reqGetBody(); },
+    json: function () { return JSON.parse(host.reqGetBody()); }
+  };
+  Object.defineProperty(requestBody, 'raw', {
+    get: function () { return host.reqGetBody(); },
+    set: function (v) { host.reqSetBody(valStr(v)); },
+    configurable: true
+  });
+  Object.defineProperty(requestBody, 'mode', { get: function () { return host.reqGetBodyMode(); }, configurable: true });
+  // Postman exposes only the list matching the current mode, and scripts branch
+  // on that — so an absent list has to stay absent.
+  Object.defineProperty(requestBody, 'urlencoded', { get: function () { return host.reqGetBodyMode() === 'urlencoded' ? formList : undefined; }, configurable: true });
+  Object.defineProperty(requestBody, 'formdata', { get: function () { return host.reqGetBodyMode() === 'formdata' ? formList : undefined; }, configurable: true });
+  pm.request.body = requestBody;
+  pm.request.setBody = function (v) { host.reqSetBody(valStr(v)); };
 
   pm.info = {};
   Object.defineProperty(pm.info, 'requestName', { get: function () { return host.infoRequestName(); }, configurable: true });
@@ -670,13 +948,322 @@ var __relayAPI = (function (host) {
     }
   };
 
-  return { pm: pm, expect: expect, console: console, CryptoJS: CryptoJS };
+  // ---- modules reachable through require() -------------------------------
+  // Imported Postman collections routinely require() a handful of libraries.
+  // These are hand-written stand-ins, not the real packages: they cover the
+  // calls that show up in test scripts, and anything outside that surface
+  // fails loudly rather than returning a quietly wrong answer.
+
+  function pathParts(path) {
+    if (Array.isArray(path)) return path;
+    return String(path).replace(/\[(\d+)\]/g, '.$1').split('.').filter(function (part) { return part !== ''; });
+  }
+  function iteratee(value) {
+    if (typeof value === 'function') return value;
+    if (value === null || value === undefined) return function (item) { return item; };
+    if (typeof value === 'object') {
+      return function (item) {
+        for (var key in value) { if (!deepEqual(item ? item[key] : undefined, value[key])) return false; }
+        return true;
+      };
+    }
+    return function (item) { return lodashGet(item, value); };
+  }
+  function lodashGet(obj, path, fallback) {
+    var current = obj, parts = pathParts(path);
+    for (var i = 0; i < parts.length; i++) {
+      if (current === null || current === undefined) return fallback;
+      current = current[parts[i]];
+    }
+    return current === undefined ? fallback : current;
+  }
+  function toArray(collection) {
+    if (Array.isArray(collection)) return collection;
+    if (collection === null || collection === undefined) return [];
+    if (typeof collection === 'object') {
+      var out = [];
+      for (var key in collection) out.push(collection[key]);
+      return out;
+    }
+    return [collection];
+  }
+  function mergeDeep(target, source) {
+    for (var key in source) {
+      var value = source[key];
+      if (value && typeof value === 'object' && !Array.isArray(value) && target[key] && typeof target[key] === 'object' && !Array.isArray(target[key])) {
+        mergeDeep(target[key], value);
+      } else {
+        target[key] = value;
+      }
+    }
+    return target;
+  }
+
+  var lodash = {
+    get: lodashGet,
+    set: function (obj, path, value) {
+      var parts = pathParts(path), current = obj;
+      for (var i = 0; i < parts.length - 1; i++) {
+        if (current[parts[i]] === null || typeof current[parts[i]] !== 'object') current[parts[i]] = /^\d+$/.test(parts[i + 1]) ? [] : {};
+        current = current[parts[i]];
+      }
+      if (parts.length) current[parts[parts.length - 1]] = value;
+      return obj;
+    },
+    has: function (obj, path) { return lodashGet(obj, path, undefined) !== undefined; },
+    isNil: function (v) { return v === null || v === undefined; },
+    isEmpty: function (v) {
+      if (v === null || v === undefined) return true;
+      if (typeof v === 'string' || Array.isArray(v)) return v.length === 0;
+      if (typeof v === 'object') return Object.keys(v).length === 0;
+      return false;
+    },
+    isEqual: deepEqual,
+    isArray: function (v) { return Array.isArray(v); },
+    isObject: function (v) { return v !== null && (typeof v === 'object' || typeof v === 'function'); },
+    isString: function (v) { return typeof v === 'string'; },
+    isNumber: function (v) { return typeof v === 'number'; },
+    isFunction: function (v) { return typeof v === 'function'; },
+    keys: function (obj) { return obj ? Object.keys(obj) : []; },
+    values: toArray,
+    size: function (v) { return typeof v === 'string' || Array.isArray(v) ? v.length : (v && typeof v === 'object' ? Object.keys(v).length : 0); },
+    pick: function (obj, keys) {
+      var out = {}, list = Array.isArray(keys) ? keys : Array.prototype.slice.call(arguments, 1);
+      for (var i = 0; i < list.length; i++) { if (obj && list[i] in obj) out[list[i]] = obj[list[i]]; }
+      return out;
+    },
+    omit: function (obj, keys) {
+      var out = {}, list = Array.isArray(keys) ? keys : Array.prototype.slice.call(arguments, 1);
+      for (var key in obj) { if (list.indexOf(key) === -1) out[key] = obj[key]; }
+      return out;
+    },
+    merge: function (target) {
+      for (var i = 1; i < arguments.length; i++) { if (arguments[i]) mergeDeep(target, arguments[i]); }
+      return target;
+    },
+    assign: function (target) {
+      for (var i = 1; i < arguments.length; i++) { for (var key in arguments[i]) target[key] = arguments[i][key]; }
+      return target;
+    },
+    defaults: function (target) {
+      for (var i = 1; i < arguments.length; i++) { for (var key in arguments[i]) { if (target[key] === undefined) target[key] = arguments[i][key]; } }
+      return target;
+    },
+    cloneDeep: function (v) { return v === undefined ? v : JSON.parse(JSON.stringify(v)); },
+    map: function (collection, fn) { return toArray(collection).map(iteratee(fn)); },
+    filter: function (collection, fn) { return toArray(collection).filter(iteratee(fn)); },
+    reject: function (collection, fn) { var f = iteratee(fn); return toArray(collection).filter(function (item, i) { return !f(item, i); }); },
+    find: function (collection, fn) {
+      var items = toArray(collection), f = iteratee(fn);
+      for (var i = 0; i < items.length; i++) { if (f(items[i], i)) return items[i]; }
+      return undefined;
+    },
+    findIndex: function (collection, fn) {
+      var items = toArray(collection), f = iteratee(fn);
+      for (var i = 0; i < items.length; i++) { if (f(items[i], i)) return i; }
+      return -1;
+    },
+    some: function (collection, fn) { return toArray(collection).some(iteratee(fn)); },
+    every: function (collection, fn) { return toArray(collection).every(iteratee(fn)); },
+    forEach: function (collection, fn) { toArray(collection).forEach(fn); return collection; },
+    reduce: function (collection, fn, seed) { return toArray(collection).reduce(fn, seed); },
+    includes: function (collection, value) { return toArray(collection).some(function (item) { return deepEqual(item, value); }); },
+    uniq: function (items) {
+      var out = [];
+      toArray(items).forEach(function (item) { if (!out.some(function (kept) { return deepEqual(kept, item); })) out.push(item); });
+      return out;
+    },
+    uniqBy: function (items, fn) {
+      var f = iteratee(fn), seen = [], out = [];
+      toArray(items).forEach(function (item) {
+        var key = f(item);
+        if (!seen.some(function (kept) { return deepEqual(kept, key); })) { seen.push(key); out.push(item); }
+      });
+      return out;
+    },
+    compact: function (items) { return toArray(items).filter(function (item) { return Boolean(item); }); },
+    flatten: function (items) { return toArray(items).reduce(function (acc, item) { return acc.concat(item); }, []); },
+    flattenDeep: function flattenDeep(items) {
+      return toArray(items).reduce(function (acc, item) { return acc.concat(Array.isArray(item) ? lodash.flattenDeep(item) : item); }, []);
+    },
+    chunk: function (items, size) {
+      var list = toArray(items), step = Math.max(1, Math.floor(size || 1)), out = [];
+      for (var i = 0; i < list.length; i += step) out.push(list.slice(i, i + step));
+      return out;
+    },
+    groupBy: function (collection, fn) {
+      var f = iteratee(fn), out = {};
+      toArray(collection).forEach(function (item) {
+        var key = String(f(item));
+        (out[key] = out[key] || []).push(item);
+      });
+      return out;
+    },
+    countBy: function (collection, fn) {
+      var f = iteratee(fn), out = {};
+      toArray(collection).forEach(function (item) {
+        var key = String(f(item));
+        out[key] = (out[key] || 0) + 1;
+      });
+      return out;
+    },
+    keyBy: function (collection, fn) {
+      var f = iteratee(fn), out = {};
+      toArray(collection).forEach(function (item) { out[String(f(item))] = item; });
+      return out;
+    },
+    sortBy: function (collection, fn) {
+      var f = iteratee(fn);
+      return toArray(collection).slice().sort(function (a, b) {
+        var left = f(a), right = f(b);
+        if (left === right) return 0;
+        return left > right ? 1 : -1;
+      });
+    },
+    maxBy: function (collection, fn) {
+      var f = iteratee(fn), best;
+      toArray(collection).forEach(function (item) { if (best === undefined || f(item) > f(best)) best = item; });
+      return best;
+    },
+    minBy: function (collection, fn) {
+      var f = iteratee(fn), best;
+      toArray(collection).forEach(function (item) { if (best === undefined || f(item) < f(best)) best = item; });
+      return best;
+    },
+    sum: function (items) { return toArray(items).reduce(function (acc, item) { return acc + Number(item); }, 0); },
+    sumBy: function (items, fn) { var f = iteratee(fn); return toArray(items).reduce(function (acc, item) { return acc + Number(f(item)); }, 0); },
+    head: function (items) { return toArray(items)[0]; },
+    last: function (items) { var list = toArray(items); return list[list.length - 1]; },
+    difference: function (items, other) {
+      var exclude = toArray(other);
+      return toArray(items).filter(function (item) { return !exclude.some(function (o) { return deepEqual(o, item); }); });
+    },
+    intersection: function (items, other) {
+      var keep = toArray(other);
+      return toArray(items).filter(function (item) { return keep.some(function (o) { return deepEqual(o, item); }); });
+    },
+    range: function (start, end, step) {
+      if (end === undefined) { end = start; start = 0; }
+      var by = step || 1, out = [];
+      for (var i = start; by > 0 ? i < end : i > end; i += by) out.push(i);
+      return out;
+    },
+    times: function (n, fn) { var out = []; for (var i = 0; i < n; i++) out.push(fn ? fn(i) : i); return out; },
+    toPairs: function (obj) { return Object.keys(obj || {}).map(function (key) { return [key, obj[key]]; }); },
+    fromPairs: function (pairs) { var out = {}; toArray(pairs).forEach(function (pair) { out[pair[0]] = pair[1]; }); return out; },
+    trim: function (s) { return String(s === undefined || s === null ? '' : s).trim(); },
+    capitalize: function (s) { var text = String(s || ''); return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase(); },
+    upperFirst: function (s) { var text = String(s || ''); return text.charAt(0).toUpperCase() + text.slice(1); },
+    random: function (min, max) {
+      if (max === undefined) { max = min || 1; min = 0; }
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    },
+    sample: function (items) { var list = toArray(items); return list[Math.floor(Math.random() * list.length)]; }
+  };
+  lodash.each = lodash.forEach;
+  lodash.first = lodash.head;
+  lodash.contains = lodash.includes;
+
+  // Anything outside the supported surface should say so instead of turning
+  // into "undefined is not a function" three lines later.
+  var lodashModule = typeof Proxy === 'function' ? new Proxy(lodash, {
+    get: function (target, name) {
+      if (name in target || typeof name === 'symbol') return target[name];
+      throw new Error('lodash.' + String(name) + ' is not available in Relay\'s script sandbox');
+    }
+  }) : lodash;
+
+  function schemaErrorObjects(schema, data) {
+    return schemaErrors(schema, data).map(function (message) {
+      var at = message.indexOf(': ');
+      return { dataPath: at > 0 ? message.slice(0, at) : '', message: at > 0 ? message.slice(at + 2) : message, toString: function () { return message; } };
+    });
+  }
+
+  var tv4 = {
+    error: null,
+    validate: function (data, schema) {
+      var errs = schemaErrorObjects(schema, data);
+      tv4.error = errs.length ? errs[0] : null;
+      return errs.length === 0;
+    },
+    validateResult: function (data, schema) {
+      var errs = schemaErrorObjects(schema, data);
+      return { valid: errs.length === 0, error: errs.length ? errs[0] : null, errors: errs };
+    },
+    validateMultiple: function (data, schema) {
+      var errs = schemaErrorObjects(schema, data);
+      return { valid: errs.length === 0, errors: errs };
+    }
+  };
+
+  function Ajv() {
+    if (!(this instanceof Ajv)) return new Ajv();
+    this.errors = null;
+  }
+  Ajv.prototype.validate = function (schema, data) {
+    var errs = schemaErrorObjects(schema, data);
+    this.errors = errs.length ? errs : null;
+    return errs.length === 0;
+  };
+  Ajv.prototype.compile = function (schema) {
+    var owner = this;
+    var validator = function (data) { return owner.validate(schema, data); };
+    Object.defineProperty(validator, 'errors', { get: function () { return owner.errors; }, configurable: true });
+    return validator;
+  };
+  Ajv.prototype.errorsText = function (errs) {
+    return (errs || this.errors || []).map(function (e) { return e.toString(); }).join(', ') || 'No errors';
+  };
+  Ajv.prototype.addSchema = function () { return this; };
+  Ajv.prototype.addFormat = function () { return this; };
+
+  var uuidModule = {
+    v4: function () { return host.cryptoUUID(); },
+    validate: function (value) { return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(String(value)); }
+  };
+
+  var MODULES = {
+    lodash: lodashModule,
+    underscore: lodashModule,
+    'lodash.get': lodashGet,
+    ajv: Ajv,
+    tv4: tv4,
+    uuid: uuidModule,
+    'crypto-js': CryptoJS,
+    chai: { expect: expect },
+    'postman-collection': undefined
+  };
+
+  function require(name) {
+    var key = String(name);
+    if (Object.prototype.hasOwnProperty.call(MODULES, key) && MODULES[key] !== undefined) return MODULES[key];
+    throw new Error('require("' + key + '") is not available in Relay\'s script sandbox (supported: ' +
+      Object.keys(MODULES).filter(function (k) { return MODULES[k] !== undefined; }).join(', ') + ')');
+  }
+
+  function atob(encoded) { return host.cryptoBase64Decode(valStr(encoded)); }
+  function btoa(raw) { return host.cryptoBase64Encode(valStr(raw)); }
+
+  return { pm: pm, expect: expect, console: console, CryptoJS: CryptoJS, require: require, _: lodashModule, tv4: tv4, Ajv: Ajv, atob: atob, btoa: btoa };
 })(__relayHost);
 
-var pm = __relayAPI.pm;
-var expect = __relayAPI.expect;
-var console = __relayAPI.console;
-var CryptoJS = __relayAPI.CryptoJS;
+// Attached as plain global properties rather than declared with var: a script
+// that opens with "const _ = require('lodash')" or "const expect = require('chai').expect"
+// — both ordinary Postman idioms — would otherwise fail to parse, because a
+// var-declared global cannot be redeclared with const.
+(function (globalScope) {
+  globalScope.pm = __relayAPI.pm;
+  globalScope.expect = __relayAPI.expect;
+  globalScope.console = __relayAPI.console;
+  globalScope.CryptoJS = __relayAPI.CryptoJS;
+  globalScope.require = __relayAPI.require;
+  globalScope._ = __relayAPI._;
+  globalScope.tv4 = __relayAPI.tv4;
+  globalScope.Ajv = __relayAPI.Ajv;
+  globalScope.atob = __relayAPI.atob;
+  globalScope.btoa = __relayAPI.btoa;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
 __relayHost = undefined;
 __relayAPI = undefined;
 `
