@@ -4,6 +4,7 @@
   import { guardTrailing, removeRow, activeCount } from '../utils';
   import { HEADER_PICKER_NAMES, validateHeaderRow } from '../headers';
   import VariableInput from './VariableInput.svelte';
+  import BulkEditPanel from './BulkEditPanel.svelte';
   import type { KVRow, PreviewHeader } from '../types/models';
 
   type HeaderDetail = {
@@ -131,7 +132,18 @@
 <div class="request-section-bar">
   <span class="request-section-title">Headers</span>
   <span class="request-section-meta">{activeCount(vm.reqHeaders)} custom · {vm.autoRequestHeaders.length} auto</span>
+  <button
+    class="bulk-edit-toggle"
+    type="button"
+    aria-pressed={vm.bulkEditTables.headers}
+    onclick={() => (vm.bulkEditTables.headers = !vm.bulkEditTables.headers)}
+  >
+    {vm.bulkEditTables.headers ? 'Key-value edit' : 'Bulk edit'}
+  </button>
 </div>
+{#if vm.bulkEditTables.headers}
+  <BulkEditPanel rows={vm.reqHeaders} apply={(next) => (vm.reqHeaders = next)} />
+{:else}
 <div class="kv-table headers-kv-table" bind:this={tableEl} style="--kw: {vm.kvKeyW}px; --vw: {vm.kvValW}px">
   <div class="kv-head">
     <span></span>
@@ -210,3 +222,4 @@
     </div>
   {/if}
 </div>
+{/if}

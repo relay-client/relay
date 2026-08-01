@@ -3,6 +3,7 @@
   import { guardTrailing, removeRow } from '../utils';
   import CodeEditor from '../CodeEditor.svelte';
   import VariableInput from './VariableInput.svelte';
+  import BulkEditPanel from './BulkEditPanel.svelte';
 
   let bodyEditorRef = $state<CodeEditor>();
 
@@ -18,6 +19,19 @@
     <p class="body-none-hint">This request has no body.</p>
 
   {:else if vm.bodyType === 'form'}
+    <div class="request-section-bar">
+      <span class="request-section-title">Form Data</span>
+      <button class="bulk-edit-toggle" type="button" aria-pressed={vm.bulkEditTables.form} onclick={() => (vm.bulkEditTables.form = !vm.bulkEditTables.form)}>
+        {vm.bulkEditTables.form ? 'Key-value edit' : 'Bulk edit'}
+      </button>
+    </div>
+    {#if vm.bulkEditTables.form}
+      <BulkEditPanel
+        rows={vm.formRows}
+        apply={(next) => (vm.formRows = next)}
+        hint="One key:value per line. Prefix a line with // to disable it. Attached files stay with their key."
+      />
+    {:else}
     <div class="kv-table form-kv-table headers-kv-table" style="--kw: {vm.kvKeyW}px; --tw: {vm.kvTypeW}px; --vw: {vm.kvValW}px">
       <div class="kv-head form-kv-head">
         <span></span>
@@ -79,8 +93,18 @@
         </div>
       {/each}
     </div>
+    {/if}
 
   {:else if vm.bodyType === 'urlencoded'}
+    <div class="request-section-bar">
+      <span class="request-section-title">URL Encoded</span>
+      <button class="bulk-edit-toggle" type="button" aria-pressed={vm.bulkEditTables.form} onclick={() => (vm.bulkEditTables.form = !vm.bulkEditTables.form)}>
+        {vm.bulkEditTables.form ? 'Key-value edit' : 'Bulk edit'}
+      </button>
+    </div>
+    {#if vm.bulkEditTables.form}
+      <BulkEditPanel rows={vm.formRows} apply={(next) => (vm.formRows = next)} />
+    {:else}
     <div class="kv-table headers-kv-table" style="--kw: {vm.kvKeyW}px; --vw: {vm.kvValW}px">
       <div class="kv-head">
         <span></span>
@@ -101,6 +125,7 @@
         </div>
       {/each}
     </div>
+    {/if}
 
   {:else if vm.bodyType === 'binary'}
     <div class="binary-body">

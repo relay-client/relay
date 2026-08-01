@@ -2,50 +2,14 @@
   import { tabListKeyboard } from '../a11y';
   import { vm } from '../stores/app.svelte';
   import { scriptLineCount } from '../utils';
+  import { appendSnippet, preRequestSnippets, testSnippets } from '../scriptSnippets';
   import CodeEditor from '../CodeEditor.svelte';
 
   const isJs = $derived(vm.scriptEngine === 'js');
   const engineLabel = $derived(isJs ? 'JavaScript' : 'Tengo');
 
-  const preRef = $derived(
-    isJs
-      ? [
-          'pm.environment.set("baseUrl", "https://…")',
-          'pm.variables.set("key", "val")',
-          'pm.request.headers.set("X-Token", pm.environment.get("token"))',
-          'pm.request.params.set("v", "2")',
-          'pm.request.set_url("https://…")',
-          'console.log("msg")',
-        ]
-      : [
-          'pm.environment.set("baseUrl", "https://…")',
-          'pm.variables.set("key", "val")',
-          'pm.request.headers.set("X-Token", pm.environment.get("token"))',
-          'pm.request.params.set("v", "2")',
-          'pm.request.set_url("https://…")',
-          'pm.log("msg")',
-        ],
-  );
-
-  const testRef = $derived(
-    isJs
-      ? [
-          'pm.test("Status 200", () => pm.expect(pm.response.code).to.eql(200))',
-          'pm.test("Fast", () => pm.expect(pm.response.responseTime).to.be.below(500))',
-          'const data = pm.response.json()',
-          'pm.test("Has id", () => pm.expect(data.id).to.exist)',
-          'pm.test("id==1", () => pm.expect(data.id).to.eql(1))',
-          'pm.variables.set("id", String(data.id))',
-        ]
-      : [
-          'pm.test("Status 200", pm.response.code == 200)',
-          'pm.test("Fast", pm.response.time < 500)',
-          'data := pm.response.json()',
-          'pm.test("Has id", pm.expect(data["id"]).exists())',
-          'pm.test("id==1", pm.expect(data["id"]).equal(1))',
-          'pm.variables.set("id", string(data["id"]))',
-        ],
-  );
+  const preSnippets = $derived(preRequestSnippets(vm.scriptEngine));
+  const testSnippetList = $derived(testSnippets(vm.scriptEngine));
 
   const prePlaceholder = $derived(
     isJs
@@ -72,11 +36,22 @@
   {#if vm.scriptTab === 'pre-request'}
     <div class="script-toolbar">
       <span class="script-lang-badge">{engineLabel}</span>
-      <span class="script-hint">Runs before the request is sent · Modify URL, headers, params</span>
+      <span class="script-hint">Runs before the request is sent · Modify URL, headers, params, body</span>
     </div>
     <div class="script-ref">
-      <span class="ref-title">Reference</span>
-      {#each preRef as snippet}<code>{snippet}</code>{/each}
+      <span class="ref-title">Snippets</span>
+      {#each preSnippets as snippet (snippet.label)}
+        <button
+          class="script-snippet"
+          type="button"
+          title={snippet.code}
+          aria-label="Insert snippet: {snippet.label}"
+          data-testid="script-snippet"
+          onclick={() => (vm.activePreRequestScript = appendSnippet(vm.activePreRequestScript, snippet.code))}
+        >
+          {snippet.label}
+        </button>
+      {/each}
     </div>
     <CodeEditor
       bind:value={vm.activePreRequestScript}
@@ -93,8 +68,19 @@
       <span class="script-hint">Runs after the response is received</span>
     </div>
     <div class="script-ref">
-      <span class="ref-title">Reference</span>
-      {#each testRef as snippet}<code>{snippet}</code>{/each}
+      <span class="ref-title">Snippets</span>
+      {#each testSnippetList as snippet (snippet.label)}
+        <button
+          class="script-snippet"
+          type="button"
+          title={snippet.code}
+          aria-label="Insert snippet: {snippet.label}"
+          data-testid="script-snippet"
+          onclick={() => (vm.activeTestScript = appendSnippet(vm.activeTestScript, snippet.code))}
+        >
+          {snippet.label}
+        </button>
+      {/each}
     </div>
     <CodeEditor
       bind:value={vm.activeTestScript}

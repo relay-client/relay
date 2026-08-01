@@ -862,6 +862,8 @@ class AppVM {
   params = $state<KVRow[]>([mkRow()]);
   reqHeaders = $state<KVRow[]>([mkRow()]);
   formRows = $state<KVRow[]>([mkRow()]);
+  // Which key/value tables are currently showing their text (bulk edit) form.
+  bulkEditTables = $state<{ params: boolean; headers: boolean; form: boolean }>({ params: false, headers: false, form: false });
 
   authType = $state<AuthType>('none');
   bearerToken = $state('');
