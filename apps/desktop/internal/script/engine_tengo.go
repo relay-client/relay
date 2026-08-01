@@ -199,6 +199,19 @@ func buildRequest(ctx *Context) *tengo.Map {
 			},
 		},
 
+		"body":      &tengo.String{Value: ctx.RequestBody},
+		"body_type": &tengo.String{Value: ctx.RequestBodyType},
+		"set_body": &tengo.UserFunction{
+			Name: "set_body",
+			Value: func(args ...tengo.Object) (tengo.Object, error) {
+				if len(args) >= 1 {
+					ctx.RequestBody = tengoString(args[0])
+					ctx.RequestBodyChanged = true
+				}
+				return tengo.UndefinedValue, nil
+			},
+		},
+
 		"headers": &tengo.Map{Value: map[string]tengo.Object{
 			"get": &tengo.UserFunction{
 				Name: "get",

@@ -2729,3 +2729,232 @@ func relaySaveFlowPayload(url string, bearerToken string, openIDs []string, cook
   "workspaceCookies": %s
 }`, string(openIDPayload), url, bearerToken, workspaceCookies)
 }
+
+func TestPreRequestScriptRewritesTheBodyThatIsSent(t *testing.T) {
+	var gotBody, gotSignature string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		raw, _ := io.ReadAll(r.Body)
+		gotBody = string(raw)
+		gotSignature = r.Header.Get("X-Signature")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	}))
+	defer server.Close()
+
+	app := NewApp()
+	resp := app.SendRequest(model.HttpRequest{
+		Method:       http.MethodPost,
+		URL:          server.URL,
+		BodyType:     "json",
+		Body:         `{"amount":10}`,
+		ScriptEngine: "js",
+		PreRequestScript: `
+const payload = pm.request.body.json()
+payload.amount = payload.amount * 2
+pm.request.body.update(JSON.stringify(payload))
+pm.request.headers.set("X-Signature", pm.crypto.hmacSha256(pm.request.body.raw, "secret"))
+`,
+		FollowRedirects:        true,
+		TimeoutMs:              5000,
+		HTTPVersion:            "auto",
+		EnableSSLVerification:  true,
+		EncodeURLAutomatically: true,
+		MaxRedirects:           10,
+	})
+
+	if resp.Error != "" {
+		t.Fatalf("unexpected response error: %s", resp.Error)
+	}
+	if gotBody != `{"amount":20}` {
+		t.Fatalf("server received body %q", gotBody)
+	}
+	if gotSignature == "" {
+		t.Fatal("expected the signature header to be computed over the rewritten body")
+	}
+}
+
+func TestPreRequestScriptCanAddABodyToARequestThatHadNone(t *testing.T) {
+	var gotBody, gotContentType string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		raw, _ := io.ReadAll(r.Body)
+		gotBody = string(raw)
+		gotContentType = r.Header.Get("Content-Type")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	app := NewApp()
+	resp := app.SendRequest(model.HttpRequest{
+		Method:                 http.MethodPost,
+		URL:                    server.URL,
+		BodyType:               "none",
+		ScriptEngine:           "js",
+		PreRequestScript:       `pm.request.body.update({ generated: true })`,
+		FollowRedirects:        true,
+		TimeoutMs:              5000,
+		HTTPVersion:            "auto",
+		EnableSSLVerification:  true,
+		EncodeURLAutomatically: true,
+		MaxRedirects:           10,
+	})
+
+	if resp.Error != "" {
+		t.Fatalf("unexpected response error: %s", resp.Error)
+	}
+	if gotBody != `{"generated":true}` {
+		t.Fatalf("server received body %q", gotBody)
+	}
+	if gotContentType != "application/json" {
+		t.Fatalf("content type = %q", gotContentType)
+	}
+}
+
+func TestScriptBodyWriteDoesNotOverrideAFileBody(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "payload.bin")
+	if err := os.WriteFile(path, []byte("from-disk"), 0o600); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	var gotBody string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		raw, _ := io.ReadAll(r.Body)
+		gotBody = string(raw)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	app := NewApp()
+	resp := app.SendRequest(model.HttpRequest{
+		Method:                 http.MethodPost,
+		URL:                    server.URL,
+		BodyType:               "binary",
+		BodyFilePath:           path,
+		ScriptEngine:           "js",
+		PreRequestScript:       `pm.request.body.update("from-script")`,
+		FollowRedirects:        true,
+		TimeoutMs:              5000,
+		HTTPVersion:            "auto",
+		EnableSSLVerification:  true,
+		EncodeURLAutomatically: true,
+		MaxRedirects:           10,
+	})
+
+	if resp.Error != "" {
+		t.Fatalf("unexpected response error: %s", resp.Error)
+	}
+	if gotBody != "from-disk" {
+		t.Fatalf("server received body %q, expected the file contents", gotBody)
+	}
+}
+
+func TestScriptEditsUrlencodedBodyFields(t *testing.T) {
+	var gotBody, gotContentType string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		raw, _ := io.ReadAll(r.Body)
+		gotBody = string(raw)
+		gotContentType = r.Header.Get("Content-Type")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	app := NewApp()
+	resp := app.SendRequest(model.HttpRequest{
+		Method:       http.MethodPost,
+		URL:          server.URL,
+		BodyType:     "urlencoded",
+		FormData:     []model.KeyValue{{Key: "grant_type", Value: "password", Enabled: true}},
+		ScriptEngine: "js",
+		PreRequestScript: `
+pm.request.body.urlencoded.upsert({ key: "grant_type", value: "client_credentials" })
+pm.request.body.urlencoded.add({ key: "scope", value: "read" })
+`,
+		FollowRedirects:        true,
+		TimeoutMs:              5000,
+		HTTPVersion:            "auto",
+		EnableSSLVerification:  true,
+		EncodeURLAutomatically: true,
+		MaxRedirects:           10,
+	})
+
+	if resp.Error != "" {
+		t.Fatalf("unexpected response error: %s", resp.Error)
+	}
+	if gotBody != "grant_type=client_credentials&scope=read" {
+		t.Fatalf("server received body %q", gotBody)
+	}
+	if gotContentType != "application/x-www-form-urlencoded" {
+		t.Fatalf("content type = %q", gotContentType)
+	}
+}
+
+func TestScriptRawWriteOnAFormBodyIsReportedNotDropped(t *testing.T) {
+	var gotBody string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		raw, _ := io.ReadAll(r.Body)
+		gotBody = string(raw)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	app := NewApp()
+	resp := app.SendRequest(model.HttpRequest{
+		Method:                 http.MethodPost,
+		URL:                    server.URL,
+		BodyType:               "urlencoded",
+		FormData:               []model.KeyValue{{Key: "a", Value: "1", Enabled: true}},
+		ScriptEngine:           "js",
+		PreRequestScript:       `pm.request.body.raw = "b=2"`,
+		FollowRedirects:        true,
+		TimeoutMs:              5000,
+		HTTPVersion:            "auto",
+		EnableSSLVerification:  true,
+		EncodeURLAutomatically: true,
+		MaxRedirects:           10,
+	})
+
+	if resp.Error != "" {
+		t.Fatalf("unexpected response error: %s", resp.Error)
+	}
+	if gotBody != "a=1" {
+		t.Fatalf("server received body %q, expected the form fields", gotBody)
+	}
+	if len(resp.PreRequestResult.Logs) == 0 || !strings.Contains(resp.PreRequestResult.Logs[0], "pm.request.body.urlencoded") {
+		t.Fatalf("expected a log explaining the ignored raw write, got %v", resp.PreRequestResult.Logs)
+	}
+}
+
+func TestScriptBodyWriteRescuesABinaryRequestWithNoFile(t *testing.T) {
+	var gotBody, gotContentType string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		raw, _ := io.ReadAll(r.Body)
+		gotBody = string(raw)
+		gotContentType = r.Header.Get("Content-Type")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	app := NewApp()
+	resp := app.SendRequest(model.HttpRequest{
+		Method:                 http.MethodPost,
+		URL:                    server.URL,
+		BodyType:               "binary",
+		ScriptEngine:           "js",
+		PreRequestScript:       `pm.request.body.update("generated")`,
+		FollowRedirects:        true,
+		TimeoutMs:              5000,
+		HTTPVersion:            "auto",
+		EnableSSLVerification:  true,
+		EncodeURLAutomatically: true,
+		MaxRedirects:           10,
+	})
+
+	if resp.Error != "" {
+		t.Fatalf("unexpected response error: %s", resp.Error)
+	}
+	if gotBody != "generated" {
+		t.Fatalf("server received body %q", gotBody)
+	}
+	if gotContentType != "text/plain" {
+		t.Fatalf("content type = %q", gotContentType)
+	}
+}

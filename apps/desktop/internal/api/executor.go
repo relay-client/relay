@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -61,6 +62,7 @@ func sendRequestWithBodySink(requestCtx context.Context, req model.HttpRequest, 
 		mergeScriptURL(ctx, &req)
 		mergeScriptHeaders(ctx, &req)
 		mergeScriptParams(ctx, &req)
+		mergeScriptBody(ctx, &req)
 		scope.commit(sm)
 		if preResult.Error != "" {
 			return model.HttpResponse{
@@ -191,6 +193,10 @@ func redactSecrets(text string, secrets []string) string {
 func populateScriptRequestContext(ctx *script.Context, req model.HttpRequest) {
 	ctx.RequestURL = req.URL
 	ctx.RequestMethod = req.Method
+	ctx.RequestBody = req.Body
+	ctx.RequestBodyType = req.BodyType
+	ctx.RequestBodyFilePath = req.BodyFilePath
+	ctx.RequestFormData = append([]model.KeyValue(nil), req.FormData...)
 	ctx.IterationData = req.IterationData
 	ctx.Info = script.Info{
 		RequestName:    req.Name,
@@ -1002,6 +1008,35 @@ func encodeQueryPairs(pairs []queryPair) string {
 func mergeScriptURL(ctx *script.Context, req *model.HttpRequest) {
 	if ctx.RequestURL != "" && ctx.RequestURL != req.URL {
 		req.URL = ctx.RequestURL
+	}
+}
+
+// A pre-request script that writes the body is usually generating or signing
+// it, so an explicit write wins even when it clears the body. A request whose
+// body came from a file keeps the file: the script never saw those bytes.
+func mergeScriptBody(ctx *script.Context, req *model.HttpRequest) {
+	// A form or urlencoded body is sent from its fields, so that is what
+	// pm.request.body.urlencoded / .formdata edit — a raw write cannot reach it
+	// and the sandbox says so in the log rather than dropping it in silence.
+	if ctx.RequestFormDataChanged && (req.BodyType == "urlencoded" || req.BodyType == "form") {
+		req.FormData = ctx.RequestFormData
+	}
+	if !ctx.RequestBodyChanged || req.BodyFilePath != "" {
+		return
+	}
+	if req.BodyType == "urlencoded" || req.BodyType == "form" {
+		return
+	}
+	req.Body = ctx.RequestBody
+	// A script that builds a body for a request that had none would otherwise
+	// see it dropped, because a "none" body type sends nothing — and neither
+	// does a "binary" one with no file behind it.
+	if req.Body != "" && (req.BodyType == "" || req.BodyType == "none" || req.BodyType == "binary") {
+		if json.Valid([]byte(req.Body)) {
+			req.BodyType = "json"
+		} else {
+			req.BodyType = "text"
+		}
 	}
 }
 
