@@ -568,6 +568,8 @@ class AppVM {
   declare importOpenCollectionFiles: typeof importExportFeature.importOpenCollectionFiles;
   declare importHarPayload: typeof importExportFeature.importHarPayload;
   declare importRequestsPayload: typeof importExportFeature.importRequestsPayload;
+  declare importCollectionBundle: typeof importExportFeature.importCollectionBundle;
+  declare importPostmanVariableBundle: typeof importExportFeature.importPostmanVariableBundle;
   declare importPostmanPayload: typeof importExportFeature.importPostmanPayload;
   declare importInsomniaPayload: typeof importExportFeature.importInsomniaPayload;
   declare importOpenApiPayload: typeof importExportFeature.importOpenApiPayload;
@@ -1072,6 +1074,7 @@ class AppVM {
   resolvedAppTheme = $state<ResolvedAppTheme>(initialThemeState.resolvedAppTheme);
   headerValueSuggestions = $state<string[]>([]);
   collectionImportToast = $state('');
+  collectionImportSummary = $state('');
   collectionImportSource = $state<ImportSource>('postman');
   dataTransferStatus = $state('');
   defaultWorkspaceLocationPath = $state('');

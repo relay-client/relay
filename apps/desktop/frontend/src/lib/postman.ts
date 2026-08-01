@@ -1,12 +1,13 @@
-import type { KVRow, SavedRequest, Environment, AuthType, BodyType, RawBodyType, Method, RequestSettings, RequestTab, RequestType, SIOArg } from './types/models';
+import type { KVRow, SavedRequest, CollectionDefaults, Environment, AuthType, BodyType, OAuth2ClientAuth, OAuth2GrantType, RawBodyType, Method, RequestSettings, RequestTab, RequestType, SIOArg } from './types/models';
 import { DEFAULT_REQUEST_SETTINGS } from './constants';
 import { isRecord, asArray, asText, newRequestId } from './utils';
 import { mkRow } from './constants';
-import { emptyAuthState } from './utils';
+import { emptyAuthState, inheritAuthState } from './utils';
 import { safeExportRow, safeExportUrl, safeExportValue, sanitizeExportExample } from './secretExport';
 import { parseGraphQLPayload, parseGraphQLVariables, serializeGraphQLPayload } from './graphql';
 import { filterSocketIOTransportParams, graphQLBodyContentFromJsonText, isWebSocketUrl, socketIOImportDetails } from './importDetection';
 import { filesystemNameFromName } from './normalizers';
+import { emptyCollectionDefaults } from './collectionDefaults';
 import { DEFAULT_GRPC_MESSAGE } from './requestBodyDefaults';
 
 const RELAY_EXTENSION_KEY = 'x-relay';
@@ -33,6 +34,65 @@ function postmanKvRows(list: unknown): KVRow[] {
       return importedRow(key, asText(item.value), item.disabled !== true, postmanDescription(item.description));
     })
     .filter((row): row is KVRow => Boolean(row));
+}
+
+export type PostmanScripts = { preRequestScript: string; testScript: string };
+
+const NO_SCRIPTS: PostmanScripts = { preRequestScript: '', testScript: '' };
+
+// Postman stores a script as `exec`, an array of source lines (older exports
+// and some generators use a single string instead). `script.src` points at an
+// external file we cannot resolve, so those events are dropped.
+function postmanScriptSource(event: Record<string, unknown>): string {
+  const script = isRecord(event.script) ? event.script : {};
+  const exec = script.exec ?? event.exec;
+  if (Array.isArray(exec)) return exec.map(asText).join('\n');
+  return asText(exec);
+}
+
+function joinScripts(first: string, second: string): string {
+  if (!first.trim()) return second;
+  if (!second.trim()) return first;
+  return `${first.replace(/\s+$/, '')}\n\n${second}`;
+}
+
+function mergeScripts(outer: PostmanScripts, inner: PostmanScripts): PostmanScripts {
+  return {
+    preRequestScript: joinScripts(outer.preRequestScript, inner.preRequestScript),
+    testScript: joinScripts(outer.testScript, inner.testScript),
+  };
+}
+
+function hasScripts(scripts: PostmanScripts) {
+  return Boolean(scripts.preRequestScript.trim() || scripts.testScript.trim());
+}
+
+// `event` belongs on the item in the v2.1 schema, but Relay used to write it
+// under `request` — read both so our own older exports still round-trip.
+export function postmanScriptsFromEvents(...sources: unknown[]): PostmanScripts {
+  const result = { preRequestScript: '', testScript: '' };
+  for (const source of sources) {
+    for (const event of asArray(source)) {
+      if (!isRecord(event) || event.disabled === true) continue;
+      const code = postmanScriptSource(event);
+      if (!code.trim()) continue;
+      const listen = asText(event.listen).toLowerCase();
+      if (listen === 'prerequest') result.preRequestScript = joinScripts(result.preRequestScript, code);
+      else if (listen === 'test') result.testScript = joinScripts(result.testScript, code);
+    }
+  }
+  return result;
+}
+
+// A Postman folder runs its scripts before/after every request it contains.
+// Relay has no folder layer, so the folder's code is flattened into each
+// request, labelled with where it came from.
+function labelledFolderScripts(scripts: PostmanScripts, folderName: string): PostmanScripts {
+  const label = `// --- from Postman folder "${folderName}" ---`;
+  return {
+    preRequestScript: scripts.preRequestScript.trim() ? `${label}\n${scripts.preRequestScript}` : '',
+    testScript: scripts.testScript.trim() ? `${label}\n${scripts.testScript}` : '',
+  };
 }
 
 function relayExtensionFromPostman(item: Record<string, unknown>, req: Record<string, unknown>): Record<string, unknown> {
@@ -76,9 +136,22 @@ function postmanAuthParam(auth: Record<string, unknown>, bucket: string, key: st
   return isRecord(entry) ? asText(entry.value) : '';
 }
 
+// Postman's grant names, including the PKCE variant which is the same
+// authorization-code flow with a different challenge.
+function postmanGrantType(value: string): { grant: OAuth2GrantType; pkce: boolean } | null {
+  switch (value.toLowerCase()) {
+    case 'authorization_code': return { grant: 'authorization_code', pkce: false };
+    case 'authorization_code_with_pkce': return { grant: 'authorization_code', pkce: true };
+    case 'client_credentials': return { grant: 'client_credentials', pkce: false };
+    case 'password_credentials':
+    case 'password': return { grant: 'password', pkce: false };
+    default: return null;
+  }
+}
+
 function postmanAuthConfig(authValue: unknown, inheritedAuth?: unknown): SavedRequest['auth'] {
   const auth = isRecord(authValue) ? authValue : isRecord(inheritedAuth) ? inheritedAuth : null;
-  const config = emptyAuthState();
+  const config: SavedRequest['auth'] = emptyAuthState();
   if (!auth) return config;
   const type = asText(auth.type).toLowerCase();
   if (!type || type === 'noauth') return config;
@@ -96,12 +169,32 @@ function postmanAuthConfig(authValue: unknown, inheritedAuth?: unknown): SavedRe
     config.apiKeyIn = postmanAuthParam(auth, 'apikey', 'in') === 'query' ? 'query' : 'header';
   } else if (type === 'oauth2') {
     config.type = 'oauth2';
+    // A stored access token expires; without the rest of the flow the request
+    // starts failing with a 401 some time after the import, so carry over
+    // everything Relay can use to fetch a fresh one.
     config.oauth2Token = postmanAuthParam(auth, 'oauth2', 'accessToken') || postmanAuthParam(auth, 'oauth2', 'token');
     config.bearerToken = config.oauth2Token;
+    config.oauth2TokenURL = postmanAuthParam(auth, 'oauth2', 'accessTokenUrl');
+    config.oauth2AuthURL = postmanAuthParam(auth, 'oauth2', 'authUrl');
+    config.oauth2ClientID = postmanAuthParam(auth, 'oauth2', 'clientId');
+    config.oauth2Secret = postmanAuthParam(auth, 'oauth2', 'clientSecret');
+    config.oauth2Scope = postmanAuthParam(auth, 'oauth2', 'scope');
+    config.oauth2Audience = postmanAuthParam(auth, 'oauth2', 'audience');
+    config.oauth2RefreshToken = postmanAuthParam(auth, 'oauth2', 'refreshToken');
+    config.oauth2Username = postmanAuthParam(auth, 'oauth2', 'username');
+    config.oauth2Password = postmanAuthParam(auth, 'oauth2', 'password');
+    const clientAuth = postmanAuthParam(auth, 'oauth2', 'client_authentication').toLowerCase();
+    if (clientAuth === 'body') config.oauth2ClientAuth = 'body' as OAuth2ClientAuth;
+    const grant = postmanGrantType(postmanAuthParam(auth, 'oauth2', 'grant_type'));
+    if (grant) {
+      config.oauth2GrantType = grant.grant;
+      config.oauth2UsePKCE = grant.pkce;
+    }
   } else if (type === 'awsv4') {
     config.type = 'aws';
     config.awsAccessKey = postmanAuthParam(auth, 'awsv4', 'accessKey');
     config.awsSecretKey = postmanAuthParam(auth, 'awsv4', 'secretKey');
+    config.awsSessionToken = postmanAuthParam(auth, 'awsv4', 'sessionToken');
     config.awsRegion = postmanAuthParam(auth, 'awsv4', 'region') || config.awsRegion;
     config.awsService = postmanAuthParam(auth, 'awsv4', 'service') || config.awsService;
   }
@@ -225,13 +318,19 @@ function postmanBodyToRelay(bodyValue: unknown) {
 
 export function postmanRequestsFromItems(
   items: unknown, collectionId: string, collectionName: string,
-  inheritedAuth: unknown, path: string[] = []
+  inheritedAuth: unknown, path: string[] = [], inheritedScripts: PostmanScripts = NO_SCRIPTS
 ): SavedRequest[] {
   return asArray(items).flatMap(item => {
     if (!isRecord(item)) return [];
     const name = asText(item.name) || 'Imported Request';
     const childAuth = item.auth ?? inheritedAuth;
-    if (Array.isArray(item.item)) return postmanRequestsFromItems(item.item, collectionId, collectionName, childAuth, [...path, name]);
+    if (Array.isArray(item.item)) {
+      const folderScripts = postmanScriptsFromEvents(item.event);
+      const nextScripts = hasScripts(folderScripts)
+        ? mergeScripts(inheritedScripts, labelledFolderScripts(folderScripts, name))
+        : inheritedScripts;
+      return postmanRequestsFromItems(item.item, collectionId, collectionName, childAuth, [...path, name], nextScripts);
+    }
     const requestValue = item.request;
     if (!requestValue) return [];
     const req = isRecord(requestValue) ? requestValue : { url: requestValue };
@@ -250,6 +349,7 @@ export function postmanRequestsFromItems(
     const grpcMethod = asText(relay.grpcMethod ?? relay.fullMethod);
     const grpcMetadata = relayRows(relay.grpcMetadata ?? relay.metadata);
     const relayTab = relayRequestTab(relay.requestTab);
+    const scripts = mergeScripts(inheritedScripts, postmanScriptsFromEvents(item.event, req.event));
     const id = newRequestId();
     return [{
       id, name, filesystemName: filesystemNameFromName(name, id), collectionId, collection: collectionName, folderPath: path,
@@ -258,7 +358,10 @@ export function postmanRequestsFromItems(
       url: asText(relay.url) || socketIO?.url || urlData.url,
       requestTab: relayTab || (requestType === 'grpc' ? 'body' : requestType === 'socketio' ? 'events' : requestType === 'ws' ? 'body' : requestType === 'graphql' ? 'query' : 'params'),
       params, headers: postmanKvRows(req.header),
-      auth: postmanAuthConfig(req.auth, childAuth),
+      // Nothing declared anywhere up the tree means Postman would fall back to
+      // the collection's auth, which lands in Relay's collection defaults —
+      // so the request inherits rather than carrying a copy.
+      auth: req.auth === undefined && childAuth === undefined ? inheritAuthState() : postmanAuthConfig(req.auth, childAuth),
       bodyType: requestType === 'grpc' && body.bodyType === 'none' ? 'json' : body.bodyType,
       rawBodyType: body.rawBodyType,
       bodyContent: requestType === 'grpc' ? asText(relay.message) || body.bodyContent : body.bodyContent || asText(relay.message),
@@ -274,10 +377,90 @@ export function postmanRequestsFromItems(
         grpcProtoFileName: asText(relay.grpcProtoFileName),
         grpcProtoImportPaths: asArray(relay.grpcProtoImportPaths).map(asText).filter(Boolean),
       } : {}),
-      preRequestScript: '', testScript: '', requestNotes: '',
+      preRequestScript: scripts.preRequestScript,
+      testScript: scripts.testScript,
+      requestNotes: postmanDescription(req.description) || postmanDescription(item.description),
       settings: { ...DEFAULT_REQUEST_SETTINGS, ...(socketIO?.settings ?? {}), ...relaySettings(relay.settings) },
     }];
   });
+}
+
+function postmanVariableRows(list: unknown): KVRow[] {
+  return asArray(list)
+    .map(item => {
+      if (!isRecord(item)) return null;
+      const key = asText(item.key || item.name);
+      if (!key) return null;
+      // Collection variables carry `disabled`, environment values carry
+      // `enabled` — a file uses one or the other.
+      const enabled = item.enabled === false ? false : item.disabled !== true;
+      const row = importedRow(key, asText(item.value), enabled, postmanDescription(item.description));
+      return asText(item.type).toLowerCase() === 'secret' ? { ...row, secret: true } : row;
+    })
+    .filter((row): row is KVRow => Boolean(row));
+}
+
+// Folders are kept even when they hold no requests, so an imported collection
+// keeps its shape instead of collapsing to the requests that happen to exist.
+function postmanFolderPaths(items: unknown, path: string[] = []): string[][] {
+  const paths: string[][] = [];
+  for (const item of asArray(items)) {
+    if (!isRecord(item) || !Array.isArray(item.item)) continue;
+    const next = [...path, asText(item.name) || 'Folder'];
+    paths.push(next);
+    paths.push(...postmanFolderPaths(item.item, next));
+  }
+  return paths;
+}
+
+export type PostmanCollectionBundle = {
+  name: string;
+  description: string;
+  defaults: CollectionDefaults;
+  folderPaths: string[][];
+  requests: SavedRequest[];
+};
+
+// Everything Postman hangs off the collection itself — variables, auth, and
+// the pre-request/test scripts that run for every request — maps onto Relay's
+// collection defaults. Reading only `item` (as the importer used to) silently
+// dropped all of it.
+export function postmanCollectionBundle(payload: unknown, collectionId: string, fallbackName: string): PostmanCollectionBundle {
+  if (!isRecord(payload) || !Array.isArray(payload.item)) throw new Error('Expected a Postman collection JSON file');
+  const info = isRecord(payload.info) ? payload.info : {};
+  const name = asText(info.name) || fallbackName;
+  const scripts = postmanScriptsFromEvents(payload.event);
+  return {
+    name,
+    description: postmanDescription(info.description),
+    defaults: {
+      ...emptyCollectionDefaults(),
+      variables: postmanVariableRows(payload.variable),
+      auth: postmanAuthConfig(payload.auth),
+      preRequestScript: scripts.preRequestScript,
+      testScript: scripts.testScript,
+    },
+    folderPaths: postmanFolderPaths(payload.item),
+    requests: postmanRequestsFromItems(payload.item, collectionId, name, undefined),
+  };
+}
+
+export type PostmanVariableBundle = {
+  scope: 'environment' | 'globals';
+  name: string;
+  values: KVRow[];
+};
+
+// Postman exports environments and globals as their own files, so an import
+// path that only understands collections leaves every {{variable}} unresolved.
+export function postmanVariableBundle(payload: unknown, fallbackName: string): PostmanVariableBundle | null {
+  if (!isRecord(payload) || !Array.isArray(payload.values) || Array.isArray(payload.item)) return null;
+  const scope = asText(payload._postman_variable_scope).toLowerCase() === 'globals' ? 'globals' : 'environment';
+  return {
+    scope,
+    name: asText(payload.name) || fallbackName,
+    values: postmanVariableRows(payload.values),
+  };
 }
 
 function postmanKv(row: KVRow, includeSecrets = false) {
@@ -426,22 +609,29 @@ function postmanItemFromRequest(req: SavedRequest, stripFn: (s: string, t: strin
   const auth = postmanAuthFromRelay(req.auth, includeSecrets);
   const body = postmanBodyFromRelay(req, stripFn, includeSecrets);
   const name = req.name || req.url;
+  const event = postmanEventsFromScripts(req.preRequestScript, req.testScript);
   return {
     name,
     [RELAY_EXTENSION_KEY]: relayExtensionFromRequest(req, stripFn, includeSecrets),
+    // `event` belongs to the item in the v2.1 schema — Postman ignores it
+    // when it sits under `request`, which is where Relay used to write it.
+    ...(event ? { event } : {}),
     request: {
       method: req.requestType === 'graphql' || req.bodyType === 'graphql' || req.requestType === 'grpc' ? 'POST' : req.method, header: req.headers.filter(r => r.key).map(row => postmanKv(row, includeSecrets)),
       url: postmanUrlFromRelay(req, includeSecrets),
+      ...(req.requestNotes ? { description: req.requestNotes } : {}),
       ...(auth ? { auth } : {}),
       ...(body ? { body } : {}),
-      ...(req.preRequestScript || req.testScript ? {
-        event: [
-          ...(req.preRequestScript ? [{ listen: 'prerequest', script: { type: 'text/javascript', exec: req.preRequestScript.split(/\r\n|\r|\n/) } }] : []),
-          ...(req.testScript ? [{ listen: 'test', script: { type: 'text/javascript', exec: req.testScript.split(/\r\n|\r|\n/) } }] : []),
-        ],
-      } : {}),
     },
   };
+}
+
+function postmanEventsFromScripts(preRequestScript: string, testScript: string) {
+  const events = [
+    ...(preRequestScript ? [{ listen: 'prerequest', script: { type: 'text/javascript', exec: preRequestScript.split(/\r\n|\r|\n/) } }] : []),
+    ...(testScript ? [{ listen: 'test', script: { type: 'text/javascript', exec: testScript.split(/\r\n|\r|\n/) } }] : []),
+  ];
+  return events.length ? events : undefined;
 }
 
 function addPostmanItemToTree(items: Record<string, unknown>[], path: string[], item: Record<string, unknown>) {
@@ -452,11 +642,25 @@ function addPostmanItemToTree(items: Record<string, unknown>[], path: string[], 
   addPostmanItemToTree(folder.item as Record<string, unknown>[], rest, item);
 }
 
-export function buildPostmanCollection(collectionName: string, collectionDescription: string, requests: SavedRequest[], stripFn: (s: string, t: string) => string, includeSecrets = false) {
+export function buildPostmanCollection(
+  collectionName: string,
+  collectionDescription: string,
+  requests: SavedRequest[],
+  stripFn: (s: string, t: string) => string,
+  includeSecrets = false,
+  defaults?: CollectionDefaults,
+) {
   const items: Record<string, unknown>[] = [];
   for (const req of requests) {
     addPostmanItemToTree(items, req.folderPath ?? [], postmanItemFromRequest(req, stripFn, includeSecrets));
   }
+  const event = postmanEventsFromScripts(defaults?.preRequestScript ?? '', defaults?.testScript ?? '');
+  const auth = defaults && defaults.auth.type !== 'none' && defaults.auth.type !== 'inherit'
+    ? postmanAuthFromRelay(defaults.auth, includeSecrets)
+    : undefined;
+  const variable = (defaults?.variables ?? [])
+    .filter(row => row.key)
+    .map(row => ({ ...postmanKv(row, includeSecrets), ...(row.secret ? { type: 'secret' } : {}) }));
   return {
     info: {
       _postman_id: crypto.randomUUID?.() ?? `relay-${Date.now()}`,
@@ -465,6 +669,9 @@ export function buildPostmanCollection(collectionName: string, collectionDescrip
       schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
     },
     item: items,
+    ...(auth ? { auth } : {}),
+    ...(event ? { event } : {}),
+    ...(variable.length ? { variable } : {}),
   };
 }
 

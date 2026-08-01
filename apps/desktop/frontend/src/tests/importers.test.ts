@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildInsomniaExport, insomniaRequestsFromResources } from '../lib/insomnia';
 import { buildOpenApiDocument, buildSwaggerDocument, openApiRequestsFromSpec, parseOpenApiDocument } from '../lib/openapi';
-import { buildPostmanCollection, buildPostmanEnvironment, postmanRequestsFromItems } from '../lib/postman';
+import { buildPostmanCollection, buildPostmanEnvironment, postmanCollectionBundle, postmanRequestsFromItems, postmanVariableBundle } from '../lib/postman';
 import { harRequestsFromLog } from '../lib/har';
 import { buildOpenCollectionFiles, openCollectionBundleFromFiles } from '../lib/opencollection';
 import { emptyCollectionDefaults } from '../lib/collectionDefaults';
@@ -324,6 +324,187 @@ describe('postmanRequestsFromItems', () => {
       params: [],
       settings: expect.objectContaining({ sioClientVersion: 'v2' }),
     });
+  });
+
+  it('imports pre-request and test scripts, and the request description', () => {
+    const requests = postmanRequestsFromItems([
+      {
+        name: 'Login',
+        event: [
+          { listen: 'prerequest', script: { type: 'text/javascript', exec: ['pm.variables.set("nonce", "1")'] } },
+          { listen: 'test', script: { type: 'text/javascript', exec: ['pm.test("ok", () => {', '  pm.response.to.have.status(200)', '})'] } },
+        ],
+        request: {
+          method: 'POST',
+          url: 'https://api.example.test/login',
+          description: 'Exchanges credentials for a token.',
+        },
+      },
+    ], 'collection-1', 'Postman API', undefined);
+
+    expect(requests[0].preRequestScript).toBe('pm.variables.set("nonce", "1")');
+    expect(requests[0].testScript).toBe('pm.test("ok", () => {\n  pm.response.to.have.status(200)\n})');
+    expect(requests[0].requestNotes).toBe('Exchanges credentials for a token.');
+  });
+
+  it('accepts a script exec written as a single string and skips disabled events', () => {
+    const requests = postmanRequestsFromItems([
+      {
+        name: 'Ping',
+        event: [
+          { listen: 'prerequest', script: { exec: 'pm.variables.set("a", "1")' } },
+          { listen: 'test', disabled: true, script: { exec: ['pm.test("never", () => {})'] } },
+        ],
+        request: { method: 'GET', url: 'https://api.example.test/ping' },
+      },
+    ], 'collection-1', 'Postman API', undefined);
+
+    expect(requests[0].preRequestScript).toBe('pm.variables.set("a", "1")');
+    expect(requests[0].testScript).toBe('');
+  });
+
+  it('flattens folder scripts into every request the folder contains', () => {
+    const requests = postmanRequestsFromItems([
+      {
+        name: 'Billing',
+        event: [{ listen: 'prerequest', script: { exec: ['pm.variables.set("scope", "billing")'] } }],
+        item: [
+          {
+            name: 'Invoices',
+            event: [{ listen: 'prerequest', script: { exec: ['pm.variables.set("page", "1")'] } }],
+            request: { method: 'GET', url: 'https://api.example.test/invoices' },
+          },
+        ],
+      },
+    ], 'collection-1', 'Postman API', undefined);
+
+    expect(requests[0].preRequestScript).toBe(
+      '// --- from Postman folder "Billing" ---\npm.variables.set("scope", "billing")\n\npm.variables.set("page", "1")',
+    );
+  });
+
+  it('carries the whole OAuth 2.0 flow across, not just the access token', () => {
+    const requests = postmanRequestsFromItems([
+      {
+        name: 'Me',
+        request: {
+          method: 'GET',
+          url: 'https://api.example.test/me',
+          auth: {
+            type: 'oauth2',
+            oauth2: [
+              { key: 'accessToken', value: 'stale-token' },
+              { key: 'grant_type', value: 'authorization_code_with_pkce' },
+              { key: 'accessTokenUrl', value: 'https://id.example.test/token' },
+              { key: 'authUrl', value: 'https://id.example.test/authorize' },
+              { key: 'clientId', value: 'client-1' },
+              { key: 'clientSecret', value: 'secret-1' },
+              { key: 'scope', value: 'read write' },
+              { key: 'audience', value: 'https://api.example.test' },
+              { key: 'refreshToken', value: 'refresh-1' },
+              { key: 'client_authentication', value: 'body' },
+            ],
+          },
+        },
+      },
+    ], 'collection-1', 'Postman API', undefined);
+
+    expect(requests[0].auth).toMatchObject({
+      type: 'oauth2',
+      oauth2Token: 'stale-token',
+      oauth2GrantType: 'authorization_code',
+      oauth2UsePKCE: true,
+      oauth2TokenURL: 'https://id.example.test/token',
+      oauth2AuthURL: 'https://id.example.test/authorize',
+      oauth2ClientID: 'client-1',
+      oauth2Secret: 'secret-1',
+      oauth2Scope: 'read write',
+      oauth2Audience: 'https://api.example.test',
+      oauth2RefreshToken: 'refresh-1',
+      oauth2ClientAuth: 'body',
+    });
+  });
+
+  it('leaves a request with no auth anywhere inheriting from the collection', () => {
+    const requests = postmanRequestsFromItems([
+      { name: 'Ping', request: { method: 'GET', url: 'https://api.example.test/ping' } },
+    ], 'collection-1', 'Postman API', undefined);
+
+    expect(requests[0].auth.type).toBe('inherit');
+  });
+});
+
+describe('postmanCollectionBundle', () => {
+  const collection = {
+    info: { name: 'Billing API', description: 'Everything about invoices.', schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json' },
+    auth: { type: 'bearer', bearer: [{ key: 'token', value: '{{collectionToken}}' }] },
+    event: [
+      { listen: 'prerequest', script: { exec: ['pm.variables.set("collection", "yes")'] } },
+      { listen: 'test', script: { exec: ['pm.test("json", () => pm.response.json())'] } },
+    ],
+    variable: [
+      { key: 'baseUrl', value: 'https://api.example.test' },
+      { key: 'apiKey', value: 'k-1', type: 'secret' },
+      { key: 'legacy', value: 'off', disabled: true },
+    ],
+    item: [
+      { name: 'Empty folder', item: [] },
+      { name: 'Ping', request: { method: 'GET', url: '{{baseUrl}}/ping' } },
+    ],
+  };
+
+  it('lifts collection variables, auth, scripts, and description onto the defaults', () => {
+    const bundle = postmanCollectionBundle(collection, 'collection-1', 'fallback');
+
+    expect(bundle.name).toBe('Billing API');
+    expect(bundle.description).toBe('Everything about invoices.');
+    expect(bundle.defaults.auth).toMatchObject({ type: 'bearer', bearerToken: '{{collectionToken}}' });
+    expect(bundle.defaults.preRequestScript).toBe('pm.variables.set("collection", "yes")');
+    expect(bundle.defaults.testScript).toBe('pm.test("json", () => pm.response.json())');
+    expect(bundle.defaults.variables).toMatchObject([
+      { key: 'baseUrl', value: 'https://api.example.test', enabled: true },
+      { key: 'apiKey', value: 'k-1', secret: true },
+      { key: 'legacy', value: 'off', enabled: false },
+    ]);
+    expect(bundle.requests).toHaveLength(1);
+  });
+
+  it('keeps folders that hold no requests', () => {
+    expect(postmanCollectionBundle(collection, 'collection-1', 'fallback').folderPaths).toEqual([['Empty folder']]);
+  });
+
+  it('rejects a payload that is not a collection', () => {
+    expect(() => postmanCollectionBundle({ info: { name: 'x' } }, 'collection-1', 'fallback')).toThrow(/Postman collection/);
+  });
+});
+
+describe('postmanVariableBundle', () => {
+  it('reads a Postman environment export', () => {
+    const bundle = postmanVariableBundle({
+      name: 'Staging',
+      values: [
+        { key: 'baseUrl', value: 'https://staging.example.test', enabled: true, type: 'default' },
+        { key: 'token', value: 't-1', enabled: true, type: 'secret' },
+        { key: 'old', value: '', enabled: false, type: 'default' },
+      ],
+      _postman_variable_scope: 'environment',
+    }, 'fallback');
+
+    expect(bundle).toMatchObject({ scope: 'environment', name: 'Staging' });
+    expect(bundle?.values).toMatchObject([
+      { key: 'baseUrl', value: 'https://staging.example.test', enabled: true },
+      { key: 'token', value: 't-1', secret: true },
+      { key: 'old', enabled: false },
+    ]);
+  });
+
+  it('recognises a globals export', () => {
+    expect(postmanVariableBundle({ values: [{ key: 'g', value: '1' }], _postman_variable_scope: 'globals' }, 'fallback'))
+      .toMatchObject({ scope: 'globals', name: 'fallback' });
+  });
+
+  it('ignores collections', () => {
+    expect(postmanVariableBundle({ info: { name: 'API' }, item: [], values: [] }, 'fallback')).toBeNull();
   });
 });
 
@@ -980,6 +1161,41 @@ describe('buildPostmanCollection', () => {
       grpcMetadata: [expect.objectContaining({ key: 'authorization', value: 'Bearer {{token}}' })],
       bodyContent: '{"id":"1"}',
     });
+  });
+
+  it('round-trips scripts, docs, and collection defaults through Postman', () => {
+    const request = testRequest({
+      id: 'req-scripts',
+      name: 'Login',
+      preRequestScript: 'pm.variables.set("nonce", "1")',
+      testScript: 'pm.test("ok", () => pm.response.to.have.status(200))',
+      requestNotes: 'Exchanges credentials for a token.',
+    });
+    const defaults = {
+      ...emptyCollectionDefaults(),
+      variables: [testRow('baseUrl', 'https://api.example.test')],
+      auth: { ...emptyAuthState(), type: 'bearer' as const, bearerToken: '{{collectionToken}}' },
+      preRequestScript: 'pm.variables.set("collection", "yes")',
+      testScript: 'pm.test("json", () => pm.response.json())',
+    };
+
+    const exported = buildPostmanCollection('API', 'Docs.', [request], strip, true, defaults);
+    // The v2.1 schema hangs `event` off the item, not off `request`.
+    expect(exported.item[0]).toMatchObject({ event: expect.any(Array) });
+    expect(exported.item[0].request).toMatchObject({ description: 'Exchanges credentials for a token.' });
+
+    const bundle = postmanCollectionBundle(exported, 'collection-2', 'API');
+    expect(bundle.requests[0]).toMatchObject({
+      preRequestScript: 'pm.variables.set("nonce", "1")',
+      testScript: 'pm.test("ok", () => pm.response.to.have.status(200))',
+      requestNotes: 'Exchanges credentials for a token.',
+    });
+    expect(bundle.defaults).toMatchObject({
+      preRequestScript: 'pm.variables.set("collection", "yes")',
+      testScript: 'pm.test("json", () => pm.response.json())',
+      auth: expect.objectContaining({ type: 'bearer', bearerToken: '{{collectionToken}}' }),
+    });
+    expect(bundle.defaults.variables).toMatchObject([{ key: 'baseUrl', value: 'https://api.example.test' }]);
   });
 
   it('redacts raw URL query secrets in Insomnia export URLs', () => {
