@@ -46,8 +46,19 @@ var requestAuthSecretFields = []string{
 	"oauth2Secret",
 	"oauth2Token",
 	"oauth2RefreshToken",
+	"oauth2Password",
+	"oauth2AssertionPrivateKey",
 	"awsAccessKey",
 	"awsSecretKey",
+	"awsSessionToken",
+}
+
+// requestSettingSecretFields are secrets that live outside the auth block. The
+// client-key passphrase is one: a literal value typed into the request's
+// Settings tab used to be written to the workspace YAML verbatim, so a
+// git-backed workspace committed it in plain text.
+var requestSettingSecretFields = []string{
+	"clientKeyPassword",
 }
 
 var requestSecretRowFields = []string{
@@ -1250,6 +1261,20 @@ func sanitizeRequestsForFilesystem(requests []map[string]any, existingSecrets, s
 				}
 			}
 		}
+		if settings := nestedMap(next, "settings"); settings != nil && id != "" {
+			for _, field := range requestSettingSecretFields {
+				value := stringFromAny(settings[field])
+				key := requestSettingSecretKey(id, field)
+				if placeholderKey, ok := relaySecretKeyFromPlaceholder(value); ok {
+					if existingValue, exists := existingSecrets[placeholderKey]; exists {
+						secrets[placeholderKey] = existingValue
+					}
+				} else if value != "" {
+					secrets[key] = value
+					settings[field] = relaySecretPlaceholder(key)
+				}
+			}
+		}
 		if id != "" {
 			sanitizeRequestSecretRows(next, id, existingSecrets, secrets)
 		}
@@ -1276,6 +1301,20 @@ func sanitizeCollectionSecrets(collection map[string]any, existingSecrets, secre
 			} else if value != "" {
 				secrets[key] = value
 				auth[field] = relaySecretPlaceholder(key)
+			}
+		}
+	}
+	if settings := nestedMap(defaults, "settings"); settings != nil {
+		for _, field := range requestSettingSecretFields {
+			value := stringFromAny(settings[field])
+			key := collectionSettingSecretKey(collectionID, field)
+			if placeholderKey, ok := relaySecretKeyFromPlaceholder(value); ok {
+				if existingValue, exists := existingSecrets[placeholderKey]; exists {
+					secrets[placeholderKey] = existingValue
+				}
+			} else if value != "" {
+				secrets[key] = value
+				settings[field] = relaySecretPlaceholder(key)
 			}
 		}
 	}
@@ -1433,6 +1472,15 @@ func mergeRequestSecrets(request map[string]any, secrets map[string]string) {
 			}
 		}
 	}
+	if settings := nestedMap(request, "settings"); settings != nil {
+		for _, field := range requestSettingSecretFields {
+			if key, ok := relaySecretKeyFromPlaceholder(stringFromAny(settings[field])); ok {
+				if value, exists := secrets[key]; exists {
+					settings[field] = value
+				}
+			}
+		}
+	}
 	mergeRequestSecretRows(request, secrets)
 }
 
@@ -1447,6 +1495,15 @@ func mergeCollectionSecrets(collection map[string]any, secrets map[string]string
 			if key, ok := relaySecretKeyFromPlaceholder(stringFromAny(auth[field])); ok {
 				if value, exists := secrets[key]; exists {
 					auth[field] = value
+				}
+			}
+		}
+	}
+	if settings := nestedMap(defaults, "settings"); settings != nil {
+		for _, field := range requestSettingSecretFields {
+			if key, ok := relaySecretKeyFromPlaceholder(stringFromAny(settings[field])); ok {
+				if value, exists := secrets[key]; exists {
+					settings[field] = value
 				}
 			}
 		}
@@ -1858,12 +1915,20 @@ func requestSecretKey(requestID, field string) string {
 	return "request." + requestID + ".auth." + field
 }
 
+func requestSettingSecretKey(requestID, field string) string {
+	return "request." + requestID + ".settings." + field
+}
+
 func requestRowSecretKey(requestID, field, rowID string) string {
 	return "request." + requestID + "." + field + ".row." + rowID + ".value"
 }
 
 func collectionSecretKey(collectionID, field string) string {
 	return "collection." + collectionID + ".auth." + field
+}
+
+func collectionSettingSecretKey(collectionID, field string) string {
+	return "collection." + collectionID + ".settings." + field
 }
 
 func collectionRowSecretKey(collectionID, field, rowID string) string {

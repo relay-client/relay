@@ -30,6 +30,9 @@ var savedRequestSettingDefaults = map[string]any{
 	"wsReconnectAttempts":          float64(0),
 	"wsReconnectIntervalMs":        float64(5000),
 	"wsMaxMessageSizeMb":           float64(10),
+	"wsKeepAliveIntervalMs":        float64(0),
+	"sseDisableReconnect":          false,
+	"sseReconnectIntervalMs":       float64(0),
 	"sioClientVersion":             "v3",
 	"sioPath":                      "/socket.io",
 	"sioNamespace":                 "/",
@@ -44,19 +47,45 @@ var collectionFieldDefaults = map[string]any{
 	"collapsed": false,
 }
 
+// authActiveFields lists, per auth type, the fields that belong to that type and
+// are therefore written to the workspace YAML. Everything else is dropped so a
+// request that switched from Basic to Bearer does not leave the old credentials
+// behind in a file that gets committed.
+//
+// A field missing from this map is a field silently lost on every save, so the
+// lists are checked against the frontend AuthState by TestAuthActiveFieldsCover
+// AuthState — add the field here whenever one is added to the model.
+//
+// "inherit" carries no fields of its own but must survive: dropping it turns a
+// request that inherits its collection's auth into one that sends none.
 var authActiveFields = map[string][]string{
-	"none":   nil,
-	"bearer": {"bearerToken"},
-	"basic":  {"basicUser", "basicPass"},
-	"digest": {"basicUser", "basicPass"},
-	"apikey": {"apiKeyName", "apiKeyValue", "apiKeyIn"},
-	"oauth2": {"oauth2GrantType", "oauth2AuthURL", "oauth2TokenURL", "oauth2ClientID", "oauth2Secret", "oauth2Scope", "oauth2Token", "oauth2RefreshToken", "oauth2TokenExpiry", "oauth2UsePKCE"},
-	"aws":    {"awsAccessKey", "awsSecretKey", "awsRegion", "awsService"},
+	"none":    nil,
+	"inherit": nil,
+	"bearer":  {"bearerToken"},
+	"basic":   {"basicUser", "basicPass"},
+	"digest":  {"basicUser", "basicPass"},
+	"apikey":  {"apiKeyName", "apiKeyValue", "apiKeyIn"},
+	"oauth2": {
+		"oauth2GrantType", "oauth2AuthURL", "oauth2DeviceAuthURL", "oauth2TokenURL",
+		"oauth2ClientID", "oauth2Secret", "oauth2Scope", "oauth2Audience",
+		"oauth2Token", "oauth2RefreshToken", "oauth2TokenExpiry", "oauth2UsePKCE",
+		"oauth2Username", "oauth2Password", "oauth2ClientAuth",
+		"oauth2AssertionAlgorithm", "oauth2AssertionPrivateKey",
+		"oauth2AssertionKeyID", "oauth2AssertionAudience",
+	},
+	"aws": {"awsAccessKey", "awsSecretKey", "awsSessionToken", "awsRegion", "awsService"},
 }
+
+// authTypesWithoutFields keeps a bare `type:` in the file for auth types that
+// carry no other data. Only "none" is safe to drop entirely, because a missing
+// auth block already loads back as "none".
+var authTypesWithoutFields = map[string]bool{"inherit": true}
 
 var requestRowFieldsForStrip = []string{"params", "headers", "formRows", "sioEvents", "grpcMetadata"}
 
 var requestSettingFields = []string{
+	"sseDisableReconnect",
+	"sseReconnectIntervalMs",
 	"httpVersion",
 	"enableSSLVerification",
 	"followRedirects",
@@ -78,6 +107,7 @@ var requestSettingFields = []string{
 	"wsReconnectAttempts",
 	"wsReconnectIntervalMs",
 	"wsMaxMessageSizeMb",
+	"wsKeepAliveIntervalMs",
 	"sioClientVersion",
 	"sioPath",
 	"sioNamespace",
@@ -89,6 +119,8 @@ var requestSettingFields = []string{
 }
 
 var httpRequestSettingFields = []string{
+	"sseDisableReconnect",
+	"sseReconnectIntervalMs",
 	"httpVersion",
 	"enableSSLVerification",
 	"followRedirects",
@@ -123,6 +155,7 @@ var webSocketRequestSettingFields = []string{
 	"wsReconnectAttempts",
 	"wsReconnectIntervalMs",
 	"wsMaxMessageSizeMb",
+	"wsKeepAliveIntervalMs",
 }
 
 var socketIORequestSettingFields = append(append([]string{}, webSocketRequestSettingFields...),
@@ -401,7 +434,7 @@ func stripAuthForFilesystem(request map[string]any) {
 			delete(auth, key)
 		}
 	}
-	if len(auth) <= 1 {
+	if len(auth) <= 1 && !authTypesWithoutFields[authType] {
 		delete(request, "auth")
 	}
 }
