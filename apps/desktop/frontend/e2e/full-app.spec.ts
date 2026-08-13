@@ -144,6 +144,7 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
       environment: {},
       calls: [],
       cookies: {},
+      historyResponses: {},
     };
     const eventHandlers = {};
     const grpcInventoryMethod = {
@@ -283,6 +284,27 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
         state.store = parseStore(payload);
         state.savedStores.push(clone(state.store));
         return true;
+      },
+      // Stored history responses. Modelled after internal/api/history_store.go:
+      // the bodies live outside the request store, keyed by the entry's id.
+      SaveHistoryResponse: async (id, payload) => {
+        state.historyResponses[id] = payload;
+        return { stored: true, truncated: false };
+      },
+      LoadHistoryResponse: async (id) => {
+        const payload = state.historyResponses[id];
+        return payload ? { stored: true, truncated: false, payload } : { stored: false, truncated: false };
+      },
+      PruneHistoryResponses: async (keepIds) => {
+        const keep = new Set(keepIds);
+        for (const id of Object.keys(state.historyResponses)) {
+          if (!keep.has(id)) delete state.historyResponses[id];
+        }
+        return '';
+      },
+      ClearHistoryResponses: async () => {
+        state.historyResponses = {};
+        return '';
       },
       GetEnvironment: async () => ({ ...state.environment }),
       SetEnvironment: async (values) => {

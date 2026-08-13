@@ -999,7 +999,9 @@
 
 .history-entry-main {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
+  /* badge · url · status · stored-response dot. The dot's column collapses to
+     nothing when the entry has no stored response. */
+  grid-template-columns: 42px minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 8px;
   min-width: 0;
@@ -1227,4 +1229,14 @@
 .environment-item-actions button.danger,
 .btn-secondary.danger {
   color: var(--delete);
+}
+
+/* Marks a history row whose response was kept, so the menu's "View response"
+   is discoverable without opening every row to find out. */
+.history-stored {
+  flex: 0 0 auto;
+  font-size: 9px;
+  line-height: 1;
+  color: var(--text-3);
+  opacity: 0.75;
 }
