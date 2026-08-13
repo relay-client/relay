@@ -7,6 +7,11 @@ type CurlAuth = {
   keyName?: string;
   keyValue?: string;
   keyIn?: string;
+  awsAccessKey?: string;
+  awsSecretKey?: string;
+  awsSessionToken?: string;
+  awsRegion?: string;
+  awsService?: string;
 };
 
 type CurlRequest = {
@@ -43,12 +48,25 @@ export function toCurl(req: CurlRequest): string {
   }
   parts.push(shellQuote(urlStr));
 
+  // Digest, OAuth 2.0 and AWS SigV4 used to fall through this switch and vanish,
+  // so the copied command came back 401 without saying anything was missing.
   switch (req.auth.type) {
     case 'bearer':
+    case 'oauth2':
       if (req.auth.token) parts.push(`-H ${shellQuote(`Authorization: Bearer ${req.auth.token}`)}`);
       break;
     case 'basic':
       parts.push(`-u ${shellQuote(`${req.auth.username}:${req.auth.password}`)}`);
+      break;
+    case 'digest':
+      parts.push('--digest', `-u ${shellQuote(`${req.auth.username ?? ''}:${req.auth.password ?? ''}`)}`);
+      break;
+    case 'aws':
+      // curl signs the request itself with --aws-sigv4, so the command is
+      // reproducible rather than carrying a signature that is already stale.
+      parts.push(`--aws-sigv4 ${shellQuote(`aws:amz:${req.auth.awsRegion ?? ''}:${req.auth.awsService ?? ''}`)}`);
+      parts.push(`-u ${shellQuote(`${req.auth.awsAccessKey ?? ''}:${req.auth.awsSecretKey ?? ''}`)}`);
+      if (req.auth.awsSessionToken) parts.push(`-H ${shellQuote(`x-amz-security-token: ${req.auth.awsSessionToken}`)}`);
       break;
     case 'apikey':
       if (req.auth.keyIn === 'header' && req.auth.keyName) {
