@@ -34,6 +34,10 @@ export function ClearCookies(arg1) {
   return window['go']['api']['App']['ClearCookies'](arg1);
 }
 
+export function ClearHistoryResponses() {
+  return window['go']['api']['App']['ClearHistoryResponses']();
+}
+
 export function ClearVariables() {
   return window['go']['api']['App']['ClearVariables']();
 }
@@ -266,6 +270,10 @@ export function ListCookies(arg1) {
   return window['go']['api']['App']['ListCookies'](arg1);
 }
 
+export function LoadHistoryResponse(arg1) {
+  return window['go']['api']['App']['LoadHistoryResponse'](arg1);
+}
+
 export function LoadRequestStore() {
   return window['go']['api']['App']['LoadRequestStore']();
 }
@@ -288,6 +296,10 @@ export function OpenFileDialog(arg1) {
 
 export function OpenWorkspaceRoot(arg1) {
   return window['go']['api']['App']['OpenWorkspaceRoot'](arg1);
+}
+
+export function PruneHistoryResponses(arg1) {
+  return window['go']['api']['App']['PruneHistoryResponses'](arg1);
 }
 
 export function Quit() {
@@ -324,6 +336,10 @@ export function SSEDisconnect(arg1) {
 
 export function SaveFileDialog(arg1, arg2) {
   return window['go']['api']['App']['SaveFileDialog'](arg1, arg2);
+}
+
+export function SaveHistoryResponse(arg1, arg2) {
+  return window['go']['api']['App']['SaveHistoryResponse'](arg1, arg2);
 }
 
 export function SaveRequestStore(arg1) {

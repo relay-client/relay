@@ -1,4 +1,5 @@
 import { webSocketConnect, webSocketDisconnect, webSocketSend } from '../../backend';
+import { emptyHttpResponse } from '../../wire';
 import type { HttpRequest, HttpResponse } from '../../backend';
 import type { BodyType, RequestTab, SavedRequest, WebSocketMessageEntry, WebSocketSession } from '../../types/models';
 import { byteLength, requestTitleFrom } from '../../utils';
@@ -142,6 +143,7 @@ export const websocketFeature = {
     this._wsHistoryRecorded.add(sessionId);
     const startedAt = this._wsStartedAt.get(sessionId) ?? timestamp;
     await this.recordRequestHistory({
+      ...emptyHttpResponse(),
       statusCode,
       status,
       headers: [],

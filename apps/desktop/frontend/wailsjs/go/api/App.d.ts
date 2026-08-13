@@ -19,6 +19,8 @@ export function CheckForUpdate():Promise<model.UpdateCheckResult>;
 
 export function ClearCookies(arg1:string):Promise<Array<model.Cookie>>;
 
+export function ClearHistoryResponses():Promise<string>;
+
 export function ClearVariables():Promise<void>;
 
 export function ClipboardGet():Promise<string>;
@@ -135,6 +137,8 @@ export function Hide():Promise<void>;
 
 export function ListCookies(arg1:string):Promise<Array<model.Cookie>>;
 
+export function LoadHistoryResponse(arg1:string):Promise<api.HistoryResponseResult>;
+
 export function LoadRequestStore():Promise<string>;
 
 export function LoadWorkspaceDiagnostics():Promise<Array<api.WorkspaceDiagnostic>>;
@@ -146,6 +150,8 @@ export function OpenDirectoryDialogWithDefault(arg1:string,arg2:string):Promise<
 export function OpenFileDialog(arg1:string):Promise<string>;
 
 export function OpenWorkspaceRoot(arg1:string):Promise<api.WorkspaceOpenResult>;
+
+export function PruneHistoryResponses(arg1:Array<string>):Promise<string>;
 
 export function Quit():Promise<void>;
 
@@ -164,6 +170,8 @@ export function SSEConnect(arg1:string,arg2:model.HttpRequest):Promise<void>;
 export function SSEDisconnect(arg1:string):Promise<void>;
 
 export function SaveFileDialog(arg1:string,arg2:string):Promise<string>;
+
+export function SaveHistoryResponse(arg1:string,arg2:string):Promise<api.HistoryResponseResult>;
 
 export function SaveRequestStore(arg1:string):Promise<boolean>;
 

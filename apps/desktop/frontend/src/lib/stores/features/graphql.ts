@@ -1,4 +1,5 @@
 import { openFileDialog, readTextFile, sendHttpRequest } from '../../backend';
+import { emptyAuthConfig, emptyHttpRequest } from '../../wire';
 import type { HttpRequest } from '../../backend';
 import {
   DEFAULT_GRAPHQL_QUERY,
@@ -131,28 +132,14 @@ export const graphqlFeature = {
     const requestId = `graphql-schema-url-${this.activeRequestId || newRequestId()}-${Date.now()}`;
     const effectiveSettings = this.requestWithCollectionDefaults(this.snapshotActiveRequest()).settings;
     const resp = await sendHttpRequest({
+      ...emptyHttpRequest(),
       requestId,
       method: 'GET',
       url: resolvedUrl,
       params: [],
       headers: [{ key: 'Accept', value: 'application/json, application/graphql, text/plain, */*', enabled: true, isFile: false, fileName: '' }],
-      auth: {
-        type: 'none',
-        token: '',
-        username: '',
-        password: '',
-        keyName: '',
-        keyValue: '',
-        keyIn: 'header',
-        oauth2TokenURL: '',
-        oauth2ClientID: '',
-        oauth2Secret: '',
-        oauth2Scope: '',
-        awsAccessKey: '',
-        awsSecretKey: '',
-        awsRegion: '',
-        awsService: '',
-      },
+      // Schema introspection is deliberately unauthenticated.
+      auth: emptyAuthConfig(),
       bodyType: 'none',
       body: '',
       bodyFilePath: '',

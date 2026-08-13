@@ -1,4 +1,5 @@
 import { socketIOConnect, socketIODisconnect, socketIOEmit } from '../../backend';
+import { emptyHttpResponse } from '../../wire';
 import type { HttpRequest, HttpResponse } from '../../backend';
 import type { RequestTab, SavedRequest, SIOArg, SocketIOMessageEntry, SocketIOSession } from '../../types/models';
 import { requestTitleFrom } from '../../utils';
@@ -127,7 +128,7 @@ export const socketioFeature = {
     if (!requestSnapshot) return;
     this._sioHistoryRecorded.add(sessionId);
     const startedAt = this._sioStartedAt.get(sessionId) ?? timestamp;
-    await this.recordRequestHistory({ statusCode, status, headers: [], body: '', duration: Math.max(0, timestamp - startedAt), size: 0, preRequestResult: { tests: [] }, testResult: { tests: [] } }, requestSnapshot);
+    await this.recordRequestHistory({ ...emptyHttpResponse(), statusCode, status, duration: Math.max(0, timestamp - startedAt) }, requestSnapshot);
   },
   async socketIOConnect(this: SocketIOHost) {
     const id = this.activeRequestId;

@@ -1,12 +1,14 @@
 import {
-  gitStatus, gitDiff, gitOutgoingChanges, gitCommitLogPage, gitCommitDiff, gitConflictFile, gitResolveConflictFile,
-  gitContinueOperation, gitAbortOperation, gitStashWorkspace, gitStashPopWorkspace, gitFetchWorkspace, gitPullWorkspace,
-  gitPullBranch, gitCloneWorkspace, gitInitWorkspace, gitAddRemote, gitTestRemote, gitListBranches, gitCheckoutBranch,
-  gitCreateBranch, gitCreateTrackingBranch, gitDeleteBranch, gitRenameBranch, gitStageWorkspaceFiles, gitCommitWorkspace,
-  gitCommitWorkspaceFiles, gitPushWorkspace, gitForcePushWorkspace, gitDiscardWorkspaceFile, gitDiscardWorkspaceFiles,
-  gitDiscardWorkspaceChanges, gitStoreToken, gitSetSshKey, gitCloneWorkspaceWithAuth, gitSshUrlFor, gitRemoteUrl,
-  gitSetRemoteUrl, openWorkspaceRoot, openDirectoryDialog,
+  gitStatus, gitDiff, gitOutgoingChanges, gitCommitLogPage, gitCommitDiff, gitConflictFile,
+  gitResolveConflictFile, gitContinueOperation, gitAbortOperation, gitStashWorkspace, gitStashPopWorkspace,
+  gitFetchWorkspace, gitPullWorkspace, gitPullBranch, gitCloneWorkspace, gitInitWorkspace, gitAddRemote,
+  gitTestRemote, gitListBranches, gitCheckoutBranch, gitCreateBranch, gitCreateTrackingBranch,
+  gitDeleteBranch, gitRenameBranch, gitStageWorkspaceFiles, gitCommitWorkspace, gitCommitWorkspaceFiles,
+  gitPushWorkspace, gitForcePushWorkspace, gitDiscardWorkspaceFile, gitDiscardWorkspaceFiles,
+  gitDiscardWorkspaceChanges, gitStoreToken, gitSetSshKey, gitCloneWorkspaceWithAuth, gitSshUrlFor,
+  gitRemoteUrl, gitSetRemoteUrl, openWorkspaceRoot, openDirectoryDialog,
 } from '../../backend';
+import { EMPTY_GIT_STATUS } from '../../wire';
 import type {
   GitBranchListResult, GitConflictFileResult, GitDiffResult, GitLogResult, GitOperationResult, GitPullSummary,
   GitWorkspaceStatus, WorkspaceOpenResult,
@@ -19,26 +21,9 @@ import type { TopView } from '../ui';
 export const GIT_LOG_PAGE_SIZE = 60;
 const GIT_REMOTE_HELP = 'Private repositories work through your system Git credentials. SSH URLs are recommended, for example git@gitlab.com:team/project.git. Relay does not store Git tokens.';
 
-export const EMPTY_GIT_STATUS: GitWorkspaceStatus = {
-  isRepo: false,
-  workspaceRoot: '',
-  root: '',
-  missingRoot: false,
-  branch: '',
-  head: '',
-  upstream: '',
-  upstreamGone: false,
-  ahead: 0,
-  behind: 0,
-  pushCommitCount: 0,
-  pushRemote: '',
-  operation: '',
-  clean: true,
-  files: [],
-  remotes: [],
-  stashes: [],
-  error: '',
-};
+// Re-exported so existing imports keep working; the value itself lives with the
+// wire types, which is what it mirrors.
+export { EMPTY_GIT_STATUS };
 
 export const EMPTY_GIT_DIFF: GitDiffResult = {
   path: '',

@@ -504,6 +504,24 @@ export namespace api {
 	    }
 	}
 	
+	export class HistoryResponseResult {
+	    stored: boolean;
+	    truncated: boolean;
+	    payload?: string;
+	    error?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new HistoryResponseResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.stored = source["stored"];
+	        this.truncated = source["truncated"];
+	        this.payload = source["payload"];
+	        this.error = source["error"];
+	    }
+	}
 	export class SaveRequestStoreResult {
 	    ok: boolean;
 	    error?: string;
@@ -1348,6 +1366,7 @@ export namespace model {
 	    timeline?: TimelineEvent[];
 	    skipped?: boolean;
 	    skipReason?: string;
+	    warnings?: string[];
 	    previewImageBase64?: string;
 	    previewMediaType?: string;
 	    bodyIsBinary?: boolean;
@@ -1376,6 +1395,7 @@ export namespace model {
 	        this.timeline = this.convertValues(source["timeline"], TimelineEvent);
 	        this.skipped = source["skipped"];
 	        this.skipReason = source["skipReason"];
+	        this.warnings = source["warnings"];
 	        this.previewImageBase64 = source["previewImageBase64"];
 	        this.previewMediaType = source["previewMediaType"];
 	        this.bodyIsBinary = source["bodyIsBinary"];
