@@ -15,6 +15,7 @@
   let {
     requestTab = $bindable<RequestTab>('params'),
     requestType = 'http',
+    method = 'GET',
     paramsCount,
     authConfigured,
     headerCount,
@@ -27,6 +28,7 @@
   }: {
     requestTab: RequestTab;
     requestType?: RequestType;
+    method?: string;
     paramsCount: number;
     authConfigured: boolean;
     headerCount: number;
@@ -74,12 +76,16 @@
       ];
     }
 
+    // WebSocket and Socket.IO handshakes carry auth like any other request —
+    // the sender applies it — but the tab was missing, so the only way to reach
+    // a protected socket was to hand-write an Authorization header.
     if (requestType === 'socketio') {
       return [
         docs,
         { id: 'body', label: 'Message', badge: bodyHasContent ? bodyBadgeLabel : undefined, badgeKind: 'on' },
         { id: 'events', label: 'Events', badge: listenEventCount > 0 ? String(listenEventCount) : undefined, badgeKind: 'on' },
         params,
+        auth,
         headers,
         settings,
       ];
@@ -90,7 +96,22 @@
         docs,
         { id: 'body', label: 'Message', badge: bodyHasContent ? bodyBadgeLabel : undefined, badgeKind: 'on' },
         params,
+        auth,
         headers,
+        settings,
+      ];
+    }
+
+    // An SSE request is an HTTP request whose method selector says SSE. It is
+    // subscribed to rather than sent, and the SSE path never runs pre-request or
+    // test scripts — so offering the tab would promise something that never happens.
+    if (method === 'SSE') {
+      return [
+        docs,
+        params,
+        auth,
+        headers,
+        { id: 'body', label: 'Body', badge: bodyHasContent ? bodyBadgeLabel : undefined, badgeKind: 'on' },
         settings,
       ];
     }

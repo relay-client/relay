@@ -43,6 +43,9 @@ type PreferencesHost = {
   wsReconnectAttempts: number;
   wsReconnectIntervalMs: number;
   wsMaxMessageSizeMb: number;
+  wsKeepAliveIntervalMs: number;
+  sseDisableReconnect: boolean;
+  sseReconnectIntervalMs: number;
   sioClientVersion: import('../../types/models').SocketIOClientVersion;
   sioPath: string;
   sioNamespace: string;
@@ -152,6 +155,9 @@ export const preferencesFeature = {
       wsReconnectAttempts: this.wsReconnectAttempts,
       wsReconnectIntervalMs: this.wsReconnectIntervalMs,
       wsMaxMessageSizeMb: this.wsMaxMessageSizeMb,
+      wsKeepAliveIntervalMs: this.wsKeepAliveIntervalMs,
+      sseDisableReconnect: this.sseDisableReconnect,
+      sseReconnectIntervalMs: this.sseReconnectIntervalMs,
       sioClientVersion: this.sioClientVersion,
       sioPath: this.sioPath,
       sioNamespace: this.sioNamespace,
@@ -189,6 +195,9 @@ export const preferencesFeature = {
     this.wsReconnectAttempts = settings.wsReconnectAttempts ?? DEFAULT_REQUEST_SETTINGS.wsReconnectAttempts;
     this.wsReconnectIntervalMs = settings.wsReconnectIntervalMs ?? DEFAULT_REQUEST_SETTINGS.wsReconnectIntervalMs;
     this.wsMaxMessageSizeMb = settings.wsMaxMessageSizeMb ?? DEFAULT_REQUEST_SETTINGS.wsMaxMessageSizeMb;
+    this.wsKeepAliveIntervalMs = settings.wsKeepAliveIntervalMs ?? DEFAULT_REQUEST_SETTINGS.wsKeepAliveIntervalMs;
+    this.sseDisableReconnect = settings.sseDisableReconnect ?? DEFAULT_REQUEST_SETTINGS.sseDisableReconnect;
+    this.sseReconnectIntervalMs = settings.sseReconnectIntervalMs ?? DEFAULT_REQUEST_SETTINGS.sseReconnectIntervalMs;
     this.sioClientVersion = settings.sioClientVersion ?? DEFAULT_REQUEST_SETTINGS.sioClientVersion;
     this.sioPath = settings.sioPath ?? DEFAULT_REQUEST_SETTINGS.sioPath;
     this.sioNamespace = settings.sioNamespace ?? DEFAULT_REQUEST_SETTINGS.sioNamespace;

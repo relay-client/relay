@@ -191,6 +191,8 @@ export type RequestSettings = {
   browserEmulation: boolean; browserOrigin: string; browserWithCredentials: boolean;
   browserEnforceCORS: boolean; browserEnforceCSP: boolean; browserCSP: string;
   wsHandshakeTimeoutMs: number; wsReconnectAttempts: number; wsReconnectIntervalMs: number; wsMaxMessageSizeMb: number;
+  wsKeepAliveIntervalMs: number;
+  sseDisableReconnect: boolean; sseReconnectIntervalMs: number;
   sioClientVersion: SocketIOClientVersion; sioPath: string; sioNamespace: string;
   grpcUseTls: boolean; grpcUseReflection: boolean; grpcServerName: string; grpcIncludeDefaultValues: boolean; grpcMaxResponseMessageSizeMb: number;
 };
@@ -306,6 +308,14 @@ export type CollectionRunnerResult = {
 export type RequestHistoryEntry = {
   id: string; request: SavedRequest; statusCode: number; status: string;
   duration: number; createdAt: number;
+  // What came back, so a past response can be reopened rather than only its
+  // status line remembered. The body itself is not here: it lives in its own
+  // encrypted file, because the request store is rewritten in full on every
+  // autosave. These fields describe it well enough to render the row.
+  responseStored?: boolean;
+  responseSize?: number;
+  responseContentType?: string;
+  responseTruncated?: boolean;
 };
 export type RequestStore = {
   version: number; activeId: string; activeWorkspaceId: string; activeEnvironmentId?: string;

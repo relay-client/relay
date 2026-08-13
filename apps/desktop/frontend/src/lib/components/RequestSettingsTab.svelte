@@ -233,6 +233,32 @@
       <input class="kv-input setting-proxy" type="text" placeholder="http://localhost:8080" bind:value={vm.proxyUrl} spellcheck="false" autocomplete="off" oninput={() => vm.markRequestSettingOverride('proxyUrl')} />
     </label>
 
+    <!-- SSE is an HTTP request whose method selector is set to SSE. -->
+    {#if vm.method === 'SSE'}
+      <label class="postman-setting">
+        <span class="setting-copy">
+          <strong>Reconnect automatically</strong>
+          <span>Reconnect the way a browser EventSource does, resuming from the last event id. Turn this off to see a failing stream stop instead of retrying.</span>
+        </span>
+        <span class="switch-control">
+          <input type="checkbox" checked={!vm.sseDisableReconnect} onchange={(event) => { vm.sseDisableReconnect = !(event.currentTarget as HTMLInputElement).checked; vm.markRequestSettingOverride('sseDisableReconnect'); }} />
+          <span class="switch-track"></span>
+          <span class="switch-state">{vm.sseDisableReconnect ? 'OFF' : 'ON'}</span>
+        </span>
+      </label>
+
+      <label class="postman-setting">
+        <span class="setting-copy">
+          <strong>Reconnect interval</strong>
+          <span>Wait this long before reconnecting. Leave at 0 to follow the interval the server sends in its <code>retry:</code> field.</span>
+        </span>
+        <span class="setting-inline-number">
+          <input class="setting-number" type="number" bind:value={vm.sseReconnectIntervalMs} min="0" max="300000" step="500" oninput={() => vm.markRequestSettingOverride('sseReconnectIntervalMs')} />
+          <span>ms</span>
+        </span>
+      </label>
+    {/if}
+
     <BrowserSecuritySettings />
   </div>
 </div>
