@@ -1,4 +1,5 @@
 import { grpcDiscover, openDirectoryDialog, openFileDialog, sendGrpcRequest } from '../../backend';
+import { emptyHttpResponse, emptyScriptResult } from '../../wire';
 import type { GrpcRequest, HttpResponse } from '../../backend';
 import { DEFAULT_GRPC_MESSAGE } from '../../requestBodyDefaults';
 import type {
@@ -410,6 +411,7 @@ export const grpcFeature = {
         if (this.requestIsActive(requestId)) this.requestError = resp.error;
         if (resp.error !== REQUEST_CANCELED_ERROR) {
           await this.recordRequestHistory({
+            ...emptyHttpResponse(),
             statusCode: 0,
             status: 'gRPC',
             error: resp.error,
@@ -417,8 +419,8 @@ export const grpcFeature = {
             body: resp.body ?? '',
             duration: resp.duration ?? 0,
             size: resp.size ?? 0,
-            preRequestResult: resp.preRequestResult ?? { tests: [] },
-            testResult: resp.testResult ?? { tests: [] },
+            preRequestResult: resp.preRequestResult ?? emptyScriptResult(),
+            testResult: resp.testResult ?? emptyScriptResult(),
           }, requestSnapshot);
         }
         return;
@@ -430,20 +432,21 @@ export const grpcFeature = {
           body: resp.body || this.grpcBodyFromMessages(resp.messages ?? []),
           timestamp: resp.timestamp || Date.now(),
           method: resp.method?.fullName ? resp.method : this.grpcSelectedMethodInfo(),
-          preRequestResult: resp.preRequestResult ?? { tests: [] },
-          testResult: resp.testResult ?? { tests: [] },
+          preRequestResult: resp.preRequestResult ?? emptyScriptResult(),
+          testResult: resp.testResult ?? emptyScriptResult(),
         }, requestId);
         this.setActiveGrpcResponseTab(resp.testResult?.tests?.length ? 'scripts' : 'messages', requestId);
       }
       await this.recordRequestHistory({
+        ...emptyHttpResponse(),
         statusCode: resp.grpcCode === 'OK' ? 200 : 0,
         status: resp.grpcCode || 'gRPC',
         headers: resp.headers ?? [],
         body: resp.body ?? '',
         duration: resp.duration ?? 0,
         size: resp.size ?? 0,
-        preRequestResult: resp.preRequestResult ?? { tests: [] },
-        testResult: resp.testResult ?? { tests: [] },
+        preRequestResult: resp.preRequestResult ?? emptyScriptResult(),
+        testResult: resp.testResult ?? emptyScriptResult(),
       }, requestSnapshot);
     } catch (e) {
       if (this.requestIsActive(requestId)) this.requestError = String(e);

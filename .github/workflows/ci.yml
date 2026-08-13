@@ -79,6 +79,23 @@ jobs:
           fi
           echo "All Go files are formatted."
 
+      # The frontend's wire types are derived from these bindings rather than
+      # restated by hand, so a stale generated file is a stale interface. This
+      # regenerates and fails if the result differs from what is committed.
+      - name: Check generated Wails bindings are current
+        working-directory: apps/desktop
+        run: |
+          go run github.com/wailsapp/wails/v2/cmd/wails@v2.13.0 generate module
+          # -c core.fileMode=false: the generator writes the vendored runtime
+          # files as 0755 while the repo stores 0644. Only the content matters.
+          if ! git -c core.fileMode=false diff --quiet -- frontend/wailsjs; then
+            echo "::error::wailsjs bindings are out of date. Run 'make bindings' and commit the result:"
+            git -c core.fileMode=false diff --stat -- frontend/wailsjs
+            git -c core.fileMode=false diff -- frontend/wailsjs
+            exit 1
+          fi
+          echo "Generated bindings match the Go source."
+
       - name: Vet Go
         run: go vet ./apps/desktop/...
 

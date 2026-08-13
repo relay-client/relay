@@ -1,4 +1,5 @@
 import { openFileDialog, readTextFile, saveFileDialog } from '../../backend';
+import { emptyHttpResponse } from '../../wire';
 import type { HttpResponse, ScriptResult } from '../../backend';
 import { countMatchesAsync, shouldVirtualizeResponseBody } from '../../response-render';
 import { diffResponseBodies, type ResponseDiff } from '../../responseDiff';
@@ -363,6 +364,7 @@ export const responseFeature = {
         ? 'text/html'
         : 'text/plain';
     const response: HttpResponse = {
+      ...emptyHttpResponse(),
       statusCode: 200,
       status: '200 OK',
       headers: [{ key: 'Content-Type', value: contentType, enabled: true, isFile: false, fileName: '' }],

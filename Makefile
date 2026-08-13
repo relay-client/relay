@@ -46,7 +46,7 @@ GITHUB_REPO := $(shell git remote get-url origin 2>/dev/null | sed 's|.*github.c
 
 .PHONY: help version dev dev-go dev-run frontend install tidy check test \
         build build-desktop build-macos build-windows build-windows-msix build-linux build-all build-frontend \
-        open clean wails-install \
+        open clean wails-install bindings screenshots \
         release release-patch release-minor release-major _do-release _guard-clean \
         update-keygen update-sign \
         release-mac-local _do-release-mac-local release-mac-publish
@@ -408,3 +408,21 @@ clean:
 
 wails-install:
 	$(GO_ENV) go install github.com/wailsapp/wails/v2/cmd/wails@$(WAILS_VERSION)
+
+## bindings: regenerate the TypeScript bindings from the Go source
+# The frontend derives its wire types from these files instead of restating the
+# Go structs, so run this after changing anything in internal/model or a method
+# bound to the App, and commit the result. CI fails if they are out of date.
+# Pinned to WAILS_VERSION rather than whatever `wails` happens to be on PATH:
+# different generator versions produce different files.
+bindings:
+	cd $(DESKTOP_DIR) && $(GO_ENV) go run github.com/wailsapp/wails/v2/cmd/wails@$(WAILS_VERSION) generate module
+	@printf '\n\033[32m✓\033[0m Bindings regenerated in apps/desktop/frontend/wailsjs.\n'
+
+## screenshots: retake every documentation screenshot from the e2e walkthrough
+# The e2e suite drives the app against a stubbed Wails bridge, so the shots are
+# reproducible and carry no real workspace data. Run this after any change to
+# the interface that the documentation shows, and commit the result.
+screenshots:
+	cd $(DESKTOP_DIR)/frontend && RELAY_DOCS_SCREENSHOT_DIR=$(CURDIR)/apps/web/src/assets/screenshots npx playwright test e2e/full-app.spec.ts
+	@printf '\n\033[32m✓\033[0m Documentation screenshots retaken in apps/web/src/assets/screenshots.\n'

@@ -1,4 +1,5 @@
 import { sseConnect, sseDisconnect } from '../../backend';
+import { emptyHttpResponse } from '../../wire';
 import type { HttpRequest, HttpResponse } from '../../backend';
 import type { Method, RequestTab, RequestType, SavedRequest, SSEEventEntry, SSESession } from '../../types/models';
 import { requestTitleFrom } from '../../utils';
@@ -165,6 +166,7 @@ export const sseFeature = {
     this._sseHistoryRecorded.add(sessionId);
     const startedAt = this._sseStartedAt.get(sessionId) ?? timestamp;
     await this.recordRequestHistory({
+      ...emptyHttpResponse(),
       statusCode,
       status,
       headers: [],
