@@ -126,3 +126,35 @@ describe('environment manual-save scheduling', () => {
     expect(host.environmentSavedTimer).toBeNull();
   });
 });
+
+describe('nested variable resolution', () => {
+  // A variable's value is very often built from other variables. A single
+  // substitution pass left `{{baseUrl}}` as the literal `{{scheme}}://{{host}}`,
+  // and the sender then refused the request for having an unresolved variable.
+  it('expands a variable whose value references other variables', () => {
+    const host = {
+      activeEnvironmentValues: () => ({
+        scheme: 'https',
+        host: 'api.example.com',
+        origin: '{{scheme}}://{{host}}',
+        baseUrl: '{{origin}}/v2',
+      }),
+    } as never;
+    expect(environmentFeature.resolveTemplate.call(host, '{{baseUrl}}/users')).toBe('https://api.example.com/v2/users');
+  });
+
+  it('leaves a circular chain alone instead of hanging', () => {
+    const host = {
+      activeEnvironmentValues: () => ({ a: '{{b}}', b: '{{a}}' }),
+    } as never;
+    expect(environmentFeature.resolveTemplate.call(host, '{{a}}')).toContain('{{');
+  });
+
+  it('still resolves dynamic variables reached through an environment value', () => {
+    const host = {
+      activeEnvironmentValues: () => ({ traceId: '{{$guid}}', header: 'trace={{traceId}}' }),
+    } as never;
+    const resolved = environmentFeature.resolveTemplate.call(host, '{{header}}') as string;
+    expect(resolved).toMatch(/^trace=[0-9a-f-]{36}$/);
+  });
+});
