@@ -12,7 +12,7 @@ Relay supports both one-off interchange formats and full Relay backups. Imports 
 | Postman Collection v2.1 | Collections, nested folders, requests, auth, bodies, GraphQL, scripts, collection variables, and request documentation. Environment and globals exports import through the same picker. |
 | Insomnia v4 JSON | Workspaces, folders, requests, auth, bodies, and environments. |
 | Bruno/OpenCollection | Collections, explicit empty folders, requests, GraphQL, and supported metadata. |
-| OpenAPI/Swagger | HTTP/SSE requests generated from operations. |
+| OpenAPI/Swagger | HTTP/SSE requests generated from operations, plus the collection defaults that make them sendable: the server becomes a `{{baseUrl}}` variable, path parameters become collection variables seeded from the spec's examples, and declared security schemes become the request's auth. |
 | HAR | Captured HTTP requests. |
 | `.http` / `.rest` | JetBrains HTTP Client and VS Code REST Client files: requests, names, headers, bodies, and file variables. |
 | cURL | A single request pasted into the URL bar. |
@@ -49,6 +49,18 @@ What doesn't carry over:
 - Postman cloud Mock Servers / Monitors.
 - Visualizer scripts.
 - Variable types beyond string/secret.
+
+## From OpenAPI / Swagger
+
+Pick **OpenAPI / Swagger** and choose a JSON or YAML spec. Relay builds one request per operation, grouped into folders by the operation's first tag, with the summary as the request name and the description as its Docs tab.
+
+The point is a collection you can send straight away, so three things land on the collection rather than being baked into each request:
+
+- **The server** becomes a `baseUrl` collection variable, and every request URL starts with `{{baseUrl}}`. Retargeting the whole import at staging is one edit. When the spec declares more than one server, the others are recorded in the variable's description.
+- **Path parameters** become collection variables, seeded with the `example` or `default` from the spec. Without them a path like `/users/{userId}` would import as `{{userId}}` with nothing behind it, and every request would refuse to send.
+- **Security schemes** become auth. A scheme declared for the whole document lands on the collection and each request is set to **Inherit Auth**; an operation with its own `security` carries that instead, and `security: []` means the operation is public. HTTP basic, digest and bearer, API keys (with the name and location the spec gives), and OAuth 2.0 (with its token and authorization URLs and scopes) are mapped. The credentials themselves are not in a spec, so each one points at a collection variable — `{{bearerToken}}`, `{{apiKey}}`, `{{oauth2ClientSecret}}` — giving you one place to fill in.
+
+`openIdConnect` is left as **No Auth**: its endpoints can only be discovered by fetching the provider's configuration, which the importer does not do.
 
 ## From a `.http` / `.rest` file
 

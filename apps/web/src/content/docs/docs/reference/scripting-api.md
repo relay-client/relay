@@ -19,6 +19,10 @@ Module imports, process access, and filesystem access are disabled; `require` re
 | `pm.request.params.get(name)` | Get query param |
 | `pm.request.params.set(name, value)` | Set query param |
 | `pm.request.set_url(url)` | Override URL before sending |
+
+Header and parameter writes are an upsert, matching Postman: the first row with that name takes the new value, further rows with the same name are dropped, and a name the request does not have is appended. A row the script never names is left exactly as it was written — including two rows that share a name, which is how a repeated query parameter (`?tag=a&tag=b`) or a multi-valued header survives a script untouched.
+
+
 | `pm.request.body.raw` | Raw request body — readable and writable |
 | `pm.request.body.mode` | Body mode, in Postman's names: `raw`, `urlencoded`, `formdata`, `file`, `graphql`, `none` |
 | `pm.request.body.json()` | Body parsed as JSON |

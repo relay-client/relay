@@ -14,8 +14,8 @@ Relay has separate request modes for protocols that behave differently on the wi
 | HTTP | REST, JSON APIs, forms, files, regular request/response flows | Params, Auth, Headers, Body, Scripts, Settings | Body, Headers, Scripts | Yes |
 | GraphQL | Queries, mutations, variables, schema exploration | Query, Auth, Headers, Schema, Scripts, Settings | Body, Headers, Scripts | Yes |
 | SSE | `text/event-stream` subscriptions over HTTP | Params, Auth, Headers, Settings | SSE event stream | No |
-| WebSocket | Raw `ws://` / `wss://` sessions | Headers, Message, Settings | Frames, handshake, logs | No |
-| Socket.IO | Socket.IO servers with namespaces/events | Headers, Events, Message, Settings | Events, handshake, logs | No |
+| WebSocket | Raw `ws://` / `wss://` sessions | Params, Auth, Headers, Message, Settings | Frames, handshake, logs | No |
+| Socket.IO | Socket.IO servers with namespaces/events | Params, Auth, Headers, Events, Message, Settings | Events, handshake, logs | No |
 | gRPC | Protobuf RPCs with metadata/reflection/proto files | Metadata, Body, Service, Scripts, Settings | Messages, metadata, trailers, scripts | Yes |
 
 Realtime requests are intentionally skipped by the Collection Runner because they are long-lived sessions. gRPC is runnable because each invocation produces a bounded response.
@@ -51,6 +51,8 @@ SSE is an HTTP request with long-lived streaming semantics:
 
 Relay adds `Accept: text/event-stream`, `Cache-Control: no-cache`, and `Connection: keep-alive` when building the request. Events appear as they arrive and the session is written to history once the stream connects or errors.
 
+An SSE request has no Scripts tab: a subscription is opened rather than sent, and pre-request and test scripts do not run on that path. Reconnection is configurable — see [SSE-specific settings](/docs/guides/request-settings/#sse-specific-settings).
+
 The SSE event list keeps the latest events bounded for UI performance. Clear or restore visible events from the SSE panel while the session is open.
 
 ![SSE request connected with incoming stream events](../../../../assets/screenshots/request-sse.png)
@@ -64,7 +66,7 @@ WebSocket requests connect to `ws://` or `wss://` URLs. Relay shows:
 - Text, binary, ping, pong, close, reconnect, and error events.
 - Reconnect settings and a max-message-size guard.
 
-Use the Message tab to send a text or binary payload after connecting. Per-request headers and cookies are applied to the handshake.
+Use the Message tab to send a text or binary payload after connecting. Per-request headers and cookies are applied to the handshake, and so is the Authorization tab — Bearer, Basic, Digest and API-key auth all go out with the upgrade request, the same way they would on an ordinary send. There is no Scripts tab: the handshake does not run pre-request or test scripts.
 
 ![WebSocket request with sent payload and echoed frame](../../../../assets/screenshots/request-websocket.png)
 
@@ -78,7 +80,7 @@ Socket.IO mode speaks the Socket.IO protocol rather than raw WebSocket frames. C
 - Event name, arguments, and ack behavior.
 - Reconnect attempts and interval.
 
-Socket.IO events are displayed with namespace, direction, args, and system/error rows. Cookies and headers are applied to the Engine.IO handshake unless the request disables the cookie jar.
+Socket.IO events are displayed with namespace, direction, args, and system/error rows. Cookies, headers, and the Authorization tab are applied to the Engine.IO handshake unless the request disables the cookie jar. As with WebSocket, there is no Scripts tab.
 
 ![Socket.IO request with event payload and acknowledgement](../../../../assets/screenshots/request-socketio.png)
 

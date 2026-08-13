@@ -78,7 +78,7 @@ pm.test("has an id", () => pm.response.to.have.jsonSchema({ type: "object", requ
 - Multiple workspaces for separate projects or clients
 - Collections with nested folder hierarchy and empty-folder preservation
 - Drag-and-drop organisation
-- Full request history (14-day retention, 1000 entries)
+- Request history — every send, replayable, with the response it came back with (14-day retention, 1000 entries)
 - Git-backed YAML workspaces with diagnostics, conflict helpers, and local-only secrets
 - **CLI runner** — `relay run ./workspace --env CI` executes requests and their test scripts for CI, with data-driven iterations (`--data`), pretty/JSON/JUnit reporters, variable export, and a non-zero exit code on failure
 

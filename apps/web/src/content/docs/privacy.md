@@ -13,7 +13,7 @@ None of it has to be taken on trust: Relay is open source under the MIT license,
 
 ## What Relay stores on your machine
 
-Workspace state, requests, environments, response history, cookies, secrets, and preferences are written to local disk. Relay is a single-tenant, file-based application:
+Workspace state, requests, environments, request history, cookies, secrets, and preferences are written to local disk. Request history records what was sent and what came back, including the response body, which is stored in its own file under `history/` and encrypted with the same key as the rest of the local profile. A response over 2 MB keeps only its head, and a binary response keeps no body at all. Relay is a single-tenant, file-based application:
 
 | Platform | Location |
 |----------|----------|

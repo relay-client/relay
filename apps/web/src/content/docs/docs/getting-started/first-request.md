@@ -65,6 +65,8 @@ Use the **Headers** tab for API-specific metadata such as trace IDs, content neg
 
 ![Headers tab with a custom trace header](../../../../assets/screenshots/headers-tab.png)
 
+`Host` works here: set it to reach a virtual host or a service behind a load balancer, and the connection still goes to the URL's address. A handful of others — `Content-Length`, `Transfer-Encoding`, `Connection`, `Upgrade`, `Keep-Alive`, `TE`, `Trailer`, and the `Proxy-*` pair — control how the request is framed on the connection, so Relay sets them itself and does not send yours. When you have one enabled, the response panel says which ones were left off rather than letting you wonder why the server ignored them.
+
 ## 5. Assert with a test script
 
 Open the **Scripts** tab on the request and paste:
