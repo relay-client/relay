@@ -451,6 +451,7 @@
     clearRequestHistory={vm.clearRequestHistory}
     toggleHistoryDay={vm.toggleHistoryDay}
     openHistoryEntry={vm.openHistoryEntry}
+    showHistoryResponse={vm.showHistoryResponse}
     historyTitle={vm.historyTitle}
     {statusClass}
     toggleHistoryEntryMenu={vm.toggleHistoryEntryMenu}
@@ -734,6 +735,7 @@
         <RequestEditorTabs
           bind:requestTab={vm.requestTab}
           requestType={vm.requestType}
+          method={vm.method}
           paramsCount={activeCount(vm.params)}
           authConfigured={vm.authHasConfig()}
           headerCount={vm.requestHeaderCount}

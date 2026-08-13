@@ -160,8 +160,12 @@ export function normalizeSavedRequest(
         ? 'query'
         : isGrpc && !['docs', 'body', 'auth', 'metadata', 'service', 'scripts', 'settings'].includes(rawRequestTab)
         ? 'body'
-        : isRealtime && ['auth', 'scripts', 'query', 'schema'].includes(rawRequestTab)
+        : isRealtime && ['scripts', 'query', 'schema'].includes(rawRequestTab)
         ? 'body'
+        // An SSE request has no Scripts tab — the SSE path never runs them — so a
+        // request saved while that tab was open reopens somewhere that exists.
+        : (input.method ?? '').toUpperCase() === 'SSE' && ['scripts', 'query', 'schema'].includes(rawRequestTab)
+        ? 'params'
         : rawRequestTab;
     const realtimeLabel = normalizedRequestType === 'grpc' ? 'gRPC' : normalizedRequestType === 'socketio' ? 'Socket.IO' : normalizedRequestType === 'ws' ? 'WS' : normalizedRequestType === 'graphql' ? 'GraphQL' : '';
     const rawName = input.name || requestTitleFrom(realtimeLabel || (input.method || 'GET'), input.url || '');

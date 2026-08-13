@@ -62,6 +62,14 @@
       <input class="setting-number" type="number" bind:value={vm.wsMaxMessageSizeMb} min="0" max="512" step="1" oninput={() => vm.markRequestSettingOverride('wsMaxMessageSizeMb')} />
     </label>
 
+    <label class="postman-setting">
+      <span class="setting-copy">
+        <strong>Keep-alive interval</strong>
+        <span>How often to ping the server to hold the connection open. Leave at 0 for the default; set -1 to stop pinging entirely.</span>
+      </span>
+      <input class="setting-number" type="number" bind:value={vm.wsKeepAliveIntervalMs} min="-1" max="300000" step="1000" oninput={() => vm.markRequestSettingOverride('wsKeepAliveIntervalMs')} />
+    </label>
+
     <BrowserSecuritySettings includeEnforceCORS={false} />
   </div>
 </div>

@@ -1,3 +1,4 @@
+import { emptyAuthConfig, emptyHttpRequest } from '../../wire';
 import type { GrpcRequest, HttpRequest } from '../../backend';
 import {
   collectionSecretVariableKeys,
@@ -92,7 +93,7 @@ export const requestSerializationFeature = {
       try { body = this.graphQLBodyForSend(graphql); }
       catch { body = serializeGraphQLPayload(graphql); }
     }
-    return { workspaceId: this.activeWorkspaceId, method: isGraphQL ? 'POST' : req.method, url: flat.url, params: flat.params.map(({ key, value, enabled }) => ({ key, value, enabled, isFile: false, fileName: '' })), headers: req.headers.map(({ key, value, enabled }) => ({ key, value, enabled, isFile: false, fileName: '' })), auth: { type: req.auth.type, token: req.auth.type === 'oauth2' ? req.auth.oauth2Token : req.auth.bearerToken, username: req.auth.basicUser, password: req.auth.basicPass, keyName: req.auth.apiKeyName, keyValue: req.auth.apiKeyValue, keyIn: req.auth.apiKeyIn, oauth2GrantType: req.auth.oauth2GrantType, oauth2AuthURL: req.auth.oauth2AuthURL, oauth2TokenURL: req.auth.oauth2TokenURL, oauth2ClientID: req.auth.oauth2ClientID, oauth2Secret: req.auth.oauth2Secret, oauth2Scope: req.auth.oauth2Scope, oauth2UsePKCE: req.auth.oauth2UsePKCE, oauth2RefreshToken: req.auth.oauth2RefreshToken, awsAccessKey: req.auth.awsAccessKey, awsSecretKey: req.auth.awsSecretKey, awsSessionToken: req.auth.awsSessionToken, awsRegion: req.auth.awsRegion, awsService: req.auth.awsService }, bodyType: isGraphQL ? 'graphql' : req.bodyType, body, bodyFilePath: req.bodyFilePath, formData: req.formRows.map(({ key, value, enabled, isFile, fileName }) => ({ key, value, enabled, isFile: isFile ?? false, fileName: fileName ?? '' })), ...this.scriptFieldsForSend(req), name: req.name, scriptTimeoutMs: req.settings.scriptTimeoutMs, allowSendRequest: req.settings.allowSendRequest, followRedirects: req.settings.followRedirects, timeoutMs: req.settings.timeoutMs, httpVersion: req.settings.httpVersion, enableSSLVerification: req.settings.enableSSLVerification, followOriginalMethod: req.settings.followOriginalMethod, followAuthorizationHeader: req.settings.followAuthorizationHeader, removeRefererHeader: req.settings.removeRefererHeader, encodeUrlAutomatically: req.settings.encodeUrlAutomatically, disableCookieJar: req.settings.disableCookieJar, maxRedirects: req.settings.maxRedirects, ...this.resolveProxyFields(req.settings.proxyUrl ?? ''), clientCertPath: req.settings.clientCertPath ?? '', clientKeyPath: req.settings.clientKeyPath ?? '', clientKeyPassword: req.settings.clientKeyPassword ?? '', browserEmulation: req.settings.browserEmulation, browserOrigin: req.settings.browserOrigin, browserWithCredentials: req.settings.browserWithCredentials, browserEnforceCORS: req.settings.browserEnforceCORS, browserEnforceCSP: req.settings.browserEnforceCSP, browserCSP: req.settings.browserCSP, wsHandshakeTimeoutMs: req.settings.wsHandshakeTimeoutMs, wsReconnectAttempts: req.settings.wsReconnectAttempts, wsReconnectIntervalMs: req.settings.wsReconnectIntervalMs, wsMaxMessageSizeMb: req.settings.wsMaxMessageSizeMb };
+    return { ...emptyHttpRequest(), workspaceId: this.activeWorkspaceId, method: isGraphQL ? 'POST' : req.method, url: flat.url, params: flat.params.map(({ key, value, enabled }) => ({ key, value, enabled, isFile: false, fileName: '' })), headers: req.headers.map(({ key, value, enabled }) => ({ key, value, enabled, isFile: false, fileName: '' })), auth: { ...emptyAuthConfig(), type: req.auth.type, token: req.auth.type === 'oauth2' ? req.auth.oauth2Token : req.auth.bearerToken, username: req.auth.basicUser, password: req.auth.basicPass, keyName: req.auth.apiKeyName, keyValue: req.auth.apiKeyValue, keyIn: req.auth.apiKeyIn, oauth2GrantType: req.auth.oauth2GrantType ?? '', oauth2AuthURL: req.auth.oauth2AuthURL ?? '', oauth2TokenURL: req.auth.oauth2TokenURL, oauth2ClientID: req.auth.oauth2ClientID, oauth2Secret: req.auth.oauth2Secret, oauth2Scope: req.auth.oauth2Scope, oauth2UsePKCE: req.auth.oauth2UsePKCE ?? false, oauth2RefreshToken: req.auth.oauth2RefreshToken ?? '', awsAccessKey: req.auth.awsAccessKey, awsSecretKey: req.auth.awsSecretKey, awsSessionToken: req.auth.awsSessionToken ?? '', awsRegion: req.auth.awsRegion, awsService: req.auth.awsService }, bodyType: isGraphQL ? 'graphql' : req.bodyType, body, bodyFilePath: req.bodyFilePath, formData: req.formRows.map(({ key, value, enabled, isFile, fileName }) => ({ key, value, enabled, isFile: isFile ?? false, fileName: fileName ?? '' })), ...this.scriptFieldsForSend(req), name: req.name, scriptTimeoutMs: req.settings.scriptTimeoutMs, allowSendRequest: req.settings.allowSendRequest, followRedirects: req.settings.followRedirects, timeoutMs: req.settings.timeoutMs, httpVersion: req.settings.httpVersion, enableSSLVerification: req.settings.enableSSLVerification, followOriginalMethod: req.settings.followOriginalMethod, followAuthorizationHeader: req.settings.followAuthorizationHeader, removeRefererHeader: req.settings.removeRefererHeader, encodeUrlAutomatically: req.settings.encodeUrlAutomatically, disableCookieJar: req.settings.disableCookieJar, maxRedirects: req.settings.maxRedirects, ...this.resolveProxyFields(req.settings.proxyUrl ?? ''), clientCertPath: req.settings.clientCertPath ?? '', clientKeyPath: req.settings.clientKeyPath ?? '', clientKeyPassword: req.settings.clientKeyPassword ?? '', browserEmulation: req.settings.browserEmulation, browserOrigin: req.settings.browserOrigin, browserWithCredentials: req.settings.browserWithCredentials, browserEnforceCORS: req.settings.browserEnforceCORS, browserEnforceCSP: req.settings.browserEnforceCSP, browserCSP: req.settings.browserCSP, wsHandshakeTimeoutMs: req.settings.wsHandshakeTimeoutMs, wsReconnectAttempts: req.settings.wsReconnectAttempts, wsReconnectIntervalMs: req.settings.wsReconnectIntervalMs, wsMaxMessageSizeMb: req.settings.wsMaxMessageSizeMb, wsKeepAliveIntervalMs: req.settings.wsKeepAliveIntervalMs, sseDisableReconnect: req.settings.sseDisableReconnect, sseReconnectIntervalMs: req.settings.sseReconnectIntervalMs };
   },
 
   savedRequestToRunnableHttpRequest(
@@ -129,6 +130,7 @@ export const requestSerializationFeature = {
       params: this.resolveRows(flat.params, envValues).filter(r => r.enabled && r.key).map(({ key, value, enabled }) => ({ key, value, enabled, isFile: false, fileName: '' })),
       headers: this.resolveRows(req.headers, envValues).filter(r => r.enabled && r.key).map(({ key, value, enabled }) => ({ key, value, enabled, isFile: false, fileName: '' })),
       auth: {
+        ...emptyAuthConfig(),
         type: req.auth.type,
         token: this.resolveTemplate(req.auth.type === 'oauth2' ? req.auth.oauth2Token : req.auth.bearerToken, envValues),
         username: this.resolveTemplate(req.auth.basicUser, envValues),
@@ -136,13 +138,13 @@ export const requestSerializationFeature = {
         keyName: this.resolveTemplate(req.auth.apiKeyName, envValues),
         keyValue: this.resolveTemplate(req.auth.apiKeyValue, envValues),
         keyIn: req.auth.apiKeyIn,
-        oauth2GrantType: req.auth.oauth2GrantType,
+        oauth2GrantType: req.auth.oauth2GrantType ?? '',
         oauth2AuthURL: this.resolveTemplate(req.auth.oauth2AuthURL ?? '', envValues),
         oauth2TokenURL: this.resolveTemplate(req.auth.oauth2TokenURL, envValues),
         oauth2ClientID: this.resolveTemplate(req.auth.oauth2ClientID, envValues),
         oauth2Secret: this.resolveTemplate(req.auth.oauth2Secret, envValues),
         oauth2Scope: this.resolveTemplate(req.auth.oauth2Scope, envValues),
-        oauth2UsePKCE: req.auth.oauth2UsePKCE,
+        oauth2UsePKCE: req.auth.oauth2UsePKCE ?? false,
         oauth2RefreshToken: this.resolveTemplate(req.auth.oauth2RefreshToken ?? '', envValues),
         awsAccessKey: this.resolveTemplate(req.auth.awsAccessKey, envValues),
         awsSecretKey: this.resolveTemplate(req.auth.awsSecretKey, envValues),
@@ -184,6 +186,9 @@ export const requestSerializationFeature = {
       wsReconnectAttempts: req.settings.wsReconnectAttempts,
       wsReconnectIntervalMs: req.settings.wsReconnectIntervalMs,
       wsMaxMessageSizeMb: req.settings.wsMaxMessageSizeMb,
+      wsKeepAliveIntervalMs: req.settings.wsKeepAliveIntervalMs,
+      sseDisableReconnect: req.settings.sseDisableReconnect,
+      sseReconnectIntervalMs: req.settings.sseReconnectIntervalMs,
       sioClientVersion: req.settings.sioClientVersion,
       sioPath: req.settings.sioPath,
       sioNamespace: req.settings.sioNamespace,
@@ -215,6 +220,7 @@ export const requestSerializationFeature = {
       message: this.resolveTemplate(req.bodyContent || DEFAULT_GRPC_MESSAGE, envValues),
       metadata: this.resolveRows(req.grpcMetadata ?? [], envValues).filter(r => r.enabled && r.key).map(({ key, value, enabled }) => ({ key, value, enabled, isFile: false, fileName: '' })),
       auth: {
+        ...emptyAuthConfig(),
         type: auth.type === 'inherit' ? 'none' : auth.type,
         token: this.resolveTemplate(auth.type === 'oauth2' ? auth.oauth2Token : auth.bearerToken, envValues),
         username: this.resolveTemplate(auth.basicUser, envValues),
@@ -222,13 +228,13 @@ export const requestSerializationFeature = {
         keyName: this.resolveTemplate(auth.apiKeyName, envValues),
         keyValue: this.resolveTemplate(auth.apiKeyValue, envValues),
         keyIn: 'header',
-        oauth2GrantType: auth.oauth2GrantType,
+        oauth2GrantType: auth.oauth2GrantType ?? '',
         oauth2AuthURL: this.resolveTemplate(auth.oauth2AuthURL ?? '', envValues),
         oauth2TokenURL: this.resolveTemplate(auth.oauth2TokenURL, envValues),
         oauth2ClientID: this.resolveTemplate(auth.oauth2ClientID, envValues),
         oauth2Secret: this.resolveTemplate(auth.oauth2Secret, envValues),
         oauth2Scope: this.resolveTemplate(auth.oauth2Scope, envValues),
-        oauth2UsePKCE: auth.oauth2UsePKCE,
+        oauth2UsePKCE: auth.oauth2UsePKCE ?? false,
         oauth2RefreshToken: this.resolveTemplate(auth.oauth2RefreshToken ?? '', envValues),
         awsAccessKey: '',
         awsSecretKey: '',
