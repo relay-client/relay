@@ -301,6 +301,16 @@
   cursor: text;
 }
 
+.response-warning {
+  padding: 10px 20px;
+  color: var(--s3xx);
+  background: color-mix(in srgb, var(--s3xx) 10%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--s3xx) 26%, transparent);
+  font-size: 12.5px;
+  line-height: 1.5;
+  user-select: text;
+}
+
 .response-placeholder {
   flex: 1;
   display: flex;
