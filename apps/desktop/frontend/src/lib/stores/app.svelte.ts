@@ -556,10 +556,12 @@ class AppVM {
   declare authForPersistence: typeof authFeature.authForPersistence;
   declare basicAuthPreview: typeof authFeature.basicAuthPreview;
   declare oauth2ConfigForRequest: typeof authFeature.oauth2ConfigForRequest;
+  declare oauth2ConfigForAuthState: typeof authFeature.oauth2ConfigForAuthState;
   declare applyOAuth2Result: typeof authFeature.applyOAuth2Result;
   declare fetchOAuth2Token: typeof authFeature.fetchOAuth2Token;
   declare refreshOAuth2Token: typeof authFeature.refreshOAuth2Token;
   declare ensureValidOAuth2Token: typeof authFeature.ensureValidOAuth2Token;
+  declare ensureValidOAuth2TokenForRequest: typeof authFeature.ensureValidOAuth2TokenForRequest;
 
   declare openPostmanImport: typeof importExportFeature.openPostmanImport;
   declare onPostmanImportFile: typeof importExportFeature.onPostmanImportFile;
@@ -704,6 +706,8 @@ class AppVM {
   declare toggleHistoryDay: typeof historyFeature.toggleHistoryDay;
   declare historyTitle: typeof historyFeature.historyTitle;
   declare recordRequestHistory: typeof historyFeature.recordRequestHistory;
+  declare pruneStoredResponses: typeof historyFeature.pruneStoredResponses;
+  declare showHistoryResponse: typeof historyFeature.showHistoryResponse;
   declare saveHistoryEntryToCollection: typeof historyFeature.saveHistoryEntryToCollection;
   declare saveHistoryEntryToNewCollection: typeof historyFeature.saveHistoryEntryToNewCollection;
   declare openHistoryEntry: typeof historyFeature.openHistoryEntry;
@@ -857,6 +861,9 @@ class AppVM {
   wsReconnectAttempts = $state(0);
   wsReconnectIntervalMs = $state(5000);
   wsMaxMessageSizeMb = $state(10);
+  wsKeepAliveIntervalMs = $state(0);
+  sseDisableReconnect = $state(false);
+  sseReconnectIntervalMs = $state(0);
   requestSettingsOverrides = $state<RequestSettingsOverrides>({});
 
   params = $state<KVRow[]>([mkRow()]);
@@ -1242,7 +1249,11 @@ class AppVM {
     const req = this.requests.find(r => r.id === id); if (!req) return;
     if (this.savedRequestIsRealtime(req)) { this.openRequestMenuId = ''; return; }
     const { toCurl } = await import('../curl');
-    clipboardCopy(toCurl(this.savedRequestToHttpRequest(req))); this.openRequestMenuId = '';
+    // Resolve {{variables}} the way the Code panel does — a command still
+    // holding template braces is not one anybody can paste and run. Secret
+    // values stay as their placeholder rather than landing on the clipboard.
+    const values = this.environmentValuesForRequest(req, this.redactedActiveEnvironmentValues());
+    clipboardCopy(toCurl(this.savedRequestToRunnableHttpRequest(req, values, [], []))); this.openRequestMenuId = '';
   }
 
   async loadRequestWorkspace(rawOverride?: string, diagnosticsOverride?: WorkspaceDiagnostic[]) {

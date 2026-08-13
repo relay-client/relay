@@ -6,7 +6,11 @@ export type SnippetRequest = {
   method: string; url: string;
   params: Array<{ key: string; value: string; enabled: boolean }>;
   headers: Array<{ key: string; value: string; enabled: boolean }>;
-  auth: { type: string; token: string; username?: string; password?: string; keyName: string; keyValue: string; keyIn: string };
+  auth: {
+    type: string; token: string; username?: string; password?: string;
+    keyName: string; keyValue: string; keyIn: string;
+    awsAccessKey?: string; awsSecretKey?: string; awsSessionToken?: string; awsRegion?: string; awsService?: string;
+  };
   bodyType: string; body: string; bodyFilePath?: string;
   formData: Array<{ key: string; value: string; enabled: boolean; isFile?: boolean; fileName?: string }>;
 };
@@ -22,6 +26,15 @@ function snippetRequestUrl(req: SnippetRequest) {
   return `${nextUrl}${joiner}${paramsToAdd.map(row => `${encodeURIComponent(row.key)}=${encodeURIComponent(row.value)}`).join('&')}`;
 }
 
+function base64(value: string) {
+  try {
+    return btoa(value);
+  } catch {
+    // Non-Latin-1 credentials: encode the UTF-8 bytes the way the wire wants.
+    return btoa(String.fromCharCode(...new TextEncoder().encode(value)));
+  }
+}
+
 function snippetHeaders(req: SnippetRequest) {
   const headers = req.headers.filter(r => r.enabled && r.key).map(r => ({ key: r.key, value: r.value }));
   if ((req.bodyType === 'json' || req.bodyType === 'graphql') && !headers.some(h => h.key.toLowerCase() === 'content-type'))
@@ -30,9 +43,50 @@ function snippetHeaders(req: SnippetRequest) {
     headers.push({ key: 'Content-Type', value: 'text/plain' });
   if (req.bodyType === 'xml' && !headers.some(h => h.key.toLowerCase() === 'content-type'))
     headers.push({ key: 'Content-Type', value: 'application/xml' });
-  if (req.auth.type === 'bearer' && req.auth.token) headers.push({ key: 'Authorization', value: `Bearer ${req.auth.token}` });
+  // Only bearer and API key used to reach the generated code, so copying a
+  // working Basic, Digest, OAuth 2.0, or AWS request produced a snippet that
+  // came back 401 with nothing to say it had dropped the credentials.
+  if ((req.auth.type === 'bearer' || req.auth.type === 'oauth2') && req.auth.token) {
+    headers.push({ key: 'Authorization', value: `Bearer ${req.auth.token}` });
+  }
+  if (req.auth.type === 'basic' && (req.auth.username || req.auth.password)) {
+    headers.push({ key: 'Authorization', value: `Basic ${base64(`${req.auth.username ?? ''}:${req.auth.password ?? ''}`)}` });
+  }
   if (req.auth.type === 'apikey' && req.auth.keyIn === 'header' && req.auth.keyName) headers.push({ key: req.auth.keyName, value: req.auth.keyValue });
   return headers;
+}
+
+// Two schemes cannot be written as a fixed header: Digest is a challenge and
+// response, and AWS SigV4 signs each request. Saying so beats emitting code
+// that looks complete and is not.
+export function snippetAuthNotes(req: SnippetRequest): string[] {
+  if (req.auth.type === 'digest') {
+    return [`Digest auth: this request answers the server's challenge with the credentials for "${req.auth.username ?? ''}". Use your HTTP library's digest support — a fixed Authorization header will not work.`];
+  }
+  if (req.auth.type === 'aws') {
+    return ['AWS Signature v4: the signature is computed per request from your access key. Use an AWS SDK or a signing helper here.'];
+  }
+  if (req.auth.type === 'oauth2' && req.auth.token) {
+    return ['The bearer token below is the one Relay currently holds; it expires.'];
+  }
+  if (req.auth.type === 'oauth2') {
+    return ['OAuth 2.0: fetch a token in Relay (or from your token endpoint) before running this.'];
+  }
+  return [];
+}
+
+// How each target spells a line comment, so the notes above read as part of the
+// snippet rather than pasted prose.
+const COMMENT_PREFIX: Record<string, string> = {
+  curl: '#', httpie: '#', python: '#', ruby: '#', php: '//', go: '//', java: '//',
+  csharp: '//', javascript: '//', node: '//', axios: '//', swift: '//', kotlin: '//', rust: '//',
+};
+
+function withAuthNotes(language: SnippetLanguage, req: SnippetRequest, code: string) {
+  const notes = snippetAuthNotes(req);
+  if (!notes.length) return code;
+  const prefix = COMMENT_PREFIX[language] ?? '#';
+  return [...notes.map(note => `${prefix} ${note}`), code].join('\n');
 }
 
 function snippetBody(req: SnippetRequest) {
@@ -189,6 +243,10 @@ function buildRustSnippet(req: SnippetRequest) {
 }
 
 export function buildSnippet(language: SnippetLanguage, req: SnippetRequest, curlFn: (r: SnippetRequest) => string): string {
+  return withAuthNotes(language, req, buildSnippetBody(language, req, curlFn));
+}
+
+function buildSnippetBody(language: SnippetLanguage, req: SnippetRequest, curlFn: (r: SnippetRequest) => string): string {
   switch (language) {
     case 'go': return buildGoSnippet(req);
     case 'javascript': case 'node': return buildFetchSnippet(req);

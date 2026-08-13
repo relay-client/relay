@@ -211,3 +211,33 @@ describe('toCurl', () => {
     expect(curl).toContain("-H 'Content-Type: application/json'");
   });
 });
+
+describe('auth in generated commands', () => {
+  const base = {
+    method: 'GET', url: 'https://api.example.test/v1/things',
+    params: [], headers: [], bodyType: 'none', body: '', formData: [],
+  };
+
+  // Only bearer and API key used to reach the generated command, so a copied
+  // Basic/Digest/OAuth/AWS request came back 401 with nothing to explain it.
+  it('sends Digest credentials through curl --digest', () => {
+    const out = toCurl({ ...base, auth: { type: 'digest', username: 'ada', password: 'hunter2' } });
+    expect(out).toContain('--digest');
+    expect(out).toContain("-u 'ada:hunter2'");
+  });
+
+  it('sends an OAuth 2.0 access token as a bearer header', () => {
+    const out = toCurl({ ...base, auth: { type: 'oauth2', token: 'AT-123' } });
+    expect(out).toContain("Authorization: Bearer AT-123");
+  });
+
+  it('lets curl sign an AWS SigV4 request itself', () => {
+    const out = toCurl({
+      ...base,
+      auth: { type: 'aws', awsAccessKey: 'AK', awsSecretKey: 'SK', awsSessionToken: 'ST', awsRegion: 'eu-west-1', awsService: 's3' },
+    });
+    expect(out).toContain("--aws-sigv4 'aws:amz:eu-west-1:s3'");
+    expect(out).toContain("-u 'AK:SK'");
+    expect(out).toContain('x-amz-security-token: ST');
+  });
+});
