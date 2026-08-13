@@ -7,6 +7,10 @@ import { variableTemplate } from '../../variables';
 import { resolveDynamicVariable } from '../../dynamicVariables';
 import { parseEnvFile } from '../../utils';
 
+// How many times a value may expand into further {{variables}}. Postman uses
+// the same order of magnitude; anything deeper is a cycle, not a chain.
+const VARIABLE_RESOLUTION_DEPTH = 20;
+
 type EnvironmentHost = {
   activeEnvironmentId: string;
   activeWorkspaceId: string;
@@ -117,12 +121,27 @@ export const environmentFeature = {
   },
   // Environment values win over dynamic variables, so a workspace that defines
   // its own "$timestamp" keeps controlling it.
+  //
+  // Resolution repeats while it keeps making progress, because a variable's
+  // value is very often built from other variables — `baseUrl` as
+  // `{{scheme}}://{{host}}:{{port}}` is the first thing most people write, and
+  // a single pass left it as literal braces that the sender then rejected.
+  // A value that stops changing is done; a chain that outlives the depth cap is
+  // circular, and the remaining braces are left in place so the sender's
+  // "unresolved variable" message points at the real culprit.
   resolveTemplate(this: EnvironmentHost, value: string, values = this.activeEnvironmentValues()) {
     if (!value || !value.includes('{{')) return value;
-    return value.replace(/\{\{\s*(\$?[A-Za-z0-9_.-]+)\s*\}\}/g, (match, key) => {
+    const substitute = (input: string) => input.replace(/\{\{\s*(\$?[A-Za-z0-9_.-]+)\s*\}\}/g, (match, key) => {
       if (Object.prototype.hasOwnProperty.call(values, key)) return values[key];
       return resolveDynamicVariable(key) ?? match;
     });
+    let resolved = substitute(value);
+    for (let depth = 1; depth < VARIABLE_RESOLUTION_DEPTH && resolved.includes('{{'); depth += 1) {
+      const next = substitute(resolved);
+      if (next === resolved) break;
+      resolved = next;
+    }
+    return resolved;
   },
   resolveRows(this: EnvironmentHost, rows: KVRow[], values = this.activeEnvironmentValues()) {
     return rows.map(row => ({ ...row, key: this.resolveTemplate(row.key, values), value: this.resolveTemplate(row.value, values) }));
