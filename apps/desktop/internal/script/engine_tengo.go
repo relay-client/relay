@@ -232,14 +232,7 @@ func buildRequest(ctx *Context) *tengo.Map {
 				Name: "set",
 				Value: func(args ...tengo.Object) (tengo.Object, error) {
 					if len(args) >= 2 {
-						key := tengoString(args[0])
-						for existing := range ctx.RequestHeaders {
-							if strings.EqualFold(existing, key) {
-								delete(ctx.RequestHeaders, existing)
-							}
-						}
-						ctx.RequestHeaders[key] = tengoString(args[1])
-						delete(ctx.RemovedHeaders, strings.ToLower(key))
+						ctx.SetRequestHeader(tengoString(args[0]), tengoString(args[1]))
 					}
 					return tengo.UndefinedValue, nil
 				},
@@ -248,13 +241,7 @@ func buildRequest(ctx *Context) *tengo.Map {
 				Name: "unset",
 				Value: func(args ...tengo.Object) (tengo.Object, error) {
 					if len(args) >= 1 {
-						key := tengoString(args[0])
-						for existing := range ctx.RequestHeaders {
-							if strings.EqualFold(existing, key) {
-								delete(ctx.RequestHeaders, existing)
-							}
-						}
-						ctx.RemovedHeaders[strings.ToLower(key)] = struct{}{}
+						ctx.UnsetRequestHeader(tengoString(args[0]))
 					}
 					return tengo.UndefinedValue, nil
 				},
@@ -278,9 +265,7 @@ func buildRequest(ctx *Context) *tengo.Map {
 				Name: "set",
 				Value: func(args ...tengo.Object) (tengo.Object, error) {
 					if len(args) >= 2 {
-						key := tengoString(args[0])
-						ctx.RequestParams[key] = tengoString(args[1])
-						delete(ctx.RemovedParams, key)
+						ctx.SetRequestParam(tengoString(args[0]), tengoString(args[1]))
 					}
 					return tengo.UndefinedValue, nil
 				},
@@ -289,9 +274,7 @@ func buildRequest(ctx *Context) *tengo.Map {
 				Name: "unset",
 				Value: func(args ...tengo.Object) (tengo.Object, error) {
 					if len(args) >= 1 {
-						key := tengoString(args[0])
-						delete(ctx.RequestParams, key)
-						ctx.RemovedParams[key] = struct{}{}
+						ctx.UnsetRequestParam(tengoString(args[0]))
 					}
 					return tengo.UndefinedValue, nil
 				},

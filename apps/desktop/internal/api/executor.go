@@ -64,18 +64,26 @@ func sendRequestWithBodySink(requestCtx context.Context, req model.HttpRequest, 
 		mergeScriptParams(ctx, &req)
 		mergeScriptBody(ctx, &req)
 		scope.commit(sm)
+		// Collection variables travel back inside the response, unlike the
+		// environment and session scopes which commit to shared state above. An
+		// early return has to carry them too, or a pre-request script that
+		// records something and then skips the send loses the write.
 		if preResult.Error != "" {
-			return model.HttpResponse{
+			resp := model.HttpResponse{
 				Error:            "pre-request script failed: " + preResult.Error,
 				PreRequestResult: preResult,
 			}
+			resp.CollectionVariableUpdates, resp.CollectionVariablesRemoved = mergeCollectionVariableResults(preResult)
+			return resp
 		}
 		if preResult.SkippedRequest {
-			return model.HttpResponse{
+			resp := model.HttpResponse{
 				Skipped:          true,
 				SkipReason:       "skipped by pm.execution.skipRequest()",
 				PreRequestResult: preResult,
 			}
+			resp.CollectionVariableUpdates, resp.CollectionVariablesRemoved = mergeCollectionVariableResults(preResult)
+			return resp
 		}
 	}
 
@@ -297,7 +305,10 @@ func doRequestWithBodySink(ctx context.Context, req model.HttpRequest, jar http.
 	} else {
 		httpReq.Header.Set("User-Agent", "Relay/"+appVersion)
 	}
-	applyUserHeaders(httpReq.Header, req.Headers)
+	hostOverride, droppedHeaders := applyUserHeaders(httpReq.Header, req.Headers)
+	if hostOverride != "" {
+		httpReq.Host = hostOverride
+	}
 	explicitCookieHeader := httpReq.Header.Get("Cookie") != ""
 
 	if err := auth.Apply(httpReq, req.Auth); err != nil {
@@ -327,6 +338,9 @@ func doRequestWithBodySink(ctx context.Context, req model.HttpRequest, jar http.
 		resp.SentRequests = sentRequests.snapshot()
 		resp.Connection = timings.connectionInfo()
 		resp.Timeline = timings.timeline()
+		if notice := droppedHeaderNotice(droppedHeaders); notice != "" {
+			resp.Warnings = append(resp.Warnings, notice)
+		}
 		return resp
 	}
 	timings.markPrepared()
@@ -812,13 +826,29 @@ func applyQueryParams(u *url.URL, req model.HttpRequest) {
 // can enable HTTP request smuggling through downstream proxies and breaks the
 // net/http transport's own framing assumptions. The user-visible URL/body
 // fields still control the body length, as expected.
-func applyUserHeaders(headers http.Header, rows []model.KeyValue) {
+//
+// Host is the exception. It is a legitimate thing to override — testing a
+// virtual host, or reaching a service behind a load balancer — and net/http
+// supports it properly through Request.Host, which sets the header without
+// disturbing the connection's target. Setting it through Header would be
+// ignored, so it takes its own path.
+//
+// Every row that is dropped is returned by name so the caller can say so
+// instead of leaving the user with a header they can see but never sent.
+func applyUserHeaders(headers http.Header, rows []model.KeyValue) (hostOverride string, dropped []string) {
 	seen := make(map[string]struct{}, len(rows))
 	for _, h := range rows {
 		if !h.Enabled || h.Key == "" {
 			continue
 		}
+		if strings.EqualFold(strings.TrimSpace(h.Key), "host") {
+			if host := strings.TrimSpace(h.Value); host != "" {
+				hostOverride = host
+			}
+			continue
+		}
 		if isReservedFramingHeader(h.Key) {
+			dropped = append(dropped, http.CanonicalHeaderKey(h.Key))
 			continue
 		}
 		key := http.CanonicalHeaderKey(h.Key)
@@ -829,16 +859,30 @@ func applyUserHeaders(headers http.Header, rows []model.KeyValue) {
 		}
 		headers.Add(key, h.Value)
 	}
+	return hostOverride, dropped
 }
 
 func isReservedFramingHeader(name string) bool {
 	switch strings.ToLower(strings.TrimSpace(name)) {
 	case "transfer-encoding", "content-length", "connection", "upgrade",
 		"keep-alive", "proxy-authenticate", "proxy-authorization", "te",
-		"trailer", "host":
+		"trailer":
 		return true
 	}
 	return false
+}
+
+// droppedHeaderNotice explains, once per send, which header rows Relay refused
+// to put on the wire. Silence here reads as "Relay sent my header and the
+// server ignored it", which is the wrong thing to go debugging.
+func droppedHeaderNotice(names []string) string {
+	if len(names) == 0 {
+		return ""
+	}
+	return fmt.Sprintf(
+		"Not sent: %s. These headers control how the request is framed on the connection, so Relay sets them itself.",
+		strings.Join(names, ", "),
+	)
 }
 
 func normalizeRequestURL(raw string) string {
@@ -1040,9 +1084,21 @@ func mergeScriptBody(ctx *script.Context, req *model.HttpRequest) {
 	}
 }
 
+// mergeScriptHeaders and mergeScriptParams write back only what the script
+// actually touched. The script's view of headers and params is a map, which
+// cannot hold two rows sharing a key — so merging the whole map back collapsed
+// every duplicate onto the last value ("?id=1&id=2" went out as "?id=2&id=2")
+// and re-enabled disabled rows, for any request that ran a script at all, even
+// an empty one. Rows the script never named are now left exactly as the user
+// wrote them.
+//
+// A key the script did write follows Postman's upsert: the first matching row
+// takes the new value, and any further rows with that key are dropped, because
+// the script said what that header is — not what to add alongside it.
+
 func mergeScriptHeaders(ctx *script.Context, req *model.HttpRequest) {
 	if len(ctx.RemovedHeaders) > 0 {
-		next := req.Headers[:0]
+		next := make([]model.KeyValue, 0, len(req.Headers))
 		for _, h := range req.Headers {
 			if _, removed := ctx.RemovedHeaders[strings.ToLower(h.Key)]; removed {
 				continue
@@ -1051,25 +1107,14 @@ func mergeScriptHeaders(ctx *script.Context, req *model.HttpRequest) {
 		}
 		req.Headers = next
 	}
-	for k, v := range ctx.RequestHeaders {
-		merged := false
-		for i, h := range req.Headers {
-			if strings.EqualFold(h.Key, k) {
-				req.Headers[i].Value = v
-				req.Headers[i].Enabled = true
-				merged = true
-				break
-			}
-		}
-		if !merged {
-			req.Headers = append(req.Headers, model.KeyValue{Key: k, Value: v, Enabled: true})
-		}
+	for _, key := range writtenKeys(ctx.RequestHeaders, ctx.TouchedHeaders, strings.ToLower) {
+		req.Headers = upsertRow(req.Headers, key, ctx.RequestHeaders[key], strings.EqualFold)
 	}
 }
 
 func mergeScriptParams(ctx *script.Context, req *model.HttpRequest) {
 	if len(ctx.RemovedParams) > 0 {
-		next := req.Params[:0]
+		next := make([]model.KeyValue, 0, len(req.Params))
 		for _, p := range req.Params {
 			if _, removed := ctx.RemovedParams[p.Key]; removed {
 				continue
@@ -1078,18 +1123,56 @@ func mergeScriptParams(ctx *script.Context, req *model.HttpRequest) {
 		}
 		req.Params = next
 	}
-	for k, v := range ctx.RequestParams {
-		merged := false
-		for i, p := range req.Params {
-			if p.Key == k {
-				req.Params[i].Value = v
-				req.Params[i].Enabled = true
-				merged = true
-				break
-			}
-		}
-		if !merged {
-			req.Params = append(req.Params, model.KeyValue{Key: k, Value: v, Enabled: true})
+	sameKey := func(a, b string) bool { return a == b }
+	for _, key := range writtenKeys(ctx.RequestParams, ctx.TouchedParams, func(s string) string { return s }) {
+		req.Params = upsertRow(req.Params, key, ctx.RequestParams[key], sameKey)
+	}
+}
+
+// writtenKeys returns the keys still present in values that the script wrote,
+// sorted so the resulting header order is stable — a request signed over its
+// canonical header order must not change between two identical sends.
+func writtenKeys(values map[string]string, touched map[string]struct{}, normalize func(string) string) []string {
+	if len(touched) == 0 {
+		return nil
+	}
+	keys := make([]string, 0, len(touched))
+	for key := range values {
+		if _, ok := touched[normalize(key)]; ok {
+			keys = append(keys, key)
 		}
 	}
+	sort.Strings(keys)
+	return keys
+}
+
+// upsertRow gives key the supplied value on the first row that matches,
+// preferring an enabled row, and removes any later duplicates of that key.
+func upsertRow(rows []model.KeyValue, key, value string, matches func(string, string) bool) []model.KeyValue {
+	target := -1
+	for i, row := range rows {
+		if !matches(row.Key, key) {
+			continue
+		}
+		if target < 0 || (!rows[target].Enabled && row.Enabled) {
+			target = i
+		}
+	}
+	if target < 0 {
+		return append(rows, model.KeyValue{Key: key, Value: value, Enabled: true})
+	}
+	next := make([]model.KeyValue, 0, len(rows))
+	for i, row := range rows {
+		if i == target {
+			row.Value = value
+			row.Enabled = true
+			next = append(next, row)
+			continue
+		}
+		if matches(row.Key, key) {
+			continue
+		}
+		next = append(next, row)
+	}
+	return next
 }

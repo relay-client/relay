@@ -87,6 +87,16 @@ type Context struct {
 	RemovedHeaders map[string]struct{}
 	RemovedParams  map[string]struct{}
 
+	// TouchedHeaders / TouchedParams record the keys the script actually wrote.
+	// RequestHeaders and RequestParams are seeded with the whole request so a
+	// script can read them, and a map cannot hold two rows sharing a key — so
+	// without this the merge back would rewrite every row from a collapsed map
+	// and turn "?id=1&id=2" into "?id=2&id=2". Only touched keys are merged.
+	// Header keys are stored lowercased (HTTP header names are case-insensitive);
+	// param keys are stored as written.
+	TouchedHeaders map[string]struct{}
+	TouchedParams  map[string]struct{}
+
 	// RequestBody is the raw body the request will send. Scripts that sign a
 	// payload or build it at send time need to read and rewrite it, so
 	// RequestBodyChanged records whether the script actually wrote one —
@@ -137,7 +147,47 @@ func NewContext(vars, env map[string]string) *Context {
 		RequestParams:       make(map[string]string),
 		RemovedHeaders:      make(map[string]struct{}),
 		RemovedParams:       make(map[string]struct{}),
+		TouchedHeaders:      make(map[string]struct{}),
+		TouchedParams:       make(map[string]struct{}),
 	}
+}
+
+// SetRequestHeader records a header the script wrote. Existing entries that
+// differ only in case are replaced, matching HTTP semantics.
+func (c *Context) SetRequestHeader(key, value string) {
+	for existing := range c.RequestHeaders {
+		if strings.EqualFold(existing, key) {
+			delete(c.RequestHeaders, existing)
+		}
+	}
+	c.RequestHeaders[key] = value
+	c.TouchedHeaders[strings.ToLower(key)] = struct{}{}
+	delete(c.RemovedHeaders, strings.ToLower(key))
+}
+
+// UnsetRequestHeader records a header the script removed.
+func (c *Context) UnsetRequestHeader(key string) {
+	for existing := range c.RequestHeaders {
+		if strings.EqualFold(existing, key) {
+			delete(c.RequestHeaders, existing)
+		}
+	}
+	c.TouchedHeaders[strings.ToLower(key)] = struct{}{}
+	c.RemovedHeaders[strings.ToLower(key)] = struct{}{}
+}
+
+// SetRequestParam records a query parameter the script wrote.
+func (c *Context) SetRequestParam(key, value string) {
+	c.RequestParams[key] = value
+	c.TouchedParams[key] = struct{}{}
+	delete(c.RemovedParams, key)
+}
+
+// UnsetRequestParam records a query parameter the script removed.
+func (c *Context) UnsetRequestParam(key string) {
+	delete(c.RequestParams, key)
+	c.TouchedParams[key] = struct{}{}
+	c.RemovedParams[key] = struct{}{}
 }
 
 func (c *Context) ResolveVariable(key string) (string, bool) {

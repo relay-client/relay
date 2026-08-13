@@ -167,6 +167,11 @@ type HttpResponse struct {
 	Skipped    bool   `json:"skipped,omitempty"`
 	SkipReason string `json:"skipReason,omitempty"`
 
+	// Warnings are things the sender decided about the request that the user
+	// would otherwise have to infer from a server that behaved unexpectedly —
+	// for example a header row Relay refuses to put on the wire.
+	Warnings []string `json:"warnings,omitempty"`
+
 	// PreviewImageBase64 carries an image response losslessly. Body crosses the
 	// bridge as a JSON string, which mangles non-UTF-8 bytes.
 	PreviewImageBase64 string `json:"previewImageBase64,omitempty"`

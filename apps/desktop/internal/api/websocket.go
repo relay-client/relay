@@ -257,7 +257,7 @@ func (m *websocketManager) runConnectionOnceWithCallbacks(ctx context.Context, s
 	} else {
 		headers.Set("User-Agent", "Relay/"+appVersion)
 	}
-	applyUserHeaders(headers, req.Headers)
+	_, _ = applyUserHeaders(headers, req.Headers)
 	httpReq := &http.Request{Method: http.MethodGet, URL: cloneURL(u), Header: headers}
 	if err := auth.Apply(httpReq, req.Auth); err != nil {
 		emitError("auth error: " + err.Error())
