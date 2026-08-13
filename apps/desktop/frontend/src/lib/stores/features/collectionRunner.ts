@@ -65,6 +65,7 @@ type CollectionRunnerHost = {
     removed: string[] | undefined,
   ) => Promise<boolean>;
   refreshCookieJar: (silent?: boolean, persistAfterRefresh?: boolean) => Promise<void>;
+  ensureValidOAuth2TokenForRequest: (req: SavedRequest) => Promise<void>;
   saveTextFile: (name: string, content: string) => Promise<boolean>;
   // intra-feature members (mixed into the same prototype)
   collectionRunnerDefaultCollectionId: () => string;
@@ -368,6 +369,10 @@ export const collectionRunnerFeature = {
     this.collectionRunnerActiveRequestId = runnerRequestId;
     this.collectionRunnerActiveRequestIds.add(runnerRequestId);
     try {
+      // An expired OAuth token is refreshed here for the same reason it is
+      // before an ordinary send: without it a run against an OAuth-protected
+      // API turns into a column of 401s partway through.
+      try { await this.ensureValidOAuth2TokenForRequest(req); } catch {}
       const runnerEnvValues = { ...envValues, ...dataRow };
       if (this.normalizeRequestTypeValue(req.requestType, req.url) === 'grpc') {
         if (!(req.grpcMethod ?? '').trim()) {
@@ -453,11 +458,16 @@ export const collectionRunnerFeature = {
         }
         await forEachWithConcurrency(batch, concurrency, run =>
           this.executeCollectionRunnerRequest(run.request, run.runId, run.iteration, envValues, secretValues, secretKeys, dataRows[run.iteration - 1] ?? {}));
+        // Requests inside one iteration run at the same time and cannot see each
+        // other's variable writes — that is what parallel means. Iterations do
+        // not overlap, so a token fetched in iteration 1 has to be visible in
+        // iteration 2; without this refresh every iteration ran off the values
+        // the run started with.
+        try { envValues = await getEnvironment(); } catch {}
         if (delayMs > 0 && iteration < iterations && !this.collectionRunnerCancelRequested) {
           await this.waitForCollectionRunnerDelay(delayMs);
         }
       }
-      try { envValues = await getEnvironment(); } catch {}
     } else {
       for (let index = 0; index < runs.length; index += 1) {
         const run = runs[index];

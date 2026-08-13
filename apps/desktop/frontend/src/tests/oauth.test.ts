@@ -51,6 +51,13 @@ function makeHost(over: Record<string, unknown> = {}) {
     fetchOAuth2Token: authFeature.fetchOAuth2Token,
     refreshOAuth2Token: authFeature.refreshOAuth2Token,
     ensureValidOAuth2Token: authFeature.ensureValidOAuth2Token,
+    ensureValidOAuth2TokenForRequest: authFeature.ensureValidOAuth2TokenForRequest,
+    oauth2ConfigForAuthState: authFeature.oauth2ConfigForAuthState,
+    requestWithCollectionDefaults: (req: unknown) => req,
+    collectionForRequest: () => undefined,
+    activeRequestId: 'req-1',
+    requests: [],
+    collections: [],
     ...over,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
@@ -221,5 +228,75 @@ describe('ensureValidOAuth2Token (auto-refresh before send)', () => {
     const host = makeHost({ oauth2Token: 'stale', oauth2RefreshToken: 'rt-1', oauth2TokenExpiry: Date.now() - 1000 });
     await host.ensureValidOAuth2Token();
     expect(host.oauth2Token).toBe('stale');
+  });
+});
+
+describe('ensureValidOAuth2TokenForRequest (collection runner path)', () => {
+  const expiredAuth = (over: Record<string, unknown> = {}) => ({
+    type: 'oauth2',
+    oauth2GrantType: 'client_credentials',
+    oauth2TokenURL: 'https://auth.example.com/token',
+    oauth2ClientID: 'cid',
+    oauth2Secret: 'secret',
+    oauth2Scope: 'read',
+    oauth2Token: 'stale',
+    oauth2RefreshToken: 'RT',
+    oauth2TokenExpiry: Date.now() - 1000,
+    oauth2UsePKCE: true,
+    bearerToken: 'stale',
+    ...over,
+  });
+
+  // A request in a collection run is never the one open in the editor, so the
+  // editor-state refresh never fired for it and the run 401'd on an expired
+  // token with nothing to explain why.
+  it('refreshes and stores the token on a request that is not open', async () => {
+    mockRefresh.mockClear();
+    mockRefresh.mockResolvedValue(tokenResponse({ access_token: 'FRESH', refresh_token: 'RT2' }));
+    const request = { id: 'req-9', collectionId: 'c1', auth: expiredAuth(), settings: { enableSSLVerification: true } };
+    const host = makeHost({
+      activeRequestId: 'other',
+      requests: [request],
+      requestWithCollectionDefaults: (req: Record<string, unknown>) => req,
+    });
+
+    await host.ensureValidOAuth2TokenForRequest(request);
+
+    expect(mockRefresh).toHaveBeenCalledTimes(1);
+    expect(host.requests[0].auth.oauth2Token).toBe('FRESH');
+    expect(host.requests[0].auth.bearerToken).toBe('FRESH');
+    expect(host.requests[0].auth.oauth2RefreshToken).toBe('RT2');
+  });
+
+  // "Inherit Auth" is the documented way to point a whole collection at one
+  // API. The token lives on the collection, so that is where the fresh one has
+  // to land — otherwise every request in the run refreshes again.
+  it('writes the refreshed token back to the collection when auth is inherited', async () => {
+    mockRefresh.mockResolvedValue(tokenResponse({ access_token: 'FRESH' }));
+    const collection = { id: 'c1', defaults: { auth: expiredAuth() } };
+    const request = { id: 'req-9', collectionId: 'c1', auth: { type: 'inherit' }, settings: { enableSSLVerification: true } };
+    const host = makeHost({
+      collections: [collection],
+      requests: [request],
+      collectionForRequest: () => collection,
+      requestWithCollectionDefaults: () => ({ auth: expiredAuth(), settings: { enableSSLVerification: true } }),
+    });
+
+    await host.ensureValidOAuth2TokenForRequest(request);
+
+    expect(host.collections[0].defaults.auth.oauth2Token).toBe('FRESH');
+    expect(host.requests[0].auth.type).toBe('inherit');
+  });
+
+  it('leaves a token that is still valid alone', async () => {
+    mockRefresh.mockClear();
+    const request = {
+      id: 'req-9', collectionId: 'c1', settings: { enableSSLVerification: true },
+      auth: expiredAuth({ oauth2TokenExpiry: Date.now() + 600_000 }),
+    };
+    const host = makeHost({ requests: [request], requestWithCollectionDefaults: (req: Record<string, unknown>) => req });
+
+    await host.ensureValidOAuth2TokenForRequest(request);
+    expect(mockRefresh).not.toHaveBeenCalled();
   });
 });

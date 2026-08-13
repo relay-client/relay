@@ -21,18 +21,37 @@ type cliKV struct {
 }
 
 type cliAuth struct {
-	Type            string `json:"type"`
-	BearerToken     string `json:"bearerToken"`
-	BasicUser       string `json:"basicUser"`
-	BasicPass       string `json:"basicPass"`
-	APIKeyName      string `json:"apiKeyName"`
-	APIKeyValue     string `json:"apiKeyValue"`
-	APIKeyIn        string `json:"apiKeyIn"`
-	OAuth2Token     string `json:"oauth2Token"`
-	OAuth2TokenURL  string `json:"oauth2TokenURL"`
-	OAuth2ClientID  string `json:"oauth2ClientID"`
-	OAuth2Secret    string `json:"oauth2Secret"`
-	OAuth2Scope     string `json:"oauth2Scope"`
+	Type        string `json:"type"`
+	BearerToken string `json:"bearerToken"`
+	BasicUser   string `json:"basicUser"`
+	BasicPass   string `json:"basicPass"`
+	APIKeyName  string `json:"apiKeyName"`
+	APIKeyValue string `json:"apiKeyValue"`
+	APIKeyIn    string `json:"apiKeyIn"`
+
+	// The full OAuth 2.0 configuration, not just the token. A run used to carry
+	// only oauth2Token — which lives in the machine-local secret store and is
+	// therefore absent in CI — so an OAuth-protected collection could not be run
+	// from a checkout at all. With the grant details present the runner can get
+	// its own token.
+	OAuth2GrantType           string `json:"oauth2GrantType"`
+	OAuth2Token               string `json:"oauth2Token"`
+	OAuth2TokenURL            string `json:"oauth2TokenURL"`
+	OAuth2AuthURL             string `json:"oauth2AuthURL"`
+	OAuth2DeviceAuthURL       string `json:"oauth2DeviceAuthURL"`
+	OAuth2ClientID            string `json:"oauth2ClientID"`
+	OAuth2Secret              string `json:"oauth2Secret"`
+	OAuth2Scope               string `json:"oauth2Scope"`
+	OAuth2Audience            string `json:"oauth2Audience"`
+	OAuth2RefreshToken        string `json:"oauth2RefreshToken"`
+	OAuth2Username            string `json:"oauth2Username"`
+	OAuth2Password            string `json:"oauth2Password"`
+	OAuth2ClientAuth          string `json:"oauth2ClientAuth"`
+	OAuth2AssertionAlgorithm  string `json:"oauth2AssertionAlgorithm"`
+	OAuth2AssertionPrivateKey string `json:"oauth2AssertionPrivateKey"`
+	OAuth2AssertionKeyID      string `json:"oauth2AssertionKeyID"`
+	OAuth2AssertionAudience   string `json:"oauth2AssertionAudience"`
+
 	AWSAccessKey    string `json:"awsAccessKey"`
 	AWSSecretKey    string `json:"awsSecretKey"`
 	AWSSessionToken string `json:"awsSessionToken"`
@@ -212,18 +231,34 @@ func buildHTTPRequest(req cliSavedRequest, values map[string]string, secretValue
 		Params:    params,
 		Headers:   headers,
 		Auth: model.AuthConfig{
-			Type:            req.Auth.Type,
-			Token:           resolve(token),
-			Username:        resolve(req.Auth.BasicUser),
-			Password:        resolve(req.Auth.BasicPass),
-			KeyName:         resolve(req.Auth.APIKeyName),
-			KeyValue:        resolve(req.Auth.APIKeyValue),
-			KeyIn:           req.Auth.APIKeyIn,
-			AWSAccessKey:    resolve(req.Auth.AWSAccessKey),
-			AWSSecretKey:    resolve(req.Auth.AWSSecretKey),
-			AWSSessionToken: resolve(req.Auth.AWSSessionToken),
-			AWSRegion:       resolve(req.Auth.AWSRegion),
-			AWSService:      resolve(req.Auth.AWSService),
+			Type:                      req.Auth.Type,
+			Token:                     resolve(token),
+			Username:                  resolve(req.Auth.BasicUser),
+			Password:                  resolve(req.Auth.BasicPass),
+			KeyName:                   resolve(req.Auth.APIKeyName),
+			KeyValue:                  resolve(req.Auth.APIKeyValue),
+			KeyIn:                     req.Auth.APIKeyIn,
+			OAuth2GrantType:           req.Auth.OAuth2GrantType,
+			OAuth2TokenURL:            resolve(req.Auth.OAuth2TokenURL),
+			OAuth2AuthURL:             resolve(req.Auth.OAuth2AuthURL),
+			OAuth2DeviceAuthURL:       resolve(req.Auth.OAuth2DeviceAuthURL),
+			OAuth2ClientID:            resolve(req.Auth.OAuth2ClientID),
+			OAuth2Secret:              resolve(req.Auth.OAuth2Secret),
+			OAuth2Scope:               resolve(req.Auth.OAuth2Scope),
+			OAuth2Audience:            resolve(req.Auth.OAuth2Audience),
+			OAuth2RefreshToken:        resolve(req.Auth.OAuth2RefreshToken),
+			OAuth2Username:            resolve(req.Auth.OAuth2Username),
+			OAuth2Password:            resolve(req.Auth.OAuth2Password),
+			OAuth2ClientAuth:          req.Auth.OAuth2ClientAuth,
+			OAuth2AssertionAlgorithm:  req.Auth.OAuth2AssertionAlgorithm,
+			OAuth2AssertionPrivateKey: resolve(req.Auth.OAuth2AssertionPrivateKey),
+			OAuth2AssertionKeyID:      resolve(req.Auth.OAuth2AssertionKeyID),
+			OAuth2AssertionAudience:   resolve(req.Auth.OAuth2AssertionAudience),
+			AWSAccessKey:              resolve(req.Auth.AWSAccessKey),
+			AWSSecretKey:              resolve(req.Auth.AWSSecretKey),
+			AWSSessionToken:           resolve(req.Auth.AWSSessionToken),
+			AWSRegion:                 resolve(req.Auth.AWSRegion),
+			AWSService:                resolve(req.Auth.AWSService),
 		},
 		BodyType:                bodyType,
 		Body:                    body,
