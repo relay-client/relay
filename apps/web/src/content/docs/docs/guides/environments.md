@@ -17,6 +17,20 @@ Resolution combines two saved scopes plus runtime script state:
 
 If nothing matches, the literal `{{name}}` is left untouched so the unresolved template is visible.
 
+### Variables built from other variables
+
+A value may itself contain `{{...}}`, and Relay keeps resolving until nothing changes:
+
+```
+scheme  = https
+host    = api.example.com
+baseUrl = {{scheme}}://{{host}}
+```
+
+A request pointed at `{{baseUrl}}/users` goes to `https://api.example.com/users`. This is the usual way to keep one place to edit when a whole collection moves to staging.
+
+Resolution stops after 20 rounds. A chain that refers back to itself — `a = {{b}}`, `b = {{a}}` — keeps its braces rather than looping, so the send fails with an unresolved-variable message pointing at the real culprit.
+
 ## Dynamic variables
 
 Names beginning with `$` are generated at send time and need no environment entry. They match Postman's names, so imported collections that use them keep working.

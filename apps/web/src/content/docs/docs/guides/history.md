@@ -27,7 +27,9 @@ Toggle a day open or closed with the chevron. Days collapse independently — yo
 
 ## Reopening a request from history
 
-Click any entry to load it into the editor as a **draft**. The request URL, method, headers, body, auth, and scripts are restored exactly as they were sent. The original response is also restored into the response panel — no need to re-send if you just want to inspect what you got.
+Click any entry to load it into the editor as a **draft**. The request URL, method, headers, body, auth, and scripts are restored exactly as they were sent, and the response that came back is restored into the response panel — no need to re-send if you just want to inspect what you got. Re-sending would answer a different question anyway: the server may not reply the same way it did an hour ago.
+
+A row whose response was kept shows a small dot next to its status code. To look at the response without opening the request, use **View response** in the row's ••• menu.
 
 Drafts loaded from history don't belong to any collection. You can:
 
@@ -83,10 +85,16 @@ When you *Export all data* from Settings, history is included in the JSON export
 ## Common questions
 
 **Does history persist across restarts?**
-Yes. History is persisted in encrypted `requests.json`.
+Yes. The entries live in the encrypted `requests.json`; the response bodies live beside it in `history/`, one file per entry, encrypted with the same key. They are kept out of `requests.json` on purpose — that file is rewritten in full every time anything is saved, and a thousand entries carrying bodies would turn every keystroke into a large write.
 
-**What about responses larger than 100 MB?**
-Responses are stored truncated to the same 100 MB cap as the live response viewer. The status code, headers, and duration are kept intact; only the body is truncated.
+**What about large responses?**
+A stored response is capped at 2 MB. Past that only the head is kept, and reopening it says so. The status code, headers, duration, and test results are kept in full.
+
+**What about binary responses?**
+The status, headers and size are recorded, but no body. Binary bytes do not survive the trip from the sender to the interface, so what history could store would not be what the server sent.
+
+**Are stored responses cleaned up?**
+Yes. A response file is deleted when its entry falls out of the 14-day window, when you delete the entry, and when you clear history.
 
 **Can I disable history?**
 Not yet — there's no toggle. If you need this for a sensitive endpoint, you can clear all history after sending, or use a separate workspace just for that work and clear it.

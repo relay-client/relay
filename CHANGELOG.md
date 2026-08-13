@@ -5,6 +5,34 @@ All notable changes to Relay are documented here. This project follows
 
 ---
 
+## [1.4.0] - 2026-08-13
+
+### Added
+- **Request history keeps the response.** An entry used to record only the status line, so there was no way back to what an endpoint actually returned — and the documentation had been promising otherwise. Opening an entry now restores the response into the viewer alongside the request, and a row's ••• menu has **View response** for looking without reopening. Bodies live in their own encrypted files under `history/` rather than in the request store, which is rewritten in full on every save; they are capped at 2 MB, a binary response keeps no body (those bytes do not survive the trip to the interface), and a file is deleted when its entry expires, is deleted, or history is cleared.
+- **Variables can be built from other variables.** `baseUrl = {{scheme}}://{{host}}` now resolves, up to a depth of 20, with a circular chain left alone rather than looping.
+- **`relay run` obtains its own OAuth 2.0 tokens.** Client credentials and password grants are fetched from the token endpoint; Authorization Code and Device Code fall back to the stored refresh token, which is how they are meant to be renewed unattended. One token is shared by every request in a run that uses the same configuration, and a grant that genuinely needs a browser stops the run with an explanation instead of sending unauthenticated.
+- **Authorization tab for WebSocket and Socket.IO.** The sender always applied auth to the handshake; the tab to configure it was missing, so the only route to a protected socket was a hand-written header.
+- **SSE reconnection and WebSocket keep-alive are configurable.** All three settings were implemented in Go and had no field in the frontend model, so they sat unreachable for two releases.
+- **The `Host` header works.** It was grouped with the framing headers and dropped. It now travels through `Request.Host`, which changes the header without changing where the connection goes. The headers Relay still refuses to send are named in the response panel instead of disappearing silently.
+
+### Fixed
+- **Saving a workspace dropped auth fields.** The workspace writer kept a hand-maintained list of which auth fields belong to which type, and it had not been updated since 1.0. A request set to **Inherit Auth** lost the setting entirely and reverted to sending none; AWS session tokens, the Device Code and Password grants, client-authentication methods, and the private-key-JWT configuration — every OAuth field added in 1.2.0 — were discarded on every save. The YAML is the only copy, so what the writer dropped was gone.
+- **Any pre-request script corrupted repeated headers and query parameters.** A script's view of them is a map, which cannot hold two rows sharing a key, and the whole map was merged back afterwards. `?id=1&id=2` went out as `?id=2&id=2` and a disabled row came back enabled — for any request running any script, including one that only logged. Only keys a script actually writes are merged now, following Postman's upsert; rows it never names are left exactly as written.
+- **OAuth 2.0 tokens were never refreshed for a request that was not on screen.** The refresh read the editor's own fields, so a collection run against an OAuth-protected API started returning 401 the moment the token expired, and a request set to **Inherit Auth** never refreshed at all. It now resolves the auth the request will actually send and writes the new token back where it came from.
+- **Importing an OpenAPI spec produced requests that could not be sent.** Path parameters became `{{userId}}` with nothing defining them, the server was pasted into every URL, and declared security schemes were dropped so every request came in as No Auth. The server is now a `{{baseUrl}}` collection variable, path parameters become collection variables seeded from the spec, and `securitySchemes` map onto the request's auth.
+- **Generated code dropped Basic, Digest, OAuth 2.0 and AWS auth.** Only Bearer and API keys reached the snippet, so a copied request came back 401 with nothing to say credentials had been left out. Basic and OAuth 2.0 are emitted in every language; cURL gained `--digest` and `--aws-sigv4`; Digest and SigV4 elsewhere open with a comment explaining what to reach for, rather than looking complete. Copying a request as cURL from the sidebar also resolves `{{variables}}` now.
+- **The client-certificate passphrase was committed in plain text.** It lives in request settings, which the secret sweep did not cover, so a literal value went into the workspace YAML verbatim. It now becomes a local secret placeholder like every other credential, along with the OAuth password-grant password, the private key, and the AWS session token.
+- **Collection variables written by a script were lost** when the script then called `pm.execution.skipRequest()` or failed.
+- **A parallel collection run ignored variables written by earlier iterations.** The environment was read once at the start rather than between iterations, so a token fetched in iteration 1 was invisible in iteration 2.
+- **SSE requests offered a Scripts tab** that never ran anything — the SSE path does not execute pre-request or test scripts.
+- **The realtime panel's tab strip wrapped onto two lines** and the status summary spilled underneath it on a narrow panel — reachable at the minimum window size with the sidebar widened.
+
+### Changed
+- The frontend no longer restates the Go structs. Wire types are derived from the generated Wails bindings, which removed 45 hand-written duplicate type definitions and a hand-maintained copy of every bound method signature. CI regenerates the bindings and fails if they differ from what is committed, and `make bindings` is the way to update them. Four of the defects above were the same failure — a hand-maintained copy falling behind — and this is what closes that class.
+- Request history now describes what it stores accurately in the README and the privacy page; it previously claimed responses were kept when they were not.
+
+---
+
 ## [1.3.0] - 2026-08-01
 
 ### Added

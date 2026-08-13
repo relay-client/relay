@@ -5,6 +5,30 @@ description: Notable Relay changes and links to the exact notes for each publish
 
 This page summarizes the notable-change log maintained in the source repository. For the exact notes and artifacts attached to every published tag, use the [Relay releases page](https://github.com/relay-client/relay/releases).
 
+## 1.4.0
+
+### Added
+
+- **Request history keeps the response.** Opening an entry restores what came back alongside the request — no re-sending to find out, which would answer a different question anyway. A row's ••• menu has **View response** for looking without reopening. Bodies are stored in their own encrypted files, capped at 2 MB, and deleted with their entry. See [Request history](/docs/guides/history/).
+- **Variables can be built from other variables.** `baseUrl = {{scheme}}://{{host}}` resolves now, so retargeting a whole collection at staging is one edit. See [Environments and variables](/docs/guides/environments/).
+- **`relay run` obtains its own OAuth 2.0 tokens.** Client credentials and password grants are fetched from the token endpoint; the interactive grants fall back to a stored refresh token. An OAuth-protected collection can finally run in CI. See [CLI runner](/docs/guides/cli-runner/).
+- **Authorization for WebSocket and Socket.IO.** The handshake always carried auth; the tab to configure it was missing.
+- **SSE reconnection and WebSocket keep-alive are configurable**, and the **`Host` header** can be set. See [Request settings](/docs/guides/request-settings/).
+
+### Fixed
+
+- **Saving a workspace dropped auth fields.** A request set to **Inherit Auth** lost the setting and reverted to sending none, and every OAuth 2.0 field added in 1.2.0 — AWS session tokens, Device Code, Password, client-authentication methods, private-key JWT — was discarded on each save. The workspace file is the only copy, so what the writer dropped was gone.
+- **Any pre-request script corrupted repeated headers and query parameters.** `?id=1&id=2` went out as `?id=2&id=2`, and a disabled row came back enabled — for any request running any script, including one that only logged.
+- **OAuth 2.0 tokens were never refreshed for a request that was not on screen**, so a collection run started returning 401 the moment the token expired, and **Inherit Auth** never refreshed at all.
+- **Importing an OpenAPI spec produced requests that could not be sent** — path parameters resolved to nothing, the server was pasted into every URL, and security schemes were dropped. See [Import and export](/docs/guides/import-export/).
+- **Generated code dropped Basic, Digest, OAuth 2.0 and AWS auth**, so a copied request came back 401 without saying anything had been left out. See [Code generation](/docs/guides/code-generation/).
+- **The client-certificate passphrase was committed in plain text** when typed literally rather than as a variable.
+- Collection variables written by a script were lost when it then skipped the request; a parallel run ignored variables written by earlier iterations; SSE offered a Scripts tab that never ran anything; the realtime panel's tabs wrapped on a narrow window.
+
+### Changed
+
+- The frontend no longer restates the Go structs — wire types are derived from the generated bindings, and CI fails when they go stale. Four of the defects above were the same failure, a hand-maintained copy falling behind, and this closes that class.
+
 ## 1.3.0
 
 ### Added

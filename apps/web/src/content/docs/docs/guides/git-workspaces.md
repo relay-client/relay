@@ -98,7 +98,7 @@ Use diagnostics to jump to the affected workspace, collection, request, or envir
 
 ## Safety rules
 
-- Relay does not write real secret values into managed workspace YAML.
+- Relay does not write real secret values into managed workspace YAML. Tokens, passwords, client secrets, AWS keys and session tokens, OAuth 2.0 refresh tokens and private keys, and the client-certificate passphrase are all replaced by a `{{relaySecret:…}}` placeholder in the file.
 - Local secret values remain in the encrypted Relay profile and are not staged by the Git workspace UI.
 - Relay does not discard unrelated repository files.
 - Destructive actions such as discard and force-push are explicit UI actions.
