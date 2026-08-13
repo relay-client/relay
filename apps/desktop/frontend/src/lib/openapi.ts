@@ -1,4 +1,4 @@
-import type { BodyType, KVRow, Method, RawBodyType, SavedRequest } from './types/models';
+import type { AuthState, BodyType, KVRow, Method, RawBodyType, SavedRequest } from './types/models';
 import { DEFAULT_REQUEST_SETTINGS, mkRow } from './constants';
 import { asArray, asText, isRecord, newRequestId } from './utils';
 import { emptyAuthState } from './utils';
@@ -203,22 +203,30 @@ function swaggerBody(parameters: unknown[], consumes: string[], root: unknown): 
   return { ...empty, bodyType: 'json', rawBodyType: 'json', bodyContent: stringifyJson(example) };
 }
 
-function serverUrl(spec: Record<string, unknown>) {
-  if (Array.isArray(spec.servers) && isRecord(spec.servers[0])) {
-    const server = spec.servers[0];
-    const variables = isRecord(server.variables) ? server.variables : {};
-    return asText(server.url).replace(/\{([^}]+)\}/g, (_, key) => {
-      const variable = variables[key];
-      if (isRecord(variable)) return asText(variable.default || asArray(variable.enum)[0] || key);
-      return key;
-    });
+function resolveServerUrl(server: Record<string, unknown>) {
+  const variables = isRecord(server.variables) ? server.variables : {};
+  return asText(server.url).replace(/\{([^}]+)\}/g, (_, key) => {
+    const variable = variables[key];
+    if (isRecord(variable)) return asText(variable.default || asArray(variable.enum)[0] || key);
+    return key;
+  });
+}
+
+// Every server the document declares, most-preferred first. OpenAPI lists the
+// primary one at index 0; Swagger 2.0 describes a single host/basePath pair.
+function serverUrls(spec: Record<string, unknown>): string[] {
+  if (Array.isArray(spec.servers)) {
+    const urls = spec.servers.filter(isRecord).map(resolveServerUrl).filter(Boolean);
+    if (urls.length) return urls;
   }
   const schemes = asArray(spec.schemes).map(asText);
   const scheme = schemes[0] || 'https';
   const host = asText(spec.host);
   const basePath = asText(spec.basePath);
-  return host ? `${scheme}://${host}${basePath}` : basePath;
+  const single = host ? `${scheme}://${host}${basePath}` : basePath;
+  return single ? [single] : [];
 }
+
 
 function joinUrl(base: string, path: string) {
   const templatedPath = path.replace(/\{([^}]+)\}/g, '{{$1}}');
@@ -256,14 +264,147 @@ export function openApiCollectionName(spec: unknown, fileName: string) {
   return asText(info.title) || fileName.replace(/\.(json|ya?ml)$/i, '') || 'OpenAPI Import';
 }
 
-export function openApiRequestsFromSpec(specValue: unknown, collectionId: string, collectionName: string): SavedRequest[] {
+// The base URL becomes a collection variable rather than being baked into every
+// request, so pointing an imported spec at staging is one edit instead of one
+// per request.
+export const OPENAPI_BASE_URL_VARIABLE = 'baseUrl';
+
+export type OpenApiCollectionDefaults = {
+  variables: KVRow[];
+  auth?: AuthState;
+};
+
+function securitySchemes(spec: Record<string, unknown>): Record<string, unknown> {
+  const components = isRecord(spec.components) && isRecord(spec.components.securitySchemes)
+    ? spec.components.securitySchemes
+    : {};
+  const swagger = isRecord(spec.securityDefinitions) ? spec.securityDefinitions : {};
+  return { ...swagger, ...components };
+}
+
+// The first requirement in a `security` list is enough: alternatives are ORed,
+// and a request can only carry one auth configuration.
+function firstSecuritySchemeName(security: unknown): string | null {
+  const requirements = asArray(security);
+  if (!requirements.length) return null;
+  const first = requirements[0];
+  if (!isRecord(first)) return null;
+  const [name] = Object.keys(first);
+  return name ?? null;
+}
+
+// Maps a declared scheme onto Relay's auth, referencing collection variables
+// for the values only the caller knows. The spec never carries credentials, so
+// the useful outcome is a request configured to the right scheme with one
+// obvious place to type the secret.
+function authFromSecurityScheme(scheme: unknown, variables: Map<string, KVRow>): AuthState | null {
+  if (!isRecord(scheme)) return null;
+  const declare = (key: string, description: string, secret = true) => {
+    if (!variables.has(key)) {
+      variables.set(key, { ...mkRow(), key, value: '', description, secret });
+    }
+    return `{{${key}}}`;
+  };
+
+  const type = asText(scheme.type).toLowerCase();
+  const httpScheme = asText(scheme.scheme).toLowerCase();
+
+  if (type === 'http' && httpScheme === 'basic') {
+    return {
+      ...emptyAuthState(),
+      type: 'basic',
+      basicUser: declare('username', 'HTTP Basic user', false),
+      basicPass: declare('password', 'HTTP Basic password'),
+    };
+  }
+  if (type === 'http' && httpScheme === 'digest') {
+    return {
+      ...emptyAuthState(),
+      type: 'digest',
+      basicUser: declare('username', 'Digest user', false),
+      basicPass: declare('password', 'Digest password'),
+    };
+  }
+  if (type === 'http' || type === 'bearer') {
+    return { ...emptyAuthState(), type: 'bearer', bearerToken: declare('bearerToken', 'Bearer token') };
+  }
+  if (type === 'apikey') {
+    const name = asText(scheme.name) || 'X-API-Key';
+    const location = asText(scheme.in).toLowerCase() === 'query' ? 'query' : 'header';
+    return {
+      ...emptyAuthState(),
+      type: 'apikey',
+      apiKeyName: name,
+      apiKeyIn: location,
+      apiKeyValue: declare('apiKey', `Value for the ${name} API key`),
+    };
+  }
+  if (type === 'oauth2') {
+    const flows = isRecord(scheme.flows) ? scheme.flows : {};
+    const flow = ['clientCredentials', 'authorizationCode', 'password', 'implicit']
+      .map(name => (isRecord(flows[name]) ? { name, value: flows[name] as Record<string, unknown> } : null))
+      .find(Boolean);
+    // Swagger 2.0 puts the URLs directly on the scheme.
+    const tokenURL = asText(flow?.value.tokenUrl) || asText(scheme.tokenUrl);
+    const authURL = asText(flow?.value.authorizationUrl) || asText(scheme.authorizationUrl);
+    const scopes = Object.keys(
+      isRecord(flow?.value.scopes) ? flow!.value.scopes as Record<string, unknown>
+        : isRecord(scheme.scopes) ? scheme.scopes as Record<string, unknown> : {},
+    ).join(' ');
+    const grant = flow?.name === 'authorizationCode' || asText(scheme.flow) === 'accessCode'
+      ? 'authorization_code'
+      : flow?.name === 'password' ? 'password' : 'client_credentials';
+    return {
+      ...emptyAuthState(),
+      type: 'oauth2',
+      oauth2GrantType: grant as AuthState['oauth2GrantType'],
+      oauth2TokenURL: tokenURL,
+      oauth2AuthURL: authURL,
+      oauth2Scope: scopes,
+      oauth2ClientID: declare('oauth2ClientId', 'OAuth 2.0 client id', false),
+      oauth2Secret: declare('oauth2ClientSecret', 'OAuth 2.0 client secret'),
+    };
+  }
+  // openIdConnect and anything unrecognised: the endpoints cannot be derived
+  // without fetching the discovery document, so leave it for the user.
+  return null;
+}
+
+export type OpenApiImport = {
+  requests: SavedRequest[];
+  defaults: OpenApiCollectionDefaults;
+};
+
+// An imported spec has to produce requests that can actually be sent. Before,
+// a path template like /users/{userId} became /users/{{userId}} with nothing
+// defining userId, the base URL was pasted into every request, and the declared
+// security schemes were dropped — so every request failed on an unresolved
+// variable, and the ones that did not came back 401.
+export function openApiImportFromSpec(specValue: unknown, collectionId: string, collectionName: string): OpenApiImport {
   const spec = isRecord(specValue) ? specValue : {};
   const paths = isRecord(spec.paths) ? spec.paths : {};
   if (!Object.keys(paths).length) throw new Error('Expected an OpenAPI/Swagger document with paths');
 
-  const base = serverUrl(spec);
+  const servers = serverUrls(spec);
   const globalConsumes = asArray(spec.consumes).map(asText);
+  const schemes = securitySchemes(spec);
   const requests: SavedRequest[] = [];
+  const variables = new Map<string, KVRow>();
+
+  if (servers.length) {
+    const alternatives = servers.slice(1);
+    variables.set(OPENAPI_BASE_URL_VARIABLE, {
+      ...mkRow(),
+      key: OPENAPI_BASE_URL_VARIABLE,
+      value: servers[0],
+      description: alternatives.length ? `Also declared: ${alternatives.join(', ')}` : 'Server declared by the spec',
+    });
+  }
+
+  const collectionSchemeName = firstSecuritySchemeName(spec.security);
+  const collectionAuth = collectionSchemeName
+    ? authFromSecurityScheme(deref(spec, schemes[collectionSchemeName]), variables)
+    : null;
 
   for (const [path, pathValue] of Object.entries(paths)) {
     const pathItem = deref(spec, pathValue);
@@ -274,6 +415,14 @@ export function openApiRequestsFromSpec(specValue: unknown, collectionId: string
       const parameters = parametersFor(pathItem, operation, spec);
       const params = parameterRows(parameters, 'query', spec);
       const headers = parameterRows(parameters, 'header', spec);
+      // A path parameter is part of the URL, so it has to resolve to something
+      // before the request can be sent. The spec's example or default is the
+      // best starting value; a name already claimed keeps the first one.
+      for (const pathParam of parameterRows(parameters, 'path', spec)) {
+        if (!variables.has(pathParam.key)) {
+          variables.set(pathParam.key, { ...pathParam, enabled: true });
+        }
+      }
       const consumes = [...asArray(operation.consumes).map(asText), ...globalConsumes];
       const body = spec.swagger
         ? swaggerBody(parameters, consumes, spec)
@@ -290,11 +439,11 @@ export function openApiRequestsFromSpec(specValue: unknown, collectionId: string
         collection: collectionName,
         folderPath: tags.length ? [tags[0]] : [],
         method: methodUpper,
-        url: joinUrl(base, path),
+        url: joinUrl(servers.length ? `{{${OPENAPI_BASE_URL_VARIABLE}}}` : '', path),
         requestTab: body.bodyType !== 'none' ? 'body' : params.length ? 'params' : headers.length ? 'headers' : 'docs',
         params,
         headers,
-        auth: emptyAuthState(),
+        auth: operationAuth(operation, spec, schemes, variables, Boolean(collectionAuth)),
         bodyType: body.bodyType,
         rawBodyType: body.rawBodyType,
         bodyContent: body.bodyContent,
@@ -309,7 +458,39 @@ export function openApiRequestsFromSpec(specValue: unknown, collectionId: string
     }
   }
 
-  return requests;
+  return {
+    requests,
+    defaults: {
+      variables: [...variables.values()],
+      ...(collectionAuth ? { auth: collectionAuth } : {}),
+    },
+  };
+}
+
+// An operation without its own `security` uses the document's, which lives on
+// the collection — so the request inherits rather than carrying a copy, and
+// changing the collection's auth later reaches every request. `security: []`
+// means the operation is explicitly public.
+function operationAuth(
+  operation: Record<string, unknown>,
+  spec: Record<string, unknown>,
+  schemes: Record<string, unknown>,
+  variables: Map<string, KVRow>,
+  hasCollectionAuth: boolean,
+): AuthState {
+  if (!('security' in operation)) {
+    return hasCollectionAuth ? { ...emptyAuthState(), type: 'inherit' } : emptyAuthState();
+  }
+  const name = firstSecuritySchemeName(operation.security);
+  if (!name) return emptyAuthState();
+  const auth = authFromSecurityScheme(deref(spec, schemes[name]), variables);
+  if (!auth) return hasCollectionAuth ? { ...emptyAuthState(), type: 'inherit' } : emptyAuthState();
+  return auth;
+}
+
+// Kept for callers that only need the requests.
+export function openApiRequestsFromSpec(specValue: unknown, collectionId: string, collectionName: string): SavedRequest[] {
+  return openApiImportFromSpec(specValue, collectionId, collectionName).requests;
 }
 
 

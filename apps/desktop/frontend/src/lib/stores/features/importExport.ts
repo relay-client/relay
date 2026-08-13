@@ -9,6 +9,9 @@ import { routeImportedScripts, withActiveScripts } from '../../scriptEngine';
 import { downloadTextFile, safeFileName } from '../../utils';
 import type { OpenApiExportFormat } from '../../openapi';
 
+// What an importer can put on the collection it creates, alongside the requests.
+type ImportedCollectionDefaults = { variables?: KVRow[]; auth?: import('../../types/models').AuthState };
+
 type ImportSource = 'bruno' | 'postman' | 'insomnia' | 'openapi' | 'har' | 'httpfile';
 
 type DialogOptionInput = { value: string; label: string; icon?: string; description?: string };
@@ -64,7 +67,7 @@ type ImportExportHost = {
   importCollectionPayload: (text: string, fileName: string, source: ImportSource) => Promise<number>;
   importOpenCollectionFiles: (files: Array<{ path: string; content: string }>, fallbackName: string) => Promise<number>;
   importHarPayload: (payload: unknown, fileName: string) => Promise<number>;
-  importRequestsPayload: (collectionName: string, buildRequests: (collectionId: string, collectionName: string) => SavedRequest[], collectionVariables?: KVRow[]) => Promise<number>;
+  importRequestsPayload: (collectionName: string, buildRequests: (collectionId: string, collectionName: string) => SavedRequest[], collectionDefaults?: ImportedCollectionDefaults | (() => ImportedCollectionDefaults | undefined)) => Promise<number>;
   importCollectionBundle: (bundle: ImportedCollectionBundle) => Promise<number>;
   importPostmanVariableBundle: (bundle: { scope: 'environment' | 'globals'; name: string; values: KVRow[] }) => Promise<number>;
   globalVariables: KVRow[];
@@ -187,16 +190,23 @@ export const importExportFeature = {
     const collectionName = harCollectionName(payload, fileName);
     return this.importRequestsPayload(collectionName, (collectionId, name) => harRequestsFromLog(payload, collectionId, name));
   },
-  async importRequestsPayload(this: ImportExportHost, collectionName: string, buildRequests: (collectionId: string, collectionName: string) => SavedRequest[], collectionVariables?: KVRow[]) {
+  async importRequestsPayload(this: ImportExportHost, collectionName: string, buildRequests: (collectionId: string, collectionName: string) => SavedRequest[], collectionDefaults?: ImportedCollectionDefaults | (() => ImportedCollectionDefaults | undefined)) {
     if (!this.guardWorkspaceWritable('Importing')) return 0;
     const wsId = this.activeWorkspaceId || this.workspaces[0]?.id; if (!wsId) throw new Error('No workspace available');
     await this.persistActiveRequestNow();
     const collection = makeCollection(wsId, collectionName);
-    if (collectionVariables?.length) {
-      collection.defaults = { ...collection.defaults, variables: collectionVariables };
+    const builtRequests = buildRequests(collection.id, collectionName);
+    // Read after building, because an importer may only discover the collection's
+    // variables and auth while walking the requests.
+    const defaults = typeof collectionDefaults === 'function' ? collectionDefaults() : collectionDefaults;
+    if (defaults?.variables?.length) {
+      collection.defaults = { ...collection.defaults, variables: defaults.variables };
+    }
+    if (defaults?.auth) {
+      collection.defaults = { ...collection.defaults, auth: defaults.auth };
     }
     const importCollections = [...this.collections, collection];
-    const importedReqs = buildRequests(collection.id, collectionName)
+    const importedReqs = builtRequests
       .map(req => routeImportedScripts(normalizeSavedRequest(req, importCollections, wsId), this.scriptEngine));
     if (!importedReqs.length) throw new Error('No requests found in import file');
     const nextCols = [...this.collections, collection]; const nextReqs = [...this.requests, ...importedReqs];
@@ -245,10 +255,22 @@ export const importExportFeature = {
     const collectionName = insomniaCollectionName(payload, fileName);
     return this.importRequestsPayload(collectionName, (collectionId, name) => insomniaRequestsFromResources(payload, collectionId, name));
   },
+  // The spec's servers, path parameters, and security schemes become collection
+  // defaults, so an imported request is sendable without hand-editing: the base
+  // URL and every {{pathVariable}} resolve, and the auth scheme is already set.
   async importOpenApiPayload(this: ImportExportHost, payload: unknown, fileName: string) {
-    const { openApiCollectionName, openApiRequestsFromSpec } = await import('../../openapi');
+    const { openApiCollectionName, openApiImportFromSpec } = await import('../../openapi');
     const collectionName = openApiCollectionName(payload, fileName);
-    return this.importRequestsPayload(collectionName, (collectionId, name) => openApiRequestsFromSpec(payload, collectionId, name));
+    let defaults: ImportedCollectionDefaults | undefined;
+    return this.importRequestsPayload(
+      collectionName,
+      (collectionId, name) => {
+        const imported = openApiImportFromSpec(payload, collectionId, name);
+        defaults = imported.defaults;
+        return imported.requests;
+      },
+      () => defaults,
+    );
   },
   // `@base = …` file variables become collection variables, so the imported
   // {{base}} references keep resolving without hand-editing every request.
@@ -260,7 +282,7 @@ export const importExportFeature = {
     return this.importRequestsPayload(
       collectionName,
       (collectionId, name) => parsed.requests.map(request => ({ ...request, collectionId, collection: name })),
-      variables,
+      { variables },
     );
   },
   async exportCollection(this: ImportExportHost, collectionId: string) {
