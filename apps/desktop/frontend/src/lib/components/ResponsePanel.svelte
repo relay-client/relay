@@ -217,6 +217,12 @@
 
       {#if responseTab === 'body'}
         <div class="response-tab-panel" id="response-panel-body" role="tabpanel">
+        <!-- Decisions the sender made about the request that the response alone
+             would not explain — a header row Relay declined to put on the wire,
+             for one. Silence here sends people debugging the server. -->
+        {#each response.warnings ?? [] as warning}
+          <div class="response-warning" role="status">{warning}</div>
+        {/each}
         {#if response.error}
           <div class="response-error" role="textbox" aria-readonly="true" tabindex="0">{response.error}</div>
       {:else if !response.body}
