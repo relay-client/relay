@@ -265,7 +265,7 @@ func (m *sseManager) runStreamAttempt(
 		httpReq.Header.Set("User-Agent", "Relay/"+appVersion)
 	}
 
-	applyUserHeaders(httpReq.Header, req.Headers)
+	_, _ = applyUserHeaders(httpReq.Header, req.Headers)
 	if err := auth.Apply(httpReq, req.Auth); err != nil {
 		return fail("auth error: "+err.Error(), false)
 	}

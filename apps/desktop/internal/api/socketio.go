@@ -393,7 +393,7 @@ func (m *socketIOManager) runConnectionOnce(ctx context.Context, sessionID strin
 	} else {
 		headers.Set("User-Agent", "Relay/"+appVersion)
 	}
-	applyUserHeaders(headers, req.Headers)
+	_, _ = applyUserHeaders(headers, req.Headers)
 	httpReq := &http.Request{Method: http.MethodGet, URL: cloneURL(baseURL), Header: headers}
 	if err := auth.Apply(httpReq, req.Auth); err != nil {
 		emitError("auth error: " + err.Error())

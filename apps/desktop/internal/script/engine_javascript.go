@@ -292,23 +292,10 @@ func buildJSHost(vm *goja.Runtime, ctx *Context, hasResponse bool) map[string]in
 
 		"reqHeaderGet": func(k string) goja.Value { return headerGet(ctx.RequestHeaders, k) },
 		"reqHeaderSet": func(k, v string) {
-			k = limitJSHostString(k)
-			for existing := range ctx.RequestHeaders {
-				if strings.EqualFold(existing, k) {
-					delete(ctx.RequestHeaders, existing)
-				}
-			}
-			ctx.RequestHeaders[k] = limitJSHostString(v)
-			delete(ctx.RemovedHeaders, strings.ToLower(k))
+			ctx.SetRequestHeader(limitJSHostString(k), limitJSHostString(v))
 		},
 		"reqHeaderUnset": func(k string) {
-			k = limitJSHostString(k)
-			for existing := range ctx.RequestHeaders {
-				if strings.EqualFold(existing, k) {
-					delete(ctx.RequestHeaders, existing)
-				}
-			}
-			ctx.RemovedHeaders[strings.ToLower(k)] = struct{}{}
+			ctx.UnsetRequestHeader(limitJSHostString(k))
 		},
 
 		"reqParamGet": func(k string) goja.Value {
@@ -318,14 +305,10 @@ func buildJSHost(vm *goja.Runtime, ctx *Context, hasResponse bool) map[string]in
 			return undef
 		},
 		"reqParamSet": func(k, v string) {
-			k = limitJSHostString(k)
-			ctx.RequestParams[k] = limitJSHostString(v)
-			delete(ctx.RemovedParams, k)
+			ctx.SetRequestParam(limitJSHostString(k), limitJSHostString(v))
 		},
 		"reqParamUnset": func(k string) {
-			k = limitJSHostString(k)
-			delete(ctx.RequestParams, k)
-			ctx.RemovedParams[k] = struct{}{}
+			ctx.UnsetRequestParam(limitJSHostString(k))
 		},
 
 		"recordTest": func(name string, passed bool, errMsg string) {
