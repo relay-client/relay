@@ -2,7 +2,7 @@
 
 This matrix keeps documentation work honest. Update it whenever a feature ships or a guide changes.
 
-Last factual audit: **2026-08-01**, against desktop tag **v1.3.0**.
+Last factual audit: **2026-08-13**, against desktop tag **v1.4.0**.
 
 | Area | User docs | Reference / source of truth | Screenshot status | Notes |
 |------|-----------|-----------------------------|-------------------|-------|
@@ -17,7 +17,7 @@ Last factual audit: **2026-08-01**, against desktop tag **v1.3.0**.
 | Scripting | `docs/guides/scripting` | `docs/reference/scripting-api`, `internal/script` | Good | JavaScript and legacy Tengo script surfaces are captured. `pm.request.body` (including the urlencoded/formdata field lists and Postman's mode names), the draft-07 schema assertions, and the `require()` stand-ins are documented and covered by Go tests. Tengo keeps Relay's own body-type names and has no form-field API. |
 | Import/export | `docs/guides/import-export`, `docs/getting-started/migrating` | `docs/reference/relay-yaml-format`, `postman.ts` | Good | Import-source selection is captured; backup/restore is split into its own guide. Postman scripts, request docs, collection-level variables/auth/scripts, full OAuth 2.0 configuration, and environment/globals files are covered by importer tests. Folder scripts are flattened into each request, as Relay has no folder layer. |
 | Backup and restore | `docs/guides/backup-recovery`, `docs/faq`, `privacy` | `dataBackup.ts`, `secure_store.go` | Good | Export warning is captured. Plaintext secret-bearing export, exclusions, recovery-key behavior, and destructive restore are documented. |
-| Request history | `docs/guides/history` | `history.ts`, `constants.ts` | Good | Populated Today group and restored response are captured. |
+| Request history | `docs/guides/history` | `history.ts`, `internal/api/history_store.go` | Good | Populated Today group with a stored-response marker is captured. Responses are kept in encrypted per-entry files, capped at 2 MB, with binary bodies excluded and files pruned with their entry — covered by Go and frontend tests. |
 | Collection Runner | `docs/guides/collection-runner` | `docs/reference/performance-fixtures` | Good | Completed run with per-request pass status and summary is captured. Parallel runs are capped by the Max concurrent requests setting. |
 | CLI runner | `docs/guides/cli-runner` | `internal/api/cli.go`, `cli_request.go`, `cli_data.go` | N/A (terminal) | `relay run` covers HTTP/GraphQL plus test scripts. Data-driven iterations, cli/json/junit reporters with file export, variable scopes and export, and exit codes are documented and covered by Go tests. Realtime types and OAuth2 auto-fetch are out of scope. |
 | Client certificates (mTLS) | `docs/guides/request-settings` | `internal/api/client_cert.go`, `transport_cache.go` | Partial | Certificate, optional key, and passphrase are per-request settings, editable at collection level too and inherited from there. Legacy encrypted PEM keys are supported; PKCS#8 requires conversion. A custom CA is not configurable — Relay uses the OS trust roots. |
