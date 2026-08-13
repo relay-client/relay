@@ -96,6 +96,7 @@
     clearRequestHistory,
     toggleHistoryDay,
     openHistoryEntry,
+    showHistoryResponse,
     historyTitle,
     statusClass,
     toggleHistoryEntryMenu,
@@ -160,6 +161,7 @@
     clearRequestHistory: () => void;
     toggleHistoryDay: (key: string) => void;
     openHistoryEntry: (id: string) => void;
+    showHistoryResponse: (id: string) => void;
     historyTitle: (entry: RequestHistoryEntry) => string;
     statusClass: (statusCode: number) => string;
     toggleHistoryEntryMenu: (id: string, event: MouseEvent) => void;
@@ -716,11 +718,17 @@
                   {#if row.entry.statusCode}
                     <span class="history-meta {statusClass(row.entry.statusCode)}">{row.entry.statusCode}</span>
                   {/if}
+                  {#if row.entry.responseStored}
+                    <span class="history-stored" title="Response saved — open the row menu to view it" aria-label="Response saved">&#9673;</span>
+                  {/if}
                 </button>
                 <button class="history-entry-menu-btn" type="button" onclick={(event) => toggleHistoryEntryMenu(row.entry.id, event)} aria-label="History request menu" disabled={workspaceBlocked}>•••</button>
                 {#if openHistoryMenuId === row.entry.id}
                   <div class="request-menu history-entry-menu">
-                    <button type="button" onclick={() => openHistoryEntry(row.entry.id)} disabled={workspaceBlocked}>Open</button>
+                    <button type="button" onclick={() => openHistoryEntry(row.entry.id)} disabled={workspaceBlocked}>Open request</button>
+                    {#if row.entry.responseStored}
+                      <button type="button" onclick={() => showHistoryResponse(row.entry.id)}>View response</button>
+                    {/if}
                     {#each activeWorkspaceCollections() as collection}
                       <button type="button" onclick={() => saveHistoryEntryToCollection(row.entry.id, collection.id)} disabled={workspaceBlocked}>Save to {collection.name}</button>
                     {/each}
