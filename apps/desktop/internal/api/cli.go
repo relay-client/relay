@@ -273,6 +273,7 @@ func runCLI(opts cliOptions) int {
 	sm.SetEnvironment(values)
 	jars := newCookieJarRegistry()
 	cache := newPreflightCache()
+	tokens := newOAuth2TokenCache()
 	defer httpTransports.closeAll()
 
 	results := make([]cliRunResult, 0, len(selected)*iterations)
@@ -291,7 +292,7 @@ runLoop:
 			}
 			firstRequest = false
 
-			result := runCLIRequest(sm, jars, cache, req, iteration, dataRow, opts, secretValues)
+			result := runCLIRequest(sm, jars, cache, tokens, req, iteration, dataRow, opts, secretValues)
 			results = append(results, result)
 			if opts.verbose {
 				printVerbose(opts.stdout, result)
@@ -320,7 +321,7 @@ runLoop:
 	return 0
 }
 
-func runCLIRequest(sm *state.Manager, jars *cookieJarRegistry, cache *preflightCache, req cliSavedRequest, iteration int, dataRow map[string]string, opts cliOptions, secretValues []string) cliRunResult {
+func runCLIRequest(sm *state.Manager, jars *cookieJarRegistry, cache *preflightCache, tokens *oauth2TokenCache, req cliSavedRequest, iteration int, dataRow map[string]string, opts cliOptions, secretValues []string) cliRunResult {
 	label := req.Name
 	if label == "" {
 		label = req.URL
@@ -360,6 +361,13 @@ func runCLIRequest(sm *state.Manager, jars *cookieJarRegistry, cache *preflightC
 	}
 	base.Method = httpReq.Method
 	base.URL = httpReq.URL
+
+	// An OAuth 2.0 request gets its own token: the one saved by the app lives in
+	// the machine-local secret store and is not in the checkout CI runs from.
+	if err := tokens.resolveOAuth2Token(&httpReq.Auth); err != nil {
+		base.Error = err.Error()
+		return base
+	}
 
 	resp := sendRequest(context.Background(), httpReq, sm, jars, cache)
 
