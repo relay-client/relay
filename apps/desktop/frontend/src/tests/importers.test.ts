@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildInsomniaExport, insomniaRequestsFromResources } from '../lib/insomnia';
-import { buildOpenApiDocument, buildSwaggerDocument, openApiRequestsFromSpec, parseOpenApiDocument } from '../lib/openapi';
+import { buildOpenApiDocument, buildSwaggerDocument, openApiImportFromSpec, openApiRequestsFromSpec, parseOpenApiDocument } from '../lib/openapi';
 import { buildPostmanCollection, buildPostmanEnvironment, postmanCollectionBundle, postmanRequestsFromItems, postmanVariableBundle } from '../lib/postman';
 import { harRequestsFromLog } from '../lib/har';
 import { buildOpenCollectionFiles, openCollectionBundleFromFiles } from '../lib/opencollection';
@@ -728,14 +728,22 @@ paths:
               age: 3
 `);
 
-    const requests = openApiRequestsFromSpec(spec, 'collection-1', 'Petstore');
+    const { requests, defaults } = openApiImportFromSpec(spec, 'collection-1', 'Petstore');
 
     expect(requests).toHaveLength(2);
+    // The server becomes a collection variable rather than being baked into
+    // every request, so retargeting an imported spec is one edit.
     expect(requests[0]).toMatchObject({
       method: 'GET',
       folderPath: ['Pets'],
-      url: 'https://api.example.test/v1/pets/{{petId}}',
+      url: '{{baseUrl}}/pets/{{petId}}',
     });
+    expect(defaults.variables).toContainEqual(
+      expect.objectContaining({ key: 'baseUrl', value: 'https://api.example.test/v1' }),
+    );
+    // A path parameter has to resolve to something, or the request cannot be
+    // sent at all — it used to be left as an undefined {{petId}}.
+    expect(defaults.variables).toContainEqual(expect.objectContaining({ key: 'petId' }));
     expect(requests[0].params[0]).toMatchObject({ key: 'verbose', value: 'true' });
     expect(requests[1]).toMatchObject({ method: 'POST', bodyType: 'json' });
     expect(JSON.parse(requests[1].bodyContent)).toEqual({ name: 'Fluffy', age: 3 });
@@ -769,8 +777,82 @@ paths:
       },
     }, 'collection-1', 'Legacy API');
 
-    expect(requests[0].url).toBe('https://legacy.example.test/api/users');
+    expect(requests[0].url).toBe('{{baseUrl}}/users');
     expect(JSON.parse(requests[0].bodyContent)).toEqual({ email: 'user@example.com' });
+  });
+
+  // Every request used to come in with No Auth even when the spec said exactly
+  // how the API is protected, so an imported collection returned 401 until each
+  // request was configured by hand.
+  it('maps a document-level security scheme onto the collection', () => {
+    const { requests, defaults } = openApiImportFromSpec({
+      openapi: '3.0.0',
+      info: { title: 'Secure API' },
+      servers: [{ url: 'https://api.example.test' }, { url: 'https://staging.example.test' }],
+      components: { securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer' } } },
+      security: [{ bearerAuth: [] }],
+      paths: { '/me': { get: { summary: 'Me' } } },
+    }, 'collection-1', 'Secure API');
+
+    expect(defaults.auth).toMatchObject({ type: 'bearer', bearerToken: '{{bearerToken}}' });
+    expect(defaults.variables).toContainEqual(expect.objectContaining({ key: 'bearerToken', secret: true }));
+    // Inherit rather than a copy, so changing the collection's token later
+    // reaches every request.
+    expect(requests[0].auth.type).toBe('inherit');
+    // Alternative servers are recorded so they are not silently lost.
+    expect(defaults.variables.find(row => row.key === 'baseUrl')?.description).toContain('staging.example.test');
+  });
+
+  it('maps an API key scheme with its declared name and location', () => {
+    const { requests, defaults } = openApiImportFromSpec({
+      openapi: '3.0.0',
+      info: { title: 'Keyed API' },
+      components: { securitySchemes: { key: { type: 'apiKey', name: 'X-Token', in: 'query' } } },
+      paths: { '/things': { get: { summary: 'Things', security: [{ key: [] }] } } },
+    }, 'collection-1', 'Keyed API');
+
+    expect(requests[0].auth).toMatchObject({ type: 'apikey', apiKeyName: 'X-Token', apiKeyIn: 'query', apiKeyValue: '{{apiKey}}' });
+    expect(defaults.variables).toContainEqual(expect.objectContaining({ key: 'apiKey' }));
+  });
+
+  it('treats an operation with empty security as public', () => {
+    const { requests } = openApiImportFromSpec({
+      openapi: '3.0.0',
+      info: { title: 'Mixed API' },
+      components: { securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer' } } },
+      security: [{ bearerAuth: [] }],
+      paths: {
+        '/private': { get: { summary: 'Private' } },
+        '/health': { get: { summary: 'Health', security: [] } },
+      },
+    }, 'collection-1', 'Mixed API');
+
+    const byName = Object.fromEntries(requests.map(request => [request.name, request]));
+    expect(byName.Private.auth.type).toBe('inherit');
+    expect(byName.Health.auth.type).toBe('none');
+  });
+
+  it('carries an oauth2 scheme through with its endpoints and scopes', () => {
+    const { requests } = openApiImportFromSpec({
+      openapi: '3.0.0',
+      info: { title: 'OAuth API' },
+      components: {
+        securitySchemes: {
+          oauth: {
+            type: 'oauth2',
+            flows: { clientCredentials: { tokenUrl: 'https://auth.example.test/token', scopes: { read: 'Read', write: 'Write' } } },
+          },
+        },
+      },
+      paths: { '/orders': { get: { summary: 'Orders', security: [{ oauth: ['read'] }] } } },
+    }, 'collection-1', 'OAuth API');
+
+    expect(requests[0].auth).toMatchObject({
+      type: 'oauth2',
+      oauth2GrantType: 'client_credentials',
+      oauth2TokenURL: 'https://auth.example.test/token',
+      oauth2Scope: 'read write',
+    });
   });
 });
 
