@@ -705,16 +705,24 @@ func ensureWorkspaceGitignore(root string) error {
 	if len(missing) == 0 {
 		return nil
 	}
+	// Follow whatever the file already uses. Git checks a workspace out with
+	// CRLF on Windows by default, and appending LF there would leave a file
+	// with two kinds of line ending — which reads as a whole-file change in
+	// any editor that normalises on save, and is noise in a review.
+	newline := "\n"
+	if strings.Contains(existing, "\r\n") {
+		newline = "\r\n"
+	}
 	prefix := ""
-	if !strings.HasSuffix(existing, "\n") {
-		prefix = "\n"
+	if existing != "" && !strings.HasSuffix(existing, "\n") {
+		prefix = newline
 	}
 	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	_, err = f.WriteString(prefix + strings.Join(missing, "\n") + "\n")
+	_, err = f.WriteString(prefix + strings.Join(missing, newline) + newline)
 	return err
 }
 

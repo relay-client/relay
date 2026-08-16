@@ -90,3 +90,44 @@ func TestWriteCollectionTextFilesRejectsUnsafePathsAndSymlinkOverwrite(t *testin
 		t.Fatalf("unexpected written content:\n%s", string(data))
 	}
 }
+
+func TestEnsureWorkspaceGitignoreFollowsTheFilesLineEnding(t *testing.T) {
+	// Git checks a workspace out with CRLF on Windows by default. Appending
+	// LF there would leave a file with two kinds of line ending, which reads
+	// as a whole-file change the next time anything normalises it.
+	root := t.TempDir()
+	path := filepath.Join(root, ".gitignore")
+	if err := os.WriteFile(path, []byte(".relay-local/\r\n.env\r\n"), 0644); err != nil {
+		t.Fatalf("write .gitignore: %v", err)
+	}
+
+	if err := ensureWorkspaceGitignore(root); err != nil {
+		t.Fatalf("ensure gitignore: %v", err)
+	}
+
+	content := readFileString(t, path)
+	if strings.Contains(strings.ReplaceAll(content, "\r\n", ""), "\n") {
+		t.Fatalf("expected every line to end with CRLF, got %q", content)
+	}
+	for _, entry := range relayGitignoreEntries {
+		if !strings.Contains(content, entry) {
+			t.Fatalf("expected %q to be appended:\n%s", entry, content)
+		}
+	}
+}
+
+func TestEnsureWorkspaceGitignoreKeepsLFWhereItFoundLF(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, ".gitignore")
+	if err := os.WriteFile(path, []byte(".relay-local/\n"), 0644); err != nil {
+		t.Fatalf("write .gitignore: %v", err)
+	}
+
+	if err := ensureWorkspaceGitignore(root); err != nil {
+		t.Fatalf("ensure gitignore: %v", err)
+	}
+
+	if content := readFileString(t, path); strings.Contains(content, "\r") {
+		t.Fatalf("an LF file must stay LF, got %q", content)
+	}
+}
