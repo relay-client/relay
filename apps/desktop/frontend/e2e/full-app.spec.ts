@@ -88,6 +88,7 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
       remotes: [],
       stashes: [],
       error: '',
+      gitMissing: false,
     };
     const docsGitStatus = {
       ...emptyGitStatus,
@@ -109,7 +110,7 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
       ],
       stashes: [{ ref: 'stash@{0}', index: 0, message: 'WIP on feature/docs-refresh: auth experiments' }],
     };
-    const currentGitStatus = () => clone(docsMode ? docsGitStatus : emptyGitStatus);
+    const currentGitStatus = () => clone(state.gitStatusOverride ?? (docsMode ? docsGitStatus : emptyGitStatus));
     const initialStore = {
       version: 2,
       activeId: '',
@@ -145,6 +146,8 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
       calls: [],
       cookies: {},
       historyResponses: {},
+      gitStatusOverride: null,
+      gitBranchesOverride: null,
     };
     const eventHandlers = {};
     const grpcInventoryMethod = {
@@ -276,11 +279,13 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
       LoadWorkspaceDiagnostics: async () => [],
       LoadRequestStore: async () => JSON.stringify(state.store),
       SaveRequestStoreWithError: async (payload) => {
+        state.calls.push('SaveRequestStore');
         state.store = parseStore(payload);
         state.savedStores.push(clone(state.store));
         return { ok: true, error: '' };
       },
       SaveRequestStore: async (payload) => {
+        state.calls.push('SaveRequestStore');
         state.store = parseStore(payload);
         state.savedStores.push(clone(state.store));
         return true;
@@ -503,7 +508,7 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
         error: '',
         output: '',
       }),
-      GitBranches: async () => ({
+      GitBranches: async () => state.gitBranchesOverride ? clone(state.gitBranchesOverride) : ({
         ok: true,
         git: currentGitStatus(),
         current: docsMode ? 'feature/docs-refresh' : '',
@@ -526,6 +531,25 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
         truncated: false,
         error: '',
       }),
+      // The Git operations that rewrite the worktree. Each records itself so
+      // a test can assert what ran, and in which order relative to the
+      // request-store write the editor owes before them.
+      GitStageWorkspaceFiles: async () => {
+        state.calls.push('GitStageWorkspaceFiles');
+        return { ok: true, git: currentGitStatus(), files: [], error: '', output: '' };
+      },
+      GitCommitWorkspace: async (message) => {
+        state.calls.push(`GitCommitWorkspace:${message}`);
+        return { ok: true, git: currentGitStatus(), files: [], commitCount: 1, error: '', output: '' };
+      },
+      GitCheckoutBranch: async (branch) => {
+        state.calls.push(`GitCheckoutBranch:${branch}`);
+        return { ok: true, root: '/workspace', git: currentGitStatus(), error: '', output: '' };
+      },
+      GitPullWorkspaceWithStrategy: async (strategy) => {
+        state.calls.push(`GitPullWorkspace:${strategy}`);
+        return { ok: true, root: '/workspace', git: currentGitStatus(), error: '', output: '' };
+      },
       ListCookies: async (workspaceId) => state.cookies[workspaceId] ?? [],
       ClearCookies: async (workspaceId) => {
         state.cookies[workspaceId] = [];
@@ -648,6 +672,26 @@ async function maybeCaptureResponseScreenshot(page: Page) {
 
 async function waitForTransientToasts(page: Page) {
   await page.locator('.curl-toast').waitFor({ state: 'hidden', timeout: 2500 }).catch(() => {});
+}
+
+// The stubbed bridge answers Git from an override, so a test can put the
+// workspace into the state it wants to exercise without a real repository.
+async function setGitStatus(page: Page, status: Record<string, unknown>) {
+  await page.evaluate((partial) => {
+    const state = window.__relayE2E as unknown as { gitStatusOverride: Record<string, unknown> | null };
+    state.gitStatusOverride = { ...(state.gitStatusOverride ?? {}), ...partial };
+  }, status);
+}
+
+async function setGitBranches(page: Page, branches: Record<string, unknown>) {
+  await page.evaluate((value) => {
+    (window.__relayE2E as unknown as { gitBranchesOverride: Record<string, unknown> | null }).gitBranchesOverride = value;
+  }, branches);
+}
+
+async function openGitPanel(page: Page) {
+  await page.getByLabel('Open Git and storage status').click();
+  await expect(page.locator('.git-workspace')).toBeVisible();
 }
 
 function collectionRow(page: Page, name: string) {
@@ -1580,5 +1624,147 @@ test.describe('Relay desktop browser E2E', () => {
     expect(metrics.lineHeight).toBeGreaterThan(40);
     expect(Math.abs(metrics.gutterHeight - metrics.lineHeight)).toBeLessThan(1);
     expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth + 1);
+  });
+
+  // The Git panel drives the operations that rewrite the workspace on disk.
+  // These cover the ordering the panel owes the editor, and the guard that
+  // keeps local changes from being carried onto another branch.
+  test('Git panel commits Relay changes, and writes the pending edit first', async ({ page }) => {
+    await installRelayBridge(page);
+    await page.goto('/');
+    await expect(page.getByRole('button', { name: 'Collections' })).toBeVisible();
+
+    await setGitStatus(page, {
+      isRepo: true,
+      workspaceRoot: '/workspace',
+      root: '/workspace',
+      branch: 'main',
+      head: 'a1b2c3d',
+      upstream: 'origin/main',
+      remotes: ['origin'],
+      clean: false,
+      files: [{ path: 'workspaces/Main/collections/API/requests/Login.yml', index: ' ', worktree: 'M', status: 'modified' }],
+    });
+
+    await openGitPanel(page);
+    await expect(page.getByText('Login.yml')).toBeVisible();
+
+    await page.evaluate(() => { window.__relayE2E.calls.length = 0; });
+    await page.getByRole('button', { name: 'Commit all', exact: true }).first().click();
+    await fillPrompt(page, 'Commit Relay workspace', 'Update the login request');
+
+    const calls = await page.evaluate(() => window.__relayE2E.calls);
+    const saveIndex = calls.indexOf('SaveRequestStore');
+    const commitIndex = calls.findIndex(call => call.startsWith('GitCommitWorkspace:'));
+
+    expect(commitIndex).toBeGreaterThan(-1);
+    expect(calls[commitIndex]).toBe('GitCommitWorkspace:Update the login request');
+    // The editor's pending write has to land before the commit, or the commit
+    // captures the workspace as it was one debounce ago.
+    expect(saveIndex).toBeGreaterThan(-1);
+    expect(saveIndex).toBeLessThan(commitIndex);
+  });
+
+  test('Git panel refuses to switch branches while the workspace has local changes', async ({ page }) => {
+    await installRelayBridge(page);
+    await page.goto('/');
+    await expect(page.getByRole('button', { name: 'Collections' })).toBeVisible();
+
+    await setGitStatus(page, {
+      isRepo: true,
+      workspaceRoot: '/workspace',
+      root: '/workspace',
+      branch: 'main',
+      head: 'a1b2c3d',
+      upstream: 'origin/main',
+      remotes: ['origin'],
+      clean: false,
+      files: [{ path: 'workspaces/Main/environments/Local.yml', index: ' ', worktree: 'M', status: 'modified' }],
+    });
+
+    await setGitBranches(page, {
+      ok: true,
+      git: {},
+      current: 'main',
+      localBranches: [
+        { name: 'main', fullName: 'main', remote: '', current: true, upstream: 'origin/main' },
+        { name: 'feature', fullName: 'feature', remote: '', current: false, upstream: '' },
+      ],
+      remoteBranches: [],
+      error: '',
+      output: '',
+    });
+
+    await openGitPanel(page);
+    await page.evaluate(() => { window.__relayE2E.calls.length = 0; });
+
+    await page.locator('.git-branch-chip').click();
+    const picker = page.getByRole('dialog', { name: 'Switch branch' });
+    await expect(picker).toBeVisible();
+    await picker.getByText('feature', { exact: true }).click();
+
+    const blocked = page.getByRole('dialog', { name: 'Checkout blocked' });
+    await expect(blocked).toBeVisible();
+    await blocked.getByRole('button').first().click();
+
+    const calls = await page.evaluate(() => window.__relayE2E.calls);
+    expect(calls.some(call => call.startsWith('GitCheckoutBranch:'))).toBe(false);
+  });
+
+  test('imports a Postman collection into the sidebar', async ({ page }) => {
+    await installRelayBridge(page);
+    await page.goto('/');
+    await expect(page.getByRole('button', { name: 'Collections' })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Collections' }).click();
+    await page.getByLabel('Import collection').first().click();
+
+    const sourceDialog = page.getByRole('dialog', { name: 'Import collection' });
+    await expect(sourceDialog).toBeVisible();
+    await sourceDialog.getByText('Postman Collection').click();
+    await sourceDialog.getByRole('button', { name: 'Import', exact: true }).click();
+    await expect(sourceDialog).toBeHidden();
+
+    const collection = {
+      info: { name: 'Billing API', schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json' },
+      variable: [{ key: 'baseUrl', value: 'https://api.billing.test' }],
+      item: [
+        {
+          name: 'List invoices',
+          request: { method: 'GET', url: { raw: '{{baseUrl}}/invoices' }, header: [{ key: 'Accept', value: 'application/json' }] },
+          event: [{ listen: 'test', script: { exec: ['pm.test("ok", () => pm.response.to.have.status(200))'] } }],
+        },
+        {
+          name: 'Create invoice',
+          request: { method: 'POST', url: { raw: '{{baseUrl}}/invoices' }, body: { mode: 'raw', raw: '{"amount":10}' } },
+        },
+      ],
+    };
+
+    await page.setInputFiles('input[type="file"]', {
+      name: 'billing.postman_collection.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(collection)),
+    });
+
+    await expect(collectionRow(page, 'Billing API')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'GET List invoices' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'POST Create invoice' })).toBeVisible();
+
+    // The import is only real once it reaches the store the app persists.
+    const store = await page.evaluate(() => window.__relayE2E.store as {
+      collections: Array<{ id: string; name: string }>;
+      requests: Array<{ name: string; method: string; url: string; testScriptJs?: string }>;
+    });
+    const imported = store.collections.find(entry => entry.name === 'Billing API');
+    expect(imported).toBeTruthy();
+    const requests = store.requests.filter(entry => ['List invoices', 'Create invoice'].includes(entry.name));
+    expect(requests).toHaveLength(2);
+    expect(requests.find(entry => entry.name === 'List invoices')?.method).toBe('GET');
+    expect(requests.find(entry => entry.name === 'List invoices')?.url).toContain('{{baseUrl}}/invoices');
+    // Scripts are the usual reason a collection exists, and were silently
+    // dropped by the importer until 1.3.0. A Postman script is JavaScript, so
+    // it belongs in the JS slot rather than the legacy Tengo one.
+    expect(requests.find(entry => entry.name === 'List invoices')?.testScriptJs ?? '').toContain('pm.test');
   });
 });
