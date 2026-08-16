@@ -68,6 +68,10 @@ type GitWorkspaceStatus struct {
 	Remotes         []string        `json:"remotes"`
 	Stashes         []GitStashEntry `json:"stashes"`
 	Error           string          `json:"error"`
+	// GitMissing reports that no usable `git` binary was found, which is why
+	// IsRepo is false. Without it the interface cannot tell "this folder is
+	// not a repository" apart from "Relay could not ask".
+	GitMissing bool `json:"gitMissing"`
 
 	AuthRequired  bool   `json:"authRequired"`
 	AuthScheme    string `json:"authScheme"`
@@ -1040,10 +1044,22 @@ func gitStatusForWorkspace(workspaceRoot string) GitWorkspaceStatus {
 	}
 	root, err := gitOutput(workspaceRoot, "rev-parse", "--show-toplevel")
 	if err != nil {
-		status.Error = ""
+		// A plain non-zero exit here means "not a repository", which is a
+		// normal state and not worth an error. Git being unusable is not:
+		// swallowing it leaves a real repository looking like a plain folder.
+		status.Error = gitUnavailableMessage(root, err)
+		status.GitMissing = status.Error != ""
 		return status
 	}
+	// Git reports the toplevel with forward slashes on every platform, so on
+	// Windows this is the one place a path enters Relay in a foreign shape.
+	// Cleaning it keeps Root comparable to paths built with filepath, and
+	// displayable as the OS writes them. Clean("") is ".", so the empty case
+	// has to stay empty or a non-repository would look like one.
 	status.Root = strings.TrimSpace(root)
+	if status.Root != "" {
+		status.Root = filepath.Clean(status.Root)
+	}
 	status.IsRepo = status.Root != ""
 	if !status.IsRepo {
 		return status
@@ -2265,12 +2281,16 @@ func gitRun(allowExit bool, dir string, extraEnv []string, args ...string) (stri
 	if strings.TrimSpace(dir) == "" {
 		return "", fmt.Errorf("workspace path is empty")
 	}
+	gitPath, lookErr := lookupGitExecutable()
+	if lookErr != nil {
+		return "", lookErr
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), gitCommandTimeout)
 	defer cancel()
 	prefix := []string{"-c", "core.quotePath=false", "-C", dir}
 	prefix = append(prefix, gitAuthGlobalArgs()...)
 	fullArgs := append(prefix, args...)
-	cmd := exec.CommandContext(ctx, "git", fullArgs...)
+	cmd := exec.CommandContext(ctx, gitPath, fullArgs...)
 	hideCmdWindow(cmd)
 	cmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0", "GIT_EDITOR=true", "GIT_MERGE_AUTOEDIT=no")
 	cmd.Env = append(cmd.Env, gitAuthEnvVars(dir)...)
@@ -3376,6 +3396,11 @@ func emptyRelayWorkspacePayload(workspaceName string) (string, error) {
 }
 
 func friendlyGitError(action, output string, err error) string {
+	// "git is not installed" explains every command at once, and none of the
+	// auth hints below apply to it.
+	if unavailable := gitUnavailableMessage(output, err); unavailable != "" {
+		return unavailable
+	}
 	output = strings.TrimSpace(maskGitCredentials(output))
 	var message string
 	if output != "" {

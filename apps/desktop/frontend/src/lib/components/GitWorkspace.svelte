@@ -187,13 +187,19 @@
     !status.workspaceRoot ||
     /[\\/](Application Support|AppData[\\/](Roaming|Local)|\.config)[\\/]Relay([\\/]|$)/i.test(status.workspaceRoot)
   ));
-  let localEyebrow = $derived(workspaceMissing ? 'Folder missing' : (isAppStoragePath ? 'App storage · default location' : 'Folder workspace'));
-  let localDescription = $derived(workspaceMissing
-    ? 'Relay cannot find this workspace folder. Choose another folder, open an existing repository, or clone it again.'
-    : (isAppStoragePath
-      ? "Workspace lives inside Relay's default app data. Create a folder workspace in a location you control for backup, sharing and Git."
-      : 'Workspace stored in your folder. Create another folder workspace or initialize Git here to track changes and sync with a remote.'));
-  let localDividerLabel = $derived(workspaceMissing ? 'recover workspace' : (isAppStoragePath ? 'or start from a Git repository' : 'other options'));
+  // Relay drives Git by running it. With no usable git binary every option
+  // below fails the same way, so they are offered as disabled rather than
+  // inviting a click that cannot work; status.error carries the reason.
+  let gitUnavailable = $derived(Boolean(status.gitMissing));
+  let localEyebrow = $derived(gitUnavailable ? 'Git unavailable' : (workspaceMissing ? 'Folder missing' : (isAppStoragePath ? 'App storage · default location' : 'Folder workspace')));
+  let localDescription = $derived(gitUnavailable
+    ? 'Relay cannot run Git on this machine, so it cannot tell whether this folder is a repository. The workspace still works without Git; install Git and restart Relay to use branches, commits and remotes.'
+    : (workspaceMissing
+      ? 'Relay cannot find this workspace folder. Choose another folder, open an existing repository, or clone it again.'
+      : (isAppStoragePath
+        ? "Workspace lives inside Relay's default app data. Create a folder workspace in a location you control for backup, sharing and Git."
+        : 'Workspace stored in your folder. Create another folder workspace or initialize Git here to track changes and sync with a remote.')));
+  let localDividerLabel = $derived(gitUnavailable ? 'needs Git' : (workspaceMissing ? 'recover workspace' : (isAppStoragePath ? 'or start from a Git repository' : 'other options')));
   let localBranches = $derived(branches.localBranches ?? []);
   let remoteBranches = $derived(branches.remoteBranches ?? []);
   let localBranchRows = $derived(buildLocalBranchRows());
@@ -1156,9 +1162,9 @@
               class:loading={isBusy('init')}
               type="button"
               onclick={onInit}
-              disabled={loading}
+              disabled={loading || gitUnavailable}
               aria-busy={isBusy('init')}
-              title="Initialize a Git repository in this folder"
+              title={gitUnavailable ? 'Install Git and restart Relay to initialize a repository' : 'Initialize a Git repository in this folder'}
             >
               <GitIcon name="init" busy={isBusy('init')} />
               Init Git here
@@ -1184,16 +1190,16 @@
             <strong>Open existing repo</strong>
             <small>Pick a folder that already contains <code>.git/</code></small>
           </button>
-          <button class="git-local-option" class:loading={isBusy('clone')} type="button" onclick={onClone} disabled={loading} aria-busy={isBusy('clone')}>
+          <button class="git-local-option" class:loading={isBusy('clone')} type="button" onclick={onClone} disabled={loading || gitUnavailable} aria-busy={isBusy('clone')}>
             <GitIcon name="clone" busy={isBusy('clone')} />
             <strong>Clone from URL</strong>
-            <small>Download a remote repository to a chosen folder</small>
+            <small>{gitUnavailable ? 'Needs Git installed on this machine' : 'Download a remote repository to a chosen folder'}</small>
           </button>
           {#if isAppStoragePath}
-            <button class="git-local-option" class:loading={isBusy('init')} type="button" onclick={onInit} disabled={loading} aria-busy={isBusy('init')}>
+            <button class="git-local-option" class:loading={isBusy('init')} type="button" onclick={onInit} disabled={loading || gitUnavailable} aria-busy={isBusy('init')}>
               <GitIcon name="init" busy={isBusy('init')} />
               <strong>Init Git here</strong>
-              <small>Initialize Git in the current workspace folder (advanced)</small>
+              <small>{gitUnavailable ? 'Needs Git installed on this machine' : 'Initialize Git in the current workspace folder (advanced)'}</small>
             </button>
           {/if}
         </div>

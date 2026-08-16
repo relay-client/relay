@@ -264,6 +264,7 @@ export const EMPTY_GIT_STATUS: GitWorkspaceStatus = {
   files: [],
   remotes: [],
   stashes: [],
+  gitMissing: false,
   authRequired: false,
   authScheme: '',
   authHost: '',
