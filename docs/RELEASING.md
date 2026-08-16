@@ -20,6 +20,10 @@ make release v=1.2.3  # explicit version
 Each target refuses to run on a dirty working tree. It creates an annotated `v<version>`
 tag and pushes it; CI takes over from there.
 
+Once the workflow finishes, work through
+[RELEASE-CHECKLIST.md](RELEASE-CHECKLIST.md) — the installers, the first launch
+and the update from the previous version are the parts no test can reach.
+
 Update `CHANGELOG.md` and `apps/web/src/content/docs/changelog.md` before tagging — the
 release notes are assembled from the changelog, not from commit messages.
 
