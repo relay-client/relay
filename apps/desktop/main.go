@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"fmt"
 	"os"
 	"runtime"
 
@@ -19,11 +20,29 @@ import (
 var assets embed.FS
 
 func main() {
+	// Answered before Wails starts, so they work on a machine where the
+	// window cannot open — which is exactly when someone needs to read them.
+	if len(os.Args) >= 2 {
+		switch os.Args[1] {
+		case "--version", "-version", "version":
+			fmt.Println(api.VersionLine())
+			os.Exit(0)
+		case "--diagnostics", "-diagnostics", "diagnostics":
+			fmt.Print(api.DiagnosticsReport())
+			os.Exit(0)
+		}
+	}
 	if len(os.Args) >= 2 && os.Args[1] == "git-credential" {
 		os.Exit(api.RunGitCredentialHelper(os.Args[2:]))
 	}
 	if len(os.Args) >= 2 && os.Args[1] == "run" {
 		os.Exit(api.RunCLI(os.Args[2:]))
+	}
+
+	// Before anything that might log: a failure during startup is exactly
+	// what someone will be asked to send.
+	if path, err := api.InstallLogFile(); err != nil {
+		fmt.Fprintf(os.Stderr, "relay: could not open the log file at %s: %v\n", path, err)
 	}
 
 	app := api.NewApp()

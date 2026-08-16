@@ -37,6 +37,8 @@ export function DeleteCookie(arg1:string,arg2:model.Cookie):Promise<model.Cookie
 
 export function DeleteVariable(arg1:string):Promise<void>;
 
+export function DiagnosticsReport():Promise<string>;
+
 export function FetchOAuth2Token(arg1:model.AuthConfig):Promise<model.OAuth2TokenResponse>;
 
 export function GetEnvironment():Promise<Record<string, string>>;
@@ -143,11 +145,15 @@ export function LoadRequestStore():Promise<string>;
 
 export function LoadWorkspaceDiagnostics():Promise<Array<api.WorkspaceDiagnostic>>;
 
+export function LogFilePath():Promise<string>;
+
 export function OpenDirectoryDialog(arg1:string):Promise<string>;
 
 export function OpenDirectoryDialogWithDefault(arg1:string,arg2:string):Promise<string>;
 
 export function OpenFileDialog(arg1:string):Promise<string>;
+
+export function OpenLogFolder():Promise<string>;
 
 export function OpenWorkspaceRoot(arg1:string):Promise<api.WorkspaceOpenResult>;
 

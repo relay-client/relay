@@ -12,10 +12,40 @@
     type ThemeVariant,
     type ThemeVariantId,
   } from '../theme';
-  import { checkForUpdate, applyUpdate, restartApp, getAppInfo } from '../backend';
+  import { checkForUpdate, applyUpdate, restartApp, getAppInfo, diagnosticsReport, openLogFolder } from '../backend';
+  import { clipboardCopy } from '../utils';
   import { cleanReleaseNotes } from '../releaseNotes';
   import { friendlyUpdateError } from '../updateErrors';
   import { shortcutComboLabel } from '../stores/features/preferences';
+
+  // A bug report that carries the build, the platform and what Relay found
+  // on the machine costs the reporter one click and saves a round trip.
+  let diagnosticsCopied = $state(false);
+  let diagnosticsError = $state('');
+  let logFolderError = $state('');
+  let diagnosticsCopyTimer: ReturnType<typeof setTimeout> | null = null;
+
+  async function copyDiagnostics() {
+    diagnosticsError = '';
+    try {
+      const report = await diagnosticsReport();
+      await clipboardCopy(report);
+      diagnosticsCopied = true;
+      if (diagnosticsCopyTimer) clearTimeout(diagnosticsCopyTimer);
+      diagnosticsCopyTimer = setTimeout(() => { diagnosticsCopied = false; diagnosticsCopyTimer = null; }, 2400);
+    } catch (error) {
+      diagnosticsError = error instanceof Error ? error.message : String(error);
+    }
+  }
+
+  async function revealLogFolder() {
+    logFolderError = '';
+    try {
+      logFolderError = await openLogFolder();
+    } catch (error) {
+      logFolderError = error instanceof Error ? error.message : String(error);
+    }
+  }
 
   function openExternalURL(url: string) {
     if (window.runtime?.BrowserOpenURL) {
@@ -1030,6 +1060,43 @@
               <svg width="11" height="11" viewBox="0 0 10 10" fill="none" aria-hidden="true" class="support-link-arrow">
                 <path d="M2 8L8 2M8 2H4M8 2v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
+            </button>
+
+            <button class="support-link-card" type="button" onclick={copyDiagnostics}>
+              <span class="support-link-icon" aria-hidden="true">
+                <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
+                  <rect x="6" y="2.5" width="9.5" height="12" rx="2" stroke="currentColor" stroke-width="1.4"/>
+                  <path d="M12 15.5H4.5a2 2 0 0 1-2-2V5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                </svg>
+              </span>
+              <span class="support-link-copy">
+                <span class="support-link-title">{diagnosticsCopied ? 'Diagnostics copied' : 'Copy diagnostics'}</span>
+                <span class="support-link-meta">
+                  {#if diagnosticsError}
+                    {diagnosticsError}
+                  {:else}
+                    Version, platform, Git and storage — paste into an issue
+                  {/if}
+                </span>
+              </span>
+            </button>
+
+            <button class="support-link-card" type="button" onclick={revealLogFolder}>
+              <span class="support-link-icon" aria-hidden="true">
+                <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
+                  <path d="M2.5 5.2c0-.9.7-1.6 1.6-1.6h2.6l1.5 1.7h5.7c.9 0 1.6.7 1.6 1.6v6.3c0 .9-.7 1.6-1.6 1.6H4.1a1.6 1.6 0 0 1-1.6-1.6V5.2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              <span class="support-link-copy">
+                <span class="support-link-title">Open log folder</span>
+                <span class="support-link-meta">
+                  {#if logFolderError}
+                    {logFolderError}
+                  {:else}
+                    Attach relay.log when something went wrong
+                  {/if}
+                </span>
+              </span>
             </button>
           </div>
         </div>
