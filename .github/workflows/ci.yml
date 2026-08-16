@@ -112,6 +112,57 @@ jobs:
           fi
           echo "No dead code."
 
+  # Relay ships macOS, Windows and Linux builds, and the Go side is where the
+  # platform differences live: it shells out to git, resolves paths, and talks
+  # to each OS credential store. Testing only on Linux left all of that
+  # unexercised until a user hit it.
+  go-cross-platform:
+    name: Go tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      # One platform failing should not hide the result on the others.
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            race: true
+          - os: windows-latest
+            # The race detector needs a working cgo toolchain, which the
+            # Windows runner does not reliably provide.
+            race: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: apps/desktop/go.mod
+          cache-dependency-path: apps/desktop/go.sum
+
+      # main.go carries `//go:embed all:frontend/dist`, so the package needs
+      # that directory to exist before it will compile. The real frontend
+      # build is covered by the Linux job; this only has to satisfy the
+      # embed so the Go tests can run.
+      - name: Stand in for the embedded frontend
+        shell: bash
+        run: |
+          mkdir -p apps/desktop/frontend/dist
+          echo '<!doctype html><title>ci placeholder</title>' > apps/desktop/frontend/dist/index.html
+
+      - name: Vet Go
+        run: go vet ./apps/desktop/...
+
+      - name: Test Go
+        if: ${{ !matrix.race }}
+        run: go test ./apps/desktop/...
+
+      - name: Test Go (race detector)
+        if: ${{ matrix.race }}
+        run: go test -race ./apps/desktop/...
+
   e2e:
     name: E2E (Playwright)
     runs-on: ubuntu-22.04
@@ -148,5 +199,6 @@ jobs:
         with:
           name: playwright-report
           path: ${{ runner.temp }}/playwright/html-report
-          retention-days: 7
+          # Only useful while someone is looking at a failed run.
+          retention-days: 3
           if-no-files-found: ignore
