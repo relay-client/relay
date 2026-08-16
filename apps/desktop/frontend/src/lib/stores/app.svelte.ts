@@ -604,6 +604,7 @@ class AppVM {
   declare showGitToast: typeof gitFeature.showGitToast;
   declare showGitPullToast: typeof gitFeature.showGitPullToast;
   declare applyGitOperationResult: typeof gitFeature.applyGitOperationResult;
+  declare beginGitMutation: typeof gitFeature.beginGitMutation;
   declare refreshGitBranches: typeof gitFeature.refreshGitBranches;
   declare openGitWorkspace: typeof gitFeature.openGitWorkspace;
   declare openGitTab: typeof gitFeature.openGitTab;

@@ -178,6 +178,7 @@ type GitHost = {
   guardGitWorkspaceMutable: (action?: string) => boolean;
   collectionImportToast: string;
   // intra-feature members (mixed into the same prototype)
+  beginGitMutation: (action: string, options?: { guard?: boolean; refreshStatus?: boolean }) => Promise<boolean>;
   refreshGitStatus: () => Promise<void>;
   refreshGitStatusAfterPersist: () => Promise<void>;
   selectGitFile: (path: string) => Promise<void>;
@@ -400,6 +401,34 @@ export const gitFeature = {
       if (this.gitAction === 'branches') this.gitAction = '';
     }
   },
+  /**
+   * Settles the editor before a Git operation touches the worktree, and
+   * reports whether the operation may go ahead.
+   *
+   * `gitStatus.clean` describes the files on disk, while an edit made inside
+   * the autosave debounce window is still only in the editor. Without this
+   * flush, an operation reads a clean workspace, swaps the files underneath
+   * it, and the debounce then writes the pre-operation editor state over
+   * whatever arrived — an uncommitted change appearing on a branch it was
+   * never made on.
+   *
+   * The counterpart is `cancelPendingPersistTimers`, used by the operations
+   * that replace the worktree with something authoritative (discard, resolve
+   * a conflict, continue or abort a merge). There the pending write is stale
+   * by definition and has to be dropped rather than saved.
+   *
+   * Pass refreshStatus for operations that then decide on `gitStatus.clean`:
+   * the flush is exactly what can make a workspace dirty. Pass guard: false
+   * for the operations that have to stay reachable while the workspace is
+   * blocked — pulling a fixed commit is how that state is recovered from.
+   */
+  async beginGitMutation(this: GitHost, action: string, options: { guard?: boolean; refreshStatus?: boolean } = {}) {
+    const { guard = true, refreshStatus = false } = options;
+    if (guard && !this.guardGitWorkspaceMutable(action)) return false;
+    await this.persistActiveRequestNow(true);
+    if (refreshStatus) await this.refreshGitStatus();
+    return true;
+  },
   async openGitWorkspace(this: GitHost) {
     this.closeFloatingMenus();
     await this.persistActiveRequestNow(true);
@@ -577,7 +606,9 @@ export const gitFeature = {
     }
   },
   async pullGitWorkspace(this: GitHost, strategy = 'ff') {
-    await this.persistActiveRequestNow(true);
+    // No guard: the blocked-workspace banner points at pull as the way to
+    // bring in a commit that loads again.
+    await this.beginGitMutation('Pull', { guard: false });
     let normalizedStrategy = normalizeGitPullStrategy(strategy);
     if (shouldPromptForDivergedPull(normalizedStrategy, this.gitStatus)) {
       const selected = await this.openSelectDialog(
@@ -643,8 +674,7 @@ export const gitFeature = {
       await this.pullGitWorkspace('ff');
       return;
     }
-    if (!this.guardGitWorkspaceMutable('Branch pull')) return;
-    await this.persistActiveRequestNow(true);
+    if (!await this.beginGitMutation('Branch pull')) return;
     this.gitLoading = true;
     this.gitAction = 'branch-pull';
     this.gitError = '';
@@ -663,6 +693,7 @@ export const gitFeature = {
   async resolveGitConflict(this: GitHost, resolution: string, path = this.gitSelectedPath, content = this.gitConflictContent) {
     path = path.trim();
     if (!path) return false;
+    this.cancelPendingPersistTimers();
     this.gitLoading = true;
     this.gitAction = `resolve-${resolution}`;
     this.gitError = '';
@@ -692,6 +723,7 @@ export const gitFeature = {
       if (!mergeMessage) return;
       message = mergeMessage;
     }
+    this.cancelPendingPersistTimers();
     this.gitLoading = true;
     this.gitAction = 'operation-continue';
     this.gitError = '';
@@ -721,6 +753,7 @@ export const gitFeature = {
       `Abort the current Git ${operation} and reload the workspace from the previous state?`
     );
     if (!confirmed) return;
+    this.cancelPendingPersistTimers();
     this.gitLoading = true;
     this.gitAction = 'operation-abort';
     this.gitError = '';
@@ -742,9 +775,8 @@ export const gitFeature = {
     }
   },
   async stashGitWorkspace(this: GitHost) {
-    if (!this.guardGitWorkspaceMutable('Stash')) return;
     if (!this.gitStatus.isRepo || this.gitStatus.operation) return;
-    await this.persistActiveRequestNow(true);
+    if (!await this.beginGitMutation('Stash')) return;
     const message = await this.openPromptDialog('Stash Relay changes', 'Relay workspace changes', 'Only Relay-managed YAML files are stashed.');
     if (!message) return;
     this.gitLoading = true;
@@ -768,8 +800,8 @@ export const gitFeature = {
     }
   },
   async popGitStash(this: GitHost, ref = this.gitStatus.stashes?.[0]?.ref ?? '') {
-    if (!this.guardGitWorkspaceMutable('Applying stash')) return;
     if (!this.gitStatus.isRepo || this.gitStatus.operation) return;
+    if (!await this.beginGitMutation('Applying stash')) return;
     if (!ref) {
       this.gitError = 'No Git stashes to apply.';
       return;
@@ -796,9 +828,8 @@ export const gitFeature = {
     }
   },
   async initGitWorkspace(this: GitHost) {
-    if (!this.guardGitWorkspaceMutable('Git init')) return;
     this.closeFloatingMenus();
-    await this.persistActiveRequestNow(true);
+    if (!await this.beginGitMutation('Git init')) return;
     this.gitLoading = true;
     this.gitAction = 'init';
     this.gitError = '';
@@ -865,8 +896,8 @@ export const gitFeature = {
     }
   },
   async checkoutGitBranch(this: GitHost, branchName = '') {
-    if (!this.guardGitWorkspaceMutable('Branch checkout')) return;
     this.closeFloatingMenus();
+    if (!await this.beginGitMutation('Branch checkout', { refreshStatus: true })) return;
     if (!this.gitStatus.isRepo) {
       this.gitError = 'Open a Git repository first.';
       return;
@@ -914,8 +945,8 @@ export const gitFeature = {
     }
   },
   async createGitBranch(this: GitHost, startPoint = '') {
-    if (!this.guardGitWorkspaceMutable('Branch creation')) return;
     this.closeFloatingMenus();
+    if (!await this.beginGitMutation('Branch creation', { refreshStatus: true })) return;
     if (!this.gitStatus.isRepo) {
       this.gitError = 'Open a Git repository first.';
       return;
@@ -947,8 +978,8 @@ export const gitFeature = {
     }
   },
   async createGitBranchFromRemote(this: GitHost, startPoint = '') {
-    if (!this.guardGitWorkspaceMutable('Branch tracking')) return;
     this.closeFloatingMenus();
+    if (!await this.beginGitMutation('Branch tracking', { refreshStatus: true })) return;
     if (!this.gitStatus.isRepo) {
       this.gitError = 'Open a Git repository first.';
       return;
@@ -1195,8 +1226,7 @@ export const gitFeature = {
     }
   },
   async stageGitWorkspaceFiles(this: GitHost) {
-    if (!this.guardGitWorkspaceMutable('Staging')) return;
-    await this.persistActiveRequestNow(true);
+    if (!await this.beginGitMutation('Staging')) return;
     this.gitLoading = true;
     this.gitAction = 'stage';
     this.gitError = '';
@@ -1215,12 +1245,11 @@ export const gitFeature = {
     }
   },
   async commitGitWorkspace(this: GitHost, paths: string[] = []) {
-    if (!this.guardGitWorkspaceMutable('Committing')) return;
     this.closeFloatingMenus();
+    if (!await this.beginGitMutation('Committing')) return;
     const selectedPaths = [...new Set(paths.map(path => path.trim()).filter(Boolean))];
     const message = await this.openPromptDialog(selectedPaths.length ? 'Commit selected Relay files' : 'Commit Relay workspace', 'Update Relay workspace');
     if (!message) return;
-    await this.persistActiveRequestNow(true);
     this.gitLoading = true;
     this.gitAction = selectedPaths.length ? 'commit-selected' : 'commit';
     this.gitError = '';
@@ -1242,8 +1271,8 @@ export const gitFeature = {
     }
   },
   async pushGitWorkspace(this: GitHost) {
-    if (!this.guardGitWorkspaceMutable('Pushing')) return;
     this.closeFloatingMenus();
+    if (!await this.beginGitMutation('Pushing')) return;
     const remotes = [...new Set((this.gitStatus.remotes ?? []).map(remote => remote.trim()).filter(Boolean))];
     let remoteName = this.gitStatus.upstream ? remoteNameFromUpstream(this.gitStatus.upstream) : (this.gitStatus.pushRemote || remotes[0] || 'origin');
     if (!this.gitStatus.upstream) {
@@ -1328,8 +1357,8 @@ export const gitFeature = {
     if (ok) this.showGitToast(formatGitPushToast(pushResult));
   },
   async forcePushGitWorkspace(this: GitHost) {
-    if (!this.guardGitWorkspaceMutable('Force push')) return;
     this.closeFloatingMenus();
+    if (!await this.beginGitMutation('Force push')) return;
     const confirmed = await this.openConfirmDialog(
       'Force push with lease',
       'Force push rewrites the remote branch, but Relay uses --force-with-lease so it refuses if the remote moved unexpectedly. Continue?'
