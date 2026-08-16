@@ -183,6 +183,7 @@ export namespace api {
 	    remotes: string[];
 	    stashes: GitStashEntry[];
 	    error: string;
+	    gitMissing: boolean;
 	    authRequired: boolean;
 	    authScheme: string;
 	    authHost: string;
@@ -212,6 +213,7 @@ export namespace api {
 	        this.remotes = source["remotes"];
 	        this.stashes = this.convertValues(source["stashes"], GitStashEntry);
 	        this.error = source["error"];
+	        this.gitMissing = source["gitMissing"];
 	        this.authRequired = source["authRequired"];
 	        this.authScheme = source["authScheme"];
 	        this.authHost = source["authHost"];

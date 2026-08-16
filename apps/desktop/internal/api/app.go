@@ -65,7 +65,34 @@ func (a *App) Startup(ctx context.Context) {
 	a.ctx = ctx
 }
 
+// DiagnosticsReport is what the Support screen puts on the clipboard.
+func (a *App) DiagnosticsReport() string {
+	return DiagnosticsReport()
+}
+
+// LogFilePath lets the interface say where the log is even when the folder
+// cannot be opened for the user.
+func (a *App) LogFilePath() string {
+	return LogFilePath()
+}
+
+// OpenLogFolder reveals the log directory in the OS file manager. It creates
+// the directory first: a user asked to send the log should not be told the
+// folder does not exist.
+func (a *App) OpenLogFolder() string {
+	dir := logDir()
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		return "Could not open the log folder: " + err.Error()
+	}
+	if a.ctx == nil {
+		return ""
+	}
+	runtime.BrowserOpenURL(a.ctx, "file://"+filepath.ToSlash(dir))
+	return ""
+}
+
 func (a *App) Shutdown(_ context.Context) {
+	defer CloseLogFile()
 	if a.ws != nil {
 		a.ws.disconnectAll()
 	}

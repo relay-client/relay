@@ -24,6 +24,26 @@ export async function getAppInfo(): Promise<AppInfo> {
   return app.AppInfo();
 }
 
+// Support surfaces. Each degrades to something usable in the browser preview,
+// where there is no Go side to ask.
+export async function diagnosticsReport(): Promise<string> {
+  const app = window.go?.api?.App;
+  if (!app?.DiagnosticsReport) return 'Relay (browser preview)\nDiagnostics are only available in the desktop app.\n';
+  return app.DiagnosticsReport();
+}
+
+export async function logFilePath(): Promise<string> {
+  const app = window.go?.api?.App;
+  if (!app?.LogFilePath) return '';
+  return app.LogFilePath();
+}
+
+export async function openLogFolder(): Promise<string> {
+  const app = window.go?.api?.App;
+  if (!app?.OpenLogFolder) return 'The log folder is only available in the desktop app.';
+  return app.OpenLogFolder();
+}
+
 export async function sendHttpRequest(req: HttpRequest): Promise<HttpResponse> {
   const app = window.go?.api?.App;
   if (!app?.SendRequest) {

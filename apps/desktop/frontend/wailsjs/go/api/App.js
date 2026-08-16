@@ -70,6 +70,10 @@ export function DeleteVariable(arg1) {
   return window['go']['api']['App']['DeleteVariable'](arg1);
 }
 
+export function DiagnosticsReport() {
+  return window['go']['api']['App']['DiagnosticsReport']();
+}
+
 export function FetchOAuth2Token(arg1) {
   return window['go']['api']['App']['FetchOAuth2Token'](arg1);
 }
@@ -282,6 +286,10 @@ export function LoadWorkspaceDiagnostics() {
   return window['go']['api']['App']['LoadWorkspaceDiagnostics']();
 }
 
+export function LogFilePath() {
+  return window['go']['api']['App']['LogFilePath']();
+}
+
 export function OpenDirectoryDialog(arg1) {
   return window['go']['api']['App']['OpenDirectoryDialog'](arg1);
 }
@@ -292,6 +300,10 @@ export function OpenDirectoryDialogWithDefault(arg1, arg2) {
 
 export function OpenFileDialog(arg1) {
   return window['go']['api']['App']['OpenFileDialog'](arg1);
+}
+
+export function OpenLogFolder() {
+  return window['go']['api']['App']['OpenLogFolder']();
 }
 
 export function OpenWorkspaceRoot(arg1) {
