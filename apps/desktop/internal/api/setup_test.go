@@ -3,6 +3,7 @@ package api
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -59,4 +60,11 @@ func useTempHomeDir(t *testing.T, dir string) {
 	t.Helper()
 	t.Setenv("HOME", dir)
 	t.Setenv("USERPROFILE", dir)
+}
+
+// normalizeNewlines makes a comparison independent of the line endings Git
+// chose on checkout — core.autocrlf is on by default in Git for Windows, so a
+// file committed with LF comes back with CRLF there.
+func normalizeNewlines(value string) string {
+	return strings.ReplaceAll(value, "\r\n", "\n")
 }

@@ -1170,7 +1170,10 @@ func TestGitDiscardWorkspaceFileClearsStaleManagedGitignore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read .gitignore: %v", err)
 	}
-	if string(data) != staleGitignore {
+	// Git for Windows checks out with CRLF by default, so the bytes on disk
+	// after a restore are not the bytes that were committed. What this test
+	// is about is the content coming back, not which line ending Git chose.
+	if normalizeNewlines(string(data)) != normalizeNewlines(staleGitignore) {
 		t.Fatalf("discard should restore the committed .gitignore, got:\n%s", data)
 	}
 }
