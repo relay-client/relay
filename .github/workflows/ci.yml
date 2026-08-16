@@ -102,6 +102,31 @@ jobs:
       - name: Test Go (race detector)
         run: go test -race ./apps/desktop/...
 
+      # The cask is only exercised at install time, on someone else's machine.
+      # Generating one here from a stand-in DMG catches a malformed template
+      # before a release ships it.
+      - name: Check the Homebrew cask generates and parses
+        run: |
+          set -euo pipefail
+          workdir="$(mktemp -d)"
+          head -c 1024 /dev/urandom > "$workdir/relay.dmg"
+          python3 scripts/make-cask.py \
+            --tap-dir "$workdir/tap" \
+            --version 9.9.9 \
+            --repo relay-client/relay \
+            --dmg "$workdir/relay.dmg"
+          ruby -c "$workdir/tap/Casks/relay.rb"
+          # auto_updates is what keeps `brew upgrade` from fighting Relay's own
+          # updater, and the zap list is what makes an uninstall complete.
+          for required in 'auto_updates true' 'zap trash:' 'Application Support/Relay' 'livecheck do'; do
+            if ! grep -qF "$required" "$workdir/tap/Casks/relay.rb"; then
+              echo "::error::generated cask is missing: $required"
+              cat "$workdir/tap/Casks/relay.rb"
+              exit 1
+            fi
+          done
+          echo "Cask generates and parses."
+
       - name: Dead code check
         run: |
           output=$(go run golang.org/x/tools/cmd/deadcode@v0.45.0 -test ./apps/desktop/...)

@@ -408,27 +408,24 @@ jobs:
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           path: tap
 
+      # The repository itself, for scripts/make-cask.py. The tap is checked
+      # out under tap/ above.
+      - name: Checkout Relay
+        uses: actions/checkout@v4
+        with:
+          path: relay
+
       - name: Update cask
         env:
           UPDATE_REPOSITORY: ${{ env.UPDATE_REPOSITORY }}
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          URL="https://github.com/${UPDATE_REPOSITORY}/releases/download/v${VERSION}/relay-${VERSION}-darwin-universal.dmg"
-          SHA="$(curl -fsSL "$URL" | shasum -a 256 | awk '{print $1}')"
-          mkdir -p tap/Casks
-          cat > tap/Casks/relay.rb << RUBY
-          cask "relay" do
-            version "$VERSION"
-            sha256 "$SHA"
-
-            url "$URL"
-            name "Relay"
-            desc "Cross-platform desktop API client"
-            homepage "https://github.com/relay-client/relay"
-
-            app "Relay.app"
-          end
-          RUBY
+          set -euo pipefail
+          python3 relay/scripts/make-cask.py \
+            --tap-dir tap \
+            --version "${GITHUB_REF_NAME#v}" \
+            --repo "$UPDATE_REPOSITORY"
+          ruby -c tap/Casks/relay.rb
+          cat tap/Casks/relay.rb
 
       - name: Commit and push tap
         run: |
