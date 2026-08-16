@@ -15,6 +15,11 @@ const IGNORED_MARKERS = [
   'Failed to fetch dynamically imported module',
 ];
 
+// A burst this tight means the app is wedged rather than hitting one bad
+// render: the overlay is the only way back out.
+export const ERROR_STORM_THRESHOLD = 15;
+export const ERROR_STORM_WINDOW_MS = 1000;
+
 let overlayShown = false;
 let recentErrors: number[] = [];
 
@@ -132,17 +137,36 @@ function isFatal(message: string): boolean {
   return FATAL_MARKERS.some(marker => message.includes(marker));
 }
 
-function handle(message: string) {
-  if (!message || shouldIgnore(message)) return;
-  if (isFatal(message)) { showFatalOverlay(message); return; }
+export type FatalVerdict = 'ignore' | 'fatal' | 'storm' | 'watch';
 
-  // Error storm: a tight burst of uncaught errors means the app is wedged.
-  const now = Date.now();
-  recentErrors.push(now);
-  recentErrors = recentErrors.filter(ts => now - ts < 1000);
-  if (recentErrors.length >= 15) {
-    showFatalOverlay('The application became unresponsive after repeated errors.\n\nLast error:\n' + message);
-  }
+/**
+ * Decides what an uncaught error means, and returns the timestamps still
+ * inside the storm window.
+ *
+ * Kept pure and exported so it can be tested: this is the one piece of Relay
+ * that has to behave correctly at the moment everything else already has not,
+ * which is exactly when a bug in it would go unnoticed.
+ */
+export function classifyFatalError(
+  message: string,
+  recent: readonly number[],
+  now: number,
+): { verdict: FatalVerdict; recent: number[] } {
+  if (!message || shouldIgnore(message)) return { verdict: 'ignore', recent: [...recent] };
+  if (isFatal(message)) return { verdict: 'fatal', recent: [...recent] };
+  const within = [...recent, now].filter(ts => now - ts < ERROR_STORM_WINDOW_MS);
+  return { verdict: within.length >= ERROR_STORM_THRESHOLD ? 'storm' : 'watch', recent: within };
+}
+
+export function stormOverlayMessage(message: string): string {
+  return 'The application became unresponsive after repeated errors.\n\nLast error:\n' + message;
+}
+
+function handle(message: string) {
+  const { verdict, recent } = classifyFatalError(message, recentErrors, Date.now());
+  recentErrors = recent;
+  if (verdict === 'fatal') showFatalOverlay(message);
+  else if (verdict === 'storm') showFatalOverlay(stormOverlayMessage(message));
 }
 
 export function installFatalErrorGuard() {
