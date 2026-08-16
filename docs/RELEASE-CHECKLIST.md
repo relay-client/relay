@@ -78,6 +78,15 @@ fix.
 - [ ] Applying it succeeds, and the app restarts on the new version.
 - [ ] The workspace, environments, and history survived the update.
 
+## Homebrew
+
+Only once the tap is live (see [RELEASING.md](RELEASING.md)); the channel is off today.
+
+- [ ] `brew upgrade` from the previous cask lands the new version.
+- [ ] The app does not then re-update itself, or get rolled back on the next
+      `brew upgrade` — `auto_updates true` is what keeps those two from
+      fighting.
+
 ## Git-backed workspace
 
 Only if this release touched anything Git-related:
