@@ -2138,6 +2138,7 @@ func TestRelayStoreReportsDanglingRequestOrderAsCollectionDiagnostic(t *testing.
 }
 
 func TestRelayStoreRejectsSymlinkedYAMLFiles(t *testing.T) {
+	requireSymlinks(t)
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()
 	localPath := filepath.Join(dir, "requests.json")
@@ -2201,6 +2202,7 @@ request:
 }
 
 func TestRelayStoreRejectsSymlinkedManagedDirectory(t *testing.T) {
+	requireSymlinks(t)
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()
 	localPath := filepath.Join(dir, "requests.json")
@@ -2226,6 +2228,7 @@ func TestRelayStoreRejectsSymlinkedManagedDirectory(t *testing.T) {
 }
 
 func TestEnsureWorkspaceGitignoreRejectsSymlink(t *testing.T) {
+	requireSymlinks(t)
 	dir := t.TempDir()
 	target := filepath.Join(dir, "outside-gitignore")
 	if err := os.WriteFile(target, []byte("keep\n"), 0644); err != nil {

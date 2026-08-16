@@ -220,12 +220,79 @@ jobs:
           ARCH=x86_64 ./appimagetool --appimage-extract-and-run \
             AppDir "release/relay-${VERSION}-linux-amd64.AppImage"
 
+      # Nothing above this point ever runs what it just built. A binary that
+      # compiles but cannot start — a broken embed, an unresolvable shared
+      # library, a version the linker never stamped — would otherwise reach
+      # users unnoticed. `--version` is answered before the window opens, so
+      # it works headless, and comparing it against the tag also proves the
+      # -ldflags stamp landed: auto-update compares versions, so a build that
+      # still calls itself "dev" would never offer an update again.
+      - name: Smoke test the macOS binary
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$(release/relay-darwin-universal --version)"
+          echo "$output"
+          case "$output" in
+            *"$VERSION"*) ;;
+            *) echo "::error::built binary reports '$output', expected version $VERSION"; exit 1 ;;
+          esac
+          release/relay-darwin-universal --diagnostics
+
+      - name: Smoke test the Windows binary
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          # The Windows build is a GUI-subsystem binary, so it has no console
+          # to write to. Redirecting to a file gives it a valid stdout handle.
+          $out = Join-Path $env:RUNNER_TEMP "relay-version.txt"
+          $process = Start-Process -FilePath "release\relay-windows-amd64.exe" `
+            -ArgumentList "--version" -Wait -PassThru -NoNewWindow -RedirectStandardOutput $out
+          if ($process.ExitCode -ne 0) {
+            throw "built binary exited with $($process.ExitCode)"
+          }
+          $output = (Get-Content $out -Raw).Trim()
+          Write-Host $output
+          if ($output -notlike "*$env:VERSION*") {
+            throw "built binary reports '$output', expected version $env:VERSION"
+          }
+
+      - name: Smoke test the Linux binary and AppImage
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$(release/relay-linux-amd64 --version)"
+          echo "$output"
+          case "$output" in
+            *"$VERSION"*) ;;
+            *) echo "::error::built binary reports '$output', expected version $VERSION"; exit 1 ;;
+          esac
+          release/relay-linux-amd64 --diagnostics
+          # The AppImage wraps the same binary, but its AppRun and payload are
+          # assembled by hand above and have their own ways to be wrong.
+          appimage="release/relay-${VERSION}-linux-amd64.AppImage"
+          chmod +x "$appimage"
+          packaged="$("$appimage" --appimage-extract-and-run --version)"
+          echo "$packaged"
+          case "$packaged" in
+            *"$VERSION"*) ;;
+            *) echo "::error::AppImage reports '$packaged', expected version $VERSION"; exit 1 ;;
+          esac
+
+      # These exist only to hand the built files to the publish job below,
+      # which uploads them to the GitHub release — where they live for good
+      # and cost nothing against the Actions storage quota. Keeping a 90-day
+      # copy here duplicated every release at ~100 MB a run and was what
+      # filled the quota.
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
           name: relay-${{ matrix.artifact }}
           path: release/*
           if-no-files-found: error
+          retention-days: 1
 
   publish:
     name: Publish release
