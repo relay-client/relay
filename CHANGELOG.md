@@ -5,6 +5,26 @@ All notable changes to Relay are documented here. This project follows
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- **A Git-backed workspace looked like an ordinary folder on a machine without Git.** Relay drives Git by running it, and the failure to find the binary was discarded — so `git rev-parse` failing because there is no Git was reported the same way as "this is not a repository". On a stock Windows machine, or a Mac whose Command Line Tools are missing, opening a repository you had cloned elsewhere offered to initialise a new one over the top of it, and every button that followed failed with a raw `exec` error. Relay now says which of the two it is, names the fix for that platform, and disables the Git-dependent actions instead of inviting a click that cannot work. A workspace still opens in local mode without Git.
+- **An unsaved edit could follow you onto another branch.** A branch checkout refuses to run against local changes, but it read `gitStatus`, which describes the files on disk — an edit made within the autosave debounce is not there yet. So the check passed, Git swapped the files underneath, and the debounce then wrote the pre-checkout editor state into the branch that had just been checked out: an uncommitted change on a branch it was never made on. The same window sat in front of creating a branch, applying a stash, pushing, and resolving, continuing or aborting a merge. Every operation that touches the worktree now settles the editor first — saving the pending write, or dropping it where the operation is what restores the files — through one helper, so this cannot be forgotten one operation at a time.
+- **The repository root was reported in Git's shape, not the platform's.** `git rev-parse --show-toplevel` answers with forward slashes everywhere, including Windows, where that path is not comparable to one built with `filepath`.
+
+### Added
+- **`relay --version` and `relay --diagnostics`.** Both are answered before the window opens, so they still work on a machine where it cannot — and the release now runs the binary it just built and checks the version it reports against the tag. A build whose `-ldflags` stamp did not land still calls itself `dev`, which would leave the updater unable to recognise any newer release.
+- **Relay keeps a log, and the Support screen can hand it over.** The things worth knowing after something goes wrong — a credential store that could not be reached, a key that fell back to the recovery file — were written to a stdout that a packaged app throws away. They now go to `relay.log` in Relay's app-data directory, capped and rotated with one previous generation. **Settings → Support** gained **Copy diagnostics** (version, platform, Go, Git, storage mode and credential store — no workspace paths, so it can be pasted into a public issue) and **Open log folder**.
+
+### Changed
+- **CI runs the Go tests on macOS and Windows, not only Linux.** Relay ships all three, and the Go side is where the platforms differ — it shells out to Git, resolves paths, and talks to each OS credential store. None of that was exercised until a user hit it. Three tests that assert Relay refuses to follow a symbolic link now skip on a machine that cannot create one, rather than failing for a reason that is not about Relay.
+- **`latest.json` is tested against the code that reads it.** The manifest is written by a Python script during the release and parsed by the Go updater on every installed copy, with nothing connecting the two: a drift in field names or platform keys would stop auto-update everywhere at once, silently, and the release that would fix it is the one those copies could no longer see. The test runs the real script over a fake release and decodes the result with the real parser — including looking up the running platform's own key, which the cross-platform matrix now exercises on each OS.
+- **The fatal-error guard is covered by tests.** It is the one part of Relay that has to behave correctly at the moment everything else already has not, which is exactly when a bug in it would go unnoticed. The classification — ignored noise, an immediately fatal render loop, and the burst threshold — is now a pure function with tests around it.
+- **E2E covers the Git panel and collection import**, next to the existing walkthrough; committing from the Git panel is checked to write the editor's pending edit first, which is the regression above.
+- **A manual release checklist** covers what no test can reach: the real installers, the first launch, the update from the previous version, and the uninstall. See `docs/RELEASE-CHECKLIST.md`.
+
+---
+
 ## [1.4.0] - 2026-08-13
 
 ### Added
