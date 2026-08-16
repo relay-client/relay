@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/base64"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -118,8 +119,10 @@ func TestGrpcMaxReceiveBytes(t *testing.T) {
 }
 
 func TestGrpcImportPaths(t *testing.T) {
-	got := grpcImportPaths("/a/b/x.proto", []string{"/c", "/a/b", "", "/c"})
-	want := []string{"/a/b", "/c"}
+	// The paths are normalised to the platform's separators, so the
+	// expectation has to be too — otherwise this only ever described Unix.
+	got := grpcImportPaths(filepath.Join("/a", "b", "x.proto"), []string{"/c", "/a/b", "", "/c"})
+	want := []string{filepath.Clean("/a/b"), filepath.Clean("/c")}
 	if len(got) != len(want) {
 		t.Fatalf("grpcImportPaths = %v, want %v", got, want)
 	}

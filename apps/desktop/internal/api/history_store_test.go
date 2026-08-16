@@ -13,9 +13,7 @@ import (
 func withHistoryStore(t *testing.T) {
 	t.Helper()
 	configDir := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", configDir)
-	t.Setenv("HOME", configDir)
-	t.Setenv("USERPROFILE", configDir)
+	useTempConfigDir(t, configDir)
 
 	key := bytes.Repeat([]byte{7}, requestStoreKeySize)
 	previousProvider := requestStoreKeyProvider

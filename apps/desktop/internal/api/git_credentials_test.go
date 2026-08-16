@@ -53,8 +53,7 @@ func TestAnnotateGitAuthFailure(t *testing.T) {
 func withIsolatedStore(t *testing.T) {
 	t.Helper()
 	tmp := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", tmp)
-	t.Setenv("HOME", tmp)
+	useTempConfigDir(t, tmp)
 	key := make([]byte, requestStoreKeySize)
 	for i := range key {
 		key[i] = byte(i + 1)

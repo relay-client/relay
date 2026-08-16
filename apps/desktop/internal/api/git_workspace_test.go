@@ -174,8 +174,7 @@ func TestUseLocalWorkspaceStoreSuppressesGitRepoInDefaultStorage(t *testing.T) {
 		t.Skip("git is not installed")
 	}
 	configDir := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", configDir)
-	t.Setenv("HOME", configDir)
+	useTempConfigDir(t, configDir)
 	root := defaultFileWorkspaceStorePath()
 	writeRelayWorkspaceFiles(t, root)
 	runGitForTest(t, root, "init")
@@ -208,8 +207,7 @@ func TestUseLocalWorkspaceStoreSuppressesGitRepoInDefaultStorage(t *testing.T) {
 
 func TestCreateLocalWorkspaceRootCreatesFolderWorkspace(t *testing.T) {
 	configDir := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", configDir)
-	t.Setenv("HOME", configDir)
+	useTempConfigDir(t, configDir)
 
 	parent := t.TempDir()
 	app := NewApp()
@@ -254,9 +252,8 @@ func TestCreateLocalWorkspaceRootCreatesFolderWorkspace(t *testing.T) {
 func TestDefaultWorkspaceLocationUsesDocumentsRelay(t *testing.T) {
 	configDir := t.TempDir()
 	homeDir := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", configDir)
-	t.Setenv("HOME", homeDir)
-	t.Setenv("USERPROFILE", homeDir)
+	useTempConfigDir(t, configDir)
+	useTempHomeDir(t, homeDir)
 
 	app := NewApp()
 	result := app.DefaultWorkspaceLocation()
@@ -276,9 +273,8 @@ func TestCreateLocalWorkspaceRootUsesConfiguredDefaultLocation(t *testing.T) {
 	withRequestStoreTestKey(t)
 	configDir := t.TempDir()
 	homeDir := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", configDir)
-	t.Setenv("HOME", homeDir)
-	t.Setenv("USERPROFILE", homeDir)
+	useTempConfigDir(t, configDir)
+	useTempHomeDir(t, homeDir)
 
 	defaultParent := filepath.Join(t.TempDir(), "Relay Workspaces")
 	app := NewApp()
@@ -304,8 +300,7 @@ func TestOpenWorkspaceRootEnsuresGitignore(t *testing.T) {
 		t.Skip("git is not installed")
 	}
 	configDir := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", configDir)
-	t.Setenv("HOME", configDir)
+	useTempConfigDir(t, configDir)
 
 	dir := t.TempDir()
 	writeRelayWorkspaceFiles(t, dir)
@@ -359,8 +354,7 @@ func TestOpenWorkspaceRootFetchesRemoteStatus(t *testing.T) {
 		t.Skip("git is not installed")
 	}
 	configDir := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", configDir)
-	t.Setenv("HOME", configDir)
+	useTempConfigDir(t, configDir)
 
 	dir := t.TempDir()
 	remote := filepath.Join(t.TempDir(), "origin.git")
@@ -484,8 +478,7 @@ func TestGitPullWorkspaceReturnsDiagnosticsForInvalidRemoteRequest(t *testing.T)
 	}
 	withRequestStoreTestKey(t)
 	configDir := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", configDir)
-	t.Setenv("HOME", configDir)
+	useTempConfigDir(t, configDir)
 
 	dir, peer := setupGitPullRemoteForTest(t)
 	app := NewApp()
@@ -526,8 +519,7 @@ func TestGitPullWorkspaceKeepsRepoOpenForInvalidRemoteWorkspace(t *testing.T) {
 	}
 	withRequestStoreTestKey(t)
 	configDir := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", configDir)
-	t.Setenv("HOME", configDir)
+	useTempConfigDir(t, configDir)
 
 	dir, peer := setupGitPullRemoteForTest(t)
 	app := NewApp()
@@ -733,8 +725,7 @@ func TestParseGitPullSummary(t *testing.T) {
 func TestCustomLocalWorkspaceRootReceivesSubsequentSaves(t *testing.T) {
 	withRequestStoreTestKey(t)
 	configDir := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", configDir)
-	t.Setenv("HOME", configDir)
+	useTempConfigDir(t, configDir)
 
 	parent := t.TempDir()
 	app := NewApp()
@@ -1142,8 +1133,7 @@ func TestGitDiscardWorkspaceFileClearsStaleManagedGitignore(t *testing.T) {
 		t.Skip("git is not installed")
 	}
 	configDir := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", configDir)
-	t.Setenv("HOME", configDir)
+	useTempConfigDir(t, configDir)
 
 	root := t.TempDir()
 	writeRelayWorkspaceFiles(t, root)

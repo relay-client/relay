@@ -80,7 +80,7 @@ func saveAppPreferences(preferences appPreferences) error {
 	if err := tmp.Close(); err != nil {
 		return err
 	}
-	if err := os.Rename(tmpPath, appPreferencesPath()); err != nil {
+	if err := replaceFile(tmpPath, appPreferencesPath()); err != nil {
 		return err
 	}
 	cleanup = false

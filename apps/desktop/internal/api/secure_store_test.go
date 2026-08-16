@@ -60,8 +60,7 @@ func TestRequestStorePayloadTamperDetected(t *testing.T) {
 
 func TestDecryptDoesNotCreateReplacementKeyWhenExistingKeyIsMissing(t *testing.T) {
 	tmp := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", tmp)
-	t.Setenv("HOME", tmp)
+	useTempConfigDir(t, tmp)
 	t.Setenv(requestStoreDisableKeychain, "1")
 	prevProvider := requestStoreKeyProvider
 	prevLoader := requestStoreKeyLoader
@@ -106,8 +105,7 @@ func TestDecryptDoesNotCreateReplacementKeyWhenExistingKeyIsMissing(t *testing.T
 // the cached key is still returned (rather than generating a fresh random one).
 func TestCachedRequestStoreKeyMemoizes(t *testing.T) {
 	tmp := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", tmp)
-	t.Setenv("HOME", tmp)
+	useTempConfigDir(t, tmp)
 	t.Setenv(requestStoreDisableKeychain, "1")
 
 	requestStoreKeyMu.Lock()

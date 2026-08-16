@@ -1626,7 +1626,7 @@ func writeYAMLFile(path string, value any) error {
 	if err := tmp.Close(); err != nil {
 		return err
 	}
-	if err := os.Rename(tmpPath, path); err != nil {
+	if err := replaceFile(tmpPath, path); err != nil {
 		return err
 	}
 	cleanup = false
