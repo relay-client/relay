@@ -29,3 +29,34 @@ func requireSymlinks(t *testing.T) {
 		t.Skipf("symlinks are not available on this machine: %v", err)
 	}
 }
+
+// useTempConfigDir points requestStoreDir() at a temporary directory, so a
+// test never touches the real Relay profile.
+//
+// os.UserConfigDir reads a different variable on each platform, and setting
+// only the Unix ones left every Windows run writing into the machine's actual
+// %AppData%\Relay — where tests collided with each other (a store written
+// under one key and read under another, surfacing as "cipher: message
+// authentication failed") and would have overwritten a developer's real
+// workspace.
+func useTempConfigDir(t *testing.T, dir string) {
+	t.Helper()
+	t.Setenv("XDG_CONFIG_HOME", dir) // Linux
+	t.Setenv("APPDATA", dir)         // Windows
+	t.Setenv("LOCALAPPDATA", dir)    // Windows, for anything reading the local variant
+	t.Setenv("HOME", dir)            // macOS derives the config dir from HOME
+	t.Setenv("USERPROFILE", dir)     // keep os.UserHomeDir() inside the sandbox too
+}
+
+// useTempHomeDir points os.UserHomeDir() somewhere other than the config
+// directory — it is what the default "Documents/Relay" workspace location is
+// built from. Call it after useTempConfigDir.
+//
+// On macOS the config directory is derived from HOME, so the two cannot
+// actually be separated there and the config follows home; the tests using
+// this only assert the home-derived path, which holds either way.
+func useTempHomeDir(t *testing.T, dir string) {
+	t.Helper()
+	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir)
+}

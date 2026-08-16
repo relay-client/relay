@@ -4,8 +4,7 @@ import "testing"
 
 func TestInitialWindowBackgroundUsesSavedThemeVariantColor(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("HOME", dir)
-	t.Setenv("XDG_CONFIG_HOME", dir)
+	useTempConfigDir(t, dir)
 
 	if err := saveResolvedThemePreference("dark"); err != nil {
 		t.Fatalf("save resolved theme: %v", err)
@@ -25,8 +24,7 @@ func TestInitialWindowBackgroundUsesSavedThemeVariantColor(t *testing.T) {
 
 func TestInitialWindowBackgroundFallsBackToResolvedTheme(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("HOME", dir)
-	t.Setenv("XDG_CONFIG_HOME", dir)
+	useTempConfigDir(t, dir)
 
 	if err := saveResolvedThemePreference("light"); err != nil {
 		t.Fatalf("save resolved theme: %v", err)

@@ -1284,9 +1284,7 @@ func TestRequestStoreRejectsPlaintextPayload(t *testing.T) {
 func TestSaveRequestStoreWithErrorReportsCause(t *testing.T) {
 	withRequestStoreTestKey(t)
 	configDir := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", configDir)
-	t.Setenv("HOME", configDir)
-	t.Setenv("USERPROFILE", configDir)
+	useTempConfigDir(t, configDir)
 
 	result := NewApp().SaveRequestStoreWithError(`{"requests":`)
 	if result.Ok {
@@ -1329,9 +1327,7 @@ func TestRequestStoreSaveReplacesExistingPayload(t *testing.T) {
 
 func TestRequestStoreDecryptFallsBackToFileKey(t *testing.T) {
 	configDir := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", configDir)
-	t.Setenv("HOME", configDir)
-	t.Setenv("USERPROFILE", configDir)
+	useTempConfigDir(t, configDir)
 
 	rightKey := bytes.Repeat([]byte{3}, requestStoreKeySize)
 	wrongKey := bytes.Repeat([]byte{4}, requestStoreKeySize)
@@ -1379,9 +1375,7 @@ func TestRequestStoreDecryptFallsBackToFileKey(t *testing.T) {
 
 func TestSaveRequestStoreRecoversUnreadableLocalMetadataForYAMLWorkspace(t *testing.T) {
 	configDir := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", configDir)
-	t.Setenv("HOME", configDir)
-	t.Setenv("USERPROFILE", configDir)
+	useTempConfigDir(t, configDir)
 
 	oldKey := bytes.Repeat([]byte{5}, requestStoreKeySize)
 	newKey := bytes.Repeat([]byte{6}, requestStoreKeySize)
@@ -1432,8 +1426,7 @@ func TestSaveRequestStoreRecoversUnreadableLocalMetadataForYAMLWorkspace(t *test
 func TestRequestStoreDisableKeychainUsesFileKey(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv(requestStoreDisableKeychain, "1")
-	t.Setenv("XDG_CONFIG_HOME", dir)
-	t.Setenv("HOME", dir)
+	useTempConfigDir(t, dir)
 	path := filepath.Join(dir, "requests.json")
 	payload := `{"requests":[]}`
 
@@ -2070,8 +2063,7 @@ func TestRelayStoreSavePreservesInvalidWorkspaceDirectory(t *testing.T) {
 func TestWorkspaceYAMLEditorRepairsBlockingDiagnostic(t *testing.T) {
 	withRequestStoreTestKey(t)
 	configDir := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", configDir)
-	t.Setenv("HOME", configDir)
+	useTempConfigDir(t, configDir)
 	workspaceRoot := filepath.Join(t.TempDir(), "workspace")
 	if err := saveRelayStorePayload(requestStorePath(), workspaceRoot, relaySaveFlowPayload("/saved", "token-a", []string{"req-main"}, "")); err != nil {
 		t.Fatalf("save relay store: %v", err)
@@ -2691,7 +2683,10 @@ func readAllText(t *testing.T, root string) string {
 		if err != nil {
 			return err
 		}
-		builder.WriteString(path)
+		// Emit the path in one shape on every platform: the assertions
+		// against this dump name files as "Collection/request.yml", which
+		// no Windows path would ever match.
+		builder.WriteString(filepath.ToSlash(path))
 		builder.WriteByte('\n')
 		builder.Write(data)
 		builder.WriteByte('\n')

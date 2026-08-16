@@ -481,7 +481,7 @@ func newResponseDownloadSink(path string, onCommit func()) (*responseBodySink, e
 			if err := closeFile(); err != nil {
 				return err
 			}
-			if err := os.Rename(tmpPath, path); err != nil {
+			if err := replaceFile(tmpPath, path); err != nil {
 				return err
 			}
 			if err := syncDir(dir); err != nil {
