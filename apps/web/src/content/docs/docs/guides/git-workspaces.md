@@ -19,6 +19,16 @@ Use a Git-backed workspace when you want:
 
 Use the default app storage when the workspace is private, short-lived, or not meant to be shared.
 
+## Requirements
+
+Relay runs the `git` command rather than bundling its own, so Git storage needs Git installed and on the PATH:
+
+- **Windows** — install [Git for Windows](https://git-scm.com/downloads); Windows ships none.
+- **macOS** — run `xcode-select --install`. `/usr/bin/git` exists on a clean Mac but is only a stub until the Command Line Tools are installed.
+- **Linux** — install `git` from your distribution's package manager.
+
+Restart Relay after installing. Without Git, Relay says so on the Git screen and the folder still works as a local (non-Git) workspace — collections, environments, and requests all behave normally; only branches, commits, and remotes are unavailable.
+
 ## What Relay writes
 
 Shared files:
