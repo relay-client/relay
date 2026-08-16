@@ -27,7 +27,7 @@
     "web:preview": "npm --workspace @relay/web run preview"
   },
   "devDependencies": {
-    "eslint": "^9.39.5",
+    "eslint": "^10.8.0",
     "eslint-plugin-svelte": "^3.22.0",
     "globals": "^17.7.0",
     "svelte-eslint-parser": "^1.8.0",
