@@ -850,8 +850,11 @@
 
 .postman-cookie-toolbar {
   grid-template-columns: minmax(0, 1fr) auto;
-  padding: 6px 18px 10px;
-  border-bottom: none;
+  padding: 6px 18px 12px;
+  /* The list scrolls underneath this row. Without a boundary the first
+     domain card is sliced mid-row and reads as a rendering fault rather
+     than as content continuing above the fold. */
+  border-bottom: 1px solid var(--border-subtle);
   background: transparent;
 }
 
@@ -870,7 +873,7 @@
   min-height: 0;
   max-height: min(380px, calc(100vh - 222px));
   overflow: auto;
-  padding: 6px 18px 12px;
+  padding: 12px 18px 14px;
 }
 
 .cookie-pagination {
@@ -1096,7 +1099,9 @@
 }
 
 .cookie-footer-actions {
-  padding: 0 18px 16px;
+  flex-shrink: 0;
+  padding: 12px 18px;
+  border-top: 1px solid var(--border-subtle);
 }
 
 .cookie-footer-actions .btn-secondary.danger {
