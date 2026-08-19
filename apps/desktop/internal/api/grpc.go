@@ -182,7 +182,7 @@ func sendGrpcRequest(requestCtx context.Context, req model.GrpcRequest, sm *stat
 	scope := beginScriptScope(sm, req.CollectionVariables)
 	ctx := scope.ctx
 	populateScriptGrpcRequestContext(ctx, req)
-	ctx.Send = newScriptSender(requestCtx, req.AllowSendRequest, !req.EnableSSLVerification)
+	ctx.Send = newScriptSender(requestCtx, req.AllowSendRequest, model.HttpRequest{EnableSSLVerification: req.EnableSSLVerification})
 
 	var preResult model.ScriptResult
 	if req.PreRequestScript != "" {
@@ -207,7 +207,7 @@ func sendGrpcRequest(requestCtx context.Context, req model.GrpcRequest, sm *stat
 		testScope := beginScriptScope(sm, req.CollectionVariables)
 		testCtx := testScope.ctx
 		populateScriptGrpcRequestContext(testCtx, req)
-		testCtx.Send = newScriptSender(requestCtx, req.AllowSendRequest, !req.EnableSSLVerification)
+		testCtx.Send = newScriptSender(requestCtx, req.AllowSendRequest, model.HttpRequest{EnableSSLVerification: req.EnableSSLVerification})
 		testCtx.Response = grpcResponseAsHTTP(resp)
 		resp.TestResult = script.RunTests(req.ScriptEngine, req.TestScript, testCtx)
 		resp.TestResult = redactScriptResult(resp.TestResult, req.SecretEnvironmentValues)

@@ -18,6 +18,8 @@ type cliKV struct {
 	IsFile   bool   `json:"isFile"`
 	FileName string `json:"fileName"`
 	Secret   bool   `json:"secret"`
+
+	ContentType string `json:"contentType"`
 }
 
 type cliAuth struct {
@@ -204,7 +206,7 @@ func buildHTTPRequest(req cliSavedRequest, values map[string]string, secretValue
 	formData := make([]model.KeyValue, 0, len(req.FormRows))
 	for _, f := range req.FormRows {
 		if f.Enabled && strings.TrimSpace(f.Key) != "" {
-			formData = append(formData, model.KeyValue{Key: resolve(f.Key), Value: resolve(f.Value), Enabled: true, IsFile: f.IsFile, FileName: f.FileName})
+			formData = append(formData, model.KeyValue{Key: resolve(f.Key), Value: resolve(f.Value), Enabled: true, IsFile: f.IsFile, FileName: f.FileName, ContentType: f.ContentType})
 		}
 	}
 

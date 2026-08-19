@@ -20,16 +20,22 @@ const (
 	scriptSendMaxHeaderSize = 64 * 1024
 )
 
-func newScriptSender(parent context.Context, allow bool, insecureSkipVerify bool) script.SendFunc {
+// newScriptSender wires pm.sendRequest to the network. transportCfg is the
+// request the script is running for: pm.sendRequest has to reach the same
+// network the main request does, so the proxy, the client certificate and the
+// TLS settings come from it rather than from a blank request. A script that
+// logs in through pm.sendRequest behind a corporate proxy, or against an mTLS
+// endpoint, could not reach it at all before.
+func newScriptSender(parent context.Context, allow bool, transportCfg model.HttpRequest) script.SendFunc {
 	if !allow {
 		return nil
 	}
 	return func(req script.SendRequest) script.SendResponse {
-		return performScriptSend(parent, req, insecureSkipVerify)
+		return performScriptSend(parent, req, transportCfg)
 	}
 }
 
-func performScriptSend(parent context.Context, req script.SendRequest, insecureSkipVerify bool) script.SendResponse {
+func performScriptSend(parent context.Context, req script.SendRequest, transportCfg model.HttpRequest) script.SendResponse {
 	method := strings.ToUpper(strings.TrimSpace(req.Method))
 	if method == "" {
 		method = http.MethodGet
@@ -81,7 +87,7 @@ func performScriptSend(parent context.Context, req script.SendRequest, insecureS
 	}
 
 	client := &http.Client{
-		Transport: sharedHTTPTransport(model.HttpRequest{EnableSSLVerification: !insecureSkipVerify}),
+		Transport: sharedHTTPTransport(transportCfg),
 		Timeout:   scriptSendTimeout,
 		CheckRedirect: func(_ *http.Request, via []*http.Request) error {
 			if len(via) >= scriptSendMaxRedirects {
@@ -99,7 +105,10 @@ func performScriptSend(parent context.Context, req script.SendRequest, insecureS
 	defer resp.Body.Close()
 
 	raw, truncated, readErr := readResponseBodyWithLimit(resp.Body, scriptSendMaxBodyBytes)
-	if readErr != nil && len(raw) == 0 {
+	if readErr != nil {
+		// A partial body is still a failed read. Returning it as if it were the
+		// whole response let a script assert against a truncated payload and
+		// pass.
 		return script.SendResponse{Error: "pm.sendRequest: failed to read response: " + readErr.Error()}
 	}
 	elapsed := time.Since(start)

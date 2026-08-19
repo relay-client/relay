@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/relay-client/relay/apps/desktop/internal/model"
@@ -258,12 +259,37 @@ func applyClientAuth(form url.Values, cfg model.AuthConfig, audience string) (us
 	}
 }
 
+// Two clients cover every token request: verification on, and verification
+// off. They are built once and reused, because a token is fetched or refreshed
+// before every send that needs one — a fresh transport per call left its idle
+// sockets stranded until IdleConnTimeout, so a 500-request collection run
+// against an OAuth-protected API accumulated hundreds of them.
+//
+// The minimum TLS version is pinned even when the user opts out of certificate
+// verification: skipping verification is a debugging affordance, not a request
+// to negotiate TLS 1.0.
+var (
+	oauth2SecureClient = sync.OnceValue(func() *http.Client {
+		return &http.Client{
+			Timeout:   15 * time.Second,
+			Transport: &http.Transport{TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12}},
+		}
+	})
+	oauth2InsecureClient = sync.OnceValue(func() *http.Client {
+		return &http.Client{
+			Timeout: 15 * time.Second,
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS12},
+			},
+		}
+	})
+)
+
 func oauth2HTTPClient(cfg model.AuthConfig) *http.Client {
-	transport := &http.Transport{}
 	if cfg.OAuth2InsecureSkipVerify {
-		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		return oauth2InsecureClient()
 	}
-	return &http.Client{Timeout: 15 * time.Second, Transport: transport}
+	return oauth2SecureClient()
 }
 
 func newTokenFormRequest(endpoint string, form url.Values) (*http.Request, error) {

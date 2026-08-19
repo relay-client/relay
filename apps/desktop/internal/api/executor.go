@@ -10,6 +10,7 @@ import (
 	"mime/multipart"
 	"net"
 	"net/http"
+	"net/textproto"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -53,7 +54,7 @@ func sendRequestWithBodySink(requestCtx context.Context, req model.HttpRequest, 
 	ctx := scope.ctx
 	populateScriptRequestContext(ctx, req)
 	populateScriptCookies(ctx, req, jars)
-	ctx.Send = newScriptSender(requestCtx, req.AllowSendRequest, !req.EnableSSLVerification)
+	ctx.Send = newScriptSender(requestCtx, req.AllowSendRequest, req)
 
 	var preResult model.ScriptResult
 	if req.PreRequestScript != "" {
@@ -96,7 +97,7 @@ func sendRequestWithBodySink(requestCtx context.Context, req model.HttpRequest, 
 		testCtx.Response = &resp
 		populateScriptRequestContext(testCtx, req)
 		populateScriptCookies(testCtx, req, jars)
-		testCtx.Send = newScriptSender(requestCtx, req.AllowSendRequest, !req.EnableSSLVerification)
+		testCtx.Send = newScriptSender(requestCtx, req.AllowSendRequest, req)
 		resp.TestResult = script.RunTests(req.ScriptEngine, req.TestScript, testCtx)
 		resp.TestResult = redactScriptResult(resp.TestResult, req.SecretEnvironmentValues)
 		testScope.commit(sm)
@@ -434,7 +435,12 @@ func doRequestWithBodySink(ctx context.Context, req model.HttpRequest, jar http.
 				}()
 			}
 			var preview bytes.Buffer
-			bodySize, truncated, readErr = copyResponseBody(&preview, sink.writer, httpResp.Body, maxResponseBodySize)
+			// Decompress on the way to disk. Go only undoes gzip, and only when
+			// it set Accept-Encoding itself, so a request that asked for an
+			// encoding explicitly used to save the compressed stream under a
+			// name like report.json.
+			decoded := newDecodingReader(httpResp.Body, httpResp)
+			bodySize, truncated, readErr = copyResponseBody(&preview, sink.writer, decoded, maxResponseBodySize)
 			bodyBytes = preview.Bytes()
 			if readErr == nil && sink.commit != nil {
 				readErr = sink.commit()
@@ -548,32 +554,35 @@ func isEventStreamResponse(headers http.Header) bool {
 	return strings.Contains(contentType, "text/event-stream")
 }
 
+// rawBodyContentTypes maps the body types whose payload is a plain string to
+// the Content-Type Relay sends for them.
+var rawBodyContentTypes = map[string]string{
+	"json":       "application/json",
+	"text":       "text/plain",
+	"javascript": "application/javascript",
+	"xml":        "application/xml",
+	"html":       "text/html",
+	"graphql":    "application/json",
+}
+
 func buildRequestBody(req model.HttpRequest) (io.Reader, string, func(), error) {
+	// A raw body type carries its Content-Type even when the text is empty, for
+	// the methods that carry a body. Choosing "JSON" and sending nothing is a
+	// deliberate choice — the default body type is "none" — and the servers
+	// that validate Content-Type before they look at the body answer 415 when
+	// it goes missing. GET and HEAD are left alone: labelling a request that
+	// has no body and conventionally never does is noise, not correctness.
+	// Either way the reader stays nil, so no empty body is framed on the wire.
+	if contentType, ok := rawBodyContentTypes[req.BodyType]; ok {
+		if req.Body == "" {
+			if methodConventionallyHasNoBody(req.Method) {
+				return nil, "", nil, nil
+			}
+			return nil, contentType, nil, nil
+		}
+		return strings.NewReader(req.Body), contentType, nil, nil
+	}
 	switch req.BodyType {
-	case "json":
-		if req.Body != "" {
-			return strings.NewReader(req.Body), "application/json", nil, nil
-		}
-	case "text":
-		if req.Body != "" {
-			return strings.NewReader(req.Body), "text/plain", nil, nil
-		}
-	case "javascript":
-		if req.Body != "" {
-			return strings.NewReader(req.Body), "application/javascript", nil, nil
-		}
-	case "xml":
-		if req.Body != "" {
-			return strings.NewReader(req.Body), "application/xml", nil, nil
-		}
-	case "html":
-		if req.Body != "" {
-			return strings.NewReader(req.Body), "text/html", nil, nil
-		}
-	case "graphql":
-		if req.Body != "" {
-			return strings.NewReader(req.Body), "application/json", nil, nil
-		}
 	case "urlencoded":
 		form := url.Values{}
 		for _, kv := range req.FormData {
@@ -612,6 +621,16 @@ func buildRequestBody(req model.HttpRequest) (io.Reader, string, func(), error) 
 		}
 	}
 	return nil, "", nil, nil
+}
+
+// methodConventionallyHasNoBody reports the methods for which an empty body
+// means "no payload at all" rather than "an empty payload of this type".
+func methodConventionallyHasNoBody(method string) bool {
+	switch strings.ToUpper(strings.TrimSpace(method)) {
+	case "", http.MethodGet, http.MethodHead:
+		return true
+	}
+	return false
 }
 
 func buildMultipartBody(fields []model.KeyValue) (io.Reader, string, error) {
@@ -657,7 +676,7 @@ func buildMultipartBody(fields []model.KeyValue) (io.Reader, string, error) {
 					return
 				}
 				var fw io.Writer
-				fw, err = mw.CreateFormFile(kv.Key, filepath.Base(kv.Value))
+				fw, err = createMultipartFilePart(mw, kv)
 				if err != nil {
 					_ = file.Close()
 					err = fmt.Errorf("failed to create multipart file field: %w", err)
@@ -672,7 +691,7 @@ func buildMultipartBody(fields []model.KeyValue) (io.Reader, string, error) {
 					err = fmt.Errorf("failed to close form file: %w", closeErr)
 					return
 				}
-			} else if err = mw.WriteField(kv.Key, kv.Value); err != nil {
+			} else if err = writeMultipartTextField(mw, kv); err != nil {
 				err = fmt.Errorf("failed to write multipart field: %w", err)
 				return
 			}
@@ -682,6 +701,53 @@ func buildMultipartBody(fields []model.KeyValue) (io.Reader, string, error) {
 		}
 	}()
 	return pr, mw.FormDataContentType(), nil
+}
+
+// createMultipartFilePart opens a file part carrying the row's own
+// Content-Type. multipart.CreateFormFile hardcodes application/octet-stream,
+// which the APIs that check what was uploaded ("image/png only") reject.
+func createMultipartFilePart(mw *multipart.Writer, kv model.KeyValue) (io.Writer, error) {
+	fileName := kv.FileName
+	if fileName == "" {
+		fileName = filepath.Base(kv.Value)
+	}
+	contentType := strings.TrimSpace(kv.ContentType)
+	if contentType == "" {
+		return mw.CreateFormFile(kv.Key, fileName)
+	}
+	header := make(textproto.MIMEHeader, 2)
+	header.Set("Content-Disposition", fmt.Sprintf(
+		`form-data; name="%s"; filename="%s"`,
+		escapeMultipartValue(kv.Key), escapeMultipartValue(fileName),
+	))
+	header.Set("Content-Type", contentType)
+	return mw.CreatePart(header)
+}
+
+// writeMultipartTextField writes a non-file part, with a Content-Type when the
+// row names one — a JSON part inside a multipart body is a common shape.
+func writeMultipartTextField(mw *multipart.Writer, kv model.KeyValue) error {
+	contentType := strings.TrimSpace(kv.ContentType)
+	if contentType == "" {
+		return mw.WriteField(kv.Key, kv.Value)
+	}
+	header := make(textproto.MIMEHeader, 2)
+	header.Set("Content-Disposition", fmt.Sprintf(`form-data; name="%s"`, escapeMultipartValue(kv.Key)))
+	header.Set("Content-Type", contentType)
+	part, err := mw.CreatePart(header)
+	if err != nil {
+		return err
+	}
+	_, err = io.WriteString(part, kv.Value)
+	return err
+}
+
+// escapeMultipartValue mirrors what mime/multipart does for the names it
+// writes itself, so a quote or newline in a key cannot break out of the header.
+var multipartValueEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"", "\r", "", "\n", "")
+
+func escapeMultipartValue(value string) string {
+	return multipartValueEscaper.Replace(value)
 }
 
 func effectiveRequestTimeout(req model.HttpRequest) time.Duration {

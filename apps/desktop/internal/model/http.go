@@ -1,11 +1,17 @@
 package model
 
 type KeyValue struct {
-	Key      string `json:"key"`
-	Value    string `json:"value"`
-	Enabled  bool   `json:"enabled"`
-	IsFile   bool   `json:"isFile"`
+	Key     string `json:"key"`
+	Value   string `json:"value"`
+	Enabled bool   `json:"enabled"`
+	IsFile  bool   `json:"isFile"`
+	// FileName is the name a multipart file part is sent under.
 	FileName string `json:"fileName"`
+	// ContentType is the Content-Type of one multipart part. Empty means
+	// Relay picks the default (application/octet-stream for a file part).
+	// APIs that validate the MIME type of an upload reject everything
+	// without it.
+	ContentType string `json:"contentType"`
 }
 
 type AuthConfig struct {

@@ -15,6 +15,20 @@ import (
 	"github.com/relay-client/relay/apps/desktop/internal/model"
 )
 
+// unsignedPayload is the literal AWS accepts in place of a body hash. Relay
+// falls back to it only for an upload too large to hash without holding it all
+// in memory — the S3-style case AWS documents it for. Everything smaller is
+// still hashed, because the request-shaped services (API Gateway, Lambda,
+// DynamoDB) reject an unsigned payload, and their own payload limits are far
+// below the threshold.
+const unsignedPayload = "UNSIGNED-PAYLOAD"
+
+// maxSignedPayloadBytes bounds what signing will buffer. It sits above every
+// service that requires a signed payload (API Gateway caps a request at 10 MB,
+// Lambda at 6 MB, DynamoDB at 400 KB) and far below Relay's own 256 MB file
+// body limit, so a large upload streams instead of being read into memory.
+var maxSignedPayloadBytes int64 = 32 * 1024 * 1024
+
 func Sign(req *http.Request, cfg model.AuthConfig) error {
 	if cfg.AWSRegion == "" || cfg.AWSService == "" {
 		return fmt.Errorf("aws auth requires region and service to be set")
@@ -24,35 +38,28 @@ func Sign(req *http.Request, cfg model.AuthConfig) error {
 	dateShort := now.Format("20060102")
 	dateLong := now.Format("20060102T150405Z")
 
-	bodyData, err := ReadBodyBytes(req)
+	bodyHash, err := payloadHash(req)
 	if err != nil {
 		return err
 	}
 
-	bodyHash := hex.EncodeToString(hashSHA256(bodyData))
 	req.Header.Set("x-amz-date", dateLong)
 	req.Header.Set("x-amz-content-sha256", bodyHash)
+	if cfg.AWSSessionToken != "" {
+		req.Header.Set("x-amz-security-token", cfg.AWSSessionToken)
+	}
 
-	host := req.URL.Host
+	// Host comes from Request.Host when the user overrode it: that is the value
+	// net/http actually writes on the wire, and signing URL.Host instead would
+	// sign a name the server never sees.
+	host := req.Host
 	if host == "" {
-		host = req.Host
+		host = req.URL.Host
 	}
 	req.Header.Set("Host", host)
 
-	signedHeaders := []string{"host", "x-amz-content-sha256", "x-amz-date"}
-	if cfg.AWSSessionToken != "" {
-		req.Header.Set("x-amz-security-token", cfg.AWSSessionToken)
-		signedHeaders = append(signedHeaders, "x-amz-security-token")
-	}
-	sort.Strings(signedHeaders)
-
-	var canonicalHeaders strings.Builder
-	for _, h := range signedHeaders {
-		canonicalHeaders.WriteString(h)
-		canonicalHeaders.WriteByte(':')
-		canonicalHeaders.WriteString(strings.TrimSpace(req.Header.Get(h)))
-		canonicalHeaders.WriteByte('\n')
-	}
+	signedHeaders := signedHeaderNames(req.Header)
+	canonicalHeaders := canonicalHeaderBlock(req.Header, signedHeaders, host)
 	signedHeadersStr := strings.Join(signedHeaders, ";")
 
 	canonicalURI := req.URL.EscapedPath()
@@ -64,7 +71,7 @@ func Sign(req *http.Request, cfg model.AuthConfig) error {
 		req.Method,
 		canonicalURI,
 		canonicalQueryString(req.URL.RawQuery),
-		canonicalHeaders.String(),
+		canonicalHeaders,
 		signedHeadersStr,
 		bodyHash,
 	}, "\n")
@@ -94,6 +101,105 @@ func Sign(req *http.Request, cfg model.AuthConfig) error {
 		cfg.AWSAccessKey, credentialScope, signedHeadersStr, signature,
 	))
 	return nil
+}
+
+// signedHeaderNames lists, lowercased and sorted, the headers that go into
+// SignedHeaders. AWS requires host and every x-amz-* header to be signed —
+// leaving out something like X-Amz-Target (DynamoDB), X-Amz-Invocation-Type
+// (Lambda) or x-amz-acl (S3) is rejected outright with SignatureDoesNotMatch,
+// which is why this is derived from the request instead of being a fixed list.
+// Content-Type is included when present because several services sign it, and
+// signing a header that is genuinely being sent is always safe.
+func signedHeaderNames(headers http.Header) []string {
+	seen := map[string]struct{}{"host": {}}
+	for name := range headers {
+		lower := strings.ToLower(name)
+		if strings.HasPrefix(lower, "x-amz-") || lower == "content-type" {
+			seen[lower] = struct{}{}
+		}
+	}
+	names := make([]string, 0, len(seen))
+	for name := range seen {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
+
+// canonicalHeaderBlock renders the canonical headers AWS hashes: lowercase
+// name, colon, the value with outer whitespace trimmed and internal runs of
+// spaces collapsed, one per line. Repeated headers are joined with a comma in
+// the order they were sent, which is what the specification asks for.
+func canonicalHeaderBlock(headers http.Header, names []string, host string) string {
+	var out strings.Builder
+	for _, name := range names {
+		out.WriteString(name)
+		out.WriteByte(':')
+		if name == "host" {
+			out.WriteString(canonicalHeaderValue(host))
+		} else {
+			values := headers.Values(http.CanonicalHeaderKey(name))
+			for i, value := range values {
+				if i > 0 {
+					out.WriteByte(',')
+				}
+				out.WriteString(canonicalHeaderValue(value))
+			}
+		}
+		out.WriteByte('\n')
+	}
+	return out.String()
+}
+
+func canonicalHeaderValue(value string) string {
+	return strings.Join(strings.Fields(value), " ")
+}
+
+// payloadHash returns the value for x-amz-content-sha256.
+//
+// A replayable body is hashed outright. One that is not — a file handle, a
+// multipart pipe — is read only up to maxSignedPayloadBytes: if it ends within
+// that, it is hashed and put back (so a non-seekable reader is still signed,
+// which the request-shaped AWS services require); if it does not, what was read
+// is pushed back in front of the rest and the payload is declared unsigned, so
+// a 256 MB upload streams to the wire instead of being buffered whole.
+func payloadHash(req *http.Request) (string, error) {
+	if req.Body == nil || req.Body == http.NoBody {
+		return hex.EncodeToString(hashSHA256(nil)), nil
+	}
+	if req.GetBody != nil {
+		bodyData, err := ReadBodyBytes(req)
+		if err != nil {
+			return "", err
+		}
+		return hex.EncodeToString(hashSHA256(bodyData)), nil
+	}
+
+	head, err := io.ReadAll(io.LimitReader(req.Body, maxSignedPayloadBytes+1))
+	if err != nil {
+		return "", err
+	}
+	if int64(len(head)) <= maxSignedPayloadBytes {
+		rest := req.Body
+		_ = rest.Close()
+		req.Body = io.NopCloser(bytes.NewReader(head))
+		req.GetBody = func() (io.ReadCloser, error) {
+			return io.NopCloser(bytes.NewReader(head)), nil
+		}
+		req.ContentLength = int64(len(head))
+		return hex.EncodeToString(hashSHA256(head)), nil
+	}
+
+	// Too large to sign: hand the bytes already read back to the transport in
+	// front of the remainder, so nothing is lost and nothing else is buffered.
+	req.Body = struct {
+		io.Reader
+		io.Closer
+	}{
+		Reader: io.MultiReader(bytes.NewReader(head), req.Body),
+		Closer: req.Body,
+	}
+	return unsignedPayload, nil
 }
 
 func ReadBodyBytes(req *http.Request) ([]byte, error) {
