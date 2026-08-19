@@ -17,6 +17,7 @@ import {
     mkRow,
 } from './constants';
 import { emptyCollectionDefaults, normalizeCollectionDefaults, normalizeRequestSettingsOverrides } from './collectionDefaults';
+import { normalizeRequestExamples } from './examples';
 import { normalizeCollectionFolderPaths } from './collections';
 import { defaultSocketIOArgs, requestBodyDefaultsFor } from './requestBodyDefaults';
 import {
@@ -193,6 +194,7 @@ export function normalizeSavedRequest(
         settings.grpcUseReflection = input.grpcUseReflection;
     }
     const settingsOverrides = normalizeRequestSettingsOverrides(input.settingsOverrides as RequestSettingsOverrides | undefined, settings);
+    const normalizedExamples = normalizeRequestExamples(input.examples, id);
     return {
         id,
         name: normalizedName,
@@ -234,6 +236,9 @@ export function normalizeSavedRequest(
         grpcProtoFilePath: input.grpcProtoFilePath || '',
         grpcProtoFileName: input.grpcProtoFileName || '',
         grpcProtoImportPaths: Array.isArray(input.grpcProtoImportPaths) ? input.grpcProtoImportPaths.map(asText).filter(Boolean) : [],
+        // Left undefined when there are none, so a request that has no examples
+        // does not grow an empty array in the workspace YAML.
+        ...(normalizedExamples ? { examples: normalizedExamples } : {}),
     };
 }
 

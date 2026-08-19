@@ -52,6 +52,7 @@ export function cloneRowsForStore(rows: KVRow[]) {
       description: row.description,
       ...(row.isFile ? { isFile: true } : {}),
       ...(row.isFile && row.fileName ? { fileName: row.fileName } : {}),
+      ...(row.contentType ? { contentType: row.contentType } : {}),
       ...(row.secret ? { secret: true } : {}),
     }));
 }
@@ -67,6 +68,7 @@ export function restoreRows(rows: KVRow[] | undefined): KVRow[] {
       description: row.description ?? '',
       isFile: row.isFile ?? false,
       fileName: row.fileName ?? '',
+      contentType: row.contentType ?? '',
       secret: row.secret ?? false,
     }));
   return [...restored, mkRow()];

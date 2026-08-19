@@ -76,7 +76,7 @@ export const menuFeature = {
   onWindowMouseDown(this: MenuHost, event: MouseEvent) {
     const target = event.target as HTMLElement | null;
     if (!target) return;
-    if (target.closest('.request-menu, .request-menu-btn, .collection-menu-btn, .folder-menu-btn, .history-menu-btn, .history-entry-menu-btn, .snippet-select, .raw-type-menu, .form-type-menu, .auth-select, .workspace-switcher, .environment-switcher, .app-dialog, .variable-input-wrap')) return;
+    if (target.closest('.request-menu, .request-menu-btn, .collection-menu-btn, .folder-menu-btn, .history-menu-btn, .history-entry-menu-btn, .snippet-select, .raw-type-menu, .form-type-menu, .form-type-options, .auth-select, .workspace-switcher, .environment-switcher, .app-dialog, .variable-input-wrap')) return;
     this.closeFloatingMenus();
   },
 };

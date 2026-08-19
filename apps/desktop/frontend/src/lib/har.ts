@@ -1,10 +1,11 @@
-import type { BodyType, KVRow, Method, RawBodyType, RequestTab, SavedRequest } from './types/models';
+import type { BodyType, KVRow, Method, RawBodyType, RequestExample, RequestTab, SavedRequest } from './types/models';
 import { DEFAULT_REQUEST_SETTINGS, mkRow } from './constants';
 import { asArray, asText, isRecord, newRequestId } from './utils';
 import { emptyAuthState } from './utils';
 import { serializeGraphQLPayload } from './graphql';
 import { filterSocketIOTransportParams, graphQLBodyContentFromJsonText, isWebSocketUrl, socketIOImportDetails } from './importDetection';
 import { filesystemNameFromName } from './normalizers';
+import { mediaTypeOf, normalizeRequestExample } from './examples';
 
 function row(key: string, value: string, enabled = true): KVRow {
   return { ...mkRow(), key, value, enabled };
@@ -86,6 +87,51 @@ export function harCollectionName(payload: unknown, fileName: string): string {
   return asText(log.comment) || fileName.replace(/\.har$/i, '') || 'HAR Import';
 }
 
+// A HAR entry records the response the request actually got, which is exactly
+// what an example is. Relay used to keep only the request half, throwing away
+// the richest source of examples any import path has.
+function harExampleFromEntry(entry: Record<string, unknown>, requestId: string, request: {
+  method: Method; url: string; params: KVRow[]; headers: KVRow[]; bodyType: BodyType; bodyContent: string;
+}): RequestExample | null {
+  const response = isRecord(entry.response) ? entry.response : null;
+  if (!response) return null;
+  const status = Number(response.status) || 0;
+  // A HAR can carry an entry with no real response — a failed or aborted
+  // request records status 0 and nothing else. There is no example in that.
+  if (status <= 0) return null;
+  const statusText = asText(response.statusText);
+  const content = isRecord(response.content) ? response.content : {};
+  const headers = asArray(response.headers).map(item => {
+    if (!isRecord(item)) return null;
+    const key = asText(item.name);
+    if (!key || key.startsWith(':')) return null;
+    return row(key, asText(item.value));
+  }).filter((item): item is KVRow => Boolean(item));
+
+  // Binary content is stored base64-encoded; those bytes are not something the
+  // viewer can show, so the example records what it was and keeps no body.
+  const base64 = asText(content.encoding).toLowerCase() === 'base64';
+  return normalizeRequestExample({
+    name: `${status} ${statusText}`.trim() || String(status),
+    source: 'captured',
+    snapshot: {
+      method: request.method,
+      url: request.url,
+      params: request.params,
+      headers: request.headers,
+      bodyType: request.bodyType,
+      bodyContent: request.bodyContent,
+    },
+    response: {
+      statusCode: status,
+      status: `${status} ${statusText}`.trim(),
+      headers,
+      body: base64 ? '' : asText(content.text),
+      bodyMediaType: mediaTypeOf(asText(content.mimeType)),
+    },
+  }, requestId);
+}
+
 export function harRequestsFromLog(payload: unknown, collectionId: string, collectionName: string): SavedRequest[] {
   if (!isRecord(payload) || !isRecord((payload as Record<string, unknown>).log)) {
     throw new Error('Expected a HAR file with a log object');
@@ -149,6 +195,9 @@ export function harRequestsFromLog(payload: unknown, collectionId: string, colle
 
     const id = newRequestId();
     const name = nameFromEntry(method, url);
+    const example = harExampleFromEntry(entry as Record<string, unknown>, id, {
+      method, url: socketIO?.url ?? baseUrl, params, headers, bodyType: body.bodyType, bodyContent: body.bodyContent,
+    });
     results.push({
       id,
       name,
@@ -174,6 +223,7 @@ export function harRequestsFromLog(payload: unknown, collectionId: string, colle
       testScript: '',
       requestNotes: '',
       settings: { ...DEFAULT_REQUEST_SETTINGS, ...(socketIO?.settings ?? {}) },
+      ...(example ? { examples: [example] } : {}),
     });
   }
 

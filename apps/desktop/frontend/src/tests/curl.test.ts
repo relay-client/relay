@@ -241,3 +241,42 @@ describe('auth in generated commands', () => {
     expect(out).toContain('x-amz-security-token: ST');
   });
 });
+
+describe('multipart part content types', () => {
+  it("parses curl's ;type= suffix on a file part", () => {
+    const parsed = parseCurl(`curl 'https://example.test/upload' -F 'avatar=@/tmp/a.png;type=image/png'`);
+
+    expect(parsed.bodyType).toBe('form');
+    expect(parsed.formData).toEqual([
+      { key: 'avatar', value: '/tmp/a.png', isFile: true, contentType: 'image/png' },
+    ]);
+  });
+
+  it('parses ;type= on a text part and leaves a plain part alone', () => {
+    const parsed = parseCurl(`curl 'https://example.test/upload' -F 'meta={"a":1};type=application/json' -F 'note=hi'`);
+
+    expect(parsed.formData).toEqual([
+      { key: 'meta', value: '{"a":1}', isFile: false, contentType: 'application/json' },
+      { key: 'note', value: 'hi', isFile: false },
+    ]);
+  });
+
+  it('exports the part content type back as ;type=', () => {
+    const curl = toCurl({
+      method: 'POST',
+      url: 'https://example.test/upload',
+      params: [],
+      headers: [],
+      auth: { type: 'none' },
+      bodyType: 'form',
+      body: '',
+      formData: [
+        { key: 'avatar', value: '/tmp/a.png', enabled: true, isFile: true, contentType: 'image/png' },
+        { key: 'note', value: 'hi', enabled: true },
+      ],
+    });
+
+    expect(curl).toContain("-F 'avatar=@/tmp/a.png;type=image/png'");
+    expect(curl).toContain("-F 'note=hi'");
+  });
+});

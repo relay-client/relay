@@ -41,8 +41,8 @@ function parentId(resource: Record<string, unknown>) {
   return asText(resource.parentId || resource.parent_id);
 }
 
-function row(key: string, value: string, enabled = true, description = '', isFile = false): KVRow {
-  return { ...mkRow(), key, value, enabled, description, isFile, fileName: isFile ? value.split('/').pop() ?? value : '' };
+function row(key: string, value: string, enabled = true, description = '', isFile = false, contentType = ''): KVRow {
+  return { ...mkRow(), key, value, enabled, description, isFile, fileName: isFile ? value.split('/').pop() ?? value : '', contentType };
 }
 
 function insomniaRows(list: unknown, keyNames = ['name', 'key']) {
@@ -123,7 +123,7 @@ function bodyFromResource(resource: Record<string, unknown>) {
       const key = asText(item.name || item.key);
       if (!key) return null;
       const isFile = asText(item.type) === 'file' || Boolean(item.fileName);
-      return row(key, asText(item.fileName || item.value), item.disabled !== true, asText(item.description), isFile);
+      return row(key, asText(item.fileName || item.value), item.disabled !== true, asText(item.description), isFile, asText(item.contentType));
     }).filter((item): item is KVRow => Boolean(item));
     result.bodyType = mime.toLowerCase().includes('x-www-form-urlencoded') ? 'urlencoded' : 'form';
     result.formRows = rows;
@@ -321,6 +321,7 @@ function insomniaBody(req: SavedRequest, stripFn: (source: string, bodyType: str
           name: safeRow.key,
           value: safeRow.isFile ? '' : safeRow.value,
           ...(safeRow.isFile ? { type: 'file', fileName: safeRow.value } : {}),
+          ...(safeRow.contentType ? { contentType: safeRow.contentType } : {}),
           ...(safeRow.description ? { description: safeRow.description } : {}),
           ...(!safeRow.enabled ? { disabled: true } : {}),
         };

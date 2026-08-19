@@ -894,6 +894,7 @@ export namespace model {
 	    enabled: boolean;
 	    isFile: boolean;
 	    fileName: string;
+	    contentType: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new KeyValue(source);
@@ -906,6 +907,7 @@ export namespace model {
 	        this.enabled = source["enabled"];
 	        this.isFile = source["isFile"];
 	        this.fileName = source["fileName"];
+	        this.contentType = source["contentType"];
 	    }
 	}
 	export class GrpcRequest {

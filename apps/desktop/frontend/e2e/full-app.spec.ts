@@ -1794,4 +1794,111 @@ test.describe('Relay desktop browser E2E', () => {
     expect(await rightEdge()).toBe(inRequest.edge);
     expect(await settingsSize()).toBe(inRequest.size);
   });
+
+  test('compares a fresh response against a saved example', async ({ page }) => {
+    await installRelayBridge(page);
+    await page.goto('/');
+    await page.getByLabel('New unsaved request').click();
+    await chooseRequestType(page, 'HTTP Request');
+    await page.getByLabel('Request URL').fill('https://api.relay.test/orders');
+    await page.getByRole('button', { name: 'Send', exact: true }).click();
+    // The example row is named after the status too, so the assertion is scoped
+    // to the response panel's own badge.
+    const responseStatus = page.locator('.status-badge');
+    await expect(responseStatus).toContainText('200 OK');
+    await page.getByRole('button', { name: 'Save as example', exact: true }).click();
+    await expect(page.locator('.examples-row')).toHaveCount(1);
+
+    // The stub echoes the URL into the body, so sending a different one is a
+    // response that no longer matches what the example recorded.
+    await page.getByLabel('Request URL').fill('https://api.relay.test/orders/moved');
+    await page.getByRole('button', { name: 'Send', exact: true }).click();
+    await expect(responseStatus).toContainText('200 OK');
+
+    const diffTab = page.locator('.response-mini-tabs').getByRole('tab', { name: /Diff/ });
+    await expect(diffTab).toBeVisible();
+    await diffTab.click();
+
+    // Two baselines exist now — the previous response and the example — so the
+    // picker appears and the example can be chosen.
+    const picker = page.locator('.diff-baseline-picker select');
+    await expect(picker).toBeVisible();
+    await picker.selectOption({ label: '200 OK' });
+
+    await expect(page.locator('.diff-side-before')).toContainText('200 OK');
+    await expect(page.locator('.diff-count-add')).toBeVisible();
+    await expect(page.locator('.diff-line.diff-removed').first()).toContainText('/orders');
+
+    // Clearing an example baseline falls back to the previous response rather
+    // than closing the tab outright.
+    await page.getByRole('button', { name: 'Clear baseline' }).click();
+    await expect(page.locator('.diff-side-before')).toContainText('previous');
+  });
+
+  test('saves a response as an example, and keeps it in the store', async ({ page }) => {
+    await installRelayBridge(page);
+    await page.goto('/');
+
+    // A saved request, not a draft: a draft is never written to the store, so a
+    // draft would prove nothing about examples surviving.
+    await page.getByLabel('New collection').click();
+    await fillPrompt(page, 'New collection', 'Orders API');
+    await collectionRow(page, 'Orders API').getByLabel('Collection menu').click();
+    await collectionRow(page, 'Orders API').locator('.collection-menu').getByRole('button', { name: 'Add request' }).click();
+    await chooseRequestType(page, 'HTTP Request');
+    await page.getByLabel('Request name').fill('Get order');
+    await page.getByLabel('Request name').press('Enter');
+    await page.getByLabel('Request URL').fill('https://api.relay.test/orders/8123');
+    await page.getByRole('button', { name: 'Send', exact: true }).click();
+    await expect(page.getByText('200 OK')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Save as example', exact: true }).click();
+
+    // Capturing opens the tab on what was just saved.
+    await expect(page.locator('.examples-row')).toHaveCount(1);
+    await expect(page.locator('.examples-name')).toHaveText('200 OK');
+    await expect(page.locator('.request-editor-tabs-shell').getByRole('tab', { name: /Examples/ })).toContainText('1');
+
+    // The concrete id in the URL becomes a parameter: an example matched on
+    // /orders/8123 would only ever serve that one order.
+    await expect(page.locator('.examples-meta')).toContainText('/orders/:id');
+    await expect(page.locator('.examples-status-input')).toHaveValue('200');
+
+    // A second capture must not produce two rows that read the same.
+    await page.locator('.response-mini-tabs').getByRole('tab', { name: 'Body' }).click();
+    await page.getByRole('button', { name: 'Save as example', exact: true }).click();
+    await expect(page.locator('.examples-row')).toHaveCount(2);
+    await expect(page.locator('.examples-name').nth(1)).toHaveText('200 OK (2)');
+
+    // Deleting takes the response with it.
+    await page.locator('.examples-row').nth(1).getByRole('button', { name: /^Delete/ }).click();
+    const confirm = page.getByRole('dialog', { name: 'Delete example' });
+    await expect(confirm).toBeVisible();
+    await confirm.getByRole('button', { name: 'Delete', exact: true }).click();
+    await expect(page.locator('.examples-row')).toHaveCount(1);
+
+    // Capturing an example is an edit like any other, so it marks the request
+    // dirty — without that the save button stays disabled and the example is
+    // only ever in memory.
+    const saveButton = page.locator('.save-btn').first();
+    await expect(saveButton).toBeEnabled();
+    await saveButton.click();
+    await expect(saveButton).toBeDisabled();
+
+    // An example is only real once it reaches the store the app persists. The
+    // url is asserted alongside it to guard the manual-save path itself: an
+    // explicit save used to write the previously saved version of the whole
+    // request and still report success, so the edit was lost on the next load.
+    await expect.poll(async () => {
+      const store = await page.evaluate(() => window.__relayE2E.store as {
+        requests: Array<{ url?: string; examples?: Array<{ name: string; response: { statusCode: number } }> }>;
+      });
+      const saved = store.requests.find(entry => entry.url === 'https://api.relay.test/orders/8123');
+      return {
+        examples: (saved?.examples ?? []).length,
+        name: saved?.examples?.[0]?.name ?? '',
+        statusCode: saved?.examples?.[0]?.response.statusCode ?? 0,
+      };
+    }).toEqual({ examples: 1, name: '200 OK', statusCode: 200 });
+  });
 });

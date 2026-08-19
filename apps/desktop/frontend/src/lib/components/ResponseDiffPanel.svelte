@@ -6,11 +6,21 @@
     diff,
     previous,
     current,
+    baselineLabel = 'previous',
+    options = [],
+    selectedId = '',
+    onSelect = () => {},
     onDismiss,
   }: {
     diff: ResponseDiff | null;
     previous: HttpResponse | null;
     current: HttpResponse | null;
+    // The baseline is either the previous response or a saved example, so the
+    // side is labelled rather than always reading "previous".
+    baselineLabel?: string;
+    options?: Array<{ id: string; label: string }>;
+    selectedId?: string;
+    onSelect?: (exampleId: string) => void;
     onDismiss: () => void;
   } = $props();
 
@@ -24,12 +34,18 @@
 
 <div class="diff-panel" id="response-panel-diff" role="tabpanel">
   {#if !diff || !previous || !current}
-    <div class="diff-empty">Send this request again to compare the new response with this one.</div>
+    <div class="diff-empty">
+      {#if options.length}
+        Send this request to compare what comes back with the selected baseline.
+      {:else}
+        Send this request again to compare the new response with this one.
+      {/if}
+    </div>
   {:else}
     <div class="diff-bar">
       <div class="diff-bar-meta">
         <span class="diff-side diff-side-before">
-          previous · {previous.statusCode} · {previous.duration} ms
+          {baselineLabel} · {previous.statusCode}{#if previous.duration} · {previous.duration} ms{/if}
         </span>
         <span class="diff-arrow" aria-hidden="true">→</span>
         <span class="diff-side diff-side-after">
@@ -37,6 +53,16 @@
         </span>
       </div>
       <div class="diff-bar-actions">
+        {#if options.length > 1}
+          <label class="diff-baseline-picker">
+            <span>Compare with</span>
+            <select value={selectedId} onchange={(event) => onSelect((event.currentTarget as HTMLSelectElement).value)}>
+              {#each options as option (option.id)}
+                <option value={option.id}>{option.label}</option>
+              {/each}
+            </select>
+          </label>
+        {/if}
         {#if diff.identical}
           <span class="diff-count diff-count-same">No changes</span>
         {:else}

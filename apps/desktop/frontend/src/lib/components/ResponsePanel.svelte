@@ -23,7 +23,11 @@
     responseSearchIndex = $bindable(0),
     responseTestSummary,
     responseDiffSummary = null,
-    previousResponse = null,
+    diffBaseline = null,
+    diffBaselineLabel = 'previous',
+    diffBaselineOptions = [],
+    diffBaselineExampleId = '',
+    onSelectDiffBaseline = () => {},
     responseSearchTotal,
     responseDisplayBody,
     responseRenderMode,
@@ -47,6 +51,7 @@
     saveResponseFile,
     loadResponseFromFile,
     setResponseTab,
+    saveResponseAsExample = null,
     clearResponseDiffBaseline = () => {},
   }: {
     loading: boolean;
@@ -58,7 +63,13 @@
     responseSearchIndex: number;
     responseTestSummary: { passed: number; total: number; allPassed: boolean } | null;
     responseDiffSummary?: ResponseDiff | null;
-    previousResponse?: HttpResponse | null;
+    // What the current response is compared against: the previous response, or
+    // a saved example the user picked.
+    diffBaseline?: HttpResponse | null;
+    diffBaselineLabel?: string;
+    diffBaselineOptions?: Array<{ id: string; label: string }>;
+    diffBaselineExampleId?: string;
+    onSelectDiffBaseline?: (exampleId: string) => void;
     responseSearchTotal: number;
     responseDisplayBody: string;
     responseRenderMode: ResponseRenderMode;
@@ -82,6 +93,8 @@
     saveResponseFile: () => void;
     loadResponseFromFile: () => void;
     setResponseTab: (tab: ResponseTab) => void;
+    // Absent for the transports that have no example to save.
+    saveResponseAsExample?: (() => void) | null;
     clearResponseDiffBaseline?: () => void;
   } = $props();
 
@@ -147,7 +160,7 @@
           <button role="tab" class:active={responseTab === 'headers'} aria-selected={responseTab === 'headers'} aria-controls="response-panel-headers" tabindex={responseTab === 'headers' ? 0 : -1} onclick={() => setResponseTab('headers')} type="button">
             Headers{#if response.headers?.length}<span class="badge">{response.headers.length}</span>{/if}
           </button>
-          {#if previousResponse}
+          {#if diffBaselineOptions.length}
             <button role="tab" class:active={responseTab === 'diff'} aria-selected={responseTab === 'diff'} aria-controls="response-panel-diff" tabindex={responseTab === 'diff' ? 0 : -1} onclick={() => setResponseTab('diff')} type="button">
               Diff
               {#if responseDiffSummary && !responseDiffSummary.identical}
@@ -204,6 +217,19 @@
               <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="3" y="1" width="8" height="9" rx="1.2" stroke="currentColor" stroke-width="1.2"/><path d="M1 3.5v7a1.2 1.2 0 001.2 1.2H8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
             {/if}
           </button>
+          {#if saveResponseAsExample}
+            <button
+              class="btn-icon"
+              title="Save as example"
+              aria-label="Save as example"
+              onclick={saveResponseAsExample}
+              type="button"
+            >
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+                <path d="M3.5 1.5h6a1 1 0 011 1v9l-4-2.2-4 2.2v-9a1 1 0 011-1z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          {/if}
           <button class="btn-icon" class:feedback-ok={savedResponse} title={savedResponse ? 'Saved response' : 'Save to file'} aria-label={savedResponse ? 'Saved response' : 'Save to file'} onclick={saveResponseFile} type="button">
             {#if savedResponse}
               <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5l3 3 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -284,8 +310,12 @@
     {:else if responseTab === 'diff'}
       <ResponseDiffPanel
         diff={responseDiffSummary}
-        previous={previousResponse}
+        previous={diffBaseline}
         current={response}
+        baselineLabel={diffBaselineLabel}
+        options={diffBaselineOptions}
+        selectedId={diffBaselineExampleId}
+        onSelect={onSelectDiffBaseline}
         onDismiss={clearResponseDiffBaseline}
       />
 

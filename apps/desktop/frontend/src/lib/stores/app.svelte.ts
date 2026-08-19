@@ -33,6 +33,7 @@ import type {
    RequestSettingsOverrides, ProxyConfig, SavedRequest, RequestHistoryEntry, RequestStore, ScriptEngine,
   CollectionGroup, HistoryDayGroup,
   CollectionRunnerResult, RenderedSnippetLine, RequestType, SIOArg, GrpcResponse, GrpcServiceDefinition,
+  RequestExample,
 } from '../types/models';
 import type { VariableSuggestion } from '../variables';
 import type { SettingsTab, SnippetLanguage, TopView } from './ui';
@@ -50,6 +51,7 @@ import { folderFeature } from './features/folders';
 import { graphqlFeature } from './features/graphql';
 import { grpcFeature } from './features/grpc';
 import { importExportFeature } from './features/importExport';
+import { examplesFeature } from './features/examples';
 import { requestBodyFeature } from './features/requestBody';
 import { requestCrudFeature } from './features/requestCrud';
 import { requestDirtyFeature } from './features/requestDirty';
@@ -378,6 +380,15 @@ class AppVM {
   declare webSocketMessageBodyType: typeof requestBodyFeature.webSocketMessageBodyType;
   declare webSocketMessageTypeLabel: typeof requestBodyFeature.webSocketMessageTypeLabel;
   declare setWebSocketMessageBodyType: typeof requestBodyFeature.setWebSocketMessageBodyType;
+  declare selectedExample: typeof examplesFeature.selectedExample;
+  declare selectExample: typeof examplesFeature.selectExample;
+  declare saveResponseAsExample: typeof examplesFeature.saveResponseAsExample;
+  declare renameExample: typeof examplesFeature.renameExample;
+  declare deleteExample: typeof examplesFeature.deleteExample;
+  declare moveExample: typeof examplesFeature.moveExample;
+  declare updateExample: typeof examplesFeature.updateExample;
+  declare updateExampleResponse: typeof examplesFeature.updateExampleResponse;
+  declare exampleWarning: typeof examplesFeature.exampleWarning;
   declare requestBodyPlaceholder: typeof requestBodyFeature.requestBodyPlaceholder;
   declare webSocketMessagePlaceholder: typeof requestBodyFeature.webSocketMessagePlaceholder;
   declare bodyHasContent: typeof requestBodyFeature.bodyHasContent;
@@ -529,6 +540,11 @@ class AppVM {
   declare setActiveResponse: typeof responseFeature.setActiveResponse;
   declare setActiveResponseTab: typeof responseFeature.setActiveResponseTab;
   declare previousResponse: typeof responseFeature.previousResponse;
+  declare diffBaselineExampleId: typeof responseFeature.diffBaselineExampleId;
+  declare setDiffBaselineExample: typeof responseFeature.setDiffBaselineExample;
+  declare diffBaselineResponse: typeof responseFeature.diffBaselineResponse;
+  declare diffBaselineLabel: typeof responseFeature.diffBaselineLabel;
+  declare diffBaselineOptions: typeof responseFeature.diffBaselineOptions;
   declare responseDiff: typeof responseFeature.responseDiff;
   declare clearResponseDiffBaseline: typeof responseFeature.clearResponseDiffBaseline;
   declare toggleResponseSearch: typeof responseFeature.toggleResponseSearch;
@@ -709,6 +725,9 @@ class AppVM {
   declare recordRequestHistory: typeof historyFeature.recordRequestHistory;
   declare pruneStoredResponses: typeof historyFeature.pruneStoredResponses;
   declare showHistoryResponse: typeof historyFeature.showHistoryResponse;
+  declare loadStoredHistoryResponse: typeof historyFeature.loadStoredHistoryResponse;
+  declare saveHistoryEntryAsExample: typeof historyFeature.saveHistoryEntryAsExample;
+  declare addCapturedExample: typeof examplesFeature.addCapturedExample;
   declare saveHistoryEntryToCollection: typeof historyFeature.saveHistoryEntryToCollection;
   declare saveHistoryEntryToNewCollection: typeof historyFeature.saveHistoryEntryToNewCollection;
   declare openHistoryEntry: typeof historyFeature.openHistoryEntry;
@@ -929,6 +948,10 @@ class AppVM {
   testScriptJs = $state('');
   scriptEngine = $state<ScriptEngine>('js');
   requestNotes = $state('');
+  // The active request's saved examples, edited like every other request field
+  // and folded back in by snapshotActiveRequest.
+  requestExamples = $state<RequestExample[]>([]);
+  selectedExampleId = $state('');
 
   responseSearchOpen = $state(false);
   responseSearch = $state('');
@@ -938,6 +961,8 @@ class AppVM {
   response = $state<HttpResponse | null>(null);
   responses = $state<Map<string, HttpResponse>>(new Map());
   previousResponses = $state<Map<string, HttpResponse>>(new Map());
+  // Which example, if any, the diff compares against — per request.
+  diffBaselineExampleIds = $state<Map<string, string>>(new Map());
   responseTabs = $state<Map<string, ResponseTab>>(new Map());
   grpcResponse = $state<GrpcResponse | null>(null);
   grpcResponseTab = $state<GrpcResponseTab>('messages');
@@ -1630,6 +1655,7 @@ applyFeatures(
   graphqlFeature,
   grpcFeature,
   scriptsFeature,
+  examplesFeature,
   requestBodyFeature,
   requestCrudFeature,
   requestDirtyFeature,

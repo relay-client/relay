@@ -3,7 +3,7 @@
   import { tabListKeyboard } from '../a11y';
   import type { RequestType } from '../types/models';
 
-  type RequestTab = 'docs' | 'params' | 'query' | 'auth' | 'headers' | 'metadata' | 'body' | 'schema' | 'service' | 'scripts' | 'settings' | 'events';
+  type RequestTab = 'docs' | 'params' | 'query' | 'auth' | 'headers' | 'metadata' | 'body' | 'schema' | 'service' | 'scripts' | 'settings' | 'events' | 'examples';
   type BadgeKind = 'default' | 'on' | 'script';
   type TabItem = {
     id: RequestTab;
@@ -25,6 +25,7 @@
     listenEventCount = 0,
     metadataCount = 0,
     grpcMethodSelected = false,
+    exampleCount = 0,
   }: {
     requestTab: RequestTab;
     requestType?: RequestType;
@@ -38,6 +39,7 @@
     listenEventCount?: number;
     metadataCount?: number;
     grpcMethodSelected?: boolean;
+    exampleCount?: number;
   } = $props();
 
   let compactMenuOpen = $state(false);
@@ -52,6 +54,14 @@
     const headers: TabItem = { id: 'headers', label: 'Headers', badge: headerCount > 0 ? String(headerCount) : undefined };
     const scripts: TabItem = { id: 'scripts', label: 'Scripts', badge: scriptLineCount > 0 ? `${scriptLineCount}L` : undefined, badgeKind: 'script' };
     const settings: TabItem = { id: 'settings', label: 'Settings' };
+    // Examples are saved responses. They are offered where a response is
+    // something Relay can capture and replay — realtime transports stream
+    // instead, so the tab would promise something it cannot deliver.
+    const examples: TabItem = {
+      id: 'examples',
+      label: 'Examples',
+      badge: exampleCount > 0 ? String(exampleCount) : undefined,
+    };
 
     if (requestType === 'graphql') {
       return [
@@ -61,6 +71,7 @@
         headers,
         { id: 'schema', label: 'Schema' },
         scripts,
+        examples,
       ];
     }
 
@@ -123,6 +134,7 @@
       headers,
       { id: 'body', label: 'Body', badge: bodyHasContent ? bodyBadgeLabel : undefined, badgeKind: 'on' },
       scripts,
+      examples,
       settings,
     ];
   }

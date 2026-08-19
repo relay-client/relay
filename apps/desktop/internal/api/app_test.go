@@ -2626,6 +2626,7 @@ func TestRelayYAMLFormatPublicContractFiles(t *testing.T) {
 		`"collectionFile"`,
 		`"requestFile"`,
 		`"environmentFile"`,
+		`"exampleFile"`,
 		`"filesystemName"`,
 		`"relay.workspace.yaml.v1"`,
 	} {
@@ -2644,6 +2645,7 @@ func TestRelayYAMLFormatPublicContractFiles(t *testing.T) {
 		workspaceStoreFormat,
 		workspacePathLayout,
 		fileStoreRootIndex,
+		fileStoreExamplesDir,
 		"workspaces/**/*.yml",
 		// Secret values live in the encrypted local profile, not in the shared
 		// workspace tree — the docs must describe where resolved secrets are kept.
