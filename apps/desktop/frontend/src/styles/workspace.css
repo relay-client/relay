@@ -11,7 +11,14 @@
 .workspace-searchbar {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 260px) minmax(0, 520px) max-content;
+  /* The last track takes the slack rather than sizing to its contents. With
+     max-content it did neither: leftover width was left over at the right edge,
+     and the whole cluster slid sideways whenever a transient control appeared
+     or went away — Save and Revert unmount outside the request view, so opening
+     the runner moved the runner, cookie and settings buttons by 58px and left a
+     45px gap after them. The max-content floor keeps the icons from being
+     crushed when the window is narrow. */
+  grid-template-columns: minmax(0, 260px) minmax(0, 520px) minmax(max-content, 1fr);
   width: 100%;
   min-width: 0;
   align-items: center;

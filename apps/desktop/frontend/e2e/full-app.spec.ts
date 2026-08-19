@@ -1767,4 +1767,31 @@ test.describe('Relay desktop browser E2E', () => {
     // it belongs in the JS slot rather than the legacy Tengo one.
     expect(requests.find(entry => entry.name === 'List invoices')?.testScriptJs ?? '').toContain('pm.test');
   });
+
+  test('keeps the header actions anchored when the runner replaces the request view', async ({ page }) => {
+    await installRelayBridge(page);
+    await page.goto('/');
+    await page.getByLabel('New unsaved request').click();
+    await chooseRequestType(page, 'HTTP Request');
+
+    const rightEdge = () => page.locator('.searchbar-right').evaluate(
+      (el) => Math.round(el.getBoundingClientRect().right),
+    );
+    const settingsSize = () => page.getByRole('button', { name: /^Settings/ }).evaluate((el) => {
+      const rect = el.getBoundingClientRect();
+      return `${Math.round(rect.width)}x${Math.round(rect.height)}`;
+    });
+
+    const inRequest = { edge: await rightEdge(), size: await settingsSize() };
+
+    await page.getByRole('button', { name: 'Collection runner', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Collection runner', exact: true })).toHaveClass(/active/);
+
+    // Save and Revert only exist for a request, so entering the runner unmounts
+    // them. The buttons that stay — runner, cookies, settings — must not move or
+    // resize when that happens, and no gap may open after them: the last grid
+    // track takes the slack instead of sizing to its contents.
+    expect(await rightEdge()).toBe(inRequest.edge);
+    expect(await settingsSize()).toBe(inRequest.size);
+  });
 });
