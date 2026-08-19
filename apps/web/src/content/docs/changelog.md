@@ -5,6 +5,26 @@ description: Notable Relay changes and links to the exact notes for each publish
 
 This page summarizes the notable-change log maintained in the source repository. For the exact notes and artifacts attached to every published tag, use the [Relay releases page](https://github.com/relay-client/relay/releases).
 
+## 1.5.0
+
+### Added
+
+- **Response examples.** Keep what an endpoint actually returned, next to the request that asked for it. Capture one from the response panel or from a history entry, edit it by hand, and keep as many as the endpoint has interesting outcomes. Examples live in the workspace files, so a change to one is a reviewable diff in Git rather than something only you can see — and secrets are redacted on capture, in three passes, because a response body is where a token is most likely to slip into a commit.
+- **Examples come in with your collections.** Postman saved responses, OpenAPI `responses` (including one derived from the schema when the spec writes no example), OpenCollection, and HAR — a HAR file is a recording of real request/response pairs, and until now Relay imported only the request half. See [Import and export](/docs/guides/import-export/).
+- **Compare a response with a saved example.** The Diff tab can use an example as its baseline instead of the previous response, which is how you notice an API that changed shape without anyone saying so. See [Response viewer](/docs/guides/response-viewer/).
+- **Multipart parts can carry their own Content-Type**, so an API that validates the MIME type of an upload stops rejecting them.
+
+### Fixed
+
+- **An explicit save could write the previous version of a request.** In manual-save mode, clicking Save assembled the file while the request was still counted as unsaved — so it wrote the version from before your edit, reported success, and cleared the unsaved marker. The change was gone on the next load. Autosave was never affected. If you use manual saving, this is the reason to update.
+- **AWS Signature v4 rejected by DynamoDB, Lambda and S3.** Only a fixed set of headers was signed, but AWS requires every `x-amz-*` header to be part of the signature. Signing also no longer reads a large upload into memory before sending it.
+- **A JSON body left empty sent no `Content-Type`**, so servers that check the header before reading the body answered 415.
+- **Digest auth with no username sent nothing at all** and came back 401 without explanation; it is an error before the request leaves now.
+- **`pm.sendRequest` ignored your proxy and client certificate**, so a script could not reach an endpoint the request beside it reached fine.
+- **Send-and-Download saved the compressed bytes** when the request asked for an encoding explicitly, producing a gzip file named `report.json`.
+- **Importing a Postman collection dropped per-request redirect and TLS settings, and the values behind `:pathVariable`** — leaving a URL that still said `:id` and could not be sent.
+- **The header buttons moved when you opened the runner**, leaving a gap at the right edge.
+
 ## 1.4.0
 
 ### Added
