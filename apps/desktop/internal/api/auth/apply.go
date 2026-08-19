@@ -18,6 +18,13 @@ func Apply(req *http.Request, cfg model.AuthConfig) error {
 	case "basic":
 		req.SetBasicAuth(cfg.Username, cfg.Password)
 	case "digest":
+		// The challenge-response itself runs in DigestTransport, which is only
+		// wired up when there is a username to answer with. Without this the
+		// request went out with no credentials at all and came back 401 with
+		// nothing to say why.
+		if cfg.Username == "" {
+			return fmt.Errorf("digest auth requires a username")
+		}
 	case "apikey":
 		if cfg.KeyIn == "header" && cfg.KeyName != "" {
 			req.Header.Set(cfg.KeyName, cfg.KeyValue)

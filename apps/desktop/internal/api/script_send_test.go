@@ -14,10 +14,10 @@ import (
 )
 
 func TestScriptSenderDisabledReturnsNil(t *testing.T) {
-	if newScriptSender(context.Background(), false, false) != nil {
+	if newScriptSender(context.Background(), false, model.HttpRequest{EnableSSLVerification: true}) != nil {
 		t.Fatal("pm.sendRequest must stay unavailable unless the request opts in")
 	}
-	if newScriptSender(context.Background(), true, false) == nil {
+	if newScriptSender(context.Background(), true, model.HttpRequest{EnableSSLVerification: true}) == nil {
 		t.Fatal("opting in should produce a sender")
 	}
 }
@@ -35,7 +35,7 @@ func TestPerformScriptSend(t *testing.T) {
 		URL:     server.URL + "/token",
 		Headers: map[string]string{"Authorization": "Bearer abc"},
 		Body:    "grant_type=client_credentials",
-	}, false)
+	}, model.HttpRequest{EnableSSLVerification: true})
 
 	if resp.Error != "" {
 		t.Fatalf("unexpected error: %s", resp.Error)
@@ -70,7 +70,7 @@ func TestPerformScriptSendRejectsBadURLs(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			resp := performScriptSend(context.Background(), script.SendRequest{URL: tc.url}, false)
+			resp := performScriptSend(context.Background(), script.SendRequest{URL: tc.url}, model.HttpRequest{EnableSSLVerification: true})
 			if resp.Error == "" {
 				t.Fatalf("expected an error for %q", tc.url)
 			}
@@ -88,7 +88,7 @@ func TestPerformScriptSendNon2xxIsNotAnError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	resp := performScriptSend(context.Background(), script.SendRequest{URL: server.URL}, false)
+	resp := performScriptSend(context.Background(), script.SendRequest{URL: server.URL}, model.HttpRequest{EnableSSLVerification: true})
 	if resp.Error != "" {
 		t.Fatalf("a 418 must not be reported as an error, got %q", resp.Error)
 	}
@@ -105,7 +105,7 @@ func TestPerformScriptSendStopsRedirectLoop(t *testing.T) {
 	}))
 	defer server.Close()
 
-	resp := performScriptSend(context.Background(), script.SendRequest{URL: server.URL}, false)
+	resp := performScriptSend(context.Background(), script.SendRequest{URL: server.URL}, model.HttpRequest{EnableSSLVerification: true})
 	if resp.Error == "" {
 		t.Fatal("an endless redirect chain must be stopped")
 	}
