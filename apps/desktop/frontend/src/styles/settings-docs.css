@@ -178,3 +178,227 @@
   color: var(--text-3);
   font-style: italic;
 }
+
+/* Examples — saved responses, listed on the left with the selected one open
+   beside it. The layout mirrors the environments editor rather than the tab
+   editors, because an example is a record being browsed, not a form. */
+.examples-tab {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.examples-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1;
+  padding: 24px 32px;
+  text-align: center;
+}
+.examples-empty-title {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+.examples-empty-hint {
+  margin: 0;
+  max-width: 460px;
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.examples-layout {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) 1fr;
+  flex: 1;
+  min-height: 0;
+}
+
+.examples-list {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  padding: 6px;
+  gap: 2px;
+}
+
+.examples-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: 6px;
+  padding-right: 2px;
+}
+.examples-row:hover { background: var(--hover); }
+/* Selection has to read differently from hover in a master-detail list, and
+   there is no --active token — the accent rail is what marks the open one. */
+.examples-row.active {
+  background: var(--elevated);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.examples-row-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.examples-row.active .examples-row-main { color: var(--text); }
+
+.examples-status {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.examples-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.examples-row-actions {
+  display: none;
+  align-items: center;
+  gap: 1px;
+}
+.examples-row:hover .examples-row-actions,
+.examples-row.active .examples-row-actions { display: flex; }
+
+.examples-move {
+  width: 20px;
+  height: 20px;
+  font-size: 11px;
+  line-height: 1;
+}
+.examples-move:disabled { opacity: 0.3; cursor: default; }
+.examples-delete:hover { color: var(--s5xx); }
+
+.examples-detail {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  padding: 12px 14px;
+  gap: 10px;
+}
+
+.examples-detail-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.examples-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.examples-field-grow { flex: 1; min-width: 0; }
+.examples-field span {
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 700;
+}
+.examples-status-input,
+.examples-text-input {
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 12px;
+  outline: none;
+}
+.examples-status-input { width: 76px; font-family: var(--font-mono); }
+.examples-status-input:focus,
+.examples-text-input:focus { border-color: var(--accent); }
+
+.examples-source {
+  flex: none;
+  padding: 4px 8px;
+  border-radius: 5px;
+  background: var(--hover);
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.examples-warning {
+  margin: 0;
+  padding: 7px 10px;
+  border: 1px solid rgba(251,191,36,0.35);
+  border-radius: 6px;
+  background: rgba(251,191,36,0.1);
+  color: var(--s4xx);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.examples-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  color: var(--text-3);
+  font-size: 11.5px;
+}
+.examples-meta-item {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.examples-meta-item strong {
+  color: var(--text-3);
+  font-weight: 700;
+  margin-right: 5px;
+}
+
+.examples-headers summary {
+  cursor: pointer;
+  color: var(--text-3);
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 2px 0;
+}
+.examples-headers table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 6px;
+}
+.examples-headers td {
+  padding: 3px 8px 3px 0;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  vertical-align: top;
+}
+.examples-header-key { color: var(--text-2); white-space: nowrap; width: 1%; }
+.examples-header-value { color: var(--text-3); word-break: break-all; }
+
+.examples-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}

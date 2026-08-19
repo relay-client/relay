@@ -452,6 +452,7 @@
     toggleHistoryDay={vm.toggleHistoryDay}
     openHistoryEntry={vm.openHistoryEntry}
     showHistoryResponse={vm.showHistoryResponse}
+    saveHistoryEntryAsExample={(id) => vm.saveHistoryEntryAsExample(id)}
     historyTitle={vm.historyTitle}
     {statusClass}
     toggleHistoryEntryMenu={vm.toggleHistoryEntryMenu}
@@ -745,6 +746,7 @@
           listenEventCount={activeCount(vm.sioEvents)}
           metadataCount={activeCount(vm.grpcMetadata)}
           grpcMethodSelected={Boolean(vm.grpcMethod)}
+          exampleCount={vm.requestExamples.length}
         />
 
         {#if vm.requestTab === 'body' && vm.requestType !== 'ws' && vm.requestType !== 'socketio' && vm.requestType !== 'graphql' && vm.requestType !== 'grpc'}
@@ -794,6 +796,8 @@
             {#if lazy.GrpcServiceDefinitionTabComponent}<lazy.GrpcServiceDefinitionTabComponent />{/if}
           {:else if vm.requestTab === 'scripts'}
             {#if lazy.ScriptsTabComponent}<lazy.ScriptsTabComponent />{/if}
+          {:else if vm.requestTab === 'examples'}
+            {#if lazy.ExamplesTabComponent}<lazy.ExamplesTabComponent />{/if}
           {:else if vm.requestTab === 'settings'}
             {#if vm.requestType === 'ws'}
               {#if lazy.WebSocketSettingsTabComponent}<lazy.WebSocketSettingsTabComponent />{/if}
@@ -878,7 +882,11 @@
           bind:responseSearchIndex={vm.responseSearchIndex}
           responseTestSummary={vm.responseTestSummary}
           responseDiffSummary={vm.responseDiff()}
-          previousResponse={vm.previousResponse()}
+          diffBaseline={vm.diffBaselineResponse()}
+          diffBaselineLabel={vm.diffBaselineLabel()}
+          diffBaselineOptions={vm.diffBaselineOptions()}
+          diffBaselineExampleId={vm.diffBaselineExampleId()}
+          onSelectDiffBaseline={(id: string) => vm.setDiffBaselineExample(id)}
           responseSearchTotal={vm.responseSearchTotal}
           responseDisplayBody={vm.responseDisplayBody}
           responseRenderMode={vm.responseRenderMode}
@@ -901,6 +909,7 @@
           copyResponseBody={vm.copyResponseBody}
           saveResponseFile={vm.saveResponseFile}
           loadResponseFromFile={vm.loadResponseFromFile}
+          saveResponseAsExample={vm.requestType === 'http' || vm.requestType === 'graphql' ? () => vm.saveResponseAsExample() : null}
           setResponseTab={(tab: ResponseTab) => vm.setActiveResponseTab(tab)}
           clearResponseDiffBaseline={() => vm.clearResponseDiffBaseline()}
         />

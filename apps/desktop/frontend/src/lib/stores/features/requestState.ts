@@ -5,6 +5,7 @@ import {
   DEFAULT_GRAPHQL_QUERY,
   DEFAULT_GRAPHQL_VARIABLES,
 } from '../../graphql';
+import { cloneRequestExample } from '../../examples';
 import { filesystemNameFromName, normalizeSavedRequest, normalizeSioArgs } from '../../normalizers';
 import {
   defaultBodyContentFor,
@@ -23,6 +24,7 @@ import type {
   OAuth2GrantType,
   OAuth2ClientAuth,
   RawBodyType,
+  RequestExample,
   RequestSettings,
   RequestSettingsOverrides,
   RequestTab,
@@ -115,6 +117,8 @@ type RequestStateHost = {
   requestName: string;
   requestNameAuto: boolean;
   requestNotes: string;
+  requestExamples: RequestExample[];
+  selectedExampleId: string;
   requestSettingsOverrides: RequestSettingsOverrides;
   requestTab: RequestTab;
   requestType: RequestType;
@@ -175,6 +179,11 @@ export const requestStateFeature = {
       grpcUseReflection: this.grpcUseReflection, grpcProtoFilePath: this.grpcProtoFilePath,
       grpcProtoFileName: this.grpcProtoFileName, grpcProtoImportPaths: this.grpcProtoImportPaths,
       graphqlOperationName: this.graphqlOperationName,
+      // Reading each field registers the dependency, so renaming an example,
+      // reordering, or editing its body schedules a save like any other edit.
+      examples: this.requestExamples.map(
+        example => `${example.id}:${example.name}:${example.response.statusCode}:${example.response.body.length}:${example.notes ?? ''}`,
+      ),
     });
   },
 
@@ -229,6 +238,9 @@ export const requestStateFeature = {
       preRequestScript: this.preRequestScript, testScript: this.testScript,
       preRequestScriptJs: this.preRequestScriptJs, testScriptJs: this.testScriptJs,
       requestNotes: this.requestNotes,
+      // Left off entirely when there are none, so a request with no examples
+      // does not carry an empty array into the workspace YAML.
+      ...(this.requestExamples.length ? { examples: this.requestExamples.map(cloneRequestExample) } : {}),
       settings: this.currentRequestSettings(),
       settingsOverrides: this.currentRequestSettingsOverrides(),
       sioEvents: cloneRowsForStore(this.sioEvents),
@@ -350,6 +362,8 @@ export const requestStateFeature = {
     this.preRequestScript = req.preRequestScript; this.testScript = req.testScript;
     this.preRequestScriptJs = req.preRequestScriptJs ?? ''; this.testScriptJs = req.testScriptJs ?? '';
     this.requestNotes = req.requestNotes ?? '';
+    this.requestExamples = (req.examples ?? []).map(cloneRequestExample);
+    this.selectedExampleId = this.requestExamples[0]?.id ?? '';
     this.applyRequestSettings(req.settings);
     this.requestSettingsOverrides = normalizeRequestSettingsOverrides(req.settingsOverrides, req.settings);
     this.response = this.requestType !== 'grpc' ? (this.responses.get(req.id) ?? null) : null;

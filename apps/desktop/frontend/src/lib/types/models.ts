@@ -118,7 +118,7 @@ export type BodyType = 'none' | 'json' | 'text' | 'xml' | 'html' | 'form' | 'url
 export type BodyMode = 'none' | 'form' | 'urlencoded' | 'raw' | 'binary' | 'graphql';
 export type RawBodyType = 'text' | 'json' | 'html' | 'xml';
 export type HttpVersion = 'auto' | '1.1' | '2';
-export type RequestTab = 'docs' | 'params' | 'query' | 'auth' | 'headers' | 'metadata' | 'body' | 'schema' | 'service' | 'events' | 'scripts' | 'settings';
+export type RequestTab = 'docs' | 'params' | 'query' | 'auth' | 'headers' | 'metadata' | 'body' | 'schema' | 'service' | 'events' | 'scripts' | 'settings' | 'examples';
 export type ScriptTab = 'pre-request' | 'tests';
 export type ResponseTab = 'body' | 'preview' | 'headers' | 'test-results' | 'timeline' | 'diff';
 export type GrpcResponseTab = 'messages' | 'metadata' | 'trailers' | 'scripts';
@@ -134,7 +134,7 @@ export type ShortcutId =
   | 'save-request';
 
 export type ShortcutDefinition = { id: ShortcutId; group: string; label: string; defaultCombo: string };
-export type KVRow = { id: number; enabled: boolean; key: string; value: string; description: string; isFile?: boolean; fileName?: string; secret?: boolean };
+export type KVRow = { id: number; enabled: boolean; key: string; value: string; description: string; isFile?: boolean; fileName?: string; contentType?: string; secret?: boolean };
 export type PreviewHeader = { key: string; value: string; note: string; overridden?: boolean };
 export type ResponseLine = { number: number; html: string; hasCurrentMatch?: boolean };
 export type WorkspaceDiagnostic = import('../backend').WorkspaceDiagnostic;
@@ -208,6 +208,34 @@ export type ProxyConfig = {
   auth: ProxyAuth;
   bypass: string;
 };
+// An example is a saved response paired with the request snapshot that produced
+// it. The snapshot is kept whole because the request itself may change
+// afterwards, and without it there is no way to tell what produced the response.
+export type RequestExampleSnapshot = {
+  method: Method; url: string;
+  params: KVRow[]; headers: KVRow[];
+  bodyType: BodyType; bodyContent: string;
+};
+export type RequestExampleResponse = {
+  statusCode: number; status: string;
+  headers: KVRow[];
+  body: string;
+  bodyMediaType: string;
+  durationMs?: number;
+};
+// How a mock server would select this example. Recorded from the start so that
+// serving examples later needs no migration of stored workspaces.
+export type RequestExampleMatch = { pathTemplate: string; query?: Record<string, string> };
+export type RequestExampleSource = 'captured' | 'manual' | 'openapi' | 'postman';
+export type RequestExample = {
+  id: string; requestId: string; name: string; filesystemName: string;
+  source: RequestExampleSource;
+  createdAt: number;
+  notes?: string;
+  snapshot: RequestExampleSnapshot;
+  response: RequestExampleResponse;
+  match: RequestExampleMatch;
+};
 export type SavedRequest = {
   id: string; name: string; filesystemName: string; nameAuto?: boolean; requestType?: RequestType; isDraft?: boolean; isPinned?: boolean; collectionId: string; collection: string;
   workspaceDiagnostics?: WorkspaceDiagnostic[];
@@ -229,6 +257,7 @@ export type SavedRequest = {
   grpcProtoFilePath?: string;
   grpcProtoFileName?: string;
   grpcProtoImportPaths?: string[];
+  examples?: RequestExample[];
 };
 
 export type GrpcMethodInfo = {

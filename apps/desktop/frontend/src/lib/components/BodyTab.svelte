@@ -7,6 +7,37 @@
 
   let bodyEditorRef = $state<CodeEditor>();
 
+  // The form-data type popover is anchored in a pane that clips its overflow,
+  // so it is positioned against the viewport instead of the row. Anchoring it
+  // to the trigger's own rect also lets it flip above when the row sits near
+  // the bottom of a short editor pane, where it would otherwise be cut off.
+  const FORM_TYPE_MENU_HEIGHT = 132;
+  let formTypeMenuPos = $state({ top: 0, left: 0 });
+
+  // The popover is moved to <body>: the row it lives in sets its own
+  // z-index, and that stacking context put the menu underneath the response
+  // panel. The same escape hatch VariableInput uses for its suggestions.
+  function portal(node: HTMLElement) {
+    document.body.appendChild(node);
+    return {
+      destroy() {
+        node.remove();
+      },
+    };
+  }
+
+  function openFormTypeMenu(rowId: number, event: MouseEvent) {
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    const roomBelow = window.innerHeight - rect.bottom;
+    formTypeMenuPos = {
+      top: roomBelow >= FORM_TYPE_MENU_HEIGHT + 8
+        ? rect.bottom + 4
+        : Math.max(8, rect.top - FORM_TYPE_MENU_HEIGHT - 4),
+      left: rect.left,
+    };
+    vm.toggleFormTypeMenu(rowId, event);
+  }
+
   $effect(() => {
     const ref = bodyEditorRef;
     vm.registerBodyEditorFormat(ref ? () => ref.format() : null);
@@ -53,7 +84,7 @@
               <button
                 class="form-type-trigger"
                 type="button"
-                onclick={(e) => vm.toggleFormTypeMenu(row.id, e)}
+                onclick={(e) => openFormTypeMenu(row.id, e)}
                 aria-label="Field type"
                 aria-expanded={vm.openFormTypeMenuId === row.id}
               >
@@ -63,7 +94,7 @@
                 </svg>
               </button>
               {#if vm.openFormTypeMenuId === row.id}
-                <div class="form-type-options">
+                <div class="form-type-options" use:portal style="top: {formTypeMenuPos.top}px; left: {formTypeMenuPos.left}px;">
                   <button class:active={!row.isFile} type="button" onclick={() => vm.setFormRowKind(row, 'text', i)}>
                     <span class="form-type-check">{!row.isFile ? '✓' : ''}</span>
                     Text
@@ -72,6 +103,24 @@
                     <span class="form-type-check">{row.isFile ? '✓' : ''}</span>
                     File
                   </button>
+                  <!-- The part's own Content-Type. Left empty Relay sends the
+                       default, which for a file is application/octet-stream —
+                       what the APIs that check an upload's MIME type reject. -->
+                  <div
+                    class="form-type-content-type"
+                    role="none"
+                    onclick={(e) => e.stopPropagation()}
+                    onkeydown={(e) => e.stopPropagation()}
+                  >
+                    <label for="form-part-type-{row.id}">Content-Type</label>
+                    <input
+                      id="form-part-type-{row.id}"
+                      class="kv-input"
+                      bind:value={row.contentType}
+                      placeholder={row.isFile ? 'application/octet-stream' : 'auto'}
+                      oninput={() => guardTrailing(vm.formRows, i)}
+                    />
+                  </div>
                 </div>
               {/if}
             </div>

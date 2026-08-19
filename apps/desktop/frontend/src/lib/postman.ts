@@ -1,4 +1,4 @@
-import type { KVRow, SavedRequest, CollectionDefaults, Environment, AuthType, BodyType, OAuth2ClientAuth, OAuth2GrantType, RawBodyType, Method, RequestSettings, RequestTab, RequestType, SIOArg } from './types/models';
+import type { KVRow, SavedRequest, CollectionDefaults, Environment, AuthType, BodyType, OAuth2ClientAuth, OAuth2GrantType, RawBodyType, Method, RequestExample, RequestSettings, RequestTab, RequestType, SIOArg } from './types/models';
 import { DEFAULT_REQUEST_SETTINGS } from './constants';
 import { isRecord, asArray, asText, newRequestId } from './utils';
 import { mkRow } from './constants';
@@ -8,6 +8,7 @@ import { parseGraphQLPayload, parseGraphQLVariables, serializeGraphQLPayload } f
 import { filterSocketIOTransportParams, graphQLBodyContentFromJsonText, isWebSocketUrl, socketIOImportDetails } from './importDetection';
 import { filesystemNameFromName } from './normalizers';
 import { emptyCollectionDefaults } from './collectionDefaults';
+import { mediaTypeOf, normalizeRequestExample } from './examples';
 import { DEFAULT_GRPC_MESSAGE } from './requestBodyDefaults';
 
 const RELAY_EXTENSION_KEY = 'x-relay';
@@ -20,9 +21,9 @@ function postmanDescription(value: unknown) {
   return '';
 }
 
-function importedRow(key: string, value: string, enabled = true, description = '', isFile = false): KVRow {
+function importedRow(key: string, value: string, enabled = true, description = '', isFile = false, contentType = ''): KVRow {
   const fileName = isFile ? value.split('/').pop() ?? value : '';
-  return { ...mkRow(), key, value, enabled, description, isFile, fileName };
+  return { ...mkRow(), key, value, enabled, description, isFile, fileName, contentType };
 }
 
 function postmanKvRows(list: unknown): KVRow[] {
@@ -131,6 +132,21 @@ function relaySIOArgs(value: unknown): SIOArg[] {
   }).filter((item): item is SIOArg => Boolean(item));
 }
 
+// Postman keeps per-request transport switches in protocolProfileBehavior.
+// They were read by nobody, so importing a collection that turns off redirects
+// or certificate checking silently produced a request that did neither.
+function postmanBehaviorSettings(value: unknown): Partial<RequestSettings> {
+  if (!isRecord(value)) return {};
+  const settings: Partial<RequestSettings> = {};
+  if (typeof value.followRedirects === 'boolean') settings.followRedirects = value.followRedirects;
+  if (typeof value.strictSSL === 'boolean') settings.enableSSLVerification = value.strictSSL;
+  if (typeof value.followOriginalHttpMethod === 'boolean') settings.followOriginalMethod = value.followOriginalHttpMethod;
+  if (typeof value.followAuthorizationHeader === 'boolean') settings.followAuthorizationHeader = value.followAuthorizationHeader;
+  if (typeof value.removeRefererHeaderOnRedirect === 'boolean') settings.removeRefererHeader = value.removeRefererHeaderOnRedirect;
+  if (typeof value.maxRedirects === 'number' && Number.isFinite(value.maxRedirects)) settings.maxRedirects = value.maxRedirects;
+  return settings;
+}
+
 function postmanAuthParam(auth: Record<string, unknown>, bucket: string, key: string) {
   const entry = asArray(auth[bucket]).find(item => isRecord(item) && item.key === key);
   return isRecord(entry) ? asText(entry.value) : '';
@@ -201,6 +217,23 @@ function postmanAuthConfig(authValue: unknown, inheritedAuth?: unknown): SavedRe
   return config;
 }
 
+// Postman stores the value of a `:pathVariable` beside the URL rather than in
+// it. Relay has no per-request path variables, so the value is substituted into
+// the URL — the alternative was importing a request whose URL still said `:id`
+// and could not be sent at all. A variable with no value is left as written.
+function applyPostmanPathVariables(url: string, variables: unknown): string {
+  const rows = asArray(variables).filter(isRecord);
+  if (!rows.length) return url;
+  let out = url;
+  for (const row of rows) {
+    const key = asText(row.key);
+    const value = asText(row.value);
+    if (!key || !value) continue;
+    out = out.replace(new RegExp(`(^|/):${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=/|$)`, 'g'), `$1${value}`);
+  }
+  return out;
+}
+
 function postmanUrlToRelay(urlValue: unknown) {
   if (typeof urlValue === 'string') return { url: stripUrlQueryAndFragment(urlValue), params: queryParamsFromUrl(urlValue) };
   if (!isRecord(urlValue)) return { url: '', params: [] as KVRow[] };
@@ -212,7 +245,7 @@ function postmanUrlToRelay(urlValue: unknown) {
     // can't display/edit the params and the fragment leaks into the
     // request URL.
     const params = declaredParams.length ? declaredParams : queryParamsFromUrl(raw);
-    return { url: stripUrlQueryAndFragment(raw), params };
+    return { url: applyPostmanPathVariables(stripUrlQueryAndFragment(raw), urlValue.variable), params };
   }
   const protocol = asText(urlValue.protocol);
   const host = Array.isArray(urlValue.host) ? urlValue.host.map(asText).join('.') : asText(urlValue.host);
@@ -220,7 +253,10 @@ function postmanUrlToRelay(urlValue: unknown) {
   const path = Array.isArray(urlValue.path) ? urlValue.path.map(asText).join('/') : asText(urlValue.path);
   const prefix = protocol ? `${protocol}://` : '';
   const hostWithPort = port ? `${host}:${port}` : host;
-  return { url: `${prefix}${hostWithPort}${path ? `/${path}` : ''}`, params: declaredParams };
+  return {
+    url: applyPostmanPathVariables(`${prefix}${hostWithPort}${path ? `/${path}` : ''}`, urlValue.variable),
+    params: declaredParams,
+  };
 }
 
 function stripUrlQueryAndFragment(raw: string): string {
@@ -298,7 +334,7 @@ function postmanBodyToRelay(bodyValue: unknown) {
       if (!key) return null;
       const isFile = asText(item.type) === 'file';
       const source = isFile && Array.isArray(item.src) ? asText(item.src[0]) : asText(item.src || item.value);
-      return importedRow(key, source, item.disabled !== true, postmanDescription(item.description), isFile);
+      return importedRow(key, source, item.disabled !== true, postmanDescription(item.description), isFile, asText(item.contentType));
     }).filter((row): row is KVRow => Boolean(row));
   } else if (mode === 'file') {
     const file = isRecord(bodyValue.file) ? bodyValue.file : {};
@@ -314,6 +350,56 @@ function postmanBodyToRelay(bodyValue: unknown) {
     });
   }
   return result;
+}
+
+// Postman keeps saved examples in `item.response[]`: each one is a response
+// plus the request that produced it. Relay dropped the array wholesale, so a
+// collection built around its examples imported as a set of bare requests.
+function postmanExamplesFromItem(item: Record<string, unknown>, requestId: string): RequestExample[] {
+  return asArray(item.response)
+    .map((entry, index) => {
+      if (!isRecord(entry)) return null;
+      const original = isRecord(entry.originalRequest) ? entry.originalRequest : {};
+      const originalUrl = postmanUrlToRelay(original.url);
+      const originalBody = postmanBodyToRelay(original.body);
+      const headers = postmanKvRows(entry.header);
+      const code = Number(entry.code) || 0;
+      const statusText = asText(entry.status);
+      return normalizeRequestExample({
+        name: asText(entry.name) || (code ? `${code} ${statusText}`.trim() : `Example ${index + 1}`),
+        source: 'postman',
+        snapshot: {
+          method: (asText(original.method).toUpperCase() || 'GET') as Method,
+          url: originalUrl.url,
+          params: originalUrl.params,
+          headers: postmanKvRows(original.header),
+          bodyType: originalBody.bodyType,
+          bodyContent: originalBody.bodyContent,
+        },
+        response: {
+          statusCode: code,
+          status: code ? `${code} ${statusText}`.trim() : statusText,
+          headers,
+          body: asText(entry.body),
+          // Content-Type is the reliable source; Postman's preview language is
+          // the fallback for an example saved without one.
+          bodyMediaType: mediaTypeOf(headers.find(row => row.key.toLowerCase() === 'content-type')?.value ?? '')
+            || postmanPreviewMediaType(asText(entry._postman_previewlanguage)),
+        },
+      }, requestId);
+    })
+    .filter((example): example is RequestExample => Boolean(example));
+}
+
+function postmanPreviewMediaType(language: string): string {
+  switch (language.toLowerCase()) {
+    case 'json': return 'application/json';
+    case 'xml': return 'application/xml';
+    case 'html': return 'text/html';
+    case 'javascript': return 'application/javascript';
+    case 'text': return 'text/plain';
+    default: return '';
+  }
 }
 
 export function postmanRequestsFromItems(
@@ -351,6 +437,7 @@ export function postmanRequestsFromItems(
     const relayTab = relayRequestTab(relay.requestTab);
     const scripts = mergeScripts(inheritedScripts, postmanScriptsFromEvents(item.event, req.event));
     const id = newRequestId();
+    const examples = postmanExamplesFromItem(item, id);
     return [{
       id, name, filesystemName: filesystemNameFromName(name, id), collectionId, collection: collectionName, folderPath: path,
       requestType,
@@ -380,7 +467,15 @@ export function postmanRequestsFromItems(
       preRequestScript: scripts.preRequestScript,
       testScript: scripts.testScript,
       requestNotes: postmanDescription(req.description) || postmanDescription(item.description),
-      settings: { ...DEFAULT_REQUEST_SETTINGS, ...(socketIO?.settings ?? {}), ...relaySettings(relay.settings) },
+      settings: {
+        ...DEFAULT_REQUEST_SETTINGS,
+        ...(socketIO?.settings ?? {}),
+        ...postmanBehaviorSettings(item.protocolProfileBehavior ?? req.protocolProfileBehavior),
+        // Relay's own extension wins: it is the more precise record of what
+        // this request was, and it only exists on a collection Relay wrote.
+        ...relaySettings(relay.settings),
+      },
+      ...(examples.length ? { examples } : {}),
     }];
   });
 }
@@ -559,7 +654,7 @@ function postmanBodyFromRelay(req: SavedRequest, stripFn: (s: string, t: string)
   }
   if (req.bodyType === 'urlencoded') return { mode: 'urlencoded', urlencoded: req.formRows.filter(r => r.key).map(row => postmanKv(row, includeSecrets)) };
   if (req.bodyType === 'form') {
-    return { mode: 'formdata', formdata: req.formRows.filter(r => r.key).map(r => ({ key: r.key, type: r.isFile ? 'file' : 'text', ...(r.isFile ? { src: r.value } : { value: safeExportValue(r.key, r.value, includeSecrets, r.secret === true) }), ...(r.description ? { description: r.description } : {}), ...(!r.enabled ? { disabled: true } : {}) })) };
+    return { mode: 'formdata', formdata: req.formRows.filter(r => r.key).map(r => ({ key: r.key, type: r.isFile ? 'file' : 'text', ...(r.isFile ? { src: r.value } : { value: safeExportValue(r.key, r.value, includeSecrets, r.secret === true) }), ...(r.description ? { description: r.description } : {}), ...(r.contentType ? { contentType: r.contentType } : {}), ...(!r.enabled ? { disabled: true } : {}) })) };
   }
   if (req.bodyType === 'binary' && req.bodyFilePath) return { mode: 'file', file: { src: req.bodyFilePath } };
   return undefined;
@@ -605,17 +700,52 @@ function relayExtensionFromRequest(req: SavedRequest, stripFn: (s: string, t: st
   return extension;
 }
 
+// An example goes back out as Postman stores one: the response, plus the request
+// that produced it, under the item's `response` array.
+function postmanResponsesFromExamples(req: SavedRequest, includeSecrets = false) {
+  const examples = req.examples ?? [];
+  if (!examples.length) return undefined;
+  return examples.map(example => ({
+    name: example.name,
+    originalRequest: {
+      method: example.snapshot.method,
+      url: example.snapshot.url,
+      header: example.snapshot.headers.filter(row => row.key).map(row => postmanKv(row, includeSecrets)),
+      ...(example.snapshot.bodyContent
+        ? { body: { mode: 'raw', raw: example.snapshot.bodyContent } }
+        : {}),
+    },
+    status: example.response.status.replace(/^\d+\s*/, ''),
+    code: example.response.statusCode,
+    header: example.response.headers.filter(row => row.key).map(row => postmanKv(row, includeSecrets)),
+    // A saved response is data, not configuration, so it goes through the same
+    // sweep as any other exported body rather than leaking a captured token.
+    body: exportBodyLikeValue(example.response.body, 'json', (value: string) => value, includeSecrets),
+    ...(example.response.bodyMediaType ? { _postman_previewlanguage: postmanPreviewLanguage(example.response.bodyMediaType) } : {}),
+  }));
+}
+
+function postmanPreviewLanguage(mediaType: string): string {
+  if (mediaType.includes('json')) return 'json';
+  if (mediaType.includes('xml')) return 'xml';
+  if (mediaType.includes('html')) return 'html';
+  if (mediaType.includes('javascript')) return 'javascript';
+  return 'text';
+}
+
 function postmanItemFromRequest(req: SavedRequest, stripFn: (s: string, t: string) => string, includeSecrets = false) {
   const auth = postmanAuthFromRelay(req.auth, includeSecrets);
   const body = postmanBodyFromRelay(req, stripFn, includeSecrets);
   const name = req.name || req.url;
   const event = postmanEventsFromScripts(req.preRequestScript, req.testScript);
+  const response = postmanResponsesFromExamples(req, includeSecrets);
   return {
     name,
     [RELAY_EXTENSION_KEY]: relayExtensionFromRequest(req, stripFn, includeSecrets),
     // `event` belongs to the item in the v2.1 schema — Postman ignores it
     // when it sits under `request`, which is where Relay used to write it.
     ...(event ? { event } : {}),
+    ...(response ? { response } : {}),
     request: {
       method: req.requestType === 'graphql' || req.bodyType === 'graphql' || req.requestType === 'grpc' ? 'POST' : req.method, header: req.headers.filter(r => r.key).map(row => postmanKv(row, includeSecrets)),
       url: postmanUrlFromRelay(req, includeSecrets),

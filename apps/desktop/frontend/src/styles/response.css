@@ -638,6 +638,34 @@
   color: var(--text-1);
 }
 
+/* Which saved response the current one is being compared against. Only shown
+   when there is more than one thing it could be. */
+.diff-baseline-picker {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.diff-baseline-picker select {
+  max-width: 160px;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.diff-baseline-picker select:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
 .diff-count {
   padding: 3px 7px;
   border-radius: 5px;

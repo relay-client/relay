@@ -1,7 +1,8 @@
 import { DEFAULT_REQUEST_SETTINGS, mkRow } from './constants';
 import { normalizeCollectionDefaults, requestSettingsOverridesFromPatch, REQUEST_SETTING_KEYS } from './collectionDefaults';
-import { safeExportUrl, safeExportValue, sanitizeExportExample } from './secretExport';
-import type { AuthState, AuthType, BodyType, CollectionDefaults, Environment, KVRow, Method, RawBodyType, RequestSettings, RequestSettingsOverrides, RequestTab, RequestType, SavedRequest, SIOArg } from './types/models';
+import { normalizeRequestExample } from './examples';
+import { safeExportRow, safeExportUrl, safeExportValue, sanitizeExportExample } from './secretExport';
+import type { AuthState, AuthType, BodyType, CollectionDefaults, Environment, KVRow, Method, RawBodyType, RequestExample, RequestSettings, RequestSettingsOverrides, RequestTab, RequestType, SavedRequest, SIOArg } from './types/models';
 import { asArray, asText, authStateHasData, emptyAuthState, inheritAuthState, isRecord, newEntityId, newRequestId, safeFileName } from './utils';
 import { filesystemNameFromName } from './normalizers';
 import { DEFAULT_GRPC_MESSAGE } from './requestBodyDefaults';
@@ -76,6 +77,7 @@ function rowFromOpenCollection(value: unknown, fallbackType = 'query'): KVRow {
     secret: row.secret === true,
     isFile: asText(row.type) === 'file',
     fileName: asText(row.fileName),
+    contentType: asText(row.contentType),
     ...(fallbackType === 'file' ? { isFile: true } : {}),
   };
 }
@@ -93,6 +95,7 @@ function rowToOpenCollection(row: KVRow, type?: 'query' | 'path', includeSecrets
     item.type = 'file';
     if (row.fileName) item.fileName = row.fileName;
   }
+  if (row.contentType) item.contentType = row.contentType;
   return item;
 }
 
@@ -636,6 +639,7 @@ function requestFromOpenCollectionFile(file: CollectionTextFile, collectionId: s
     || (requestType === 'grpc' ? 'body' : requestType === 'socketio' ? 'events' : requestType === 'ws' ? 'body' : requestType === 'graphql' ? 'query' : 'params');
   const grpcUseReflection = requestType === 'grpc' ? booleanSetting(section.useReflection) : undefined;
   const requestSettingsPatch = { ...settingsPatch, ...(grpcUseReflection !== undefined ? { grpcUseReflection } : {}) };
+  const examples = examplesFromOpenCollection(parsed.examples, id);
   return {
     id,
     name,
@@ -671,7 +675,50 @@ function requestFromOpenCollectionFile(file: CollectionTextFile, collectionId: s
     requestNotes: asText(parsed.docs),
     settings: { ...DEFAULT_REQUEST_SETTINGS, ...requestSettingsPatch },
     settingsOverrides: requestSettingsOverridesFromPatch(requestSettingsPatch),
+    ...(examples.length ? { examples } : {}),
   };
+}
+
+// OpenCollection has no notion of a saved example, so Relay writes them under
+// its own top-level `examples` key. The shape is the one the workspace YAML
+// uses, which means importing is just normalisation — and another tool reading
+// the file simply ignores a key it does not know.
+function examplesFromOpenCollection(value: unknown, requestId: string): RequestExample[] {
+  return asArray(value)
+    .filter(isRecord)
+    .map(entry => normalizeRequestExample(entry as Partial<RequestExample>, requestId));
+}
+
+function examplesToOpenCollection(
+  req: SavedRequest,
+  stripFn: (source: string, bodyType: string) => string,
+  includeSecrets = false,
+) {
+  const examples = req.examples ?? [];
+  if (!examples.length) return undefined;
+  const rows = (list: KVRow[]) => list.filter(row => row.key).map(row => ({ key: row.key, value: row.value }));
+  return examples.map(example => ({
+    name: example.name,
+    source: example.source,
+    snapshot: {
+      method: example.snapshot.method,
+      url: safeExportUrl(example.snapshot.url, includeSecrets),
+      ...(example.snapshot.params.length ? { params: rows(example.snapshot.params) } : {}),
+      ...(example.snapshot.headers.length ? { headers: rows(example.snapshot.headers.map(row => safeExportRow(row, includeSecrets))) } : {}),
+      bodyType: example.snapshot.bodyType,
+      ...(example.snapshot.bodyContent ? { bodyContent: exportBodyLikeValue(example.snapshot.bodyContent, example.snapshot.bodyType, stripFn, includeSecrets) } : {}),
+    },
+    response: {
+      statusCode: example.response.statusCode,
+      status: example.response.status,
+      ...(example.response.headers.length ? { headers: rows(example.response.headers.map(row => safeExportRow(row, includeSecrets))) } : {}),
+      bodyMediaType: example.response.bodyMediaType,
+      // A saved response goes through the same sweep as any other exported
+      // body: it is the most likely place for a captured token to sit.
+      ...(example.response.body ? { body: exportBodyLikeValue(example.response.body, 'json', stripFn, includeSecrets) } : {}),
+    },
+    match: example.match,
+  }));
 }
 
 function folderNameMapFromOpenCollection(files: CollectionTextFile[]) {
@@ -990,6 +1037,7 @@ function yamlMap(value: Record<string, unknown>, indent = 0): string {
 }
 
 function requestToOpenCollection(req: SavedRequest, seq: number, stripFn: (source: string, bodyType: string) => string, includeSecrets = false) {
+  const examples = examplesToOpenCollection(req, stripFn, includeSecrets);
   const body = bodyToOpenCollection(req, stripFn, includeSecrets);
   const settings = settingsToOpenCollection(req.settings, true, true, req.settingsOverrides);
   const runtimeScripts = [
@@ -1040,6 +1088,7 @@ function requestToOpenCollection(req: SavedRequest, seq: number, stripFn: (sourc
     ...requestSection,
     ...(runtimeScripts.length ? { runtime: { scripts: runtimeScripts } } : {}),
     ...(Object.keys(settings).length ? { settings } : {}),
+    ...(examples ? { examples } : {}),
     ...(req.requestNotes ? { docs: `${req.requestNotes}\n` } : {}),
   };
 }

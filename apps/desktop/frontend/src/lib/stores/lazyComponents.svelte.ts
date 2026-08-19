@@ -26,6 +26,7 @@ class AppLazyComponents {
   CookieJarModalComponent = $state<LazyComponent | null>(null);
   DocsTabComponent = $state<LazyComponent | null>(null);
   EnvironmentWorkspaceComponent = $state<LazyComponent | null>(null);
+  ExamplesTabComponent = $state<LazyComponent | null>(null);
   GitWorkspaceComponent = $state<LazyComponent | null>(null);
   GlobalSearchModalComponent = $state<LazyComponent | null>(null);
   GraphQLQueryTabComponent = $state<LazyComponent | null>(null);
@@ -134,6 +135,10 @@ class AppLazyComponents {
     if (!this.ResponsePanelComponent) this.ResponsePanelComponent = (await import('../components/ResponsePanel.svelte')).default as LazyComponent;
   }
 
+  async loadExamplesTab() {
+    if (!this.ExamplesTabComponent) this.ExamplesTabComponent = (await import('../components/ExamplesTab.svelte')).default as LazyComponent;
+  }
+
   async loadScriptsTab() {
     if (!this.ScriptsTabComponent) this.ScriptsTabComponent = (await import('../components/ScriptsTab.svelte')).default as LazyComponent;
   }
@@ -181,6 +186,7 @@ class AppLazyComponents {
     if (state.requestTab === 'headers') void this.loadHeadersTab();
     if (state.requestTab === 'params') void this.loadParamsTab();
     if (state.requestTab === 'scripts') void this.loadScriptsTab();
+    if (state.requestTab === 'examples') void this.loadExamplesTab();
     if (state.requestTab === 'settings' && state.requestType !== 'ws' && state.requestType !== 'socketio' && state.requestType !== 'grpc') void this.loadRequestSettingsTab();
     if (state.codePanelOpen && state.codePanelAvailable) void this.loadCodeSnippetPanel();
     if (state.cookieJarOpen) void this.loadCookieJarModal();

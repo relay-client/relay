@@ -1,10 +1,11 @@
-import type { AuthState, BodyType, KVRow, Method, RawBodyType, SavedRequest } from './types/models';
+import type { AuthState, BodyType, KVRow, Method, RawBodyType, RequestExample, SavedRequest } from './types/models';
 import { DEFAULT_REQUEST_SETTINGS, mkRow } from './constants';
 import { asArray, asText, isRecord, newRequestId } from './utils';
 import { emptyAuthState } from './utils';
 import { parseYaml } from './yaml';
 import { safeExportRow, safeExportUrl, safeExportValue, sanitizeExportExample } from './secretExport';
 import { filesystemNameFromName } from './normalizers';
+import { normalizeRequestExample } from './examples';
 
 const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options'] as const;
 const JSON_TYPES = ['application/json', 'application/*+json'];
@@ -185,6 +186,94 @@ function openApiBody(operation: Record<string, unknown>, root: unknown): BodyImp
     return { ...empty, bodyType: 'text', rawBodyType: 'text', bodyContent: asText(example) };
   }
   return { ...empty, bodyType: 'json', rawBodyType: 'json', bodyContent: stringifyJson(example) };
+}
+
+// A spec's `responses` are the contract it documents, and they carry exactly
+// what an example holds: a status, headers, and a payload. The importer used to
+// read only the request half, so a spec full of documented responses arrived
+// with none of them.
+function openApiExamplesFromResponses(
+  operation: Record<string, unknown>,
+  root: unknown,
+  requestId: string,
+  snapshot: { method: Method; url: string; params: KVRow[]; headers: KVRow[]; bodyType: BodyType; bodyContent: string },
+): RequestExample[] {
+  const responses = isRecord(operation.responses) ? operation.responses : {};
+  const examples: RequestExample[] = [];
+
+  for (const [code, responseValue] of Object.entries(responses)) {
+    const response = deref(root, responseValue);
+    if (!isRecord(response)) continue;
+    // "default" is a catch-all rather than a status, and there is no single
+    // code an example could claim for it.
+    const statusCode = Number(code);
+    if (!Number.isFinite(statusCode) || statusCode <= 0) continue;
+
+    const payload = openApiResponsePayload(response, root);
+    const description = asText(response.description);
+    examples.push(normalizeRequestExample({
+      name: description ? `${code} ${description}` : code,
+      source: 'openapi',
+      snapshot,
+      response: {
+        statusCode,
+        status: code,
+        headers: openApiResponseHeaders(response, root, payload.mediaType),
+        body: payload.body,
+        bodyMediaType: payload.mediaType,
+      },
+    }, requestId));
+  }
+  return examples;
+}
+
+// OpenAPI 3 puts the payload under `content`; Swagger 2 uses `examples` keyed by
+// media type alongside a `schema`. Both fall back to a value derived from the
+// schema, which is what makes a spec without hand-written examples still useful.
+function openApiResponsePayload(response: Record<string, unknown>, root: unknown): { body: string; mediaType: string } {
+  const content = isRecord(response.content) ? response.content : null;
+  if (content) {
+    const mediaType = pickMediaType(content);
+    const media = deref(root, content[mediaType]);
+    if (!isRecord(media)) return { body: '', mediaType: mediaType.toLowerCase() };
+    const value = pickValue(media.example, firstExample(media.examples), schemaExample(media.schema, root));
+    return { body: openApiExampleToText(value, mediaType), mediaType: mediaType.toLowerCase() };
+  }
+
+  const swaggerExamples = isRecord(response.examples) ? response.examples : null;
+  if (swaggerExamples) {
+    const mediaType = pickMediaType(swaggerExamples);
+    return { body: openApiExampleToText(swaggerExamples[mediaType], mediaType), mediaType: mediaType.toLowerCase() };
+  }
+  if (response.schema !== undefined) {
+    return { body: stringifyJson(schemaExample(response.schema, root)), mediaType: 'application/json' };
+  }
+  return { body: '', mediaType: '' };
+}
+
+function openApiExampleToText(value: unknown, mediaType: string): string {
+  if (value === undefined || value === null) return '';
+  const lower = mediaType.toLowerCase();
+  if (typeof value === 'string') return value;
+  if (lower.includes('xml')) return xmlFromValue('root', value);
+  return stringifyJson(value);
+}
+
+function openApiResponseHeaders(response: Record<string, unknown>, root: unknown, mediaType: string): KVRow[] {
+  const declared = isRecord(response.headers) ? response.headers : {};
+  const rows = Object.entries(declared).map(([name, headerValue]) => {
+    const header = deref(root, headerValue);
+    const value = isRecord(header)
+      ? pickValue(header.example, firstExample(header.examples), schemaExample(header.schema ?? header, root))
+      : undefined;
+    return row(name, asText(value), isRecord(header) ? asText(header.description) : '');
+  });
+  // The media type is part of the contract too, and the example's body file
+  // extension follows it.
+  if (mediaType && !rows.some(item => item.key.toLowerCase() === 'content-type')) {
+    rows.unshift(row('Content-Type', mediaType));
+  }
+  return rows;
 }
 
 function swaggerBody(parameters: unknown[], consumes: string[], root: unknown): BodyImport {
@@ -431,6 +520,10 @@ export function openApiImportFromSpec(specValue: unknown, collectionId: string, 
       const name = asText(operation.summary) || asText(operation.operationId) || `${method.toUpperCase()} ${path}`;
       const methodUpper = method.toUpperCase() as Method;
       const id = newRequestId();
+      const url = joinUrl(servers.length ? `{{${OPENAPI_BASE_URL_VARIABLE}}}` : '', path);
+      const examples = openApiExamplesFromResponses(operation, spec, id, {
+        method: methodUpper, url, params, headers, bodyType: body.bodyType, bodyContent: body.bodyContent,
+      });
       requests.push({
         id,
         name,
@@ -439,7 +532,7 @@ export function openApiImportFromSpec(specValue: unknown, collectionId: string, 
         collection: collectionName,
         folderPath: tags.length ? [tags[0]] : [],
         method: methodUpper,
-        url: joinUrl(servers.length ? `{{${OPENAPI_BASE_URL_VARIABLE}}}` : '', path),
+        url,
         requestTab: body.bodyType !== 'none' ? 'body' : params.length ? 'params' : headers.length ? 'headers' : 'docs',
         params,
         headers,
@@ -454,6 +547,7 @@ export function openApiImportFromSpec(specValue: unknown, collectionId: string, 
         testScript: '',
         requestNotes: asText(operation.description),
         settings: { ...DEFAULT_REQUEST_SETTINGS },
+        ...(examples.length ? { examples } : {}),
       });
     }
   }

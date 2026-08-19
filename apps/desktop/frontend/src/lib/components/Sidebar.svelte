@@ -97,6 +97,7 @@
     toggleHistoryDay,
     openHistoryEntry,
     showHistoryResponse,
+    saveHistoryEntryAsExample,
     historyTitle,
     statusClass,
     toggleHistoryEntryMenu,
@@ -162,6 +163,7 @@
     toggleHistoryDay: (key: string) => void;
     openHistoryEntry: (id: string) => void;
     showHistoryResponse: (id: string) => void;
+    saveHistoryEntryAsExample: (id: string) => void;
     historyTitle: (entry: RequestHistoryEntry) => string;
     statusClass: (statusCode: number) => string;
     toggleHistoryEntryMenu: (id: string, event: MouseEvent) => void;
@@ -728,6 +730,11 @@
                     <button type="button" onclick={() => openHistoryEntry(row.entry.id)} disabled={workspaceBlocked}>Open request</button>
                     {#if row.entry.responseStored}
                       <button type="button" onclick={() => showHistoryResponse(row.entry.id)}>View response</button>
+                      <!-- A history entry's request is a snapshot of its own, so
+                           the example lands on the request currently open. -->
+                      {#if activeRequestId}
+                        <button type="button" onclick={() => saveHistoryEntryAsExample(row.entry.id)} disabled={workspaceBlocked}>Save as example</button>
+                      {/if}
                     {/if}
                     {#each activeWorkspaceCollections() as collection}
                       <button type="button" onclick={() => saveHistoryEntryToCollection(row.entry.id, collection.id)} disabled={workspaceBlocked}>Save to {collection.name}</button>

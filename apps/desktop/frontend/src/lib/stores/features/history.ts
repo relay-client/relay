@@ -2,7 +2,8 @@ import { clearHistoryResponses, loadHistoryResponse, pruneHistoryResponses, save
 import type { HttpResponse } from '../../backend';
 import { makeCollection } from '../../normalizers';
 import { historyDayLabel, localDateKey, newEntityId, newRequestId, requestTabLabel } from '../../utils';
-import type { Collection, HistoryDayGroup, PersistRequestStore, RequestHistoryEntry, ResponseTab, SavedRequest, Workspace } from '../../types/models';
+import type { Collection, HistoryDayGroup, PersistRequestStore, RequestExample, RequestHistoryEntry, ResponseTab, SavedRequest, Workspace } from '../../types/models';
+import { exampleFromResponse } from '../../examples';
 
 type HistoryHost = {
   requestHistory: RequestHistoryEntry[];
@@ -38,6 +39,10 @@ type HistoryHost = {
   setActiveResponseTab: (tab: ResponseTab, requestId?: string) => void;
   pruneStoredResponses: () => Promise<void>;
   showHistoryResponse: (historyId: string) => Promise<void>;
+  loadStoredHistoryResponse: (historyId: string) => Promise<HttpResponse | null>;
+  saveHistoryEntryAsExample: (historyId: string) => Promise<void>;
+  addCapturedExample: (example: RequestExample) => void;
+  activeSecretEnvironmentValues: () => string[];
   requestError: string;
   collectionImportToast: string;
 };
@@ -144,28 +149,28 @@ export const historyFeature = {
     }
   },
 
-  // Reopens a past response in the viewer. The request itself is not touched:
-  // this answers "what did it come back with", not "send it again".
-  async showHistoryResponse(this: HistoryHost, historyId: string) {
+  // Reads a stored response off disk, reporting the ways it can fail in one
+  // place. Both viewing a past response and keeping one as an example need it,
+  // and they must fail identically.
+  async loadStoredHistoryResponse(this: HistoryHost, historyId: string): Promise<HttpResponse | null> {
     const entry = this.requestHistory.find(candidate => candidate.id === historyId);
-    if (!entry) return;
-    this.openHistoryMenuId = '';
+    if (!entry) return null;
 
     let result;
     try {
       result = await loadHistoryResponse(historyId);
     } catch (error) {
       this.requestError = error instanceof Error ? error.message : String(error);
-      return;
+      return null;
     }
     if (result.error) {
       this.requestError = `Could not read the stored response: ${result.error}`;
-      return;
+      return null;
     }
     if (!result.stored || !result.payload) {
       this.collectionImportToast = 'No response stored for this entry';
       setTimeout(() => (this.collectionImportToast = ''), 2200);
-      return;
+      return null;
     }
 
     let response: HttpResponse;
@@ -173,15 +178,44 @@ export const historyFeature = {
       response = JSON.parse(result.payload) as HttpResponse;
     } catch {
       this.requestError = 'The stored response could not be read.';
-      return;
+      return null;
     }
     if (entry.responseTruncated) {
       response = { ...response, warnings: [...(response.warnings ?? []), 'This stored response was truncated when it was recorded.'] };
     }
     this.requestError = '';
+    return response;
+  },
+
+  // Reopens a past response in the viewer. The request itself is not touched:
+  // this answers "what did it come back with", not "send it again".
+  async showHistoryResponse(this: HistoryHost, historyId: string) {
+    this.openHistoryMenuId = '';
+    const response = await this.loadStoredHistoryResponse(historyId);
+    if (!response) return;
     this.setActiveResponse(response);
     this.setActiveResponseTab('body');
   },
+  /**
+   * Keep a past response as an example on the request currently being edited.
+   * A history entry's request is a snapshot with an id of its own, so there is
+   * no original request to attach to — the open one is the only sensible target,
+   * and the toast names what it went to.
+   */
+  async saveHistoryEntryAsExample(this: HistoryHost, historyId: string) {
+    if (!this.guardWorkspaceWritable('Saving an example')) return;
+    const entry = this.requestHistory.find(candidate => candidate.id === historyId);
+    if (!entry || !this.activeRequestId) return;
+    this.openHistoryMenuId = '';
+
+    const response = await this.loadStoredHistoryResponse(historyId);
+    if (!response) return;
+    this.addCapturedExample(exampleFromResponse(entry.request, response, {
+      secretValues: this.activeSecretEnvironmentValues(),
+      name: `${response.statusCode} ${requestTabLabel(entry.request)}`.trim(),
+    }));
+  },
+
   async saveHistoryEntryToCollection(this: HistoryHost, historyId: string, collectionId: string) {
     if (!this.guardWorkspaceWritable('Saving history')) return;
     const entry = this.requestHistory.find(candidate => candidate.id === historyId);

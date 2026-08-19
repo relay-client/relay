@@ -1,4 +1,12 @@
-type CurlRow = { key: string; value: string; enabled: boolean; isFile?: boolean; fileName?: string };
+// splitCurlFormValue peels curl's ";type=<mime>" suffix off a -F value. Only a
+// trailing one counts: a ";" inside the value itself is part of the data.
+function splitCurlFormValue(raw: string): { value: string; contentType: string } {
+  const match = /;type=([^;]+)$/i.exec(raw);
+  if (!match) return { value: raw, contentType: '' };
+  return { value: raw.slice(0, match.index), contentType: match[1].trim() };
+}
+
+type CurlRow = { key: string; value: string; enabled: boolean; isFile?: boolean; fileName?: string; contentType?: string };
 type CurlAuth = {
   type: string;
   token?: string;
@@ -104,10 +112,11 @@ export function toCurl(req: CurlRequest): string {
     case 'form': {
       for (const f of req.formData) {
         if (f.enabled && f.key) {
+          const suffix = f.contentType ? `;type=${f.contentType}` : '';
           if (f.isFile) {
-            parts.push(`-F ${shellQuote(`${f.key}=@${f.value}`)}`);
+            parts.push(`-F ${shellQuote(`${f.key}=@${f.value}${suffix}`)}`);
           } else {
-            parts.push(`-F ${shellQuote(`${f.key}=${f.value}`)}`);
+            parts.push(`-F ${shellQuote(`${f.key}=${f.value}${suffix}`)}`);
           }
         }
       }
@@ -130,7 +139,7 @@ export type ParsedCurl = Partial<{
   body: string;
   bodyFilePath: string;
   bodyType: string;
-  formData: { key: string; value: string; isFile: boolean }[];
+  formData: { key: string; value: string; isFile: boolean; contentType?: string }[];
   username: string;
   password: string;
   followRedirects: boolean;
@@ -215,9 +224,10 @@ export function parseCurl(input: string): ParsedCurl {
       const eq = raw.indexOf('=');
       if (eq > 0) {
         const key = raw.slice(0, eq);
-        const val = raw.slice(eq + 1);
+        // curl names a part's type with a ";type=" suffix on the value.
+        const { value: val, contentType } = splitCurlFormValue(raw.slice(eq + 1));
         const isFile = Boolean(form) && val.startsWith('@');
-        result.formData!.push({ key, value: isFile ? val.slice(1) : val, isFile });
+        result.formData!.push({ key, value: isFile ? val.slice(1) : val, isFile, ...(contentType ? { contentType } : {}) });
       }
       result.bodyType = 'form';
       if (!explicitMethod && (!result.method || result.method === 'GET')) result.method = 'POST';

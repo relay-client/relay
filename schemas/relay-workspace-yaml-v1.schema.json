@@ -9,7 +9,8 @@
     { "$ref": "#/$defs/workspaceFile" },
     { "$ref": "#/$defs/collectionFile" },
     { "$ref": "#/$defs/requestFile" },
-    { "$ref": "#/$defs/environmentFile" }
+    { "$ref": "#/$defs/environmentFile" },
+    { "$ref": "#/$defs/exampleFile" }
   ],
   "$defs": {
     "fileVersion": {
@@ -344,6 +345,79 @@
         "version": { "$ref": "#/$defs/fileVersion" },
         "order": { "$ref": "#/$defs/order" },
         "environment": { "$ref": "#/$defs/environment" }
+      }
+    },
+    "example": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "name", "response"],
+      "description": "A saved response paired with the request snapshot that produced it. Stored under collections/<collection>/examples/<request filesystemName>/, one file per example, with the response body in a sibling file.",
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "requestId": {
+          "$ref": "#/$defs/id",
+          "description": "The request this example belongs to. The directory name locates it; this re-links it when the request file is renamed."
+        },
+        "name": { "type": "string" },
+        "filesystemName": { "$ref": "#/$defs/filesystemName" },
+        "source": {
+          "type": "string",
+          "enum": ["captured", "manual", "openapi", "postman"]
+        },
+        "createdAt": { "$ref": "#/$defs/timestamp" },
+        "notes": { "type": "string" },
+        "snapshot": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "The request as it was when the response came back. Kept whole because the request itself may change afterwards.",
+          "properties": {
+            "method": { "type": "string" },
+            "url": { "type": "string" },
+            "params": { "type": "array", "items": { "$ref": "#/$defs/kvRow" } },
+            "headers": { "type": "array", "items": { "$ref": "#/$defs/kvRow" } },
+            "bodyType": { "type": "string" },
+            "bodyContent": { "type": "string" }
+          }
+        },
+        "response": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": ["statusCode"],
+          "properties": {
+            "statusCode": { "type": "integer" },
+            "status": { "type": "string" },
+            "headers": { "type": "array", "items": { "$ref": "#/$defs/kvRow" } },
+            "bodyMediaType": { "type": "string" },
+            "bodyFile": {
+              "type": "string",
+              "description": "Plain file name, in the same directory as this file. A path separator is refused on load.",
+              "pattern": "^[^/\\\\]+$"
+            },
+            "durationMs": { "type": "number", "minimum": 0 }
+          }
+        },
+        "match": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "How a mock server would select this example. Recorded from the start so serving examples needs no workspace migration.",
+          "properties": {
+            "pathTemplate": { "type": "string" },
+            "query": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "exampleFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "example"],
+      "properties": {
+        "version": { "$ref": "#/$defs/fileVersion" },
+        "order": { "$ref": "#/$defs/order" },
+        "example": { "$ref": "#/$defs/example" }
       }
     }
   },

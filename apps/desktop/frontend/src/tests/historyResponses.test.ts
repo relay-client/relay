@@ -41,6 +41,7 @@ function makeHost(over: Record<string, unknown> = {}) {
     pruneStoredResponses: historyFeature.pruneStoredResponses,
     recordRequestHistory: historyFeature.recordRequestHistory,
     showHistoryResponse: historyFeature.showHistoryResponse,
+    loadStoredHistoryResponse: historyFeature.loadStoredHistoryResponse,
     deleteHistoryEntry: historyFeature.deleteHistoryEntry,
     clearRequestHistory: historyFeature.clearRequestHistory,
     ...over,

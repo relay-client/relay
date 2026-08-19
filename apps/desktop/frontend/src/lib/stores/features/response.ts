@@ -3,7 +3,8 @@ import { emptyHttpResponse } from '../../wire';
 import type { HttpResponse, ScriptResult } from '../../backend';
 import { countMatchesAsync, shouldVirtualizeResponseBody } from '../../response-render';
 import { diffResponseBodies, type ResponseDiff } from '../../responseDiff';
-import type { GrpcResponse, RequestType, ResponseTab } from '../../types/models';
+import type { GrpcResponse, RequestExample, RequestType, ResponseTab } from '../../types/models';
+import { responseFromExample } from '../../examples';
 import { clamp, clipboardCopy, formatSize, prettyJson, prettyMarkup } from '../../utils';
 
 const RESPONSE_PAGE_CHARS = 512 * 1024;
@@ -57,6 +58,13 @@ type ResponseHost = {
   setActiveResponse: (response: HttpResponse | null, requestId?: string) => void;
   setActiveResponseTab: (tab: ResponseTab, requestId?: string) => void;
   previousResponse: (requestId?: string) => HttpResponse | null;
+  requestExamples: RequestExample[];
+  diffBaselineExampleIds: Map<string, string>;
+  diffBaselineExampleId: (requestId?: string) => string;
+  setDiffBaselineExample: (exampleId: string, requestId?: string) => void;
+  diffBaselineResponse: () => HttpResponse | null;
+  diffBaselineLabel: () => string;
+  diffBaselineOptions: () => Array<{ id: string; label: string }>;
   responseDiff: () => ResponseDiff | null;
   clearResponseDiffBaseline: (requestId?: string) => void;
   setResponseBodyPage: (page: number) => void;
@@ -200,18 +208,68 @@ export const responseFeature = {
     return (requestId && this.previousResponses.get(requestId)) || null;
   },
 
+  /**
+   * What the current response is compared against. The previous response
+   * answers "did this change since last time"; a saved example answers "does
+   * this still match what we agreed", which is what keeps an example from
+   * quietly going stale.
+   */
+  diffBaselineExampleId(this: ResponseHost, requestId = this.activeRequestId): string {
+    const chosen = requestId ? this.diffBaselineExampleIds.get(requestId) : '';
+    if (!chosen) return '';
+    // A chosen example can be renamed away or deleted while it is selected.
+    return this.requestExamples.some(example => example.id === chosen) ? chosen : '';
+  },
+
+  setDiffBaselineExample(this: ResponseHost, exampleId: string, requestId = this.activeRequestId) {
+    if (!requestId) return;
+    const next = new Map(this.diffBaselineExampleIds);
+    if (exampleId) next.set(requestId, exampleId);
+    else next.delete(requestId);
+    this.diffBaselineExampleIds = next;
+  },
+
+  diffBaselineResponse(this: ResponseHost): HttpResponse | null {
+    const exampleId = this.diffBaselineExampleId();
+    if (exampleId) {
+      const example = this.requestExamples.find(item => item.id === exampleId);
+      return example ? responseFromExample(example) : null;
+    }
+    return this.previousResponse();
+  },
+
+  diffBaselineLabel(this: ResponseHost): string {
+    const exampleId = this.diffBaselineExampleId();
+    if (!exampleId) return 'previous';
+    return this.requestExamples.find(item => item.id === exampleId)?.name ?? 'example';
+  },
+
+  diffBaselineOptions(this: ResponseHost) {
+    return [
+      ...(this.previousResponse() ? [{ id: '', label: 'Previous response' }] : []),
+      ...this.requestExamples.map(example => ({ id: example.id, label: example.name })),
+    ];
+  },
+
   responseDiff(this: ResponseHost) {
-    const previous = this.previousResponse();
-    if (!previous || !this.response) return null;
-    return diffResponseBodies(this.responseFullBody(previous), this.responseFullBody(this.response));
+    const baseline = this.diffBaselineResponse();
+    if (!baseline || !this.response) return null;
+    return diffResponseBodies(this.responseFullBody(baseline), this.responseFullBody(this.response));
   },
 
   clearResponseDiffBaseline(this: ResponseHost, requestId = this.activeRequestId) {
     if (!requestId) return;
-    const previous = new Map(this.previousResponses);
-    previous.delete(requestId);
-    this.previousResponses = previous;
-    if (this.responseTab === 'diff') this.setActiveResponseTab('body');
+    // Dismissing drops whichever baseline is in use: a chosen example is put
+    // back to the previous response, and dismissing that closes the tab.
+    if (this.diffBaselineExampleId(requestId)) {
+      this.setDiffBaselineExample('', requestId);
+      if (this.previousResponse(requestId)) return;
+    } else {
+      const previous = new Map(this.previousResponses);
+      previous.delete(requestId);
+      this.previousResponses = previous;
+    }
+    if (this.responseTab === 'diff' && !this.diffBaselineResponse()) this.setActiveResponseTab('body');
   },
 
   setActiveResponseTab(this: ResponseHost, tab: ResponseTab, requestId = this.activeRequestId) {
@@ -367,7 +425,7 @@ export const responseFeature = {
       ...emptyHttpResponse(),
       statusCode: 200,
       status: '200 OK',
-      headers: [{ key: 'Content-Type', value: contentType, enabled: true, isFile: false, fileName: '' }],
+      headers: [{ key: 'Content-Type', value: contentType, enabled: true, isFile: false, fileName: '', contentType: '' }],
       body,
       duration: 0,
       size,

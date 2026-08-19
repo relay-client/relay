@@ -19,6 +19,7 @@ import type {
   Method,
   OAuth2GrantType,
   RawBodyType,
+  RequestExample,
   RequestSettings,
   RequestSettingsOverrides,
   RequestStore,
@@ -285,6 +286,9 @@ class TestApp {
   testScriptJs = '';
   scriptEngine: ScriptEngine = 'js';
   requestNotes = '';
+  requestExamples: RequestExample[] = [];
+  diffBaselineExampleIds = new Map<string, string>();
+  selectedExampleId = '';
   response: HttpResponse | null = null;
   responseTab: ResponseTab = 'body';
   responseBodyPage = 0;

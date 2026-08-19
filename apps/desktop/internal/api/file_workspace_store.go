@@ -429,6 +429,12 @@ func writeYAMLWorkspaceStore(root string, workspaces, collections, requests, env
 					return fmt.Errorf("request is missing id")
 				}
 				requestPath := filepath.Join(requestsDir, requestFiles[requestID]+fileStoreYAMLExt)
+				// Examples are lifted out of the request before it is written:
+				// they live in their own files under the collection's examples/
+				// directory, so a saved response never bloats the request YAML.
+				if err := writeRequestExamples(collectionDir, requestFiles[requestID], requestExampleMaps(request), desiredFiles); err != nil {
+					return err
+				}
 				delete(request, filesystemNameField)
 				if err := writeYAMLFile(requestPath, filesystemRequestFile{Version: fileStoreVersion, Request: request}); err != nil {
 					return err
@@ -535,7 +541,8 @@ func pruneYAMLWorkspaceStore(root string, desiredFiles map[string]struct{}, pres
 		if entry.IsDir() {
 			return nil
 		}
-		if filepath.Ext(path) != fileStoreYAMLExt {
+		isExampleBody := isExampleBodyPath(path)
+		if !isExampleBody && filepath.Ext(path) != fileStoreYAMLExt {
 			return nil
 		}
 		if _, ok := desiredFiles[path]; ok {
@@ -547,7 +554,9 @@ func pruneYAMLWorkspaceStore(root string, desiredFiles map[string]struct{}, pres
 		if info, err := os.Lstat(path); err != nil || info.Mode()&os.ModeSymlink != 0 {
 			return nil
 		}
-		if !isRelayManagedYAMLFile(path) {
+		// A body file carries no marker of its own, so it is trusted only
+		// because of where it sits: directly inside examples/<request>/.
+		if !isExampleBody && !isRelayManagedYAMLFile(path) {
 			return nil
 		}
 		return os.Remove(path)
@@ -620,7 +629,7 @@ func isRelayManagedYAMLFile(path string) bool {
 	if _, hasVersion := doc["version"]; !hasVersion {
 		return false
 	}
-	for _, key := range []string{"workspace", "collection", "request", "environment"} {
+	for _, key := range []string{"workspace", "collection", "request", "environment", "example"} {
 		if _, ok := doc[key]; ok {
 			return true
 		}
@@ -853,6 +862,15 @@ func collectWorkspaceFolderChildren(workspacePath, root, workspaceID string, col
 		for _, requestEntry := range requestEntries {
 			requestID := stringValue(requestEntry.request, "id")
 			seenRequests[requestID] = true
+			examples, exampleDiagnostics := readRequestExamples(
+				collectionEntry.path,
+				stringValue(requestEntry.request, filesystemNameField),
+				root, workspaceID, collectionID, requestID,
+			)
+			diagnostics = append(diagnostics, exampleDiagnostics...)
+			if len(examples) > 0 {
+				requestEntry.request["examples"] = examples
+			}
 			requests = append(requests, requestEntry.request)
 		}
 		hasRequestLoadErrors := len(requestDiagnostics) > 0
