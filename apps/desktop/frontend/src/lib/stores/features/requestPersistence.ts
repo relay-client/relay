@@ -297,10 +297,17 @@ export const requestPersistenceFeature = {
     if (!current || current.isDraft) return false;
     const updatedRequests = this.requests.map(r => r.id === id ? current : r);
     this.requests = updatedRequests;
+    // Clear the dirty mark before writing, not after. In manual-save mode
+    // requestsForStore deliberately substitutes the last saved version for any
+    // request still marked dirty — that is what keeps unsaved edits off disk.
+    // An explicit save was still marked dirty at that moment, so it wrote the
+    // previous version and then reported success: the edit was lost on the next
+    // load while the interface showed it as saved. The mark goes back on if the
+    // write fails.
+    this.removeDirtyRequest(id);
     const ok = await this.persistRequestStore(updatedRequests, this.activeRequestId);
     if (ok) {
       this.savedRequestSnapshots.set(id, this.savedRequestSnapshot(current));
-      this.removeDirtyRequest(id);
     } else {
       this.updateRequestDirtyState(id, current);
     }
