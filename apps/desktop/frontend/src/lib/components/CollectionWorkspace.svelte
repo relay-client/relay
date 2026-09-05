@@ -142,8 +142,6 @@
     if (path) settings[field] = path;
   }
 
-  // Dropping the certificate takes the key and passphrase with it: a key on its
-  // own is not a configuration any request can use.
   function clearCollectionCertField(field: 'clientCertPath' | 'clientKeyPath') {
     settings[field] = '';
     if (field === 'clientCertPath') {

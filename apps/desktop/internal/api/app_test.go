@@ -1149,8 +1149,6 @@ func TestApplyQueryParamsEscapesKeyAndValue(t *testing.T) {
 	}
 }
 
-// APIs that sign the query string verbatim break when the client reorders it,
-// so params must reach the wire in the order the user arranged them.
 func TestApplyQueryParamsPreservesOrder(t *testing.T) {
 	for _, autoEncode := range []bool{true, false} {
 		name := "manual encoding"
@@ -1197,8 +1195,6 @@ func TestApplyQueryParamsKeepsRepeatedKeysInOrder(t *testing.T) {
 	}
 }
 
-// url.Values rewrites a bare flag into an empty assignment; some APIs treat
-// the two differently, so whichever the user typed has to survive.
 func TestApplyQueryParamsKeepsBareFlag(t *testing.T) {
 	u, err := url.Parse("https://example.com/search?debug&verbose=")
 	if err != nil {
@@ -1219,8 +1215,6 @@ func TestApplyQueryParamsReencodesExistingQueryWhenAutomatic(t *testing.T) {
 	}
 	applyQueryParams(u, model.HttpRequest{EncodeURLAutomatically: true})
 
-	// "a b" is normalised; "%zz" is invalid escaping and gets escaped whole
-	// rather than silently dropped.
 	want := "q=a+b&raw=%25zz"
 	if u.RawQuery != want {
 		t.Fatalf("expected %q, got %q", want, u.RawQuery)
@@ -2647,8 +2641,6 @@ func TestRelayYAMLFormatPublicContractFiles(t *testing.T) {
 		fileStoreRootIndex,
 		fileStoreExamplesDir,
 		"workspaces/**/*.yml",
-		// Secret values live in the encrypted local profile, not in the shared
-		// workspace tree — the docs must describe where resolved secrets are kept.
 		"requests.json",
 	} {
 		if !strings.Contains(docText, token) {
@@ -2685,9 +2677,6 @@ func readAllText(t *testing.T, root string) string {
 		if err != nil {
 			return err
 		}
-		// Emit the path in one shape on every platform: the assertions
-		// against this dump name files as "Collection/request.yml", which
-		// no Windows path would ever match.
 		builder.WriteString(filepath.ToSlash(path))
 		builder.WriteByte('\n')
 		builder.Write(data)

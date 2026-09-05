@@ -2,8 +2,6 @@
   import { onMount, untrack } from 'svelte';
   import { getAppInfo, checkForUpdate, applyUpdate, restartApp } from './lib/backend';
   import type { OAuth2DevicePrompt, UpdateInfo } from './lib/backend';
-  // Bundled at build time (see the relay-changelog plugin in vite.config.ts) so
-  // the release notes are available offline and match the running build exactly.
   import CHANGELOG_MARKDOWN from 'virtual:relay-changelog';
   import { isReleaseVersion, latestReleaseNotes, releaseNotesFor, shouldShowWhatsNew, type ChangelogSection } from './lib/whatsNew';
   import WhatsNewModal from './lib/components/WhatsNewModal.svelte';
@@ -33,9 +31,6 @@
 
   let whatsNewSection = $state<ChangelogSection | null>(null);
 
-  // Opens the "What's new" screen once, on the first launch after an update.
-  // The notes are read from the changelog bundled with this build, so the
-  // screen works offline and always describes the version actually running.
   function checkWhatsNew(version: string) {
     let lastSeen: string | null = null;
     try {
@@ -47,8 +42,6 @@
     if (shouldShowWhatsNew(version, lastSeen, Boolean(section))) {
       whatsNewSection = section;
     }
-    // Record the version even when nothing is shown (fresh install, dev build,
-    // downgrade), so the next real upgrade has a baseline to compare against.
     if (isReleaseVersion(version)) {
       try {
         localStorage.setItem(LAST_SEEN_VERSION_KEY, version);
@@ -60,8 +53,6 @@
     whatsNewSection = null;
   }
 
-  // Opening the notes on demand from Settings falls back to the newest recorded
-  // release, so the entry still works on a dev build.
   function showWhatsNew() {
     whatsNewSection =
       releaseNotesFor(CHANGELOG_MARKDOWN, vm.appVersion) ?? latestReleaseNotes(CHANGELOG_MARKDOWN);
@@ -73,8 +64,6 @@
   let updateReady = $state(false);
   let autoUpdateInstall = $state(localStorage.getItem(AUTO_UPDATE_INSTALL_KEY) === 'true');
   let autoUpdateInstalling = $state(false);
-  // setTimeout id for the deferred update check + a destroy flag so async
-  // continuations don't write to a destroyed component (HMR scenario).
   let updateCheckTimer: ReturnType<typeof setTimeout> | null = null;
   let destroyed = false;
   let focusedBeforeWindowBlur: HTMLElement | null = null;
@@ -112,10 +101,6 @@
       updateReady = false;
       return false;
     }
-    // Stale pending-restart marker: if the user downgraded (or the install
-    // failed and the running binary is now older than the version we
-    // recorded), clear the marker so we don't pester them with a "restart
-    // to finish updating" banner that no longer applies.
     if (!isPendingVersionNewer(pendingReadyVersion, version)) {
       localStorage.removeItem(UPDATE_READY_KEY);
       updateReady = false;
@@ -125,8 +110,6 @@
     return true;
   }
 
-  // Compare two version strings; returns true iff `pending` is strictly
-  // newer than `current`. Empty / non-numeric falls back to string equality.
   function isPendingVersionNewer(pending: string, current: string): boolean {
     if (!pending || !current || pending === current) return false;
     const norm = (v: string) => v.replace(/^v/, '').split('-')[0]?.split('.').map(n => parseInt(n, 10) || 0) ?? [];
@@ -325,11 +308,6 @@
     })();
 
     return () => {
-      // HMR / fast-refresh remounts the component without destroying the
-      // previous instance synchronously. Without explicit cleanup the
-      // matchMedia + beforeunload + pagehide listeners and the deferred
-      // update check accumulate; the theme can briefly flip multiple times
-      // on each dev save, and the update banner can pop up after destroy.
       destroyed = true;
       if (updateCheckTimer !== null) {
         clearTimeout(updateCheckTimer);

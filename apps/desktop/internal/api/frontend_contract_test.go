@@ -13,19 +13,6 @@ import (
 	"github.com/relay-client/relay/apps/desktop/internal/model"
 )
 
-// The frontend derives its wire types from the generated Wails bindings, so
-// anything reachable from a bound method signature cannot drift. Three seams are
-// not reachable that way and are checked here instead:
-//
-//   - the request-setting name lists this package keeps for the workspace files,
-//   - the CLI's own decode structs, which read the same workspace,
-//   - the event payloads, which travel over the runtime event bus rather than
-//     as the return value of a bound method.
-//
-// Each of these has already produced a bug: a setting implemented in Go and
-// unreachable from the app, an OAuth grant the CLI could not run, and a whole
-// class of fields dropped on save.
-
 func frontendSource(t *testing.T, name string) string {
 	t.Helper()
 	path := filepath.Join("..", "..", "frontend", "src", "lib", name)
@@ -36,8 +23,6 @@ func frontendSource(t *testing.T, name string) string {
 	return string(data)
 }
 
-// objectKeys pulls the property names out of a `const X = { ... }` or
-// `function x() { return { ... } }` block in a TypeScript source.
 func objectKeys(t *testing.T, source, declaration string) []string {
 	t.Helper()
 	start := strings.Index(source, declaration)
@@ -72,7 +57,6 @@ func objectKeys(t *testing.T, source, declaration string) []string {
 	return keys
 }
 
-// jsonFieldNames reads the json tag of every exported field on a struct.
 func jsonFieldNames(value any) []string {
 	typ := reflect.TypeOf(value)
 	names := make([]string, 0, typ.NumField())
@@ -101,16 +85,9 @@ func missingFrom(want, have []string) []string {
 	return missing
 }
 
-// A request setting the app can set has to be a setting the workspace writer
-// knows about, or it is silently dropped from the file on the next save. The
-// three realtime tuning settings were the other way round — implemented in Go,
-// with no field in the frontend model — and sat unreachable for two releases.
 func TestRequestSettingListsCoverTheFrontendModel(t *testing.T) {
 	settings := objectKeys(t, frontendSource(t, "constants.ts"), "export const DEFAULT_REQUEST_SETTINGS")
 
-	// Settings the workspace writer deliberately never filters by request type.
-	// They are written for every request, so they are absent from the per-type
-	// lists on purpose rather than by omission.
 	alwaysWritten := map[string]bool{
 		"scriptTimeoutMs":   true,
 		"allowSendRequest":  true,
@@ -149,14 +126,10 @@ func TestRequestSettingListsCoverTheFrontendModel(t *testing.T) {
 	}
 }
 
-// `relay run` decodes the workspace with its own structs. A field it does not
-// declare is a field the run behaves without — which is how an OAuth-protected
-// collection became unrunnable in CI while working in the app.
 func TestCLIStructsCoverTheAuthModel(t *testing.T) {
 	authState := objectKeys(t, frontendSource(t, "utils.ts"), "export function emptyAuthState()")
 	declared := jsonFieldNames(cliAuth{})
 
-	// Deliberate omissions, each with a reason. Anything else missing is drift.
 	skip := map[string]string{
 		"oauth2TokenExpiry":        "a run fetches its own token, so the app's expiry stamp is irrelevant",
 		"oauth2RedirectURL":        "the loopback redirect is built by the Go side at authorize time",
@@ -180,11 +153,7 @@ func TestCLIStructsCoverTheSettingsModel(t *testing.T) {
 	settings := objectKeys(t, frontendSource(t, "constants.ts"), "export const DEFAULT_REQUEST_SETTINGS")
 	declared := jsonFieldNames(cliSettings{})
 
-	// A run sends HTTP and GraphQL only; realtime requests are skipped, so their
-	// tuning settings have nothing to act on.
 	skip := regexp.MustCompile(`^(ws|sio|sse|grpc)`)
-	// Browser emulation and redirect-header policy are not wired into the runner
-	// yet. Listing them here keeps the omission a decision rather than an oversight.
 	notWiredYet := map[string]bool{
 		"browserEmulation":          true,
 		"browserOrigin":             true,
@@ -210,9 +179,6 @@ func TestCLIStructsCoverTheSettingsModel(t *testing.T) {
 	}
 }
 
-// These payloads reach the frontend over the event bus, so Wails never generates
-// a type for them and the frontend restates them by hand in wire.ts. This is the
-// only place left where a Go struct has a hand-written twin.
 func TestEventPayloadsMatchTheirHandWrittenTypes(t *testing.T) {
 	wire := frontendSource(t, "wire.ts")
 

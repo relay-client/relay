@@ -327,7 +327,6 @@ pm.request.body.update(parsed);
 	if res.Error != "" {
 		t.Fatalf("unexpected error: %s", res.Error)
 	}
-	// Postman calls every text body "raw", and imported scripts branch on it.
 	if ctx.Variables["mode"] != "raw" {
 		t.Fatalf("mode = %q", ctx.Variables["mode"])
 	}
@@ -429,8 +428,6 @@ pm.variables.set("formdata", String(pm.request.body.formdata));
 	if !reflect.DeepEqual(ctx.RequestFormData, want) {
 		t.Fatalf("form data = %+v, want %+v", ctx.RequestFormData, want)
 	}
-	// The list for the mode the request is not in has to stay absent, because
-	// scripts branch on it.
 	if ctx.Variables["formdata"] != "undefined" {
 		t.Fatalf("formdata on a urlencoded body = %q", ctx.Variables["formdata"])
 	}

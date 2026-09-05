@@ -92,9 +92,6 @@ func TestWriteCollectionTextFilesRejectsUnsafePathsAndSymlinkOverwrite(t *testin
 }
 
 func TestEnsureWorkspaceGitignoreFollowsTheFilesLineEnding(t *testing.T) {
-	// Git checks a workspace out with CRLF on Windows by default. Appending
-	// LF there would leave a file with two kinds of line ending, which reads
-	// as a whole-file change the next time anything normalises it.
 	root := t.TempDir()
 	path := filepath.Join(root, ".gitignore")
 	if err := os.WriteFile(path, []byte(".relay-local/\r\n.env\r\n"), 0644); err != nil {

@@ -46,8 +46,6 @@ describe('auth in generated snippets', () => {
   };
   const curlStub = () => 'curl';
 
-  // snippetHeaders only knew bearer and API key, so every other scheme was
-  // dropped from all twelve languages at once.
   it('emits Basic credentials for every language that sends headers', () => {
     for (const language of ['python', 'go', 'javascript', 'ruby'] as const) {
       const out = buildSnippet(language, { ...base, auth: { type: 'basic', token: '', username: 'ada', password: 'hunter2', keyName: '', keyValue: '', keyIn: 'header' } }, curlStub);
@@ -60,8 +58,6 @@ describe('auth in generated snippets', () => {
     expect(out).toContain('Bearer AT-1');
   });
 
-  // Digest and SigV4 cannot be a fixed header, so the snippet says so rather
-  // than looking complete and failing at runtime.
   it('explains the schemes that cannot be expressed as a header', () => {
     const digest = buildSnippet('python', { ...base, auth: { type: 'digest', token: '', username: 'ada', password: 'x', keyName: '', keyValue: '', keyIn: 'header' } }, curlStub);
     expect(digest).toContain('# Digest auth');

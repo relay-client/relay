@@ -68,8 +68,6 @@ beforeEach(() => {
   mockClear.mockResolvedValue('');
 });
 
-// History used to keep only the status line, so there was no way back to what a
-// request actually returned.
 describe('recording a response', () => {
   it('stores the response and records what it was', async () => {
     const host = makeHost();
@@ -88,8 +86,6 @@ describe('recording a response', () => {
     });
   });
 
-  // The timeline describes a connection that no longer exists and is the bulky
-  // part of a response; there is no point carrying it.
   it('leaves the timeline and wire trace out of what it stores', async () => {
     const host = makeHost();
     await host.recordRequestHistory(response({
@@ -102,8 +98,6 @@ describe('recording a response', () => {
     expect(stored.sentRequests).toEqual([]);
   });
 
-  // Binary bytes do not survive the trip to the interface, so storing the
-  // mangled string would be storing a lie.
   it('does not store the body of a binary response', async () => {
     const host = makeHost();
     await host.recordRequestHistory(response({ bodyIsBinary: true, body: '���' }));
@@ -143,7 +137,6 @@ describe('reopening a stored response', () => {
     expect(host.setActiveResponse.mock.calls[0][0].warnings.join(' ')).toContain('truncated');
   });
 
-  // An entry recorded before this existed has nothing to show; that is not an error.
   it('reports an entry with nothing stored instead of failing', async () => {
     const host = makeHost({ requestHistory: [{ id: 'history-1' }] });
 
@@ -186,9 +179,6 @@ describe('cleaning up stored responses', () => {
   });
 });
 
-// The history guide has always said that opening an entry restores the response
-// as well as the request — looking at what an endpoint returned an hour ago is
-// the reason to come here, and re-sending would answer a different question.
 describe('opening an entry', () => {
   it('restores the response alongside the request', async () => {
     mockLoad.mockResolvedValue({ stored: true, truncated: false, payload: JSON.stringify(response({ body: 'from history' })) });

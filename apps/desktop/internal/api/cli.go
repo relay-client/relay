@@ -16,7 +16,6 @@ import (
 	"github.com/relay-client/relay/apps/desktop/internal/model"
 )
 
-// cliOptions holds everything parsed from the `relay run` flags.
 type cliOptions struct {
 	workspace           string
 	env                 string
@@ -45,14 +44,12 @@ type cliOptions struct {
 	stderr              io.Writer
 }
 
-// cliTestResult is one assertion outcome, for the reporters.
 type cliTestResult struct {
 	Name   string `json:"name"`
 	Passed bool   `json:"passed"`
 	Error  string `json:"error,omitempty"`
 }
 
-// cliRunResult is the outcome of one executed request (one iteration).
 type cliRunResult struct {
 	Name        string          `json:"name"`
 	Method      string          `json:"method"`
@@ -74,8 +71,6 @@ func (r cliRunResult) failed() bool {
 	return !r.Skipped && (r.Error != "" || (r.TestsTotal > 0 && r.TestsPassed != r.TestsTotal))
 }
 
-// RunCLI executes `relay run` and returns the process exit code. It is wired
-// from main so the same binary serves the desktop app and CI runs.
 func RunCLI(args []string) int {
 	opts, err := parseCLIArgs(args, os.Stdout, os.Stderr)
 	if err != nil {
@@ -126,9 +121,6 @@ func parseCLIArgs(args []string, stdout, stderr io.Writer) (cliOptions, error) {
 		fs.PrintDefaults()
 	}
 
-	// Go's flag package stops at the first positional, so `run ./ws --env x`
-	// would never see --env. Pull a leading workspace path out first, then
-	// parse the remaining flags.
 	positional := ""
 	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
 		positional = args[0]
@@ -158,8 +150,6 @@ func parseCLIArgs(args []string, stdout, stderr io.Writer) (cliOptions, error) {
 		opts.iterations = 1
 	}
 
-	// Reporter selection: --reporters wins, then --reporter, else default cli.
-	// An export path implies its reporter even if not named.
 	names := splitCSV(*reporters)
 	if len(names) == 0 && *reporter != "" {
 		names = []string{*reporter}
@@ -259,8 +249,6 @@ func runCLI(opts cliOptions) int {
 		fmt.Fprintln(opts.stderr, "relay run: no runnable requests matched the selection")
 		return 2
 	}
-	// Fold in each collection's defaults up front, so the rest of the run sees
-	// the same resolved request the app would send.
 	collectionsByID := make(map[string]*cliCollection, len(collections))
 	for i := range collections {
 		collectionsByID[collections[i].ID] = &collections[i]
@@ -328,9 +316,6 @@ func runCLIRequest(sm *state.Manager, jars *cookieJarRegistry, cache *preflightC
 	}
 	base := cliRunResult{Name: label, Method: strings.ToUpper(req.Method), URL: req.URL, Iteration: iteration}
 
-	// Re-read variables each request so a value a test wrote (pm.environment.set)
-	// is visible to the next request. The data row overlays on top, read-only,
-	// exactly like Postman's iterationData.
 	values := sm.GetEnvironment()
 	if len(dataRow) > 0 {
 		merged := make(map[string]string, len(values)+len(dataRow))
@@ -348,9 +333,6 @@ func runCLIRequest(sm *state.Manager, jars *cookieJarRegistry, cache *preflightC
 	httpReq.Name = req.Name
 	httpReq.Iteration = iteration
 	httpReq.IterationCount = opts.iterationCount
-	// The flags are a run-wide override; without them the request keeps what it
-	// (or its collection) was configured with, so a workspace behaves the same
-	// in CI as it does in the app.
 	httpReq.ScriptTimeoutMs = req.Settings.ScriptTimeoutMs
 	if opts.scriptTimeoutMs > 0 {
 		httpReq.ScriptTimeoutMs = opts.scriptTimeoutMs
@@ -362,8 +344,6 @@ func runCLIRequest(sm *state.Manager, jars *cookieJarRegistry, cache *preflightC
 	base.Method = httpReq.Method
 	base.URL = httpReq.URL
 
-	// An OAuth 2.0 request gets its own token: the one saved by the app lives in
-	// the machine-local secret store and is not in the checkout CI runs from.
 	if err := tokens.resolveOAuth2Token(&httpReq.Auth); err != nil {
 		base.Error = err.Error()
 		return base
@@ -443,9 +423,6 @@ func folderPrefixMatches(path, prefix []string) bool {
 	return true
 }
 
-// resolveCLIValues merges global, collection, and environment variables, plus an
-// optional env file and --var overrides, in ascending priority. It also collects
-// the values that should be redacted from script output.
 func resolveCLIValues(opts cliOptions, collections []cliCollection, environments []cliEnvironment, globals map[string]string) (map[string]string, []string, error) {
 	values := map[string]string{}
 	for key, value := range globals {
@@ -534,8 +511,6 @@ func readEnvFile(path string) (map[string]string, error) {
 	return values, nil
 }
 
-// readVariableFile reads a KEY=VALUE file, or a JSON object / Postman-style
-// environment export ({"values":[{"key","value","enabled"}]}).
 func readVariableFile(path string) (map[string]string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -563,7 +538,6 @@ func readVariableFile(path string) (map[string]string, error) {
 			}
 			return values, nil
 		}
-		// Fall back to a flat {"key":"value"} object.
 		var flat map[string]any
 		if err := json.Unmarshal([]byte(trimmed), &flat); err != nil {
 			return nil, fmt.Errorf("not valid JSON")
@@ -613,8 +587,6 @@ func loadCLIWorkspace(root string) ([]map[string]any, []cliCollection, []cliSave
 	return workspaces, collections, requests, environments, nil
 }
 
-// --- exports ---
-
 func exportScopes(opts cliOptions, sm *state.Manager, globals map[string]string) error {
 	if opts.exportEnvironment != "" {
 		if err := writeVariableExport(opts.exportEnvironment, opts.env, sm.GetEnvironment()); err != nil {
@@ -629,8 +601,6 @@ func exportScopes(opts cliOptions, sm *state.Manager, globals map[string]string)
 	return nil
 }
 
-// writeVariableExport writes a Postman-compatible environment JSON so the file
-// round-trips into Postman or a later `relay run --env-file`.
 func writeVariableExport(path, name string, values map[string]string) error {
 	type exportValue struct {
 		Key     string `json:"key"`
@@ -653,8 +623,6 @@ func writeVariableExport(path, name string, values map[string]string) error {
 	}
 	return os.WriteFile(path, append(data, '\n'), 0o644)
 }
-
-// --- reporters ---
 
 func runReporters(opts cliOptions, results []cliRunResult, elapsed time.Duration) error {
 	for _, name := range opts.reporters {

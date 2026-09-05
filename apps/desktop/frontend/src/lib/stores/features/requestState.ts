@@ -179,8 +179,6 @@ export const requestStateFeature = {
       grpcUseReflection: this.grpcUseReflection, grpcProtoFilePath: this.grpcProtoFilePath,
       grpcProtoFileName: this.grpcProtoFileName, grpcProtoImportPaths: this.grpcProtoImportPaths,
       graphqlOperationName: this.graphqlOperationName,
-      // Reading each field registers the dependency, so renaming an example,
-      // reordering, or editing its body schedules a save like any other edit.
       examples: this.requestExamples.map(
         example => `${example.id}:${example.name}:${example.response.statusCode}:${example.response.body.length}:${example.notes ?? ''}`,
       ),
@@ -238,8 +236,6 @@ export const requestStateFeature = {
       preRequestScript: this.preRequestScript, testScript: this.testScript,
       preRequestScriptJs: this.preRequestScriptJs, testScriptJs: this.testScriptJs,
       requestNotes: this.requestNotes,
-      // Left off entirely when there are none, so a request with no examples
-      // does not carry an empty array into the workspace YAML.
       ...(this.requestExamples.length ? { examples: this.requestExamples.map(cloneRequestExample) } : {}),
       settings: this.currentRequestSettings(),
       settingsOverrides: this.currentRequestSettingsOverrides(),
@@ -382,11 +378,6 @@ export const requestStateFeature = {
     if (this.normalizeRequestTypeValue(req.requestType, req.url) !== 'socketio' && this.socketIOSessions.has(req.id)) {
       void socketIODisconnect(req.id);
     }
-    // Defer to a microtask, not a 0-ms macrotask. setTimeout(…, 0) hands
-    // control back to the event loop *and* lets Svelte 5 effect callbacks
-    // for the dozens of $state writes above run while applyingSavedRequest
-    // is already false — they'd see the just-applied request as a user
-    // edit and re-trigger autosave, overwriting the snapshot we loaded.
     queueMicrotask(() => { this.applyingSavedRequest = false; });
   },
 

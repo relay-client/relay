@@ -13,8 +13,6 @@ import { newRequestId } from '../../utils';
 
 const REQUEST_CANCELED_ERROR = 'Request canceled';
 
-// Best-effort download name from the URL's last path segment; the backend adds an extension from
-// the response Content-Type and prefers Content-Disposition when present. Empty -> backend uses "response".
 function downloadFilenameFromUrl(url: string): string {
   const path = url.split('#')[0].split('?')[0].replace(/\/+$/, '');
   const segment = (path.split('/').pop() ?? '').trim();
@@ -120,8 +118,6 @@ export const requestExecutionFeature = {
     await this.send();
   },
 
-  // "Send and Download": run the request and save the raw response body to a file (binary-safe,
-  // written in Go). Plain HTTP only — realtime/gRPC have no downloadable response body.
   async runActiveRequestAndDownload(this: RequestExecutionHost) {
     if (this.requestType !== 'http' || this.method === 'SSE' || this.sseSessionIsActive()) return;
     await this.send({ downloadName: downloadFilenameFromUrl(this.url) });
@@ -198,8 +194,6 @@ export const requestExecutionFeature = {
         this.setActiveResponse(resp, requestId);
         this.responseBodyPage = 0;
         this.responseSearchIndex = 0;
-        // A binary body is unreadable in the text view, so prefer Preview when
-        // there is one — unless the request has assertions worth showing first.
         const defaultTab = resp.testResult?.tests?.length
           ? 'test-results'
           : (resp.previewImageBase64 ? 'preview' : 'body');

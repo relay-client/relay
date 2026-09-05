@@ -19,7 +19,6 @@ import (
 	"github.com/relay-client/relay/apps/desktop/internal/model"
 )
 
-// issueCert mints a self-signed certificate and returns its PEM cert and key.
 func issueCert(t *testing.T, commonName string) (certPEM, keyPEM []byte, cert tls.Certificate) {
 	t.Helper()
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
@@ -62,8 +61,6 @@ func writeTemp(t *testing.T, dir, name string, data []byte) string {
 	return path
 }
 
-// mTLSServer starts an HTTPS server that requires and verifies a client
-// certificate against the given pool.
 func mTLSServer(t *testing.T, clientCA *x509.CertPool) *httptest.Server {
 	t.Helper()
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +84,7 @@ func mTLSTestRequest(url, certPath, keyPath string) model.HttpRequest {
 		FollowRedirects:       true,
 		TimeoutMs:             5000,
 		HTTPVersion:           "auto",
-		EnableSSLVerification: false, // self-signed server cert; the point of the test is the client cert
+		EnableSSLVerification: false,
 		MaxRedirects:          10,
 		ClientCertPath:        certPath,
 		ClientKeyPath:         keyPath,
@@ -120,8 +117,6 @@ func TestClientCertificateIsPresentedForMutualTLS(t *testing.T) {
 	}
 }
 
-// Without a client certificate the same server must reject the handshake, so
-// this proves the success case above was actually driven by the cert.
 func TestMutualTLSServerRejectsRequestWithoutCert(t *testing.T) {
 	_, _, clientCert := issueCert(t, "relay-client")
 	pool := x509.NewCertPool()
@@ -151,8 +146,6 @@ func TestClientCertificateEncryptedKeyNeedsPassword(t *testing.T) {
 	dir := t.TempDir()
 	certPEM, keyPEM, _ := issueCert(t, "enc-client")
 
-	// Encrypt the key with the legacy PEM scheme so we can prove the
-	// password path and the "needs a password" message.
 	block, _ := pem.Decode(keyPEM)
 	//nolint:staticcheck // legacy format is intentional here
 	encBlock, err := x509.EncryptPEMBlock(rand.Reader, block.Type, block.Bytes, []byte("s3cret"), x509.PEMCipherAES256)
@@ -164,13 +157,11 @@ func TestClientCertificateEncryptedKeyNeedsPassword(t *testing.T) {
 	certPath := writeTemp(t, dir, "client.crt", certPEM)
 	keyPath := writeTemp(t, dir, "client.key", encKeyPEM)
 
-	// No password: clear guidance, not an opaque parse error.
 	noPass := mTLSTestRequest("https://example.com", certPath, keyPath)
 	if msg := validateClientCertificate(noPass); !containsSubstr(msg, "password") {
 		t.Fatalf("expected a password hint, got %q", msg)
 	}
 
-	// Wrong password: rejected.
 	clientCerts = newClientCertCache()
 	wrong := noPass
 	wrong.ClientKeyPassword = "nope"
@@ -178,7 +169,6 @@ func TestClientCertificateEncryptedKeyNeedsPassword(t *testing.T) {
 		t.Fatal("expected a wrong-password error")
 	}
 
-	// Correct password: loads.
 	clientCerts = newClientCertCache()
 	right := noPass
 	right.ClientKeyPassword = "s3cret"
@@ -187,7 +177,6 @@ func TestClientCertificateEncryptedKeyNeedsPassword(t *testing.T) {
 	}
 }
 
-// Different client certs must not share a pooled connection.
 func TestTransportKeySeparatesClientCertificates(t *testing.T) {
 	base := mTLSTestRequest("https://example.com", "/certs/a.pem", "/certs/a.key")
 	other := mTLSTestRequest("https://example.com", "/certs/b.pem", "/certs/b.key")

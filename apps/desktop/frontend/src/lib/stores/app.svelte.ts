@@ -889,7 +889,6 @@ class AppVM {
   params = $state<KVRow[]>([mkRow()]);
   reqHeaders = $state<KVRow[]>([mkRow()]);
   formRows = $state<KVRow[]>([mkRow()]);
-  // Which key/value tables are currently showing their text (bulk edit) form.
   bulkEditTables = $state<{ params: boolean; headers: boolean; form: boolean }>({ params: false, headers: false, form: false });
 
   authType = $state<AuthType>('none');
@@ -948,8 +947,6 @@ class AppVM {
   testScriptJs = $state('');
   scriptEngine = $state<ScriptEngine>('js');
   requestNotes = $state('');
-  // The active request's saved examples, edited like every other request field
-  // and folded back in by snapshotActiveRequest.
   requestExamples = $state<RequestExample[]>([]);
   selectedExampleId = $state('');
 
@@ -961,7 +958,6 @@ class AppVM {
   response = $state<HttpResponse | null>(null);
   responses = $state<Map<string, HttpResponse>>(new Map());
   previousResponses = $state<Map<string, HttpResponse>>(new Map());
-  // Which example, if any, the diff compares against — per request.
   diffBaselineExampleIds = $state<Map<string, string>>(new Map());
   responseTabs = $state<Map<string, ResponseTab>>(new Map());
   grpcResponse = $state<GrpcResponse | null>(null);
@@ -1275,9 +1271,6 @@ class AppVM {
     const req = this.requests.find(r => r.id === id); if (!req) return;
     if (this.savedRequestIsRealtime(req)) { this.openRequestMenuId = ''; return; }
     const { toCurl } = await import('../curl');
-    // Resolve {{variables}} the way the Code panel does — a command still
-    // holding template braces is not one anybody can paste and run. Secret
-    // values stay as their placeholder rather than landing on the clipboard.
     const values = this.environmentValuesForRequest(req, this.redactedActiveEnvironmentValues());
     clipboardCopy(toCurl(this.savedRequestToRunnableHttpRequest(req, values, [], []))); this.openRequestMenuId = '';
   }

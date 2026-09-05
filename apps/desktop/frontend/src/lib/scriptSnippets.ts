@@ -1,8 +1,5 @@
 import type { ScriptEngine } from './types/models';
 
-// The snippet library behind the Scripts tab. It used to be a read-only
-// cheat sheet; each entry is now insertable, which is how most people write
-// their first assertion.
 
 export type ScriptSnippet = { label: string; code: string };
 
@@ -104,8 +101,6 @@ export function testSnippets(engine: ScriptEngine): ScriptSnippet[] {
   return engine === 'js' ? JS_TESTS : TENGO_TESTS;
 }
 
-// Inserting appends rather than replacing: a snippet is a starting point added
-// to whatever is already written, not a substitute for it.
 export function appendSnippet(source: string, code: string): string {
   const existing = source.replace(/\s+$/, '');
   return existing ? `${existing}\n${code}\n` : `${code}\n`;

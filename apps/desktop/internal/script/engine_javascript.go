@@ -54,14 +54,8 @@ func limitJSHostString(s string) string {
 	return s[:end] + fmt.Sprintf("... [truncated after %d bytes]", jsMaxHostValueBytes)
 }
 
-// maxScriptFormRows caps how many fields a script can put in a form body. It
-// is far above any real form and keeps a runaway loop from building a request
-// the sender then has to serialise.
 const maxScriptFormRows = 500
 
-// scriptFormRow is the shape a form field takes inside the sandbox. It follows
-// Postman's naming (`disabled`, `type: "file"`) so a script written against
-// pm.request.body.urlencoded reads the fields it expects.
 type scriptFormRow struct {
 	Key      string `json:"key"`
 	Value    string `json:"value"`
@@ -95,8 +89,6 @@ func decodeScriptFormData(payload string, previous []model.KeyValue) ([]model.Ke
 	if len(incoming) > maxScriptFormRows {
 		return nil, fmt.Errorf("a form body is limited to %d fields", maxScriptFormRows)
 	}
-	// A file field's name is metadata the script has no reason to carry, so it
-	// is recovered from the row that held the same key.
 	fileNames := make(map[string]string, len(previous))
 	for _, row := range previous {
 		if row.IsFile && row.FileName != "" {
@@ -122,8 +114,6 @@ func decodeScriptFormData(payload string, previous []model.KeyValue) ([]model.Ke
 	return rows, nil
 }
 
-// rawBodyWriteWarning explains why a raw write cannot land, for the body modes
-// that are not built from raw text.
 func rawBodyWriteWarning(ctx *Context) string {
 	switch PostmanBodyMode(ctx.RequestBodyType) {
 	case "urlencoded":
@@ -138,8 +128,6 @@ func rawBodyWriteWarning(ctx *Context) string {
 	return ""
 }
 
-// logScriptWarning records a warning once. Repeating it for every write in a
-// loop would bury the rest of the log.
 func logScriptWarning(ctx *Context, message string) {
 	for _, existing := range ctx.Logs {
 		if existing == message {
@@ -244,8 +232,6 @@ func buildJSHost(vm *goja.Runtime, ctx *Context, hasResponse bool) map[string]in
 		"reqSetUrl":    func(u string) { ctx.RequestURL = limitJSHostString(u) },
 		"reqGetMethod": func() string { return ctx.RequestMethod },
 
-		// The validator lives in Go so tv4, Ajv, and
-		// pm.response.to.have.jsonSchema all report the same failures.
 		"schemaValidate": func(schemaJSON, dataJSON string) string {
 			errs, err := ValidateJSONSchemaText(schemaJSON, dataJSON)
 			payload := map[string]any{}
@@ -269,16 +255,11 @@ func buildJSHost(vm *goja.Runtime, ctx *Context, hasResponse bool) map[string]in
 		"reqSetBody": func(b string) {
 			ctx.RequestBody = limitJSHostString(b)
 			ctx.RequestBodyChanged = true
-			// A raw write cannot reach a body the request does not build from
-			// one. Saying so beats a request that quietly goes out unchanged.
 			if warning := rawBodyWriteWarning(ctx); warning != "" {
 				logScriptWarning(ctx, warning)
 			}
 		},
 
-		// Form and urlencoded bodies are rows, not text, so they are read and
-		// written as JSON: the sandbox side presents them as Postman's
-		// pm.request.body.urlencoded / .formdata lists.
 		"reqGetFormData": func() string { return encodeScriptFormData(ctx.RequestFormData) },
 		"reqSetFormData": func(payload string) string {
 			rows, err := decodeScriptFormData(payload, ctx.RequestFormData)
@@ -449,9 +430,6 @@ func buildJSHost(vm *goja.Runtime, ctx *Context, hasResponse bool) map[string]in
 	return host
 }
 
-// jsPrelude builds the Postman-style `pm` API, a chai-like `expect`, and a
-// `console` shim on top of the Go-backed `__relayHost` bridge. Written in
-// conservative ES5 so it always parses; user scripts may use modern JS.
 const jsPrelude = `
 var __relayAPI = (function (host) {
   function valStr(v) {
@@ -583,8 +561,6 @@ var __relayAPI = (function (host) {
     if (result.error) throw new Error(result.error);
     return result.errors || [];
   }
-  // Accepts a response (whose body is parsed) or a plain value, matching how
-  // pm.response.to.have.jsonSchema and pm.expect(obj).to.have.jsonSchema read.
   function assertionSubject(obj) {
     if (obj && typeof obj.json === 'function') {
       try { return obj.json(); } catch (e) { throw new Error('response body is not JSON: ' + e.message); }
@@ -705,10 +681,6 @@ var __relayAPI = (function (host) {
   Object.defineProperty(pm.request, 'url', { get: function () { return host.reqGetUrl(); }, configurable: true });
   Object.defineProperty(pm.request, 'method', { get: function () { return host.reqGetMethod(); }, configurable: true });
 
-  // A form body is a list of fields, not text, so it gets Postman's
-  // PropertyList surface (add/remove/each/upsert/toObject) rather than .raw.
-  // Every mutation writes straight back to the host: the script may hold on to
-  // the list, and the request must reflect what it did to it.
   function formRows() {
     try { return JSON.parse(host.reqGetFormData()) || []; } catch (e) { return []; }
   }
@@ -747,7 +719,6 @@ var __relayAPI = (function (host) {
         var next = asFormRow(item, value), rows = formRows(), replaced = false;
         for (var i = 0; i < rows.length; i++) {
           if (rows[i].key === next.key) {
-            // Keep an attachment attached when a script only rewrites its value.
             if (rows[i].type === 'file' && next.type !== 'file') { next.type = 'file'; next.fileName = rows[i].fileName; }
             rows[i] = next; replaced = true; break;
           }
@@ -776,8 +747,6 @@ var __relayAPI = (function (host) {
   var formList = makeFormList();
   var requestBody = {
     update: function (v) {
-      // Postman's update takes either a string or { mode, raw | urlencoded |
-      // formdata }; both forms show up in imported collections.
       if (v !== null && typeof v === 'object' && typeof v.mode === 'string') {
         if (v.mode === 'urlencoded' || v.mode === 'formdata') { writeFormRows((v[v.mode] || []).map(function (item) { return asFormRow(item); })); return; }
         host.reqSetBody(valStr(v.raw === undefined ? '' : v.raw));
@@ -794,8 +763,6 @@ var __relayAPI = (function (host) {
     configurable: true
   });
   Object.defineProperty(requestBody, 'mode', { get: function () { return host.reqGetBodyMode(); }, configurable: true });
-  // Postman exposes only the list matching the current mode, and scripts branch
-  // on that — so an absent list has to stay absent.
   Object.defineProperty(requestBody, 'urlencoded', { get: function () { return host.reqGetBodyMode() === 'urlencoded' ? formList : undefined; }, configurable: true });
   Object.defineProperty(requestBody, 'formdata', { get: function () { return host.reqGetBodyMode() === 'formdata' ? formList : undefined; }, configurable: true });
   pm.request.body = requestBody;
@@ -931,11 +898,6 @@ var __relayAPI = (function (host) {
     }
   };
 
-  // ---- modules reachable through require() -------------------------------
-  // Imported Postman collections routinely require() a handful of libraries.
-  // These are hand-written stand-ins, not the real packages: they cover the
-  // calls that show up in test scripts, and anything outside that surface
-  // fails loudly rather than returning a quietly wrong answer.
 
   function pathParts(path) {
     if (Array.isArray(path)) return path;
@@ -1147,8 +1109,6 @@ var __relayAPI = (function (host) {
   lodash.first = lodash.head;
   lodash.contains = lodash.includes;
 
-  // Anything outside the supported surface should say so instead of turning
-  // into "undefined is not a function" three lines later.
   var lodashModule = typeof Proxy === 'function' ? new Proxy(lodash, {
     get: function (target, name) {
       if (name in target || typeof name === 'symbol') return target[name];
@@ -1231,10 +1191,6 @@ var __relayAPI = (function (host) {
   return { pm: pm, expect: expect, console: console, CryptoJS: CryptoJS, require: require, _: lodashModule, tv4: tv4, Ajv: Ajv, atob: atob, btoa: btoa };
 })(__relayHost);
 
-// Attached as plain global properties rather than declared with var: a script
-// that opens with "const _ = require('lodash')" or "const expect = require('chai').expect"
-// — both ordinary Postman idioms — would otherwise fail to parse, because a
-// var-declared global cannot be redeclared with const.
 (function (globalScope) {
   globalScope.pm = __relayAPI.pm;
   globalScope.expect = __relayAPI.expect;

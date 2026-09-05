@@ -33,8 +33,6 @@ func TestReplaceFileSwapsTheDestination(t *testing.T) {
 }
 
 func TestReplaceFileReportsARealFailure(t *testing.T) {
-	// A missing source is not a transient lock, so it must come back at once
-	// rather than after the retry window.
 	dir := t.TempDir()
 	err := replaceFile(filepath.Join(dir, "absent.tmp"), filepath.Join(dir, "store.yml"))
 	if err == nil {
@@ -45,9 +43,6 @@ func TestReplaceFileReportsARealFailure(t *testing.T) {
 	}
 }
 
-// renameRetryable is what decides whether a failed rename is worth another
-// attempt. On Unix nothing is: the entry is replaced whether or not another
-// process holds the destination open, so a failure there is real.
 func TestRenameRetryableClassification(t *testing.T) {
 	if renameRetryable(nil) {
 		t.Fatal("no error is not retryable")
@@ -59,9 +54,6 @@ func TestRenameRetryableClassification(t *testing.T) {
 		t.Fatal("a missing file must not be retried")
 	}
 
-	// ERROR_SHARING_VIOLATION: another handle has the destination open. This
-	// is the case Windows reports where Unix simply succeeds — a scanner, a
-	// backup agent or an indexer holding the file for a moment.
 	sharingViolation := &os.LinkError{
 		Op:  "rename",
 		Old: "a.tmp",

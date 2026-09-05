@@ -1140,8 +1140,6 @@ func TestGitDiscardWorkspaceFileClearsStaleManagedGitignore(t *testing.T) {
 	runGitForTest(t, root, "init", "-b", "main")
 	configureGitUserForTest(t, root)
 
-	// Commit a .gitignore that predates one of Relay's managed entries so the
-	// open-time refresh has something to append.
 	staleGitignore := ".relay-local/\n.env\n.env.*\n*-????-??-??T??-??-??.html\n.DS_Store\nThumbs.db\n"
 	if err := os.WriteFile(filepath.Join(root, ".gitignore"), []byte(staleGitignore), 0644); err != nil {
 		t.Fatalf("write stale .gitignore: %v", err)
@@ -1150,7 +1148,6 @@ func TestGitDiscardWorkspaceFileClearsStaleManagedGitignore(t *testing.T) {
 	runGitForTest(t, root, "commit", "-m", "Initial Relay workspace")
 
 	app := NewApp()
-	// Opening re-applies Relay's managed entries, which dirties the committed .gitignore.
 	opened := app.OpenWorkspaceRoot(root)
 	if !opened.Ok {
 		t.Fatalf("open workspace failed: %s", opened.Error)
@@ -1170,9 +1167,6 @@ func TestGitDiscardWorkspaceFileClearsStaleManagedGitignore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read .gitignore: %v", err)
 	}
-	// Git for Windows checks out with CRLF by default, so the bytes on disk
-	// after a restore are not the bytes that were committed. What this test
-	// is about is the content coming back, not which line ending Git chose.
 	if normalizeNewlines(string(data)) != normalizeNewlines(staleGitignore) {
 		t.Fatalf("discard should restore the committed .gitignore, got:\n%s", data)
 	}
@@ -1186,21 +1180,16 @@ func TestGitDiscardWorkspaceFileRemovesRunnerReportArtifact(t *testing.T) {
 	writeRelayWorkspaceFiles(t, dir)
 	runGitForTest(t, dir, "init", "-b", "main")
 	configureGitUserForTest(t, dir)
-	// Commit a stale .gitignore that predates the runner-report artifact rule,
-	// so the report shows up as an untracked change (the user's real scenario).
 	if err := os.WriteFile(filepath.Join(dir, ".gitignore"), []byte(".relay-local/\n.env\n"), 0644); err != nil {
 		t.Fatalf("write stale .gitignore: %v", err)
 	}
 	runGitForTest(t, dir, "add", ".")
 	runGitForTest(t, dir, "commit", "-m", "Initial Relay workspace")
 
-	// A Relay-generated runner report saved into the repo. It matches the
-	// managed .gitignore artifact pattern but is not a workspace file.
 	reportName := "collection-1-2026-05-17T19-25-24.html"
 	if err := os.WriteFile(filepath.Join(dir, reportName), []byte("<!doctype html><title>report</title>"), 0644); err != nil {
 		t.Fatalf("write runner report: %v", err)
 	}
-	// A genuinely foreign user file that Relay must never touch.
 	foreignName := "my-notes.txt"
 	if err := os.WriteFile(filepath.Join(dir, foreignName), []byte("keep me"), 0644); err != nil {
 		t.Fatalf("write foreign file: %v", err)

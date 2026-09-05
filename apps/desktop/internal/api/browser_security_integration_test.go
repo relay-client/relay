@@ -191,7 +191,6 @@ func TestPreflightAllowsSafelistedMethodWithoutAllowMethods(t *testing.T) {
 	var sawActual bool
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodOptions {
-			// Server returns ACAO + ACAH but omits Access-Control-Allow-Methods.
 			w.Header().Set("Access-Control-Allow-Origin", "https://app.example.com")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 			w.WriteHeader(http.StatusNoContent)
@@ -212,7 +211,6 @@ func TestPreflightAllowsSafelistedMethodWithoutAllowMethods(t *testing.T) {
 	req.BrowserEnforceCORS = true
 
 	resp := NewApp().SendRequest(req)
-	// POST is a CORS-safelisted method, so the preflight passes without ACAM listing it.
 	if resp.Error != "" {
 		t.Fatalf("safelisted POST must pass preflight without Allow-Methods, got %q", resp.Error)
 	}
@@ -318,7 +316,6 @@ func TestCredentialedPreflightRejectsWildcardAllowedHeaders(t *testing.T) {
 	req.Headers = []model.KeyValue{{Enabled: true, Key: "X-Custom", Value: "v"}}
 
 	resp := NewApp().SendRequest(req)
-	// Without credentials wildcard '*' allows headers; with credentials it must not.
 	if !strings.Contains(resp.Error, "Access-Control-Allow-Headers does not allow x-custom") {
 		t.Fatalf("credentialed preflight must reject ACAH: *, got %q", resp.Error)
 	}
@@ -424,7 +421,6 @@ func TestCSPSubdomainWildcardMatches(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
-	// We can't change the server hostname, so test cspSourceAllows directly.
 	target, _ := url.Parse("https://api.team.example.com/x")
 	protected, _ := url.Parse("https://app.example.com")
 	if !cspSourceAllows("https://*.example.com", target, protected) {
@@ -450,7 +446,7 @@ func TestCSPPortWildcardMatches(t *testing.T) {
 }
 
 func TestCSPExplicitPortRejectsDefaultPort(t *testing.T) {
-	target := mustURL("https://example.com/x") // default port 443
+	target := mustURL("https://example.com/x")
 	protected := mustURL("https://app.example.com")
 	if cspSourceAllows("https://example.com:8443", target, protected) {
 		t.Fatal("explicit :8443 must not match default 443")
@@ -494,7 +490,6 @@ func TestCSPMalformedPolicyDoesNotPanic(t *testing.T) {
 	req.BrowserOrigin = "https://app.example.com"
 	req.BrowserEnforceCSP = true
 	req.BrowserCSP = ";;;;   ;;invalid syntax %^&* ;;"
-	// No connect-src/default-src — should pass without CSP error.
 	resp := NewApp().SendRequest(req)
 	if strings.Contains(resp.Error, "panic") {
 		t.Fatalf("malformed CSP must not panic: %q", resp.Error)
@@ -509,7 +504,6 @@ func TestEmptyOriginRejectedWhenCORSOrCSPEnforced(t *testing.T) {
 
 	req := defaultBrowserReq(server.URL)
 	req.BrowserEnforceCORS = true
-	// BrowserOrigin intentionally empty.
 	resp := NewApp().SendRequest(req)
 	if !strings.Contains(resp.Error, "browser emulation requires an Origin") {
 		t.Fatalf("expected error about missing Origin, got %q", resp.Error)
@@ -524,7 +518,6 @@ func TestInvalidOriginRejected(t *testing.T) {
 
 	req := defaultBrowserReq(server.URL)
 	req.BrowserEnforceCORS = true
-	// A scheme with no host can't be a valid origin even after scheme inference.
 	req.BrowserOrigin = "http://"
 	resp := NewApp().SendRequest(req)
 	if !strings.Contains(resp.Error, "invalid browser Origin") {
@@ -693,7 +686,6 @@ func TestBrowserEmulationSetsSecFetchSiteNoneWhenOriginUnset(t *testing.T) {
 
 	req := defaultBrowserReq(server.URL)
 	req.BrowserEmulation = true
-	// No BrowserOrigin, no CORS/CSP enforce — should allow request with Site=none.
 
 	resp := NewApp().SendRequest(req)
 	if resp.Error != "" {
@@ -726,7 +718,6 @@ func TestCORSPreflightContentTypeWithCharsetTriggersPreflight(t *testing.T) {
 	req.Body = "hello"
 	req.BrowserOrigin = "https://app.example.com"
 	req.BrowserEnforceCORS = true
-	// text/plain is a safelisted media type — no preflight expected.
 	resp := NewApp().SendRequest(req)
 	if resp.Error != "" {
 		t.Fatalf("unexpected error: %q", resp.Error)
@@ -744,8 +735,6 @@ func mustURL(raw string) *url.URL {
 	return u
 }
 
-// Real-network integration test against httpbin.org. Skipped unless
-// RELAY_NETWORK_INTEGRATION=1 is set, so CI without internet stays green.
 func TestIntegrationHTTPBinCORSEcho(t *testing.T) {
 	if os.Getenv("RELAY_NETWORK_INTEGRATION") != "1" {
 		t.Skip("set RELAY_NETWORK_INTEGRATION=1 to run network integration tests")
@@ -780,7 +769,6 @@ func TestIntegrationHTTPBinCORSPreflight(t *testing.T) {
 	req.Headers = []model.KeyValue{{Enabled: true, Key: "X-Relay-Probe", Value: "1"}}
 
 	resp := NewApp().SendRequest(req)
-	// httpbin.org echoes ACAO: * for any Origin; that's fine for non-credentialed requests.
 	if resp.Error != "" {
 		t.Fatalf("httpbin.org/anything preflight failed: %q", resp.Error)
 	}

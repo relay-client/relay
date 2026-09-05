@@ -25,12 +25,6 @@
   flex-shrink: 0;
 }
 
-/* The realtime bar puts the status summary and the tab strip on one flex row.
-   .response-tabs has no container rule of its own — it is a plain block whose
-   buttons wrap — so on a narrow panel the two tabs stacked into a second line
-   and pushed the bar apart. A panel this narrow is reachable in the shipped
-   app: at the minimum window width, with the sidebar dragged to its maximum,
-   the panel is around 650px. */
 .sse-tabs {
   display: flex;
   flex-wrap: nowrap;
@@ -53,8 +47,6 @@
   font-size: 12px;
   font-family: var(--font-sans, sans-serif);
   white-space: nowrap;
-  /* nowrap with min-width:0 and no clipping let the text run out of its box and
-     underneath the tabs. It gives up its own space instead. */
   overflow: hidden;
 }
 

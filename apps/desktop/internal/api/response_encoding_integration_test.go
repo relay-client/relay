@@ -11,10 +11,6 @@ import (
 	"github.com/relay-client/relay/apps/desktop/internal/model"
 )
 
-// When the request carries an explicit Accept-Encoding, Go's transport stops
-// auto-decompressing, so a br/zstd response would otherwise reach the viewer as
-// raw compressed bytes. These end-to-end tests exercise the real request path
-// and assert the body comes back readable.
 func TestSendRequestDecodesBrotli(t *testing.T) {
 	const payload = `{"error":"unauthorized"}`
 	var compressed bytes.Buffer
@@ -34,7 +30,6 @@ func TestSendRequestDecodesBrotli(t *testing.T) {
 	defer server.Close()
 
 	req := defaultBrowserReq(server.URL)
-	// Mirror the real-world curl: the client explicitly asks for br.
 	req.Headers = []model.KeyValue{{Enabled: true, Key: "Accept-Encoding", Value: "gzip, deflate, br, zstd"}}
 
 	resp := NewApp().SendRequest(req)

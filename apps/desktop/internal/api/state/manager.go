@@ -73,17 +73,6 @@ func (m *Manager) Snapshot() (variables, environment map[string]string) {
 	return util.CloneMap(m.variables), util.CloneMap(m.environment)
 }
 
-// Merge folds the changes a request made to its private snapshot back into the
-// shared state. before* are the pristine maps the caller snapshotted; after*
-// are the (possibly script-mutated) copies. Only keys whose value changed, were
-// added, or were removed relative to before are touched.
-//
-// This replaces a wholesale map swap that suffered a lost-update race: two
-// requests running concurrently each Snapshot the full map, mutate their copy,
-// and write it back — the second writer would clobber unrelated keys the first
-// writer had just set. Merging deltas keeps concurrent writes to distinct keys;
-// only genuine writes to the same key race (last writer wins), which is the
-// expected semantics.
 func (m *Manager) Merge(beforeVars, afterVars, beforeEnv, afterEnv map[string]string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

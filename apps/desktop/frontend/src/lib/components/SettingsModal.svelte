@@ -18,8 +18,6 @@
   import { friendlyUpdateError } from '../updateErrors';
   import { shortcutComboLabel } from '../stores/features/preferences';
 
-  // A bug report that carries the build, the platform and what Relay found
-  // on the machine costs the reporter one click and saves a round trip.
   let diagnosticsCopied = $state(false);
   let diagnosticsError = $state('');
   let logFolderError = $state('');

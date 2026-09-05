@@ -1,16 +1,12 @@
 <script lang="ts">
   import { onMount } from 'svelte';
 
-  // Custom Windows window controls. Only rendered/visible on the frameless
-  // Windows build (CSS gates visibility on data-platform="windows"). On macOS
-  // and Linux the native frame provides these, so this stays hidden.
   let maximised = $state(false);
 
   async function refreshMaximised() {
     try {
       maximised = !!(await window.runtime?.WindowIsMaximised?.());
     } catch {
-      /* runtime not available (browser/dev) — ignore */
     }
   }
 
@@ -20,13 +16,10 @@
 
   function toggleMaximise() {
     void window.runtime?.WindowToggleMaximise?.();
-    // The maximise toggle is async; re-read shortly after so the icon matches.
     setTimeout(refreshMaximised, 60);
   }
 
   function requestClose() {
-    // Mirror the native close button: go through Quit so the backend's
-    // BeforeClose hook runs (unsaved-draft review via relay:before-quit).
     void window.runtime?.Quit?.();
   }
 

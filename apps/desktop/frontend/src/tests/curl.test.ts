@@ -218,8 +218,6 @@ describe('auth in generated commands', () => {
     params: [], headers: [], bodyType: 'none', body: '', formData: [],
   };
 
-  // Only bearer and API key used to reach the generated command, so a copied
-  // Basic/Digest/OAuth/AWS request came back 401 with nothing to explain it.
   it('sends Digest credentials through curl --digest', () => {
     const out = toCurl({ ...base, auth: { type: 'digest', username: 'ada', password: 'hunter2' } });
     expect(out).toContain('--digest');

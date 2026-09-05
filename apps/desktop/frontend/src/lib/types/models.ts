@@ -208,9 +208,6 @@ export type ProxyConfig = {
   auth: ProxyAuth;
   bypass: string;
 };
-// An example is a saved response paired with the request snapshot that produced
-// it. The snapshot is kept whole because the request itself may change
-// afterwards, and without it there is no way to tell what produced the response.
 export type RequestExampleSnapshot = {
   method: Method; url: string;
   params: KVRow[]; headers: KVRow[];
@@ -223,8 +220,6 @@ export type RequestExampleResponse = {
   bodyMediaType: string;
   durationMs?: number;
 };
-// How a mock server would select this example. Recorded from the start so that
-// serving examples later needs no migration of stored workspaces.
 export type RequestExampleMatch = { pathTemplate: string; query?: Record<string, string> };
 export type RequestExampleSource = 'captured' | 'manual' | 'openapi' | 'postman';
 export type RequestExample = {
@@ -337,10 +332,6 @@ export type CollectionRunnerResult = {
 export type RequestHistoryEntry = {
   id: string; request: SavedRequest; statusCode: number; status: string;
   duration: number; createdAt: number;
-  // What came back, so a past response can be reopened rather than only its
-  // status line remembered. The body itself is not here: it lives in its own
-  // encrypted file, because the request store is rewritten in full on every
-  // autosave. These fields describe it well enough to render the row.
   responseStored?: boolean;
   responseSize?: number;
   responseContentType?: string;

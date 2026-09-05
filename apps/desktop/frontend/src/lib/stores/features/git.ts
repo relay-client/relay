@@ -21,8 +21,6 @@ import type { TopView } from '../ui';
 export const GIT_LOG_PAGE_SIZE = 60;
 const GIT_REMOTE_HELP = 'Private repositories work through your system Git credentials. SSH URLs are recommended, for example git@gitlab.com:team/project.git. Relay does not store Git tokens.';
 
-// Re-exported so existing imports keep working; the value itself lives with the
-// wire types, which is what it mirrors.
 export { EMPTY_GIT_STATUS };
 
 export const EMPTY_GIT_DIFF: GitDiffResult = {
@@ -165,7 +163,6 @@ type GitHost = {
   gitAuthResolver: ((v: GitAuthChoice | null) => void) | null;
   topView: TopView;
   activeRequestId: string;
-  // shared / cross-feature members that remain on AppVM
   closeFloatingMenus: () => void;
   persistActiveRequestNow: (forceDisk?: boolean) => Promise<void>;
   openPromptDialog: (title: string, initialValue?: string, message?: string) => Promise<string | null>;
@@ -177,7 +174,6 @@ type GitHost = {
   cancelPendingPersistTimers: () => void;
   guardGitWorkspaceMutable: (action?: string) => boolean;
   collectionImportToast: string;
-  // intra-feature members (mixed into the same prototype)
   beginGitMutation: (action: string, options?: { guard?: boolean; refreshStatus?: boolean }) => Promise<boolean>;
   refreshGitStatus: () => Promise<void>;
   refreshGitStatusAfterPersist: () => Promise<void>;
@@ -401,27 +397,6 @@ export const gitFeature = {
       if (this.gitAction === 'branches') this.gitAction = '';
     }
   },
-  /**
-   * Settles the editor before a Git operation touches the worktree, and
-   * reports whether the operation may go ahead.
-   *
-   * `gitStatus.clean` describes the files on disk, while an edit made inside
-   * the autosave debounce window is still only in the editor. Without this
-   * flush, an operation reads a clean workspace, swaps the files underneath
-   * it, and the debounce then writes the pre-operation editor state over
-   * whatever arrived — an uncommitted change appearing on a branch it was
-   * never made on.
-   *
-   * The counterpart is `cancelPendingPersistTimers`, used by the operations
-   * that replace the worktree with something authoritative (discard, resolve
-   * a conflict, continue or abort a merge). There the pending write is stale
-   * by definition and has to be dropped rather than saved.
-   *
-   * Pass refreshStatus for operations that then decide on `gitStatus.clean`:
-   * the flush is exactly what can make a workspace dirty. Pass guard: false
-   * for the operations that have to stay reachable while the workspace is
-   * blocked — pulling a fixed commit is how that state is recovered from.
-   */
   async beginGitMutation(this: GitHost, action: string, options: { guard?: boolean; refreshStatus?: boolean } = {}) {
     const { guard = true, refreshStatus = false } = options;
     if (guard && !this.guardGitWorkspaceMutable(action)) return false;
@@ -606,8 +581,6 @@ export const gitFeature = {
     }
   },
   async pullGitWorkspace(this: GitHost, strategy = 'ff') {
-    // No guard: the blocked-workspace banner points at pull as the way to
-    // bring in a commit that loads again.
     await this.beginGitMutation('Pull', { guard: false });
     let normalizedStrategy = normalizeGitPullStrategy(strategy);
     if (shouldPromptForDivergedPull(normalizedStrategy, this.gitStatus)) {

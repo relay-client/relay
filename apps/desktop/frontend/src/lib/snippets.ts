@@ -31,22 +31,15 @@ function base64(value: string) {
   try {
     return btoa(value);
   } catch {
-    // Non-Latin-1 credentials: encode the UTF-8 bytes the way the wire wants.
     return btoa(String.fromCharCode(...new TextEncoder().encode(value)));
   }
 }
 
 function snippetHeaders(req: SnippetRequest) {
   const headers = req.headers.filter(r => r.enabled && r.key).map(r => ({ key: r.key, value: r.value }));
-  // Every string-payload body type declares what the sender declares. html and
-  // javascript used to fall through this list, so a snippet built from them
-  // carried no Content-Type at all.
   const rawContentType = RAW_BODY_CONTENT_TYPES[req.bodyType];
   if (rawContentType && !headers.some(h => h.key.toLowerCase() === 'content-type'))
     headers.push({ key: 'Content-Type', value: rawContentType });
-  // Only bearer and API key used to reach the generated code, so copying a
-  // working Basic, Digest, OAuth 2.0, or AWS request produced a snippet that
-  // came back 401 with nothing to say it had dropped the credentials.
   if ((req.auth.type === 'bearer' || req.auth.type === 'oauth2') && req.auth.token) {
     headers.push({ key: 'Authorization', value: `Bearer ${req.auth.token}` });
   }
@@ -57,9 +50,6 @@ function snippetHeaders(req: SnippetRequest) {
   return headers;
 }
 
-// Two schemes cannot be written as a fixed header: Digest is a challenge and
-// response, and AWS SigV4 signs each request. Saying so beats emitting code
-// that looks complete and is not.
 export function snippetAuthNotes(req: SnippetRequest): string[] {
   if (req.auth.type === 'digest') {
     return [`Digest auth: this request answers the server's challenge with the credentials for "${req.auth.username ?? ''}". Use your HTTP library's digest support — a fixed Authorization header will not work.`];
@@ -76,8 +66,6 @@ export function snippetAuthNotes(req: SnippetRequest): string[] {
   return [];
 }
 
-// How each target spells a line comment, so the notes above read as part of the
-// snippet rather than pasted prose.
 const COMMENT_PREFIX: Record<string, string> = {
   curl: '#', httpie: '#', python: '#', ruby: '#', php: '//', go: '//', java: '//',
   csharp: '//', javascript: '//', node: '//', axios: '//', swift: '//', kotlin: '//', rust: '//',

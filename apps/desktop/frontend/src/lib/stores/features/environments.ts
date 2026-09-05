@@ -7,8 +7,6 @@ import { variableTemplate } from '../../variables';
 import { resolveDynamicVariable } from '../../dynamicVariables';
 import { parseEnvFile } from '../../utils';
 
-// How many times a value may expand into further {{variables}}. Postman uses
-// the same order of magnitude; anything deeper is a cycle, not a chain.
 const VARIABLE_RESOLUTION_DEPTH = 20;
 
 type EnvironmentHost = {
@@ -119,16 +117,6 @@ export const environmentFeature = {
     }
     return redacted;
   },
-  // Environment values win over dynamic variables, so a workspace that defines
-  // its own "$timestamp" keeps controlling it.
-  //
-  // Resolution repeats while it keeps making progress, because a variable's
-  // value is very often built from other variables — `baseUrl` as
-  // `{{scheme}}://{{host}}:{{port}}` is the first thing most people write, and
-  // a single pass left it as literal braces that the sender then rejected.
-  // A value that stops changing is done; a chain that outlives the depth cap is
-  // circular, and the remaining braces are left in place so the sender's
-  // "unresolved variable" message points at the real culprit.
   resolveTemplate(this: EnvironmentHost, value: string, values = this.activeEnvironmentValues()) {
     if (!value || !value.includes('{{')) return value;
     const substitute = (input: string) => input.replace(/\{\{\s*(\$?[A-Za-z0-9_.-]+)\s*\}\}/g, (match, key) => {

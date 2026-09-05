@@ -623,7 +623,6 @@ describe('full application e2e smoke', () => {
     expect(diff.added).toBe(1);
     expect(diff.removed).toBe(1);
 
-    // A different request must not inherit this one's baseline.
     app.activeRequestId = 'req-other';
     expect(app.previousResponse()).toBeNull();
 
@@ -633,8 +632,6 @@ describe('full application e2e smoke', () => {
     expect(app.responseDiff()).toBeNull();
   });
 
-  // A parallel run used to fire the whole batch at once, so a 300-request
-  // collection opened 300 sockets and tripped the client's own limits.
   it('caps how many requests a parallel run has in flight at once', async () => {
     backend.state.savedStores = [];
     backend.state.sentHttpRequests = [];
@@ -666,7 +663,6 @@ describe('full application e2e smoke', () => {
 
     await app.startCollectionRunner('Load API', requests, { parallel: true, concurrency: 3 });
 
-    // 12 requests over 3 lanes: the limit is reached, and never exceeded.
     expect(peak).toBe(3);
     expect(app.collectionRunnerResults).toHaveLength(12);
     expect(app.collectionRunnerResults.every((result: CollectionRunnerResult) => result.status === 'passed')).toBe(true);

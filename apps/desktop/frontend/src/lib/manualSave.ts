@@ -39,9 +39,6 @@ export function cloneSavedRequestSnapshot(req: SavedRequest): SavedRequest {
 
 export function requestDiffersFromSavedSnapshot(req: SavedRequest, saved: SavedRequest | undefined) {
   if (!saved) return true;
-  // Cheap pre-checks short-circuit the expensive JSON.stringify on every
-  // keystroke. A request with a 1MB body would otherwise re-serialize on
-  // each character typed — visible UI lag for the autosave dirty check.
   if (req === saved) return false;
   if (req.method !== saved.method) return true;
   if (req.url !== saved.url) return true;

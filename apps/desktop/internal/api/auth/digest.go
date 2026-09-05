@@ -239,12 +239,6 @@ func digestChallengeFlag(value string) bool {
 func parseDigestChallenge(challenge string) map[string]string {
 	params := make(map[string]string)
 	for len(challenge) > 0 {
-		// Strip the separator between parameters. The quoted-value branch
-		// below consumes only the closing quote, leaving the following ", "
-		// in place — without trimming the leading comma here the next key
-		// would be parsed as ", nonce" and the real nonce/qop/opaque values
-		// would be dropped, producing an invalid (empty-nonce) digest
-		// response that every standard server rejects.
 		challenge = strings.TrimLeft(challenge, " \t\r\n,")
 		if challenge == "" {
 			break

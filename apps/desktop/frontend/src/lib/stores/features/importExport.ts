@@ -9,15 +9,12 @@ import { routeImportedScripts, withActiveScripts } from '../../scriptEngine';
 import { downloadTextFile, safeFileName } from '../../utils';
 import type { OpenApiExportFormat } from '../../openapi';
 
-// What an importer can put on the collection it creates, alongside the requests.
 type ImportedCollectionDefaults = { variables?: KVRow[]; auth?: import('../../types/models').AuthState };
 
 type ImportSource = 'bruno' | 'postman' | 'insomnia' | 'openapi' | 'har' | 'httpfile';
 
 type DialogOptionInput = { value: string; label: string; icon?: string; description?: string };
 
-// What every collection-shaped importer produces: the collection itself, the
-// defaults it carries (variables, auth, scripts) and its requests.
 export type ImportedCollectionBundle = {
   id?: string;
   name: string;
@@ -47,7 +44,6 @@ type ImportExportHost = {
   topView: TopView;
   scriptEngine: ScriptEngine;
   _postmanImportInput: HTMLInputElement | undefined;
-  // shared / cross-feature members that remain on AppVM
   guardWorkspaceWritable: (action?: string) => boolean;
   closeFloatingMenus: () => void;
   openSelectDialog: (title: string, message: string, options: DialogOptionInput[], confirmLabel?: string, cancelLabel?: string) => Promise<string>;
@@ -62,7 +58,6 @@ type ImportExportHost = {
   defaultWorkspaceParentForDialogs: () => Promise<string>;
   saveTextFile: (name: string, content: string) => Promise<boolean>;
   isRecord: (value: unknown) => value is Record<string, unknown>;
-  // intra-feature members (mixed into the same prototype)
   importBrunoOpenCollectionFolder: () => Promise<void>;
   importCollectionPayload: (text: string, fileName: string, source: ImportSource) => Promise<number>;
   importOpenCollectionFiles: (files: Array<{ path: string; content: string }>, fallbackName: string) => Promise<number>;
@@ -151,9 +146,6 @@ export const importExportFeature = {
     const { openCollectionBundleFromFiles } = await import('../../opencollection');
     return this.importCollectionBundle({ ...openCollectionBundleFromFiles(files, collectionId, fallbackName, wsId), id: collectionId });
   },
-  // One path for every importer that carries collection-level state: the
-  // defaults (variables, auth, scripts) land on the collection instead of
-  // being dropped, and folders survive even when they hold no requests.
   async importCollectionBundle(this: ImportExportHost, bundle: ImportedCollectionBundle & { id?: string }) {
     if (!this.guardWorkspaceWritable('Importing')) return 0;
     const wsId = this.activeWorkspaceId || this.workspaces[0]?.id; if (!wsId) throw new Error('No workspace available');
@@ -196,8 +188,6 @@ export const importExportFeature = {
     await this.persistActiveRequestNow();
     const collection = makeCollection(wsId, collectionName);
     const builtRequests = buildRequests(collection.id, collectionName);
-    // Read after building, because an importer may only discover the collection's
-    // variables and auth while walking the requests.
     const defaults = typeof collectionDefaults === 'function' ? collectionDefaults() : collectionDefaults;
     if (defaults?.variables?.length) {
       collection.defaults = { ...collection.defaults, variables: defaults.variables };
@@ -219,8 +209,6 @@ export const importExportFeature = {
   async importPostmanPayload(this: ImportExportHost, payload: unknown, fileName: string) {
     const fallbackName = fileName.replace(/\.postman_(collection|environment|globals)$/i, '').replace(/\.json$/i, '');
     const { postmanCollectionBundle, postmanVariableBundle } = await import('../../postman');
-    // Postman exports environments and globals as separate files that look
-    // nothing like a collection; route them instead of failing the import.
     const variables = postmanVariableBundle(payload, fallbackName || 'Postman Environment');
     if (variables) return this.importPostmanVariableBundle(variables);
     const wsId = this.activeWorkspaceId || this.workspaces[0]?.id; if (!wsId) throw new Error('No workspace available');
@@ -255,9 +243,6 @@ export const importExportFeature = {
     const collectionName = insomniaCollectionName(payload, fileName);
     return this.importRequestsPayload(collectionName, (collectionId, name) => insomniaRequestsFromResources(payload, collectionId, name));
   },
-  // The spec's servers, path parameters, and security schemes become collection
-  // defaults, so an imported request is sendable without hand-editing: the base
-  // URL and every {{pathVariable}} resolve, and the auth scheme is already set.
   async importOpenApiPayload(this: ImportExportHost, payload: unknown, fileName: string) {
     const { openApiCollectionName, openApiImportFromSpec } = await import('../../openapi');
     const collectionName = openApiCollectionName(payload, fileName);
@@ -272,8 +257,6 @@ export const importExportFeature = {
       () => defaults,
     );
   },
-  // `@base = …` file variables become collection variables, so the imported
-  // {{base}} references keep resolving without hand-editing every request.
   async importHttpFilePayload(this: ImportExportHost, text: string, fileName: string) {
     const { httpFileCollectionName, parseHttpFile } = await import('../../httpFile');
     const collectionName = httpFileCollectionName(fileName);

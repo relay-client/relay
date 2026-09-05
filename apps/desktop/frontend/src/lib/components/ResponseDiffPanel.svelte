@@ -15,8 +15,6 @@
     diff: ResponseDiff | null;
     previous: HttpResponse | null;
     current: HttpResponse | null;
-    // The baseline is either the previous response or a saved example, so the
-    // side is labelled rather than always reading "previous".
     baselineLabel?: string;
     options?: Array<{ id: string; label: string }>;
     selectedId?: string;

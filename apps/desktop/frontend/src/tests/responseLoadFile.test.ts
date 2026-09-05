@@ -69,11 +69,8 @@ describe('loadResponseFromFile', () => {
     expect(host.response?.statusCode).toBe(200);
     expect(host.response?.size).toBe(new TextEncoder().encode(body).length);
     expect(contentType(host)).toBe('application/json');
-    // active response is persisted for the active request
     expect(host.responses.get('req-1')?.body).toBe(body);
-    // a stale request error must not shadow the loaded body
     expect(host.requestError).toBe('');
-    // viewer state is reset so search/paging start clean
     expect(host.responseSearchOpen).toBe(false);
     expect(host.responseSearch).toBe('');
     expect(host.responseSearchIndex).toBe(0);

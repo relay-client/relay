@@ -285,10 +285,6 @@ export const requestPersistenceFeature = {
 
   async saveRequestById(this: RequestPersistenceHost, id: string) {
     if (!this.guardWorkspaceWritable('Saving')) return false;
-    // Cancel any in-flight debounced autosave for the active request and
-    // flush its pending snapshot first. Without this the autosave timer
-    // could fire *after* the explicit save returns and clobber the very
-    // snapshot the user just saved with a slightly older version.
     if (id === this.activeRequestId && this.persistTimer) {
       clearTimeout(this.persistTimer);
       this.persistTimer = null;
@@ -297,13 +293,6 @@ export const requestPersistenceFeature = {
     if (!current || current.isDraft) return false;
     const updatedRequests = this.requests.map(r => r.id === id ? current : r);
     this.requests = updatedRequests;
-    // Clear the dirty mark before writing, not after. In manual-save mode
-    // requestsForStore deliberately substitutes the last saved version for any
-    // request still marked dirty — that is what keeps unsaved edits off disk.
-    // An explicit save was still marked dirty at that moment, so it wrote the
-    // previous version and then reported success: the edit was lost on the next
-    // load while the interface showed it as saved. The mark goes back on if the
-    // write fails.
     this.removeDirtyRequest(id);
     const ok = await this.persistRequestStore(updatedRequests, this.activeRequestId);
     if (ok) {

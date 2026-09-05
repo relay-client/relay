@@ -120,7 +120,6 @@ describe('diff baseline', () => {
 
     expect(host.diffBaselineExampleId()).toBe('');
     expect(host.diffBaselineResponse()?.body).toBe('old');
-    // Still something to compare against, so the tab stays where it is.
     expect(host.responseTab).toBe('diff');
   });
 

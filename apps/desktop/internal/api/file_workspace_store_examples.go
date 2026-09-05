@@ -9,36 +9,17 @@ import (
 	"strings"
 )
 
-// Examples are saved responses paired with the request snapshot that produced
-// them. They live beside the collection rather than inside the request file for
-// two reasons.
-//
-// The response body goes in its own file, because a JSON body embedded in YAML
-// is a block scalar: unreadable in a diff, and rewritten whole by any
-// reformatting. As its own .json file it diffs line by line, which is the entire
-// point of keeping the contract in Git.
-//
-// And the directory is a sibling of requests/, not a child. The request loader
-// walks requests/ with filepath.WalkDir — recursively — so every *.yml anywhere
-// under it is parsed as a request. An examples folder nested there would come
-// back as a pile of malformed-request diagnostics.
 const (
 	fileStoreExamplesDir = "examples"
-	// exampleBodySuffix separates the example's own name from its body file, so
-	// "created.yml" is accompanied by "created.body.json".
-	exampleBodySuffix = ".body"
+	exampleBodySuffix    = ".body"
 )
 
-// filesystemExampleFile is the on-disk shape of one example.
 type filesystemExampleFile struct {
 	Version int            `yaml:"version" json:"version"`
 	Order   int            `yaml:"order,omitempty" json:"order,omitempty"`
 	Example map[string]any `yaml:"example" json:"example"`
 }
 
-// exampleBodyExtension picks the file extension for a response body from its
-// media type, so the body lands on disk as something an editor and a diff tool
-// both understand.
 func exampleBodyExtension(mediaType string) string {
 	normalized := strings.ToLower(strings.TrimSpace(mediaType))
 	if idx := strings.IndexByte(normalized, ';'); idx >= 0 {
@@ -62,12 +43,6 @@ func exampleBodyExtension(mediaType string) string {
 	}
 }
 
-// writeExampleBodyFile writes a response body beside its example. It mirrors
-// writeYAMLFile rather than reusing writeFileAtomic: these files are committed
-// to Git, so they take 0644 and not the 0600 the encrypted local profile uses.
-// Skipping an unchanged write matters as much as the atomicity — autosave
-// rewrites the whole workspace, and touching every body file each time would
-// churn mtimes under Git for no reason.
 func writeExampleBodyFile(path string, data []byte) error {
 	if info, err := os.Lstat(path); err == nil {
 		if info.Mode()&os.ModeSymlink != 0 {
@@ -116,23 +91,17 @@ func writeExampleBodyFile(path string, data []byte) error {
 	return syncDir(dir)
 }
 
-// exampleResponseMap returns the example's response object, creating nothing.
 func exampleResponseMap(example map[string]any) map[string]any {
 	response, _ := example["response"].(map[string]any)
 	return response
 }
 
-// requestExampleMaps pulls the examples off a request payload. They are removed
-// from the request map so they never end up inline in the request YAML.
 func requestExampleMaps(request map[string]any) []map[string]any {
 	raw, ok := request["examples"]
 	delete(request, "examples")
 	if !ok {
 		return nil
 	}
-	// Both shapes occur: []any when the payload came through JSON from the
-	// frontend, []map[string]any when it was just read off disk and is being
-	// written straight back out.
 	var list []map[string]any
 	switch typed := raw.(type) {
 	case []map[string]any:
@@ -155,8 +124,6 @@ func requestExampleMaps(request map[string]any) []map[string]any {
 	return examples
 }
 
-// writeRequestExamples writes one directory of example files for a request and
-// records every file it wrote, so the pruning pass keeps them.
 func writeRequestExamples(collectionDir, requestSegment string, examples []map[string]any, desiredFiles map[string]struct{}) error {
 	if len(examples) == 0 {
 		return nil
@@ -177,8 +144,6 @@ func writeRequestExamples(collectionDir, requestSegment string, examples []map[s
 			continue
 		}
 
-		// The body travels in its own file. Take it off the map first so the
-		// YAML carries only the pointer, then write both.
 		response := exampleResponseMap(example)
 		body := ""
 		if response != nil {
@@ -210,9 +175,6 @@ func writeRequestExamples(collectionDir, requestSegment string, examples []map[s
 	return nil
 }
 
-// readRequestExamples loads a request's examples back, reattaching each body
-// from its own file. A body file that cannot be read is reported rather than
-// silently producing an example with no response in it.
 func readRequestExamples(collectionDir, requestSegment, workspaceRoot, workspaceID, collectionID, requestID string) ([]map[string]any, []WorkspaceDiagnostic) {
 	if requestSegment == "" {
 		return nil, nil
@@ -260,7 +222,6 @@ func readRequestExamples(collectionDir, requestSegment, workspaceRoot, workspace
 			bodyFile := stringValue(response, "bodyFile")
 			delete(response, "bodyFile")
 			if bodyFile != "" {
-				// Refuse a body pointer that walks out of the example directory.
 				if bodyFile != filepath.Base(bodyFile) {
 					diagnostics = append(diagnostics, workspaceDiagnostic{
 						scope: "request", path: path, root: workspaceRoot,
@@ -299,9 +260,6 @@ func readRequestExamples(collectionDir, requestSegment, workspaceRoot, workspace
 	return examples, diagnostics
 }
 
-// isExampleBodyPath reports whether a path is a body file sitting in an
-// examples/<request>/ directory. The pruning pass only removes files it can
-// recognise this way, so nothing a user dropped elsewhere is at risk.
 func isExampleBodyPath(path string) bool {
 	if filepath.Ext(path) == fileStoreYAMLExt {
 		return false

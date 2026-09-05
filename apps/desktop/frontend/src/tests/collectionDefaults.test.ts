@@ -116,9 +116,6 @@ describe('collection defaults', () => {
   });
 
   it('inherits every request setting the collection can carry, script settings included', () => {
-    // The inherited set is a hand-written list, so a setting added to the model
-    // and left out of it silently stops inheriting while the UI still promises
-    // it does. Compare against the model instead of spot-checking keys.
     expect([...REQUEST_SETTING_KEYS].sort()).toEqual(Object.keys(DEFAULT_REQUEST_SETTINGS).sort());
   });
 

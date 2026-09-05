@@ -567,11 +567,6 @@ func grpcImportPaths(protoFilePath string, input []string) []string {
 		if path == "" {
 			return
 		}
-		// The directory comes from filepath.Dir, which answers in the
-		// platform's separators, while the configured import paths are
-		// whatever the workspace YAML holds — and a workspace written on
-		// macOS and opened on Windows carries forward slashes. Comparing
-		// them raw let the same directory through twice.
 		path = filepath.Clean(path)
 		if seen[path] {
 			return

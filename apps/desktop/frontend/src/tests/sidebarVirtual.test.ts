@@ -46,15 +46,14 @@ describe('virtualizeRows', () => {
     const viewport = 300;
     const win = virtualizeRows(list, total - viewport, viewport, OVERSCAN, MIN);
     expect(win.rows.at(-1)!.key).toBe('r99');
-    // The last row is in the window, so there is nothing left below it.
     expect(win.after).toBe(0);
   });
 
   it('uses measured heights instead of estimates, so spacers match the real DOM', () => {
-    const list = uniform(10, 30); // estimate 30 each → estimated total 300
-    const measured = new Map(list.map(r => [r.key, 80])); // real height 80 each
+    const list = uniform(10, 30);
+    const measured = new Map(list.map(r => [r.key, 80]));
     const win = virtualizeRows(list, 0, 250, OVERSCAN, MIN, measured);
-    expect(win.totalHeight).toBe(10 * 80); // 800, not the 300 estimate
+    expect(win.totalHeight).toBe(10 * 80);
   });
 
   it('mixes measured and estimated heights during progressive measurement', () => {
@@ -63,20 +62,18 @@ describe('virtualizeRows', () => {
     measured.set('r0', 100);
     measured.set('r1', 100);
     const win = virtualizeRows(list, 0, 250, OVERSCAN, MIN, measured);
-    // two measured at 100 + eight estimated at 30
     expect(win.totalHeight).toBe(2 * 100 + 8 * 30);
   });
 
   it('eliminates the phantom panel when an estimate over-counted the real height', () => {
-    // Reproduces the reported bug: empty-folder estimated at 124 but really ~80.
     const list = rows([124, 124, 124, 124, 124]);
     const measured = new Map(list.map(r => [r.key, 80]));
     const viewport = 200;
-    const total = 5 * 80; // 400
+    const total = 5 * 80;
     const win = virtualizeRows(list, total - viewport, viewport, OVERSCAN, MIN, measured);
-    expect(win.totalHeight).toBe(total); // not 5 * 124 = 620
+    expect(win.totalHeight).toBe(total);
     expect(win.rows.at(-1)!.key).toBe('r4');
-    expect(win.after).toBe(0); // scrolled fully to the last row, nothing dangling below
+    expect(win.after).toBe(0);
   });
 
   it('handles an empty list', () => {

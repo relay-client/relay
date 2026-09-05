@@ -15,8 +15,6 @@ import (
 	"github.com/relay-client/relay/apps/desktop/internal/model"
 )
 
-// ---------- SSE ----------
-
 func TestSSEBrowserEmulationSendsBrowserHeaders(t *testing.T) {
 	var gotOrigin, gotFetchMode, gotFetchSite, gotUA string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -136,8 +134,6 @@ func TestSSEStripsCookieOnCrossOriginWithoutCredentials(t *testing.T) {
 	}
 }
 
-// ---------- WebSocket ----------
-
 func TestWebSocketBrowserEmulationSetsOrigin(t *testing.T) {
 	upgrader := websocket.Upgrader{CheckOrigin: func(*http.Request) bool { return true }}
 	gotOrigin := make(chan string, 1)
@@ -239,7 +235,6 @@ func TestWebSocketCSPSelfAllowsHttpsToWss(t *testing.T) {
 
 	mgr := newWebSocketManager(nil)
 	em := newWSTestEmitter()
-	// Protected origin uses scheme of server.URL, target uses ws://. 'self' should match by upgrade rule.
 	mgr.connectWithCallbacks(context.Background(), "ws-self", model.HttpRequest{
 		URL:                   wsURLFromHTTP(server.URL),
 		BrowserOrigin:         "http://" + u.Host,
@@ -319,8 +314,6 @@ func TestWebSocketSameHostKeepsCookieWithoutCredentials(t *testing.T) {
 	defer server.Close()
 
 	u, _ := url.Parse(server.URL)
-	// Origin uses the http(s) scheme of the same host the ws:// target points at.
-	// http://host -> ws://host is a scheme upgrade, so it is same-site (cookies kept).
 	mgr := newWebSocketManager(nil)
 	em := newWSTestEmitter()
 	mgr.connectWithCallbacks(context.Background(), "ws-samehost", model.HttpRequest{
@@ -392,8 +385,6 @@ func TestWebSocketKeepsCookieWithCredentials(t *testing.T) {
 	}
 }
 
-// ---------- Socket.IO ----------
-
 func TestSocketIOSetsBrowserOriginOnHandshake(t *testing.T) {
 	upgrader := websocket.Upgrader{CheckOrigin: func(*http.Request) bool { return true }}
 	gotOrigin := make(chan string, 1)
@@ -412,7 +403,6 @@ func TestSocketIOSetsBrowserOriginOnHandshake(t *testing.T) {
 			return
 		}
 		defer conn.Close()
-		// Server-side: send Engine.IO OPEN packet to satisfy client expectations.
 		_ = conn.WriteMessage(websocket.TextMessage, []byte(`0{"sid":"abc","upgrades":[],"pingInterval":25000,"pingTimeout":20000}`))
 		time.Sleep(50 * time.Millisecond)
 	}))

@@ -73,9 +73,6 @@ func (m *websocketManager) connectWithCallbacks(appCtx context.Context, sessionI
 
 	go func() {
 		defer func() {
-			// Recover so a panic in the websocket I/O loop or in any
-			// user callback (frontend handler etc.) does not crash the
-			// whole Wails process and lose unsaved state.
 			if r := recover(); r != nil {
 				log.Printf("relay: websocket session %s panicked: %v", sessionID, r)
 			}
@@ -293,8 +290,6 @@ func (m *websocketManager) runConnectionOnceWithCallbacks(ctx context.Context, s
 			}
 		}
 	}
-	// Pin TLS 1.2+ regardless of whether the user disabled cert verification —
-	// they opted out of CA checks, not protocol-version safety.
 	if !req.EnableSSLVerification {
 		dialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS12}
 	} else {
@@ -340,9 +335,6 @@ func (m *websocketManager) runConnectionOnceWithCallbacks(ctx context.Context, s
 	sess.conn = conn
 	m.mu.Unlock()
 
-	// Without a read deadline a silent peer (no TCP FIN) would leave this
-	// goroutine blocked in ReadMessage forever. Refresh the deadline on
-	// every incoming ping/pong/frame so a healthy connection stays open.
 	const readIdleTimeout = 90 * time.Second
 	resetReadDeadline := func() {
 		_ = conn.SetReadDeadline(time.Now().Add(readIdleTimeout))
@@ -373,10 +365,6 @@ func (m *websocketManager) runConnectionOnceWithCallbacks(ctx context.Context, s
 		Timestamp:       time.Now().UnixMilli(),
 	})
 
-	// Keep an otherwise-idle connection alive by sending periodic pings. The
-	// peer's pong refreshes the read deadline (SetPongHandler), so a server
-	// that pushes data infrequently is no longer dropped after readIdleTimeout.
-	// Stops as soon as the read loop below returns.
 	if interval := websocketKeepAliveInterval(req); interval > 0 {
 		stopKeepAlive := make(chan struct{})
 		defer close(stopKeepAlive)
@@ -421,9 +409,6 @@ func websocketHandshakeTimeout(req model.HttpRequest) time.Duration {
 	return 0
 }
 
-// keepAlive sends a ping every interval until the connection closes. Writes go
-// through writeMu so they never interleave with send(); a write error (the
-// connection is gone) or context/stream cancellation ends the loop.
 func (m *websocketManager) keepAlive(ctx context.Context, sess *websocketSession, conn *websocket.Conn, interval time.Duration, stop <-chan struct{}) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -444,8 +429,6 @@ func (m *websocketManager) keepAlive(ctx context.Context, sess *websocketSession
 	}
 }
 
-// websocketKeepAliveInterval is how often the client pings an idle connection.
-// 0 selects the default; a negative value disables keep-alive entirely.
 func websocketKeepAliveInterval(req model.HttpRequest) time.Duration {
 	if req.WebSocketKeepAliveIntervalMs < 0 {
 		return 0

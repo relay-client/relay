@@ -25,8 +25,6 @@ function finite(value: unknown, fallback = 0): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
 
-// restoreRows appends a blank row for the editor to type into. A stored example
-// is data, not an editable table, so that trailing row is dropped.
 function storedRows(input: KVRow[] | undefined): KVRow[] {
   return restoreRows(input ?? []).slice(0, -1);
 }
@@ -35,23 +33,13 @@ function headerValue(headers: KVRow[], name: string): string {
   return headers.find(row => row.key.toLowerCase() === name.toLowerCase())?.value ?? '';
 }
 
-/** The media type alone, with any charset or boundary parameter dropped. */
 export function mediaTypeOf(contentType: string): string {
   return contentType.split(';')[0]?.trim().toLowerCase() ?? '';
 }
 
-/**
- * Turn a concrete URL into the path a mock server would match on. Numeric and
- * UUID-looking segments become named parameters, because `/orders/8123` is an
- * instance of `/orders/:id` and matching the literal would only ever serve that
- * one order. A `{{variable}}` segment is left alone: it is already a template.
- */
 export function pathTemplateFromUrl(url: string): string {
   const withoutQuery = url.split(/[?#]/)[0] ?? '';
   let path = withoutQuery.replace(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i, '');
-  // A Relay URL usually opens with the host in a variable — "{{baseUrl}}/orders".
-  // That leading variable stands for the origin, so it is stripped the same way
-  // a literal scheme and host would be; without this it became a path segment.
   if (path === withoutQuery) {
     path = path.replace(/^\{\{[^{}]*\}\}(?=\/|$)/, '');
   }
@@ -65,30 +53,15 @@ export function pathTemplateFromUrl(url: string): string {
   return segments.join('/') || '/';
 }
 
-/**
- * Replace every occurrence of a known secret value with a marker. This is the
- * exact layer: the values come from the environment rows the user marked
- * secret, so there is no guessing involved. It runs before the key-based sweep
- * because a token can appear somewhere the key heuristic would never look — a
- * URL in a `Location` header, a message string, a nested payload.
- */
 export function maskKnownSecrets(text: string, secretValues: string[]): string {
   if (!text) return text;
   const unique = [...new Set(secretValues.filter(value => value && value.length >= 4))];
-  // Longest first, so a secret that contains another is replaced whole.
   unique.sort((a, b) => b.length - a.length);
   let out = text;
   for (const value of unique) out = out.split(value).join('[secret]');
   return out;
 }
 
-/**
- * Redact a captured response body. Known secret values go first, then the
- * key-based sweep that `sanitizeExportExample` already performs for exports —
- * so a body is treated the same way here as it would be on its way into a
- * shared Postman collection. A body that is not JSON only gets the exact pass,
- * because there are no keys to reason about.
- */
 export function redactExampleBody(body: string, secretValues: string[]): string {
   const masked = maskKnownSecrets(body, secretValues);
   if (!masked.trim()) return masked;
@@ -99,27 +72,18 @@ export function redactExampleBody(body: string, secretValues: string[]): string 
     return masked;
   }
   const swept = sanitizeExportExample(parsed);
-  // An example is a record of what the endpoint really returned, so the bytes
-  // only get rewritten when the key sweep actually removed something. A round
-  // trip through JSON.parse is lossy in ways that matter here: an id past
-  // Number.MAX_SAFE_INTEGER comes back a different number, and a duplicate key
-  // collapses. Nothing redacted, nothing rewritten.
   if (!jsonRedactionChanged(parsed, swept)) return masked;
   return JSON.stringify(swept, null, 2);
 }
 
-/** Whether the key sweep altered the parsed body at all. */
 function jsonRedactionChanged(before: unknown, after: unknown): boolean {
   try {
     return JSON.stringify(before) !== JSON.stringify(after);
   } catch {
-    // A structure JSON.stringify refuses (a cycle cannot come out of
-    // JSON.parse, but be safe) is treated as changed, so redaction still wins.
     return true;
   }
 }
 
-/** Redact response headers: `Set-Cookie` and friends carry sessions. */
 export function redactExampleHeaders(headers: KVRow[], secretValues: string[]): KVRow[] {
   return headers.map(row => {
     const masked = maskKnownSecrets(row.value, secretValues);
@@ -130,11 +94,6 @@ export function redactExampleHeaders(headers: KVRow[], secretValues: string[]): 
   });
 }
 
-/**
- * Whether anything in the captured response still looks like a raw credential.
- * The capture flow shows this so the user can look before it is written to a
- * file that gets committed.
- */
 export function exampleHasRawSecret(example: RequestExample): boolean {
   for (const row of example.response.headers) {
     if (row.value && isSensitiveExportKey(row.key) && !isTemplateExportValue(row.value)) return true;
@@ -198,11 +157,6 @@ export function normalizeRequestExample(input: Partial<RequestExample>, requestI
   };
 }
 
-/**
- * Present an example as a response, so the diff and the viewer can treat a
- * saved example and a live response the same way. Only the fields a comparison
- * reads are filled: an example records what came back, not how it got there.
- */
 export function responseFromExample(example: RequestExample): HttpResponse {
   return {
     ...emptyHttpResponse(),
@@ -222,7 +176,6 @@ export function responseFromExample(example: RequestExample): HttpResponse {
   };
 }
 
-/** A deep-enough copy that editing one example cannot mutate a stored snapshot. */
 export function cloneRequestExample(example: RequestExample): RequestExample {
   return {
     ...example,
@@ -246,11 +199,6 @@ export function normalizeRequestExamples(input: unknown, requestId: string): Req
     .map(item => normalizeRequestExample(item, requestId));
 }
 
-/**
- * Build an example from a response that just came back. The request snapshot is
- * taken now, not looked up later, because the request is what the user is about
- * to keep editing.
- */
 export function exampleFromResponse(
   request: SavedRequest,
   response: HttpResponse,
@@ -283,8 +231,6 @@ export function exampleFromResponse(
       statusCode: response.statusCode,
       status: response.status,
       headers: redactExampleHeaders(responseHeaders, secretValues),
-      // A binary body does not survive the trip to the interface, so there is
-      // nothing faithful to store. The media type still records what it was.
       body: response.bodyIsBinary ? '' : redactExampleBody(response.body ?? '', secretValues),
       bodyMediaType: mediaType,
       durationMs: finite(response.duration),

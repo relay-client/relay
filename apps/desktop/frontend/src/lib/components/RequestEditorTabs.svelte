@@ -54,9 +54,6 @@
     const headers: TabItem = { id: 'headers', label: 'Headers', badge: headerCount > 0 ? String(headerCount) : undefined };
     const scripts: TabItem = { id: 'scripts', label: 'Scripts', badge: scriptLineCount > 0 ? `${scriptLineCount}L` : undefined, badgeKind: 'script' };
     const settings: TabItem = { id: 'settings', label: 'Settings' };
-    // Examples are saved responses. They are offered where a response is
-    // something Relay can capture and replay — realtime transports stream
-    // instead, so the tab would promise something it cannot deliver.
     const examples: TabItem = {
       id: 'examples',
       label: 'Examples',
@@ -87,9 +84,6 @@
       ];
     }
 
-    // WebSocket and Socket.IO handshakes carry auth like any other request —
-    // the sender applies it — but the tab was missing, so the only way to reach
-    // a protected socket was to hand-write an Authorization header.
     if (requestType === 'socketio') {
       return [
         docs,
@@ -113,9 +107,6 @@
       ];
     }
 
-    // An SSE request is an HTTP request whose method selector says SSE. It is
-    // subscribed to rather than sent, and the SSE path never runs pre-request or
-    // test scripts — so offering the tab would promise something that never happens.
     if (method === 'SSE') {
       return [
         docs,

@@ -5,9 +5,6 @@ import (
 	"time"
 )
 
-// Bug #5 regression: emitted-with-ack entries that never receive a server ack
-// must be evicted after the timeout instead of growing pendingAcks for the life
-// of the session.
 func TestSocketIOPendingAckEviction(t *testing.T) {
 	prev := socketIOAckTimeout
 	socketIOAckTimeout = 20 * time.Millisecond
@@ -30,7 +27,7 @@ func TestSocketIOPendingAckEviction(t *testing.T) {
 
 func TestSocketIOPendingAckMonotonicIDs(t *testing.T) {
 	prev := socketIOAckTimeout
-	socketIOAckTimeout = 0 // disable eviction for this test
+	socketIOAckTimeout = 0
 	t.Cleanup(func() { socketIOAckTimeout = prev })
 
 	m := newSocketIOManager(nil)

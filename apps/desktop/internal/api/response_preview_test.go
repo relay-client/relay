@@ -42,8 +42,6 @@ func TestBuildPreviewImagePNG(t *testing.T) {
 	}
 }
 
-// The whole reason this path exists: Body is a Go string on the wire, and any
-// non-UTF-8 byte is replaced when it is JSON-encoded for the frontend.
 func TestBuildPreviewImageSurvivesWhereBodyStringDoesNot(t *testing.T) {
 	raw := pngBytes(t)
 	viaBodyString := []byte(string(raw))
@@ -105,8 +103,6 @@ func TestBuildPreviewImageSkipsNonImages(t *testing.T) {
 	}
 }
 
-// A truncated image is a partial file that no decoder will render, and the
-// base64 of it would just waste memory.
 func TestBuildPreviewImageSkipsTruncated(t *testing.T) {
 	if data, _ := buildPreviewImage(pngBytes(t), ctHeaders("image/png"), true); data != "" {
 		t.Error("a truncated body must not produce a preview")
@@ -128,7 +124,6 @@ func TestResponseMediaType(t *testing.T) {
 	if got := responseMediaType(nil); got != "" {
 		t.Errorf("got %q, want empty", got)
 	}
-	// A malformed Content-Type should still yield the leading type.
 	if got := responseMediaType(ctHeaders("application/json;;;")); !strings.HasPrefix(got, "application/json") {
 		t.Errorf("got %q", got)
 	}
@@ -183,9 +178,6 @@ func TestClassifyResponseBodyBinary(t *testing.T) {
 	}
 }
 
-// The case from the wild that produced a screen of replacement characters: a
-// server labels a binary payload text/html. The declared type must not win over
-// the actual bytes.
 func TestClassifyResponseBodyMislabelledBinary(t *testing.T) {
 	isBinary, sniffed := classifyResponseBody(pngBytes(t), ctHeaders("text/html"))
 	if !isBinary {
@@ -202,8 +194,6 @@ func TestClassifyResponseBodyEmpty(t *testing.T) {
 	}
 }
 
-// A UTF-8 body with no declared type and an octet-stream sniff is still text —
-// DetectContentType says octet-stream for plenty of harmless payloads.
 func TestClassifyResponseBodyUndeclaredUTF8(t *testing.T) {
 	if isBinary, _ := classifyResponseBody([]byte("id,name\n1,ada\n"), nil); isBinary {
 		t.Error("undeclared valid UTF-8 should be treated as text")

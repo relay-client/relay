@@ -233,7 +233,6 @@
       <input class="kv-input setting-proxy" type="text" placeholder="http://localhost:8080" bind:value={vm.proxyUrl} spellcheck="false" autocomplete="off" oninput={() => vm.markRequestSettingOverride('proxyUrl')} />
     </label>
 
-    <!-- SSE is an HTTP request whose method selector is set to SSE. -->
     {#if vm.method === 'SSE'}
       <label class="postman-setting">
         <span class="setting-copy">

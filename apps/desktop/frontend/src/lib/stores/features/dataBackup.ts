@@ -34,7 +34,6 @@ type DataBackupHost = {
   savedRequestSnapshots: Map<string, SavedRequest>;
   unsavedRequestSnapshots: Map<string, SavedRequest>;
   requestStoreLoaded: boolean;
-  // shared / cross-feature members that remain on AppVM
   currentRequestSettings: () => RequestSettings;
   setTheme: (settings: AppTheme) => void;
   saveShortcutSettings: () => void;
@@ -54,7 +53,6 @@ type DataBackupHost = {
   saveTextFile: (name: string, content: string) => Promise<boolean>;
   syncDirtyRequestIds: (next: Set<string>) => void;
   loadRequestWorkspace: () => Promise<void>;
-  // intra-feature members (mixed into the same prototype)
   showDataTransferStatus: (message: string, timeout?: number) => void;
   relayBackupPayload: (store: RequestStore) => RelayBackupPayload;
   requestStoreLooksImportable: (value: Record<string, unknown>) => boolean;

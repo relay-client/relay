@@ -555,9 +555,6 @@ func TestWebSocketMaxMessageSizeLimit(t *testing.T) {
 	}
 }
 
-// idleWSServer upgrades and then only reads (so incoming control frames are
-// processed) without ever sending an application message. pingReceived fires
-// each time the client's keep-alive ping reaches the server.
 func idleWSServer(t *testing.T, pingReceived chan<- struct{}) *httptest.Server {
 	t.Helper()
 	upgrader := websocket.Upgrader{}
@@ -601,7 +598,6 @@ func TestWebSocketKeepAlivePingsIdleConnection(t *testing.T) {
 
 	select {
 	case <-pingReceived:
-		// Client kept the idle connection alive with an unsolicited ping.
 	case <-time.After(2 * time.Second):
 		t.Fatal("expected a keep-alive ping within 2s on an idle connection, got none")
 	}
@@ -627,6 +623,5 @@ func TestWebSocketKeepAliveDisabledByNegativeInterval(t *testing.T) {
 	case <-pingReceived:
 		t.Fatal("expected no keep-alive ping when interval is negative")
 	case <-time.After(600 * time.Millisecond):
-		// No ping sent, as expected.
 	}
 }

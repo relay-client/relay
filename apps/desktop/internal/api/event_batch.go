@@ -5,15 +5,6 @@ import (
 	"time"
 )
 
-// eventBatcher coalesces high-frequency stream events into batches that are
-// flushed when the batch fills up OR after a fixed window — including when the
-// stream goes idle, via a background timer. Without the timer the tail of a
-// burst would sit undelivered until the next event or the connection close.
-//
-// All state is guarded by mu so the timer goroutine and the producing read
-// loop can call add/flush concurrently. emitOne/emitMany run while mu is held;
-// they must not call back into the batcher (in practice they only push to the
-// Wails event bus).
 type eventBatcher[T any] struct {
 	mu       sync.Mutex
 	items    []T

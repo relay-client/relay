@@ -24,7 +24,6 @@ type SSEHost = {
   requestError: string;
   requestTab: RequestTab;
   currentSSESession: SSESession | undefined;
-  // shared / cross-feature members that remain on AppVM
   cleanupRealtimeSessions: () => void;
   recordRequestHistory: (httpResponse: HttpResponse, requestSnapshot?: SavedRequest) => Promise<void>;
   snapshotActiveRequest: (options?: { forPersistence?: boolean }) => SavedRequest;
@@ -35,7 +34,6 @@ type SSEHost = {
   buildRequest: () => HttpRequest;
   headerValidationErrorForRequest: (req: SavedRequest, envValues?: Record<string, string>) => string;
   setActiveResponse: (response: HttpResponse | null, requestId?: string) => void;
-  // intra-feature members (mixed into the same prototype)
   forgetSSESession: (id: string) => void;
   _emptySSESession: () => SSESession;
   _sseSetSession: (id: string, patch: Partial<SSESession>) => void;

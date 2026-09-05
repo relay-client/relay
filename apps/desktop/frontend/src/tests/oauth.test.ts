@@ -247,9 +247,6 @@ describe('ensureValidOAuth2TokenForRequest (collection runner path)', () => {
     ...over,
   });
 
-  // A request in a collection run is never the one open in the editor, so the
-  // editor-state refresh never fired for it and the run 401'd on an expired
-  // token with nothing to explain why.
   it('refreshes and stores the token on a request that is not open', async () => {
     mockRefresh.mockClear();
     mockRefresh.mockResolvedValue(tokenResponse({ access_token: 'FRESH', refresh_token: 'RT2' }));
@@ -268,9 +265,6 @@ describe('ensureValidOAuth2TokenForRequest (collection runner path)', () => {
     expect(host.requests[0].auth.oauth2RefreshToken).toBe('RT2');
   });
 
-  // "Inherit Auth" is the documented way to point a whole collection at one
-  // API. The token lives on the collection, so that is where the fresh one has
-  // to land — otherwise every request in the run refreshes again.
   it('writes the refreshed token back to the collection when auth is inherited', async () => {
     mockRefresh.mockResolvedValue(tokenResponse({ access_token: 'FRESH' }));
     const collection = { id: 'c1', defaults: { auth: expiredAuth() } };

@@ -1,7 +1,5 @@
 import { methodConventionallyHasNoBody, RAW_BODY_CONTENT_TYPES } from './constants';
 
-// splitCurlFormValue peels curl's ";type=<mime>" suffix off a -F value. Only a
-// trailing one counts: a ";" inside the value itself is part of the data.
 function splitCurlFormValue(raw: string): { value: string; contentType: string } {
   const match = /;type=([^;]+)$/i.exec(raw);
   if (!match) return { value: raw, contentType: '' };
@@ -58,8 +56,6 @@ export function toCurl(req: CurlRequest): string {
   }
   parts.push(shellQuote(urlStr));
 
-  // Digest, OAuth 2.0 and AWS SigV4 used to fall through this switch and vanish,
-  // so the copied command came back 401 without saying anything was missing.
   switch (req.auth.type) {
     case 'bearer':
     case 'oauth2':
@@ -72,8 +68,6 @@ export function toCurl(req: CurlRequest): string {
       parts.push('--digest', `-u ${shellQuote(`${req.auth.username ?? ''}:${req.auth.password ?? ''}`)}`);
       break;
     case 'aws':
-      // curl signs the request itself with --aws-sigv4, so the command is
-      // reproducible rather than carrying a signature that is already stale.
       parts.push(`--aws-sigv4 ${shellQuote(`aws:amz:${req.auth.awsRegion ?? ''}:${req.auth.awsService ?? ''}`)}`);
       parts.push(`-u ${shellQuote(`${req.auth.awsAccessKey ?? ''}:${req.auth.awsSecretKey ?? ''}`)}`);
       if (req.auth.awsSessionToken) parts.push(`-H ${shellQuote(`x-amz-security-token: ${req.auth.awsSessionToken}`)}`);
@@ -98,14 +92,8 @@ export function toCurl(req: CurlRequest): string {
     case 'html':
     case 'javascript':
     case 'graphql': {
-      // curl labels -d as application/x-www-form-urlencoded unless told
-      // otherwise, so a body type Relay declares — xml, html, text — reached
-      // the server as a different request than the one that was copied.
       const rawContentType = RAW_BODY_CONTENT_TYPES[req.bodyType];
       const hasOwnContentType = req.headers.some(h => h.enabled && h.key.toLowerCase() === 'content-type');
-      // An empty raw body still carries its type, matching the sender: the
-      // servers that check Content-Type before reading the body answer 415
-      // when it goes missing.
       const carriesBody = Boolean(req.body) || !methodConventionallyHasNoBody(req.method);
       if (!carriesBody) break;
       if (rawContentType && !hasOwnContentType) {
@@ -185,9 +173,6 @@ export function parseCurl(input: string): ParsedCurl {
     const user = readOptionValue(tokens, i, ['-u', '--user']);
     const userAgent = readOptionValue(tokens, i, ['-A', '--user-agent']);
     const referer = readOptionValue(tokens, i, ['-e', '--referer']);
-    // Flags Relay has a request setting for. They used to be discarded — -m and
-    // -x silently, -k by falling off the end of the chain — leaving a request
-    // that behaves differently from the command it was pasted from.
     const maxTime = readOptionValue(tokens, i, ['-m', '--max-time']);
     const proxy = readOptionValue(tokens, i, ['-x', '--proxy']);
     const ignored = readOptionValue(tokens, i, IGNORED_VALUE_FLAGS);
@@ -244,7 +229,6 @@ export function parseCurl(input: string): ParsedCurl {
       const eq = raw.indexOf('=');
       if (eq > 0) {
         const key = raw.slice(0, eq);
-        // curl names a part's type with a ";type=" suffix on the value.
         const { value: val, contentType } = splitCurlFormValue(raw.slice(eq + 1));
         const isFile = Boolean(form) && val.startsWith('@');
         result.formData!.push({ key, value: isFile ? val.slice(1) : val, isFile, ...(contentType ? { contentType } : {}) });
@@ -264,7 +248,6 @@ export function parseCurl(input: string): ParsedCurl {
       if (referer.value) result.headers!.push({ key: 'Referer', value: referer.value });
       i = referer.index;
     } else if (maxTime) {
-      // curl takes seconds, and accepts a fractional value.
       const seconds = Number(maxTime.value);
       if (Number.isFinite(seconds) && seconds > 0) result.timeoutMs = Math.round(seconds * 1000);
       i = maxTime.index;

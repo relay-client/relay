@@ -9,33 +9,17 @@ import (
 	"sync"
 )
 
-// Request history keeps the response a request came back with, not just its
-// status line. The bodies live in their own files rather than inside the
-// request store: that store is rewritten in full on every autosave, so a
-// thousand entries carrying bodies would turn a 1.2-second debounce into a
-// steady rewrite of hundreds of megabytes.
-//
-// They are encrypted with the same key as the rest of the local profile,
-// because a response body is exactly the kind of thing that carries a token.
-
 const (
-	historyResponseDirName = "history"
-	// A response larger than this is kept only as its head. The point of history
-	// is to see what came back, and no one reads four megabytes of it in a
-	// scrollback — while a thousand of them would cost a gigabyte of disk.
+	historyResponseDirName  = "history"
 	maxHistoryResponseBytes = 2 * 1024 * 1024
 )
 
-// historyStoreMu serialises writes to the history directory. The frontend can
-// record several responses at once during a collection run.
 var historyStoreMu sync.Mutex
 
 func historyResponseDir() string {
 	return filepath.Join(requestStoreDir(), historyResponseDirName)
 }
 
-// historyResponsePath refuses an id that is not a plain identifier, so a value
-// coming from the frontend cannot walk out of the history directory.
 func historyResponsePath(id string) (string, error) {
 	if id == "" {
 		return "", fmt.Errorf("history id is empty")
@@ -50,8 +34,6 @@ func historyResponsePath(id string) (string, error) {
 	return filepath.Join(historyResponseDir(), id+".json"), nil
 }
 
-// HistoryResponseResult reports what happened to a stored response, and how much
-// of it was kept.
 type HistoryResponseResult struct {
 	Stored    bool   `json:"stored"`
 	Truncated bool   `json:"truncated"`
@@ -59,9 +41,6 @@ type HistoryResponseResult struct {
 	Error     string `json:"error,omitempty"`
 }
 
-// SaveHistoryResponse stores the response recorded for a history entry. payload
-// is the JSON the frontend will get back verbatim; it is truncated rather than
-// rejected when oversized, so a large response still leaves a readable head.
 func (a *App) SaveHistoryResponse(id string, payload string) HistoryResponseResult {
 	historyStoreMu.Lock()
 	defer historyStoreMu.Unlock()
@@ -88,8 +67,6 @@ func (a *App) SaveHistoryResponse(id string, payload string) HistoryResponseResu
 	return HistoryResponseResult{Stored: true, Truncated: truncated}
 }
 
-// LoadHistoryResponse returns a stored response. A missing file is not an error:
-// it means the entry predates this feature, or its body was pruned.
 func (a *App) LoadHistoryResponse(id string) HistoryResponseResult {
 	path, err := historyResponsePath(id)
 	if err != nil {
@@ -109,9 +86,6 @@ func (a *App) LoadHistoryResponse(id string) HistoryResponseResult {
 	return HistoryResponseResult{Stored: true, Payload: string(payload)}
 }
 
-// PruneHistoryResponses deletes stored responses for entries that no longer
-// exist. History expires on its own schedule in the frontend, so without this
-// the files would outlive every entry that referred to them.
 func (a *App) PruneHistoryResponses(keepIDs []string) string {
 	historyStoreMu.Lock()
 	defer historyStoreMu.Unlock()
@@ -148,7 +122,6 @@ func (a *App) PruneHistoryResponses(keepIDs []string) string {
 	return strings.Join(failures, "; ")
 }
 
-// ClearHistoryResponses removes every stored response, for "clear history".
 func (a *App) ClearHistoryResponses() string {
 	historyStoreMu.Lock()
 	defer historyStoreMu.Unlock()
@@ -159,8 +132,6 @@ func (a *App) ClearHistoryResponses() string {
 	return ""
 }
 
-// writeFileAtomic writes through a temporary file so a crash mid-write leaves
-// the previous copy rather than a half-written one.
 func writeFileAtomic(path string, data []byte) error {
 	dir := filepath.Dir(path)
 	tmp, err := os.CreateTemp(dir, ".history-*")

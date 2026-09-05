@@ -12,7 +12,6 @@ import (
 )
 
 func TestPKCEChallengeS256_RFC7636Vector(t *testing.T) {
-	// Test vector from RFC 7636 Appendix B.
 	verifier := "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
 	want := "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
 	if got := pkceChallengeS256(verifier); got != want {
@@ -60,7 +59,6 @@ func TestRefreshToken(t *testing.T) {
 			t.Errorf("refresh_token = %q, want rt-old", r.Form.Get("refresh_token"))
 		}
 		w.Header().Set("Content-Type", "application/json")
-		// Omit a new refresh token to verify the old one is carried over.
 		_ = json.NewEncoder(w).Encode(map[string]any{"access_token": "at-new", "token_type": "Bearer", "expires_in": 600})
 	}))
 	defer srv.Close()
@@ -93,7 +91,6 @@ func TestAuthorizeCode_PKCEFlow(t *testing.T) {
 		q := r.URL.Query()
 		gotChallenge = q.Get("code_challenge")
 		gotChallengeMethod = q.Get("code_challenge_method")
-		// Simulate the user approving: redirect back to the loopback redirect_uri.
 		http.Redirect(w, r, q.Get("redirect_uri")+"?code=auth-code-1&state="+q.Get("state"), http.StatusFound)
 	})
 	mux.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
@@ -116,12 +113,9 @@ func TestAuthorizeCode_PKCEFlow(t *testing.T) {
 		OAuth2TokenURL: srv.URL + "/token",
 		OAuth2ClientID: "public-client",
 		OAuth2UsePKCE:  true,
-		// no secret => public client => client_id goes in the body
 	}
 
 	openBrowser := func(target string) error {
-		// Stand in for the system browser: hit the authorize URL and follow the
-		// redirect to the loopback callback (http.Get follows redirects).
 		resp, err := http.Get(target)
 		if err == nil {
 			_ = resp.Body.Close()
@@ -148,7 +142,6 @@ func TestAuthorizeCode_PKCEFlow(t *testing.T) {
 	if gotVerifier == "" {
 		t.Error("expected a code_verifier on the token request")
 	}
-	// The verifier must hash to the challenge that was presented.
 	if pkceChallengeS256(gotVerifier) != gotChallenge {
 		t.Error("code_verifier does not match the presented code_challenge")
 	}
@@ -169,7 +162,6 @@ func TestAuthorizeCode_PKCEFlow(t *testing.T) {
 func TestAuthorizeCode_StateMismatchRejected(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/authorize", func(w http.ResponseWriter, r *http.Request) {
-		// Return a tampered state.
 		http.Redirect(w, r, r.URL.Query().Get("redirect_uri")+"?code=x&state=wrong-state", http.StatusFound)
 	})
 	mux.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {

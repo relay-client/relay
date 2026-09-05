@@ -1,7 +1,3 @@
-// Last-resort safety net: if the Svelte scheduler hits an unrecoverable error
-// (e.g. effect_update_depth_exceeded), the UI freezes with no way out. This
-// renders a dependency-free DOM overlay offering reload/quit so the window is
-// never just a frozen white screen.
 
 const FATAL_MARKERS = [
   'effect_update_depth_exceeded',
@@ -15,8 +11,6 @@ const IGNORED_MARKERS = [
   'Failed to fetch dynamically imported module',
 ];
 
-// A burst this tight means the app is wedged rather than hitting one bad
-// render: the overlay is the only way back out.
 export const ERROR_STORM_THRESHOLD = 15;
 export const ERROR_STORM_WINDOW_MS = 1000;
 
@@ -31,7 +25,7 @@ function reloadApp() {
   const rt = getRuntime();
   try {
     if (typeof rt?.WindowReload === 'function') { rt.WindowReload(); return; }
-  } catch { /* fall through to hard reload */ }
+  } catch {  }
   window.location.reload();
 }
 
@@ -39,8 +33,8 @@ function quitApp() {
   const rt = getRuntime();
   try {
     if (typeof rt?.Quit === 'function') { rt.Quit(); return; }
-  } catch { /* fall through */ }
-  try { window.close(); } catch { /* no-op */ }
+  } catch {  }
+  try { window.close(); } catch {  }
 }
 
 function showFatalOverlay(detail: string) {
@@ -120,9 +114,6 @@ function showFatalOverlay(detail: string) {
   const mount = () => {
     if (!document.body) return;
     document.body.appendChild(root);
-    // Focus must happen *after* attach. Calling focus() on a detached node is
-    // a silent no-op, so without this the Reload button never gained
-    // keyboard focus when the fatal-overlay was shown before DOMContentLoaded.
     reloadBtn.focus();
   };
   if (document.body) mount();
@@ -139,14 +130,6 @@ function isFatal(message: string): boolean {
 
 export type FatalVerdict = 'ignore' | 'fatal' | 'storm' | 'watch';
 
-/**
- * Decides what an uncaught error means, and returns the timestamps still
- * inside the storm window.
- *
- * Kept pure and exported so it can be tested: this is the one piece of Relay
- * that has to behave correctly at the moment everything else already has not,
- * which is exactly when a bug in it would go unnoticed.
- */
 export function classifyFatalError(
   message: string,
   recent: readonly number[],

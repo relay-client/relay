@@ -15,7 +15,6 @@ type ExamplesHost = {
   guardWorkspaceWritable: (action?: string) => boolean;
   openConfirmDialog: (title: string, message: string, confirmLabel?: string) => Promise<boolean>;
   openPromptDialog: (title: string, initialValue?: string, message?: string) => Promise<string | null>;
-  // intra-feature
   addCapturedExample: (example: RequestExample) => void;
   selectedExample: () => RequestExample | null;
   selectExample: (id: string) => void;
@@ -28,16 +27,9 @@ type ExamplesHost = {
   exampleWarning: (example: RequestExample) => string;
 };
 
-// How long a confirmation stays up. A warning gets longer, because it is asking
-// to be read rather than just acknowledged.
 const EXAMPLE_TOAST_MS = 2200;
 const EXAMPLE_WARNING_TOAST_MS = 5000;
 
-/**
- * Show a transient message and take it down again. The timer only clears the
- * message it put up, so a second capture's toast is not cut short by the first
- * one's timer.
- */
 function showExampleToast(host: ExamplesHost, message: string, ms: number) {
   host.collectionImportToast = message;
   setTimeout(() => {
@@ -45,11 +37,6 @@ function showExampleToast(host: ExamplesHost, message: string, ms: number) {
   }, ms);
 }
 
-/**
- * A captured example is named after the status it came back with, disambiguated
- * when that name is already taken. "201 Created" and "201 Created (2)" beat two
- * rows that read the same and cannot be told apart in a list.
- */
 function uniqueExampleName(existing: RequestExample[], desired: string): string {
   const taken = new Set(existing.map(example => example.name));
   if (!taken.has(desired)) return desired;
@@ -69,13 +56,6 @@ export const examplesFeature = {
     this.selectedExampleId = id;
   },
 
-  /**
-   * Attach a captured example to the request being edited. Shared by every way
-   * an example can be captured, so they all name, select, persist and report
-   * the same way. The request id is taken from the active request rather than
-   * whatever produced the example — a history entry carries a snapshot whose id
-   * belongs to no request that still exists.
-   */
   addCapturedExample(this: ExamplesHost, example: RequestExample) {
     const captured = cloneRequestExample(example);
     captured.requestId = this.snapshotActiveRequest().id;
@@ -92,12 +72,6 @@ export const examplesFeature = {
     }
   },
 
-  /**
-   * Capture the response currently in the viewer. The request snapshot is taken
-   * now rather than looked up later, because the request is what the user goes
-   * on editing — an example that pointed at the live request would stop
-   * describing the response it holds the moment anything changed.
-   */
   async saveResponseAsExample(this: ExamplesHost) {
     if (!this.guardWorkspaceWritable('Saving an example')) return;
     const response = this.response;
@@ -134,7 +108,6 @@ export const examplesFeature = {
     this.scheduleActiveRequestPersist();
   },
 
-  /** Order is what the file's `order` field records, so it survives a reload. */
   moveExample(this: ExamplesHost, id: string, delta: number) {
     const index = this.requestExamples.findIndex(item => item.id === id);
     if (index < 0) return;
@@ -159,8 +132,6 @@ export const examplesFeature = {
       if (example.id !== id) return example;
       const next = cloneRequestExample(example);
       next.response = { ...next.response, ...patch };
-      // The body file's extension follows the media type, so keep it in step
-      // with a Content-Type the user edited by hand.
       const contentType = next.response.headers.find(row => row.key.toLowerCase() === 'content-type')?.value ?? '';
       if (contentType) next.response.bodyMediaType = mediaTypeOf(contentType);
       return next;
@@ -168,7 +139,6 @@ export const examplesFeature = {
     this.scheduleActiveRequestPersist();
   },
 
-  /** Shown next to an example that still carries something credential-shaped. */
   exampleWarning(this: ExamplesHost, example: RequestExample): string {
     return exampleHasRawSecret(example)
       ? 'This example holds something that looks like a credential. It is written to the workspace as-is.'

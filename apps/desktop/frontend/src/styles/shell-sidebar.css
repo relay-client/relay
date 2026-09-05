@@ -253,9 +253,6 @@
   pointer-events: none;
 }
 
-/* Wrapper the virtualizer measures. Must carry no margin of its own so its
-   border-box height is the exact space the row occupies (margins are excluded
-   from the measurement and would reintroduce scroll drift). */
 .sidebar-vrow {
   min-width: 0;
 }
@@ -999,8 +996,6 @@
 
 .history-entry-main {
   display: grid;
-  /* badge · url · status · stored-response dot. The dot's column collapses to
-     nothing when the entry has no stored response. */
   grid-template-columns: 42px minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 8px;
@@ -1231,8 +1226,6 @@
   color: var(--delete);
 }
 
-/* Marks a history row whose response was kept, so the menu's "View response"
-   is discoverable without opening every row to find out. */
 .history-stored {
   flex: 0 0 auto;
   font-size: 9px;

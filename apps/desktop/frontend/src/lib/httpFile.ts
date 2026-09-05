@@ -1,11 +1,3 @@
-// Importer for `.http` / `.rest` files — the format shared by the JetBrains
-// HTTP Client and the VS Code REST Client extension.
-//
-// Supported: `###` separators (with the trailing text as the request name),
-// `# @name` directives, file variables (`@base = https://…`), request lines
-// with an optional method and HTTP version, headers, bodies, and the
-// `< ./file` / `> ./out` redirect syntax (recorded as a note rather than
-// silently dropped).
 
 import type { KVRow, Method, RawBodyType, RequestTab, SavedRequest } from './types/models';
 import { DEFAULT_REQUEST_SETTINGS, mkRow } from './constants';
@@ -40,14 +32,12 @@ function isComment(line: string) {
   return /^\s*(#|\/\/)/.test(line);
 }
 
-/** `@name = value`, with or without the spaces, and `@name value` too. */
 function fileVariable(line: string): HttpFileVariable | null {
   const match = line.match(/^\s*@([A-Za-z0-9_.-]+)\s*(?:=|\s)\s*(.*)$/);
   if (!match) return null;
   return { key: match[1], value: match[2].trim() };
 }
 
-/** `# @name login` or `// @name login`, and JetBrains' `# @no-redirect` style flags. */
 function directive(line: string): { key: string; value: string } | null {
   const match = line.match(/^\s*(?:#+|\/\/)\s*@([A-Za-z0-9_.-]+)\s*(?:=|\s)?\s*(.*)$/);
   if (!match) return null;
@@ -71,11 +61,9 @@ function parseRequestLine(line: string): RequestLine | null {
   const head = parts[0].toUpperCase();
   if (METHODS.has(head) || REALTIME_METHODS.has(head)) {
     const rest = parts.slice(1);
-    // Drop a trailing "HTTP/1.1" version token; it isn't part of the URL.
     if (rest.length > 1 && /^HTTP\/[\d.]+$/i.test(rest[rest.length - 1])) rest.pop();
     return { method: head, url: rest.join(' ').trim() };
   }
-  // A bare URL line means GET, which both clients accept.
   if (/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed) || trimmed.startsWith('{{') || trimmed.startsWith('/')) {
     const rest = [...parts];
     if (rest.length > 1 && /^HTTP\/[\d.]+$/i.test(rest[rest.length - 1])) rest.pop();
@@ -120,7 +108,6 @@ function parseBlock(lines: string[], label: string, variables: HttpFileVariable[
   const notes: string[] = [];
   let index = 0;
 
-  // Leading comments, directives and file variables, before the request line.
   for (; index < lines.length; index += 1) {
     const line = lines[index];
     if (!line.trim()) continue;
@@ -142,7 +129,6 @@ function parseBlock(lines: string[], label: string, variables: HttpFileVariable[
   index += 1;
 
   let url = requestLine.url;
-  // A query string can be wrapped across following indented lines.
   while (index < lines.length && /^\s+[?&]/.test(lines[index])) {
     url += lines[index].trim();
     index += 1;
@@ -162,8 +148,6 @@ function parseBlock(lines: string[], label: string, variables: HttpFileVariable[
   for (; index < lines.length; index += 1) {
     const line = lines[index];
     const trimmed = line.trim();
-    // `< ./payload.json` pulls the body from a file the importer can't reach,
-    // and `>` / `>>` redirect the response. Record them instead of pretending.
     if (/^<\s*\S/.test(trimmed)) {
       notes.push(`Body was loaded from ${trimmed.replace(/^<\s*/, '')} in the source .http file.`);
       continue;
@@ -176,8 +160,6 @@ function parseBlock(lines: string[], label: string, variables: HttpFileVariable[
   }
 
   let body = bodyLines.join('\n').trim();
-  // JetBrains response handlers use a syntax Relay's pm.* scripts don't share,
-  // so keep the source rather than generating a script that cannot run.
   const handlerAt = body.indexOf('> {%');
   if (handlerAt >= 0) {
     notes.push('The source file had a JetBrains response handler script, which Relay does not run.');
@@ -260,8 +242,6 @@ export function parseHttpFile(text: string, collectionId: string, collectionName
 
   if (!requests.length) throw new Error('No requests found in the .http file');
 
-  // Later definitions of the same variable win, matching how both clients
-  // evaluate a file top to bottom.
   const deduped = new Map<string, string>();
   for (const variable of variables) deduped.set(variable.key, variable.value);
 

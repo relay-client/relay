@@ -329,7 +329,6 @@
                 {#if expanded}
                   <div class="sse-event-body">
                     {#if row.kind === 'message'}
-                      <!-- Highlighted markup only; every interpolated value goes through escapeHtml(). -->
                       <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                       <pre class="sse-event-data-viewer sse-event-pre sse-event-data-json"><code>{@html renderGrpcBodyHtml(row.body)}</code></pre>
                     {:else if row.kind === 'cancelled'}

@@ -514,7 +514,6 @@
                   </div>
                 </div>
               {:else}
-                <!-- Highlighted markup only; every interpolated value goes through escapeHtml(). -->
                 <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                 <pre class="sse-event-data-viewer sse-event-pre" class:sse-event-data-json={isJson(displayArgs(message))}><code>{@html renderBodyHtml(displayArgs(message))}</code></pre>
               {/if}

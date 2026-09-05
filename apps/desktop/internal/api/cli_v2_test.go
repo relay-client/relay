@@ -46,7 +46,6 @@ func TestLoadDataFileJSON(t *testing.T) {
 	if len(rows) != 2 {
 		t.Fatalf("expected 2 rows, got %d", len(rows))
 	}
-	// Numbers and booleans become strings usable in {{templates}}.
 	if rows[0]["id"] != "1" || rows[0]["active"] != "true" {
 		t.Fatalf("row 0 = %v", rows[0])
 	}
@@ -70,8 +69,6 @@ func TestLoadDataFileWrapsAndRejects(t *testing.T) {
 	}
 }
 
-// Every dynamic variable must produce a non-empty, brace-free value — the same
-// contract the frontend test enforces, so the CLI stays at parity.
 func TestDynamicGeneratorsParity(t *testing.T) {
 	for name, gen := range dynamicGenerators {
 		value := gen()
@@ -82,7 +79,6 @@ func TestDynamicGeneratorsParity(t *testing.T) {
 			t.Errorf("%s produced an unresolved value %q", name, value)
 		}
 	}
-	// A representative shape check.
 	if v, _ := resolveDynamicCLIVariable("$guid"); len(v) != 36 {
 		t.Errorf("$guid = %q", v)
 	}
@@ -114,7 +110,6 @@ func TestWriteVariableExportRoundTrips(t *testing.T) {
 	if err := writeVariableExport(path, "CI", map[string]string{"a": "1", "b": "2"}); err != nil {
 		t.Fatalf("export: %v", err)
 	}
-	// The export is a Postman-style environment that reads back through the loader.
 	values, err := readVariableFile(path)
 	if err != nil {
 		t.Fatalf("read back: %v", err)
@@ -124,8 +119,6 @@ func TestWriteVariableExportRoundTrips(t *testing.T) {
 	}
 }
 
-// writeDataDrivenWorkspace lays down a workspace whose request uses a data
-// column both in the URL ({{user}}) and via pm.iterationData in a test.
 func writeDataDrivenWorkspace(t *testing.T, baseURL string) string {
 	t.Helper()
 	root := t.TempDir()
@@ -216,7 +209,6 @@ func TestRunCLIDataDrivenIterations(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("expected exit 0, got %d\n%s", code, out.String())
 	}
-	// One iteration per data row, in order, each carrying its own value.
 	if strings.Join(seen, ",") != "ada,grace,linus" {
 		t.Fatalf("expected one request per row with its value, got %v", seen)
 	}
@@ -261,7 +253,6 @@ func TestRunCLIReporterFileExports(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("expected exit 0, got %d\n%s", code, out.String())
 	}
-	// The CLI reporter went to stdout; the others went to files.
 	if !strings.Contains(out.String(), "1 requests, 1 passed") {
 		t.Fatalf("expected the cli summary on stdout, got:\n%s", out.String())
 	}
@@ -283,8 +274,6 @@ func TestRunCLIInsecureFlagDisablesVerification(t *testing.T) {
 	httpTransports.closeAll()
 	t.Cleanup(httpTransports.closeAll)
 
-	// A TLS server with a self-signed cert: it only succeeds when verification
-	// is off, which is what --insecure does.
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("{}"))

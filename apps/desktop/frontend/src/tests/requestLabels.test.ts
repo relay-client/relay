@@ -19,9 +19,6 @@ describe('request labels', () => {
 });
 
 describe('SSE requests and the Scripts tab', () => {
-  // The SSE path never runs pre-request or test scripts, so the tab offered
-  // something the app does not do. A request saved while it was open has to
-  // reopen on a tab that exists.
   it('moves a saved SSE request off the scripts tab', () => {
     const req = normalizeSavedRequest({ method: 'SSE', url: 'https://example.test/events', requestTab: 'scripts' }, [], 'ws-1');
     expect(req.requestTab).toBe('params');

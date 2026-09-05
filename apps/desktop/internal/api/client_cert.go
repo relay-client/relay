@@ -12,8 +12,6 @@ import (
 	"github.com/relay-client/relay/apps/desktop/internal/model"
 )
 
-// clientCertConfig is the resolved mTLS material for one request. An empty
-// config means no client certificate — the common case.
 type clientCertConfig struct {
 	certPath string
 	keyPath  string
@@ -32,9 +30,6 @@ func (c clientCertConfig) enabled() bool {
 	return c.certPath != ""
 }
 
-// cacheKey identifies the certificate so the transport cache can keep separate
-// connection pools per client identity, and so a parsed keypair is reused
-// instead of re-read on every send.
 func (c clientCertConfig) cacheKey() string {
 	if !c.enabled() {
 		return ""
@@ -56,8 +51,6 @@ func newClientCertCache() *clientCertCache {
 	return &clientCertCache{entries: make(map[string]cachedClientCert)}
 }
 
-// clientCerts is process-wide: a parsed keypair is immutable and safe to share,
-// and reusing it avoids re-reading the files on every request.
 var clientCerts = newClientCertCache()
 
 func (c *clientCertCache) load(config clientCertConfig) (tls.Certificate, error) {
@@ -78,8 +71,6 @@ func (c *clientCertCache) load(config clientCertConfig) (tls.Certificate, error)
 	return cert, err
 }
 
-// forget drops a cached entry so a re-issued certificate at the same path is
-// picked up without restarting the app.
 func (c *clientCertCache) forget(config clientCertConfig) {
 	c.mu.Lock()
 	delete(c.entries, config.cacheKey())
@@ -91,8 +82,6 @@ func loadClientCertificate(config clientCertConfig) (tls.Certificate, error) {
 	if err != nil {
 		return tls.Certificate{}, fmt.Errorf("client certificate: %w", err)
 	}
-	// A single combined PEM (cert + key in one file) is common, so default the
-	// key file to the cert file when the user leaves it blank.
 	keyPath := config.keyPath
 	if keyPath == "" {
 		keyPath = config.certPath
@@ -112,8 +101,6 @@ func loadClientCertificate(config clientCertConfig) (tls.Certificate, error) {
 
 	cert, err := tls.X509KeyPair(certPEM, keyPEM)
 	if err != nil {
-		// A legacy encrypted key with no password produces an opaque parse
-		// error; point the user at the actual cause.
 		if config.password == "" && pemHasEncryptedBlock(keyPEM) {
 			return tls.Certificate{}, fmt.Errorf("client key is encrypted — enter its password")
 		}
@@ -122,23 +109,16 @@ func loadClientCertificate(config clientCertConfig) (tls.Certificate, error) {
 	return cert, nil
 }
 
-// decryptPEMPrivateKey handles the legacy PEM encryption (RFC 1423, the
-// "DEK-Info" header openssl writes) that Go's tls.X509KeyPair refuses to decrypt
-// on its own. PKCS#8-encrypted keys are not supported here and report a clear
-// error rather than a silent failure.
 func decryptPEMPrivateKey(keyPEM []byte, password string) ([]byte, error) {
 	block, _ := pem.Decode(keyPEM)
 	if block == nil {
 		return nil, fmt.Errorf("client key is not valid PEM")
 	}
 	//nolint:staticcheck // x509.IsEncryptedPEMBlock/DecryptPEMBlock are deprecated
-	// but remain the only stdlib path for the openssl legacy key format users
-	// still have on disk.
 	if !x509.IsEncryptedPEMBlock(block) {
 		if pemLooksPKCS8Encrypted(block) {
 			return nil, fmt.Errorf("this key uses PKCS#8 encryption, which Relay cannot decrypt — convert it with: openssl pkcs8 -in key.pem -out key.dec.pem")
 		}
-		// Not encrypted after all; hand the original bytes back untouched.
 		return keyPEM, nil
 	}
 	//nolint:staticcheck

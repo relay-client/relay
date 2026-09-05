@@ -53,10 +53,6 @@ var requestAuthSecretFields = []string{
 	"awsSessionToken",
 }
 
-// requestSettingSecretFields are secrets that live outside the auth block. The
-// client-key passphrase is one: a literal value typed into the request's
-// Settings tab used to be written to the workspace YAML verbatim, so a
-// git-backed workspace committed it in plain text.
 var requestSettingSecretFields = []string{
 	"clientKeyPassword",
 }
@@ -429,9 +425,6 @@ func writeYAMLWorkspaceStore(root string, workspaces, collections, requests, env
 					return fmt.Errorf("request is missing id")
 				}
 				requestPath := filepath.Join(requestsDir, requestFiles[requestID]+fileStoreYAMLExt)
-				// Examples are lifted out of the request before it is written:
-				// they live in their own files under the collection's examples/
-				// directory, so a saved response never bloats the request YAML.
 				if err := writeRequestExamples(collectionDir, requestFiles[requestID], requestExampleMaps(request), desiredFiles); err != nil {
 					return err
 				}
@@ -554,8 +547,6 @@ func pruneYAMLWorkspaceStore(root string, desiredFiles map[string]struct{}, pres
 		if info, err := os.Lstat(path); err != nil || info.Mode()&os.ModeSymlink != 0 {
 			return nil
 		}
-		// A body file carries no marker of its own, so it is trusted only
-		// because of where it sits: directly inside examples/<request>/.
 		if !isExampleBody && !isRelayManagedYAMLFile(path) {
 			return nil
 		}
@@ -714,10 +705,6 @@ func ensureWorkspaceGitignore(root string) error {
 	if len(missing) == 0 {
 		return nil
 	}
-	// Follow whatever the file already uses. Git checks a workspace out with
-	// CRLF on Windows by default, and appending LF there would leave a file
-	// with two kinds of line ending — which reads as a whole-file change in
-	// any editor that normalises on save, and is noise in a review.
 	newline := "\n"
 	if strings.Contains(existing, "\r\n") {
 		newline = "\r\n"
@@ -2035,18 +2022,12 @@ func safePathSegment(value string) string {
 		return "item"
 	}
 	if len(value) > 80 {
-		// Slice on a UTF-8 rune boundary, not bytes — otherwise a
-		// multibyte character in the middle of the limit gets split,
-		// producing an invalid filename on strict filesystems (ext4)
-		// and an unreadable byte sequence even where it loads (HFS+).
 		value = truncateUTF8(value, 80)
 		value = strings.Trim(value, ".-_")
 	}
 	return value
 }
 
-// truncateUTF8 returns the longest prefix of value whose byte length is <= max
-// and whose final rune is complete.
 func truncateUTF8(value string, max int) string {
 	if len(value) <= max {
 		return value

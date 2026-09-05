@@ -1,8 +1,5 @@
 import type { KVRow, SavedRequest } from './types/models';
 
-// Accept the common Authorization scheme prefixes — Bearer, Basic, Token,
-// JWT, ApiKey, Digest. Without this an export of `Basic {{cred}}` was
-// stripped because only `Bearer {{...}}` was recognized as a template.
 const TEMPLATE_VALUE_RE = /^\s*(?:(?:Bearer|Basic|Token|JWT|ApiKey|API-Key|Digest)\s+)?\{\{[^{}]+\}\}\s*$/i;
 const SENSITIVE_KEY_RE = /(^|[-_\s.])(authorization|cookie|set-cookie|password|passwd|pwd|secret|token|access[-_\s]?token|refresh[-_\s]?token|api[-_\s]?key|apikey|client[-_\s]?secret|private[-_\s]?key|session|jwt)([-_\s.]|$)/i;
 

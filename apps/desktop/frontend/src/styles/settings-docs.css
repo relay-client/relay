@@ -179,9 +179,6 @@
   font-style: italic;
 }
 
-/* Examples — saved responses, listed on the left with the selected one open
-   beside it. The layout mirrors the environments editor rather than the tab
-   editors, because an example is a record being browsed, not a form. */
 .examples-tab {
   display: flex;
   flex-direction: column;
@@ -238,8 +235,6 @@
   padding-right: 2px;
 }
 .examples-row:hover { background: var(--hover); }
-/* Selection has to read differently from hover in a master-detail list, and
-   there is no --active token — the accent rail is what marks the open one. */
 .examples-row.active {
   background: var(--elevated);
   box-shadow: inset 2px 0 0 var(--accent);

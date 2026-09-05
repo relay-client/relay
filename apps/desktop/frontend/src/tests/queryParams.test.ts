@@ -138,8 +138,6 @@ describe('flattenUrlParams', () => {
     ]);
   });
 
-  // Deduplicating by key alone dropped the second value outright: the table's
-  // own row for a key the URL already mentions never reached the wire.
   it('keeps a second value for a key the URL already carries', () => {
     const { params } = flattenUrlParams('https://x.com/p?tag=a', [row('tag', 'b'), mkRow()]);
     expect(kv(params)).toEqual([

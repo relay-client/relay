@@ -138,7 +138,6 @@ export const graphqlFeature = {
       url: resolvedUrl,
       params: [],
       headers: [{ key: 'Accept', value: 'application/json, application/graphql, text/plain, */*', enabled: true, isFile: false, fileName: '', contentType: '' }],
-      // Schema introspection is deliberately unauthenticated.
       auth: emptyAuthConfig(),
       bodyType: 'none',
       body: '',

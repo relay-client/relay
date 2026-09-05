@@ -61,8 +61,6 @@ describe('resolveTemplate with dynamic variables', () => {
     expect(resolved).toMatch(/^https:\/\/api\.test\/[0-9a-f-]{36}\/items\?ts=\d{10}$/i);
   });
 
-  // Postman resolves every occurrence separately; a collection that posts two
-  // records in one body relies on getting two different ids.
   it('resolves each occurrence independently', () => {
     const resolved = resolve('{{$guid}} {{$guid}}');
     const [first, second] = resolved.split(' ');

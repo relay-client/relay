@@ -7,10 +7,6 @@ import (
 	"github.com/relay-client/relay/apps/desktop/internal/script"
 )
 
-// The script's view of headers and params is a map, so two rows sharing a key
-// collapse onto one value. Merging that map back rewrote every row — a request
-// with "?id=1&id=2" went out as "?id=2&id=2", and a disabled row came back
-// enabled — for any request running any script, including one that only logs.
 func TestEmptyScriptLeavesTheRequestUntouched(t *testing.T) {
 	req := model.HttpRequest{
 		Headers: []model.KeyValue{
@@ -73,8 +69,6 @@ func TestScriptWriteUpsertsOnlyTheKeyItNamed(t *testing.T) {
 	})
 }
 
-// A script that writes a header the request does not have appends it, and a
-// disabled row for that header is the one it revives.
 func TestScriptWriteRevivesADisabledRowAndAppendsNewOnes(t *testing.T) {
 	req := model.HttpRequest{
 		Headers: []model.KeyValue{{Key: "X-Trace", Value: "old", Enabled: false}},
@@ -93,8 +87,6 @@ func TestScriptWriteRevivesADisabledRowAndAppendsNewOnes(t *testing.T) {
 	})
 }
 
-// Filtering the row slices in place aliased the caller's backing array, so a
-// removal overwrote rows the caller still held.
 func TestScriptRemovalDoesNotOverwriteTheCallersRows(t *testing.T) {
 	original := []model.KeyValue{
 		{Key: "X-Drop", Value: "gone", Enabled: true},

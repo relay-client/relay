@@ -50,16 +50,11 @@ type HistoryHost = {
 const HISTORY_RETENTION_MS = 14 * 24 * 60 * 60 * 1000;
 const HISTORY_LIMIT = 1000;
 
-// What is worth keeping to make a past response readable again. The timeline and
-// the trace of what went on the wire are left out: they describe a connection
-// that no longer exists, and they are the bulky part.
 function historyResponseSnapshot(response: HttpResponse): HttpResponse {
   return {
     ...response,
     timeline: [],
     sentRequests: [],
-    // The bytes of a binary response do not survive the trip to the interface,
-    // so there is nothing faithful to store. The row still records what it was.
     body: response.bodyIsBinary ? '' : response.body,
     previewImageBase64: '',
   };
@@ -122,8 +117,6 @@ export const historyFeature = {
       responseContentType: responseContentType(httpResponse),
     };
 
-    // Store the response before the entry is announced, so a row never claims a
-    // response that is not on disk. A failure here costs the body, not the entry.
     try {
       const result = await saveHistoryResponse(entry.id, JSON.stringify(historyResponseSnapshot(httpResponse)));
       entry.responseStored = result.stored;
@@ -134,24 +127,16 @@ export const historyFeature = {
 
     this.requestHistory = this.pruneHistory([entry, ...this.requestHistory]);
     await this.persistRequestStore(this.requests, this.activeRequestId, this.openRequestIds, this.workspaces, this.collections, this.activeWorkspaceId, this.requestHistory);
-    // Entries that just fell out of the window leave their bodies behind
-    // otherwise; the files would outlive every entry that referred to them.
     void this.pruneStoredResponses();
   },
 
-  // Deletes stored responses for entries history no longer holds. Best-effort:
-  // a failure here leaves files on disk, which is not worth interrupting a send.
   async pruneStoredResponses(this: HistoryHost) {
     try {
       await pruneHistoryResponses(this.requestHistory.map(entry => entry.id));
     } catch {
-      // keep going; the next prune will pick them up
     }
   },
 
-  // Reads a stored response off disk, reporting the ways it can fail in one
-  // place. Both viewing a past response and keeping one as an example need it,
-  // and they must fail identically.
   async loadStoredHistoryResponse(this: HistoryHost, historyId: string): Promise<HttpResponse | null> {
     const entry = this.requestHistory.find(candidate => candidate.id === historyId);
     if (!entry) return null;
@@ -187,8 +172,6 @@ export const historyFeature = {
     return response;
   },
 
-  // Reopens a past response in the viewer. The request itself is not touched:
-  // this answers "what did it come back with", not "send it again".
   async showHistoryResponse(this: HistoryHost, historyId: string) {
     this.openHistoryMenuId = '';
     const response = await this.loadStoredHistoryResponse(historyId);
@@ -196,12 +179,6 @@ export const historyFeature = {
     this.setActiveResponse(response);
     this.setActiveResponseTab('body');
   },
-  /**
-   * Keep a past response as an example on the request currently being edited.
-   * A history entry's request is a snapshot with an id of its own, so there is
-   * no original request to attach to — the open one is the only sensible target,
-   * and the toast names what it went to.
-   */
   async saveHistoryEntryAsExample(this: HistoryHost, historyId: string) {
     if (!this.guardWorkspaceWritable('Saving an example')) return;
     const entry = this.requestHistory.find(candidate => candidate.id === historyId);
@@ -253,10 +230,6 @@ export const historyFeature = {
     this.collections = [...this.collections, collection];
     await this.saveHistoryEntryToCollection(historyId, collection.id);
   },
-  // Opening an entry restores both halves of it: the request as a new draft, and
-  // the response it came back with. Looking at what an endpoint returned an hour
-  // ago is the usual reason to come here, and re-sending to find out would defeat
-  // the point — the server may well answer differently now.
   async openHistoryEntry(this: HistoryHost, historyId: string) {
     const collectionId = this.activeCollectionId() || this.defaultCollectionForWorkspace(this.activeWorkspaceId)?.id || this.activeWorkspaceCollections()[0]?.id || '';
     const entry = this.requestHistory.find(candidate => candidate.id === historyId);
@@ -277,8 +250,6 @@ export const historyFeature = {
     this.requestHistory = [];
     this.historyHeaderMenuOpen = false;
     await this.persistRequestStore();
-    // Clearing history has to clear the stored responses too, or the bodies
-    // outlive the entries the user just asked to be rid of.
-    try { await clearHistoryResponses(); } catch { /* the next prune sweeps them */ }
+    try { await clearHistoryResponses(); } catch {  }
   },
 };

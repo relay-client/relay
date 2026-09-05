@@ -49,13 +49,7 @@
   let view: EditorView | undefined;
   let internalChange = false;
   let languageLoadVersion = 0;
-  // Track the last language we configured so the $effect doesn't reload a
-  // dynamic-imported language extension twice for the same value, and so the
-  // initial onMount → reconfigureLanguage(language) doesn't fight the
-  // $effect that runs immediately afterward.
   let lastLoadedLanguage: Lang | null = null;
-  // Same idea for the placeholder string — reconfiguring CM extensions on
-  // every render churns subscriptions; only reconfigure when actually changed.
   let lastPlaceholder = '';
   const languageCompartment = new Compartment();
   const placeholderCompartment = new Compartment();
@@ -297,8 +291,6 @@
         detail: variable.secret ? 'secret' : variableDisplayValue(variable),
         apply: `${variable.key}}}`,
       }));
-    // Dynamic variables are generated at send time, so they belong in the same
-    // picker even when the workspace has no environment selected.
     const dynamicOptions = DYNAMIC_VARIABLES
       .filter(variable => variable.name.toLowerCase().includes(needle))
       .slice(0, 30)
@@ -549,22 +541,11 @@
       }),
       parent: container,
     });
-    // Synchronously claim this language so the about-to-run $effect for
-    // `language` sees no change and doesn't fire a redundant reload of the
-    // same dynamic-imported extension.
     lastLoadedLanguage = language;
     lastPlaceholder = singleLinePlaceholder;
     void reconfigureLanguage(language);
   });
 
-  // Sync external `value` → editor doc. The bidirectional binding is risky:
-  // dispatch() runs the updateListener synchronously which writes `value`,
-  // which re-enters this effect. The `internalChange` flag guards that path,
-  // but a plain `let` flag interacts poorly with Svelte 5 reactive scheduling
-  // (each $state write schedules another microtask). Wrapping the dispatch
-  // in `untrack` prevents the effect from re-subscribing to its own writes,
-  // and toggling `internalChange` around dispatch blocks the listener-side
-  // write back into `value`.
   $effect(() => {
     if (!view) return;
     const next = value;

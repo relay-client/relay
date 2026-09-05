@@ -27,8 +27,6 @@ describe('clampConcurrency', () => {
 });
 
 describe('forEachWithConcurrency', () => {
-  // The whole point of the fix: a 300-request collection must not open 300
-  // sockets at once.
   it('never exceeds the limit', async () => {
     const items = Array.from({ length: 30 }, (_, index) => index);
     let inFlight = 0;

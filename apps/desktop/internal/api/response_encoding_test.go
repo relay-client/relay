@@ -122,26 +122,21 @@ func TestDecodeResponseBody(t *testing.T) {
 }
 
 func TestDecodeResponseBodyPassthrough(t *testing.T) {
-	// No Content-Encoding: body is returned untouched, ok=false.
 	plain := []byte(sampleBody)
 	if decoded, ok := decodeResponseBody(plain, respWithEncoding("")); ok || string(decoded) != sampleBody {
 		t.Fatalf("plain body should pass through unchanged, ok=%v", ok)
 	}
 
-	// identity is a no-op encoding.
 	if _, ok := decodeResponseBody(plain, respWithEncoding("identity")); ok {
 		t.Fatal("identity should not report a decode")
 	}
 
-	// Unknown encoding: leave the raw bytes alone rather than corrupt them.
 	if decoded, ok := decodeResponseBody(plain, respWithEncoding("magic-v9")); ok || string(decoded) != sampleBody {
 		t.Fatalf("unknown encoding should pass through, ok=%v", ok)
 	}
 }
 
 func TestDecodeResponseBodyAlreadyUncompressed(t *testing.T) {
-	// Go's transport decompressed gzip itself and set Uncompressed; the header
-	// still naming gzip must not trigger a second (failing) decode.
 	resp := respWithEncoding("gzip")
 	resp.Uncompressed = true
 	plain := []byte(sampleBody)
@@ -151,7 +146,6 @@ func TestDecodeResponseBodyAlreadyUncompressed(t *testing.T) {
 }
 
 func TestDecodeResponseBodyGarbage(t *testing.T) {
-	// Declared gzip but the bytes are not a valid gzip stream: fall back to raw.
 	garbage := []byte("this is not gzip at all, just plain text")
 	decoded, ok := decodeResponseBody(garbage, respWithEncoding("gzip"))
 	if ok {
@@ -163,7 +157,6 @@ func TestDecodeResponseBodyGarbage(t *testing.T) {
 }
 
 func TestReadAllCappedRejectsBomb(t *testing.T) {
-	// A tiny gzip stream that expands past the cap must be rejected, not OOM.
 	huge := strings.Repeat("A", maxDecodedResponseBodySize+1024)
 	bomb := gzipBytes(t, huge)
 	if _, ok := decodeResponseBody(bomb, respWithEncoding("gzip")); ok {

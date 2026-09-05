@@ -7,16 +7,9 @@
 
   let bodyEditorRef = $state<CodeEditor>();
 
-  // The form-data type popover is anchored in a pane that clips its overflow,
-  // so it is positioned against the viewport instead of the row. Anchoring it
-  // to the trigger's own rect also lets it flip above when the row sits near
-  // the bottom of a short editor pane, where it would otherwise be cut off.
   const FORM_TYPE_MENU_HEIGHT = 132;
   let formTypeMenuPos = $state({ top: 0, left: 0 });
 
-  // The popover is moved to <body>: the row it lives in sets its own
-  // z-index, and that stacking context put the menu underneath the response
-  // panel. The same escape hatch VariableInput uses for its suggestions.
   function portal(node: HTMLElement) {
     document.body.appendChild(node);
     return {
@@ -103,9 +96,6 @@
                     <span class="form-type-check">{row.isFile ? '✓' : ''}</span>
                     File
                   </button>
-                  <!-- The part's own Content-Type. Left empty Relay sends the
-                       default, which for a file is application/octet-stream —
-                       what the APIs that check an upload's MIME type reject. -->
                   <div
                     class="form-type-content-type"
                     role="none"

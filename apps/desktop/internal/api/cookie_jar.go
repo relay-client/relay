@@ -41,16 +41,6 @@ func newTrackedCookieJar() *trackedCookieJar {
 	}
 }
 
-// cookieJarRegistry holds one trackedCookieJar per workspace ID. Without
-// per-workspace isolation a request to https://api.example.com from
-// workspace "prod" would attach the cookies a request from workspace
-// "sandbox" set earlier — leaking session credentials across logical
-// boundaries the user expects to be independent (Postman/Bruno isolate
-// cookies the same way).
-//
-// An empty workspace ID maps to the "default" jar so existing callers
-// (or back-compat paths that haven't been threaded with a workspace ID
-// yet) still work and remain isolated from named workspaces.
 type cookieJarRegistry struct {
 	mu   sync.Mutex
 	jars map[string]*trackedCookieJar
@@ -68,7 +58,6 @@ func normalizeWorkspaceID(id string) string {
 	return id
 }
 
-// jar returns (creating if absent) the cookie jar for the given workspace ID.
 func (r *cookieJarRegistry) jar(workspaceID string) *trackedCookieJar {
 	if r == nil {
 		return nil
@@ -84,9 +73,6 @@ func (r *cookieJarRegistry) jar(workspaceID string) *trackedCookieJar {
 	return jar
 }
 
-// singleJarRegistry wraps a single trackedCookieJar as the default-workspace
-// jar in a fresh registry. Used by tests that want one shared jar without the
-// per-workspace isolation indirection.
 func singleJarRegistry(jar *trackedCookieJar) *cookieJarRegistry {
 	r := newCookieJarRegistry()
 	if jar != nil {

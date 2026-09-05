@@ -92,7 +92,6 @@
     {#each lines as line}
       <div class="curl-line">
         <span class="curl-line-no">{line.number}</span>
-        <!-- Highlighted markup only; every interpolated value goes through escapeHtml(). -->
         <!-- eslint-disable-next-line svelte/no-at-html-tags -->
         <code>{@html line.html}</code>
       </div>

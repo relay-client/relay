@@ -24,7 +24,6 @@ type WebSocketHost = {
   requestError: string;
   requestTab: RequestTab;
   webSocketConnected: boolean;
-  // shared / cross-feature members that remain on AppVM
   cleanupRealtimeSessions: () => void;
   recordRequestHistory: (httpResponse: HttpResponse, requestSnapshot?: SavedRequest) => Promise<void>;
   snapshotActiveRequest: (options?: { forPersistence?: boolean }) => SavedRequest;
@@ -36,7 +35,6 @@ type WebSocketHost = {
   setActiveResponse: (response: HttpResponse | null, requestId?: string) => void;
   resolveTemplate: (value: string, values?: Record<string, string>) => string;
   environmentValuesForRequest: (req: Pick<SavedRequest, 'collectionId'>, envValues?: Record<string, string>) => Record<string, string>;
-  // intra-feature members (mixed into the same prototype)
   forgetWebSocketSession: (id: string) => void;
   _emptyWebSocketSession: () => WebSocketSession;
   _wsSetSession: (id: string, patch: Partial<WebSocketSession>) => void;

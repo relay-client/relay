@@ -8,7 +8,6 @@ import (
 	"github.com/relay-client/relay/apps/desktop/internal/model"
 )
 
-// Engine identifies which scripting language a request's scripts are written in.
 type Engine string
 
 const (
@@ -32,9 +31,6 @@ func resolveTimeout(override time.Duration) time.Duration {
 	return override
 }
 
-// resolveEngine maps the wire value (which may be empty or a friendly alias)
-// to a concrete engine. An unspecified engine falls back to Tengo so that
-// legacy requests and payloads keep their original behaviour.
 func resolveEngine(name string) Engine {
 	switch strings.ToLower(strings.TrimSpace(name)) {
 	case "js", "javascript", "node":
@@ -50,9 +46,6 @@ type Info struct {
 	IterationCount int
 }
 
-// PostmanBodyMode translates Relay's body type into the name Postman's
-// scripting API reports, so an imported `if (pm.request.body.mode === "raw")`
-// still takes the branch its author meant.
 func PostmanBodyMode(bodyType string) string {
 	switch strings.ToLower(strings.TrimSpace(bodyType)) {
 	case "urlencoded":
@@ -76,9 +69,7 @@ type Context struct {
 	Variables           map[string]string
 	Environment         map[string]string
 	CollectionVariables map[string]string
-	// IterationData holds the current data-file row, exposed to scripts as the
-	// read-only pm.iterationData. Empty outside a data-driven run.
-	IterationData map[string]string
+	IterationData       map[string]string
 
 	RequestURL     string
 	RequestMethod  string
@@ -87,32 +78,15 @@ type Context struct {
 	RemovedHeaders map[string]struct{}
 	RemovedParams  map[string]struct{}
 
-	// TouchedHeaders / TouchedParams record the keys the script actually wrote.
-	// RequestHeaders and RequestParams are seeded with the whole request so a
-	// script can read them, and a map cannot hold two rows sharing a key — so
-	// without this the merge back would rewrite every row from a collapsed map
-	// and turn "?id=1&id=2" into "?id=2&id=2". Only touched keys are merged.
-	// Header keys are stored lowercased (HTTP header names are case-insensitive);
-	// param keys are stored as written.
 	TouchedHeaders map[string]struct{}
 	TouchedParams  map[string]struct{}
 
-	// RequestBody is the raw body the request will send. Scripts that sign a
-	// payload or build it at send time need to read and rewrite it, so
-	// RequestBodyChanged records whether the script actually wrote one —
-	// an empty body a script set on purpose is not the same as one it never
-	// touched.
 	RequestBody        string
 	RequestBodyType    string
 	RequestBodyChanged bool
 
-	// RequestBodyFilePath is set when the body is a file read from disk. The
-	// script never sees those bytes, so a raw write cannot replace them.
 	RequestBodyFilePath string
 
-	// RequestFormData holds the rows a form-data or urlencoded body is built
-	// from. They are the body for those two modes — a raw string is not — so
-	// pm.request.body.urlencoded / .formdata edit these instead.
 	RequestFormData        []model.KeyValue
 	RequestFormDataChanged bool
 
@@ -152,8 +126,6 @@ func NewContext(vars, env map[string]string) *Context {
 	}
 }
 
-// SetRequestHeader records a header the script wrote. Existing entries that
-// differ only in case are replaced, matching HTTP semantics.
 func (c *Context) SetRequestHeader(key, value string) {
 	for existing := range c.RequestHeaders {
 		if strings.EqualFold(existing, key) {
@@ -165,7 +137,6 @@ func (c *Context) SetRequestHeader(key, value string) {
 	delete(c.RemovedHeaders, strings.ToLower(key))
 }
 
-// UnsetRequestHeader records a header the script removed.
 func (c *Context) UnsetRequestHeader(key string) {
 	for existing := range c.RequestHeaders {
 		if strings.EqualFold(existing, key) {
@@ -176,14 +147,12 @@ func (c *Context) UnsetRequestHeader(key string) {
 	c.RemovedHeaders[strings.ToLower(key)] = struct{}{}
 }
 
-// SetRequestParam records a query parameter the script wrote.
 func (c *Context) SetRequestParam(key, value string) {
 	c.RequestParams[key] = value
 	c.TouchedParams[key] = struct{}{}
 	delete(c.RemovedParams, key)
 }
 
-// UnsetRequestParam records a query parameter the script removed.
 func (c *Context) UnsetRequestParam(key string) {
 	delete(c.RequestParams, key)
 	c.TouchedParams[key] = struct{}{}

@@ -557,7 +557,6 @@
                     {/if}
                   </div>
                 {:else}
-                  <!-- Highlighted markup only; every interpolated value goes through escapeHtml(). -->
                   <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                   <pre class="sse-event-data-viewer sse-event-pre" class:sse-event-data-json={isJson(displayData(message))}><code>{@html renderMessageHtml(message)}</code></pre>
                 {/if}

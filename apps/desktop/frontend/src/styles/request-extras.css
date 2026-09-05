@@ -293,7 +293,6 @@
 }
 
 .client-cert-setting {
-  /* Override the two-column setting grid: the cert controls need full width. */
   display: block;
 }
 
@@ -672,9 +671,6 @@
 }
 
 .form-type-options {
-  /* Fixed, not absolute: the editor pane clips its overflow, so an absolutely
-     positioned menu was cut off at the pane's edge. The component sets top and
-     left from the trigger's own rect. */
   position: fixed;
   z-index: 80;
   min-width: 148px;

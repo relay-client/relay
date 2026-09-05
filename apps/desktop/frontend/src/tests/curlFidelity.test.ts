@@ -3,7 +3,6 @@ import { parseCurl, toCurl } from '../lib/curl';
 import { DEFAULT_REQUEST_SETTINGS, mkRow } from '../lib/constants';
 import { requestBodyFeature } from '../lib/stores/features/requestBody';
 
-// A host with just the fields applyParsedCurl reads and writes.
 function makeHost() {
   return {
     requestType: 'http',
@@ -80,8 +79,6 @@ describe('toCurl declares the Content-Type the sender declares', () => {
     expect(curl).not.toContain("-H 'Content-Type: application/xml'");
   });
 
-  // -d reads a leading "@" as a filename; --data-raw sends the bytes as typed,
-  // which is what Relay does with the same body.
   it('sends a body opening with @ literally', () => {
     const curl = toCurl({ ...baseCurlRequest, bodyType: 'text', body: '@not-a-file' });
     expect(curl).toContain("--data-raw '@not-a-file'");
@@ -101,8 +98,6 @@ describe('toCurl declares the Content-Type the sender declares', () => {
 });
 
 describe('pasting a curl command keeps what the parser found', () => {
-  // The parser has read ";type=" since 1.5.0 and toCurl has written it; the
-  // paste path was the one place it fell out of the round trip.
   it('keeps a form part Content-Type', () => {
     const host = paste(
       `curl 'https://example.test/upload' -F 'avatar=@/tmp/a.png;type=image/png' -F 'meta={"a":1};type=application/json'`,

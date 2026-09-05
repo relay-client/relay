@@ -25,8 +25,6 @@ const (
 	oauth2AuthorizeTimeout    = 3 * time.Minute
 )
 
-// FetchToken runs the OAuth 2.0 client-credentials grant and returns the token
-// response. It is kept for backward compatibility — the default grant type.
 func FetchToken(cfg model.AuthConfig) model.OAuth2TokenResponse {
 	if cfg.OAuth2TokenURL == "" {
 		return model.OAuth2TokenResponse{Error: "token URL is required"}
@@ -39,7 +37,6 @@ func FetchToken(cfg model.AuthConfig) model.OAuth2TokenResponse {
 	return postTokenRequest(cfg, form)
 }
 
-// RefreshToken exchanges a stored refresh token for a fresh access token.
 func RefreshToken(cfg model.AuthConfig) model.OAuth2TokenResponse {
 	if cfg.OAuth2TokenURL == "" {
 		return model.OAuth2TokenResponse{Error: "token URL is required"}
@@ -54,8 +51,6 @@ func RefreshToken(cfg model.AuthConfig) model.OAuth2TokenResponse {
 		form.Set("scope", cfg.OAuth2Scope)
 	}
 	resp := postTokenRequest(cfg, form)
-	// RFC 6749 §6: the response MAY omit a new refresh token, in which case the
-	// caller keeps the existing one. Surface it so the frontend can persist.
 	if resp.Error == "" && resp.RefreshToken == "" {
 		resp.RefreshToken = cfg.OAuth2RefreshToken
 	}
@@ -67,11 +62,6 @@ type authorizeOutcome struct {
 	err  error
 }
 
-// AuthorizeCode runs the OAuth 2.0 Authorization Code grant (with PKCE when
-// enabled) using a loopback redirect (RFC 8252): it spins up a temporary HTTP
-// server on 127.0.0.1, opens the system browser at the authorization endpoint,
-// waits for the redirect carrying the code, then exchanges it for tokens.
-// openBrowser is injected so the flow can be tested without a real browser.
 func AuthorizeCode(ctx context.Context, cfg model.AuthConfig, openBrowser func(string) error) model.OAuth2TokenResponse {
 	if cfg.OAuth2AuthURL == "" {
 		return model.OAuth2TokenResponse{Error: "authorization URL is required"}
@@ -188,9 +178,6 @@ func AuthorizeCode(ctx context.Context, cfg model.AuthConfig, openBrowser func(s
 	return postTokenRequest(cfg, form)
 }
 
-// newLoopbackListener binds a loopback TCP listener and returns the redirect URI
-// that points at it. When override is empty a random port on 127.0.0.1 is used;
-// otherwise the override host:port is honored (it must still be loopback).
 func newLoopbackListener(override string) (net.Listener, string, error) {
 	override = strings.TrimSpace(override)
 	if override == "" {
@@ -259,15 +246,6 @@ func applyClientAuth(form url.Values, cfg model.AuthConfig, audience string) (us
 	}
 }
 
-// Two clients cover every token request: verification on, and verification
-// off. They are built once and reused, because a token is fetched or refreshed
-// before every send that needs one — a fresh transport per call left its idle
-// sockets stranded until IdleConnTimeout, so a 500-request collection run
-// against an OAuth-protected API accumulated hundreds of them.
-//
-// The minimum TLS version is pinned even when the user opts out of certificate
-// verification: skipping verification is a debugging affordance, not a request
-// to negotiate TLS 1.0.
 var (
 	oauth2SecureClient = sync.OnceValue(func() *http.Client {
 		return &http.Client{

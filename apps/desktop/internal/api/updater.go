@@ -27,27 +27,15 @@ import (
 
 var githubRepo = "relay-client/relay"
 
-// updatePublicKey is the minisign public key used to verify auto-updates. It is
-// public information (the matching private key signs releases) and is embedded
-// directly into the source so every build path — CI, local `make build*`, and
-// `release-mac-local` — verifies signatures uniformly. Overridable via ldflags
-// only to support tests / staging keys; release builds MUST NOT ship empty.
 var updatePublicKey = "RWTEfMAu7tDsMMu7Q9SCX5HgAEsBo5KZJzwvbIcP/ZKb1YyTg+Csj+9P"
 
 const (
 	updateMetadataTimeout = 15 * time.Second
 	updateDownloadTimeout = 10 * time.Minute
-	// maxSignatureSize bounds the minisign signature download. Real
-	// signatures are <200 bytes; 8KiB is a generous safety margin.
-	maxSignatureSize = 8 * 1024
-	// maxUpdateDownloadSize caps the binary download to defend against a
-	// malicious or compromised release host that streams unbounded data.
-	// Relay binaries are ~80MB; 512MB leaves headroom for future growth.
+	maxSignatureSize      = 8 * 1024
 	maxUpdateDownloadSize = 512 * 1024 * 1024
 )
 
-// Sentinel errors so friendlyUpdateError can classify without substring
-// matching on stdlib error strings.
 var (
 	errUpdateSignatureMissing  = errors.New("update signature missing")
 	errUpdateSignatureMismatch = errors.New("update signature mismatch")
@@ -62,8 +50,6 @@ var (
 	updateDownloadHTTPClient = newUpdateHTTPClient(updateDownloadTimeout)
 )
 
-// newUpdateHTTPClient builds an HTTP client that refuses redirects which leave
-// the trusted github.com release host or downgrade to http://.
 func newUpdateHTTPClient(timeout time.Duration) *http.Client {
 	return &http.Client{
 		Timeout: timeout,
@@ -82,14 +68,8 @@ func newUpdateHTTPClient(timeout time.Duration) *http.Client {
 	}
 }
 
-// trustedReleaseURLOverride lets tests inject a custom predicate. nil in
-// production builds; the real check below is used.
 var trustedReleaseURLOverride func(*url.URL) bool
 
-// isTrustedReleaseURL accepts only https URLs whose host is github.com (or
-// objects.githubusercontent.com, which CDN-fronts release downloads) and whose
-// path begins with the configured release repo. This pins both the manifest
-// fetch and the binary/signature downloads to the expected origin.
 func isTrustedReleaseURL(u *url.URL) bool {
 	if trustedReleaseURLOverride != nil {
 		return trustedReleaseURLOverride(u)
@@ -100,11 +80,9 @@ func isTrustedReleaseURL(u *url.URL) bool {
 	host := strings.ToLower(u.Hostname())
 	switch host {
 	case "github.com":
-		// Path must begin with the configured release repo.
 		prefix := "/" + strings.Trim(githubRepo, "/") + "/"
 		return strings.HasPrefix(u.Path, prefix)
 	case "objects.githubusercontent.com", "release-assets.githubusercontent.com":
-		// GitHub redirects release downloads to these signed-URL hosts.
 		return true
 	}
 	return false
@@ -132,10 +110,6 @@ func platformKey() string {
 	return fmt.Sprintf("%s-%s", os, arch)
 }
 
-// semverIsNewer reports whether `latest` is strictly newer than `current`,
-// using semver-correct ordering (so 0.1.32 > 0.1.32-rc.1, and 0.1.32-rc.2 >
-// 0.1.32-rc.1). Falls back to "latest is newer" on unparseable current
-// versions like "dev" or empty.
 func semverIsNewer(latest, current string) bool {
 	current = strings.TrimSpace(strings.TrimPrefix(current, "v"))
 	if current == "" || current == "dev" {
@@ -274,10 +248,6 @@ func fetchUpdateSignature(ctx context.Context, signatureURL string) ([]byte, err
 	return io.ReadAll(io.LimitReader(resp.Body, maxSignatureSize))
 }
 
-// verifyUpdateSignature fails closed: if the build has no embedded public key,
-// it returns errUpdateSignatureRequired (in contrast to the previous behavior
-// of silently skipping verification). Tests that need the no-key escape hatch
-// must set updatePublicKey explicitly via ldflags or by overriding the var.
 func verifyUpdateSignature(ctx context.Context, binaryPath, signatureURL, rawPublicKey string) error {
 	rawPublicKey = strings.TrimSpace(rawPublicKey)
 	if rawPublicKey == "" {
@@ -309,12 +279,6 @@ func verifyUpdateSignature(ctx context.Context, binaryPath, signatureURL, rawPub
 	return nil
 }
 
-// resolveTrustedUpdateInfo re-fetches the manifest from the trusted releases
-// host and returns the platform-matched UpdateInfo, ignoring any caller-
-// provided values. This is the authoritative source for ApplyUpdate; without
-// it a caller in the Wails JS bridge could ask the backend to download an
-// arbitrary URL with a self-supplied SHA256, turning the updater into an
-// attacker-controlled fetcher.
 func resolveTrustedUpdateInfo(ctx context.Context) (*model.UpdateInfo, error) {
 	info, err := checkForUpdate(ctx)
 	if err != nil {
@@ -331,10 +295,6 @@ func downloadAndApply(ctx context.Context, info *model.UpdateInfo) error {
 	if !isTrustedReleaseURL(parsed) {
 		return errUpdateURLNotTrusted
 	}
-	// Rollback protection: refuse to apply an update that is not strictly
-	// newer than the running build. Combined with the manifest re-fetch in
-	// ApplyUpdate, this blocks downgrade attacks via a tampered manifest
-	// that points at an older (still validly signed) binary.
 	if !isDevBuild() && !semverIsNewer(info.Version, appVersion) {
 		return errUpdateVersionRollback
 	}
@@ -383,9 +343,6 @@ func downloadAndApply(ctx context.Context, info *model.UpdateInfo) error {
 		return err
 	}
 	defer file.Close()
-	// Pass the checksum to selfupdate as well so the library re-verifies
-	// the bytes it's about to swap in, closing the small TOCTOU window
-	// between our verify and selfupdate.Apply.
 	checksum, decodeErr := hex.DecodeString(strings.TrimSpace(info.SHA256))
 	opts := selfupdate.Options{}
 	if decodeErr == nil {

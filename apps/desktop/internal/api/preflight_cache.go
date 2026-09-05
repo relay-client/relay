@@ -57,10 +57,6 @@ func (c *preflightCache) store(key string, entry preflightCacheEntry) {
 	c.entries[key] = entry
 }
 
-// preflightCacheKey includes the credentials mode because Fetch caches
-// preflights separately for credentialed and uncredentialed requests — a
-// preflight that responded with ACAO: * is reusable for the no-credentials
-// fetch but must NOT be reused for a withCredentials fetch.
 func preflightCacheKey(origin, target string, withCredentials bool) string {
 	creds := "0"
 	if withCredentials {

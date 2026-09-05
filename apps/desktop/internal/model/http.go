@@ -1,16 +1,11 @@
 package model
 
 type KeyValue struct {
-	Key     string `json:"key"`
-	Value   string `json:"value"`
-	Enabled bool   `json:"enabled"`
-	IsFile  bool   `json:"isFile"`
-	// FileName is the name a multipart file part is sent under.
-	FileName string `json:"fileName"`
-	// ContentType is the Content-Type of one multipart part. Empty means
-	// Relay picks the default (application/octet-stream for a file part).
-	// APIs that validate the MIME type of an upload reject everything
-	// without it.
+	Key         string `json:"key"`
+	Value       string `json:"value"`
+	Enabled     bool   `json:"enabled"`
+	IsFile      bool   `json:"isFile"`
+	FileName    string `json:"fileName"`
 	ContentType string `json:"contentType"`
 }
 
@@ -173,19 +168,11 @@ type HttpResponse struct {
 	Skipped    bool   `json:"skipped,omitempty"`
 	SkipReason string `json:"skipReason,omitempty"`
 
-	// Warnings are things the sender decided about the request that the user
-	// would otherwise have to infer from a server that behaved unexpectedly —
-	// for example a header row Relay refuses to put on the wire.
 	Warnings []string `json:"warnings,omitempty"`
 
-	// PreviewImageBase64 carries an image response losslessly. Body crosses the
-	// bridge as a JSON string, which mangles non-UTF-8 bytes.
 	PreviewImageBase64 string `json:"previewImageBase64,omitempty"`
 	PreviewMediaType   string `json:"previewMediaType,omitempty"`
 
-	// BodyIsBinary marks a body that is not text. Body has already lost those
-	// bytes by the time it is JSON-encoded, so the viewer needs to be told
-	// rather than guess from the mangled string.
 	BodyIsBinary    bool   `json:"bodyIsBinary,omitempty"`
 	BodySniffedType string `json:"bodySniffedType,omitempty"`
 
@@ -193,9 +180,6 @@ type HttpResponse struct {
 	CollectionVariablesRemoved []string          `json:"collectionVariablesRemoved,omitempty"`
 }
 
-// SentRequest is what actually went out on the wire, captured at the transport
-// after auth, cookies, and redirect handling have had their say. A redirect
-// chain produces one entry per hop.
 type SentRequest struct {
 	Method  string     `json:"method"`
 	URL     string     `json:"url"`
@@ -216,8 +200,6 @@ type ConnectionInfo struct {
 	Addresses  []string `json:"addresses,omitempty"`
 }
 
-// TimelineEvent is one point on the request's life, measured in milliseconds
-// from the moment the send started.
 type TimelineEvent struct {
 	Label  string  `json:"label"`
 	AtMs   float64 `json:"atMs"`
