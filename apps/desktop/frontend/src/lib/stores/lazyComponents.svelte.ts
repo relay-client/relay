@@ -28,6 +28,7 @@ class AppLazyComponents {
   EnvironmentWorkspaceComponent = $state<LazyComponent | null>(null);
   ExamplesTabComponent = $state<LazyComponent | null>(null);
   GitWorkspaceComponent = $state<LazyComponent | null>(null);
+  MockServerWorkspaceComponent = $state<LazyComponent | null>(null);
   GlobalSearchModalComponent = $state<LazyComponent | null>(null);
   GraphQLQueryTabComponent = $state<LazyComponent | null>(null);
   GraphQLSchemaTabComponent = $state<LazyComponent | null>(null);
@@ -85,6 +86,10 @@ class AppLazyComponents {
 
   async loadGitWorkspace() {
     if (!this.GitWorkspaceComponent) this.GitWorkspaceComponent = (await import('../components/GitWorkspace.svelte')).default as LazyComponent;
+  }
+
+  async loadMockServerWorkspace() {
+    if (!this.MockServerWorkspaceComponent) this.MockServerWorkspaceComponent = (await import('../components/MockServerWorkspace.svelte')).default as LazyComponent;
   }
 
   async loadGlobalSearchModal() {
@@ -196,6 +201,7 @@ class AppLazyComponents {
     if (state.topView === 'environment') void this.loadEnvironmentWorkspace();
     if (state.topView === 'git') void this.loadGitWorkspace();
     if (state.topView === 'runner') void this.loadCollectionRunnerWorkspace();
+    if (state.topView === 'mock') void this.loadMockServerWorkspace();
     if (state.requestType === 'graphql' && state.requestTab === 'query') void this.loadGraphQLQueryTab();
     if (state.requestType === 'graphql' && state.requestTab === 'schema') void this.loadGraphQLSchemaTab();
     if (state.requestType === 'http' && (state.method === 'SSE' || state.sseSessionVisible)) void this.loadSSEPanel();

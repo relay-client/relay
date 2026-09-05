@@ -30,6 +30,8 @@
     collectionRunnerRunning = false,
     activeCollectionSettings,
     gitTabOpen = false,
+    mockTabOpen = false,
+    mockRunning = false,
     gitChangeCount = 0,
     autosave,
     appRuntime = '',
@@ -50,6 +52,8 @@
     closeCollectionSettings,
     openGitTab,
     closeGitTab,
+    openMockTab,
+    closeMockTab,
     cookieCount,
     requestTabLabel,
     switchRequest,
@@ -83,6 +87,8 @@
     collectionRunnerRunning?: boolean;
     activeCollectionSettings?: Collection;
     gitTabOpen?: boolean;
+    mockTabOpen?: boolean;
+    mockRunning?: boolean;
     gitChangeCount?: number;
     autosave: boolean;
     appRuntime?: string;
@@ -103,6 +109,8 @@
     closeCollectionSettings: () => void;
     openGitTab: () => void;
     closeGitTab: () => void;
+    openMockTab: () => void;
+    closeMockTab: () => void;
     cookieCount: number;
     requestTabLabel: (request: SavedRequest) => string;
     switchRequest: (id: string) => void;
@@ -220,6 +228,14 @@
         <path d="M9.5 9.5l3.4-1.8 2.4 3.1 3.2.6M12.2 10.6l-2 4.2-4 1.4M14.7 13.2l-1 3.7 2.5 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </button>
+    <button class="searchbar-settings-btn" class:active={topView === 'mock'} type="button" onclick={openMockTab} title="Mock server" aria-label="Mock server" disabled={workspaceBlocked}>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="3" y="5" width="18" height="14" rx="2.4" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M3 10h18" stroke="currentColor" stroke-width="1.8"/>
+        <circle cx="6.6" cy="7.5" r="0.9" fill="currentColor"/>
+      </svg>
+      {#if mockRunning}<span class="mock-header-dot" aria-hidden="true"></span>{/if}
+    </button>
     <button class="searchbar-settings-btn searchbar-cookie-btn" type="button" onclick={openCookieJar} title="Cookies" aria-label="Cookies" disabled={workspaceBlocked}>
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <path d="M20.6 13.1A8.5 8.5 0 1110.9 3.4a3 3 0 003.9 3.9 3 3 0 003.9 3.9 3 3 0 001.9 1.9z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
@@ -272,6 +288,21 @@
             {/if}
           </button>
           <button class="tab-close" type="button" onclick={closeGitTab} aria-label="Close Git tab">×</button>
+        </div>
+      {/if}
+      {#if mockTabOpen}
+        <div class="saved-request-tab runner-tab" class:active={topView === 'mock'}>
+          <button role="tab" type="button" aria-selected={topView === 'mock'} tabindex={topView === 'mock' ? 0 : -1} onclick={openMockTab}>
+            <svg width="14" height="14" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+              <rect x="2" y="3" width="11" height="9" rx="1.6" stroke="currentColor" stroke-width="1.35"/>
+              <path d="M2 6.2h11" stroke="currentColor" stroke-width="1.35"/>
+            </svg>
+            <span class="tab-title">Mock</span>
+            {#if mockRunning}
+              <span class="mock-tab-dot" aria-label="Mock server is running"></span>
+            {/if}
+          </button>
+          <button class="tab-close" type="button" onclick={closeMockTab} aria-label="Close Mock tab">×</button>
         </div>
       {/if}
       {#if activeCollectionSettings}

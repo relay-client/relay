@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte';
-  import { getAppInfo, checkForUpdate, applyUpdate, restartApp } from './lib/backend';
-  import type { OAuth2DevicePrompt, UpdateInfo } from './lib/backend';
+  import { getAppInfo, checkForUpdate, applyUpdate, restartApp, clipboardSet } from './lib/backend';
+  import type { MockRequestLog, OAuth2DevicePrompt, UpdateInfo } from './lib/backend';
   import CHANGELOG_MARKDOWN from 'virtual:relay-changelog';
   import { isReleaseVersion, latestReleaseNotes, releaseNotesFor, shouldShowWhatsNew, type ChangelogSection } from './lib/whatsNew';
   import WhatsNewModal from './lib/components/WhatsNewModal.svelte';
@@ -216,6 +216,10 @@
     const offDevicePrompt = window.runtime?.EventsOn?.<OAuth2DevicePrompt>('oauth2:device-prompt', prompt => {
       vm.oauth2DevicePrompt = prompt;
     });
+    const offMockRequest = window.runtime?.EventsOn?.<MockRequestLog>('mock:request', entry => {
+      vm.recordMockRequest(entry);
+    });
+    void vm.refreshMockServerStatus();
     const beforeUnload = (event: BeforeUnloadEvent) => {
       vm.flushPendingPersist();
       if (!vm.hasUnsavedDrafts() && !vm.hasUnsavedRequestChanges()) return;
@@ -315,6 +319,7 @@
       }
       uninstallTitlebarDoubleClick();
       offBeforeQuit?.();
+      offMockRequest?.();
       offDevicePrompt?.();
       window.removeEventListener('beforeunload', beforeUnload);
       window.removeEventListener('pagehide', flushOnPageHide);
@@ -483,6 +488,8 @@
       collectionRunnerRunning={vm.collectionRunnerRunning}
       activeCollectionSettings={vm.activeCollectionSettings}
       gitTabOpen={vm.gitWorkspaceOpen}
+      mockTabOpen={vm.mockServerTabOpen}
+      mockRunning={vm.mockServer.running}
       gitChangeCount={vm.gitStatus.files?.length ?? 0}
       autosave={vm.autosave}
       appRuntime={vm.appRuntime}
@@ -503,6 +510,8 @@
       closeCollectionSettings={vm.closeCollectionSettingsTab}
       openGitTab={vm.openGitTab}
       closeGitTab={vm.closeGitTab}
+      openMockTab={vm.openMockServerTab}
+      closeMockTab={vm.closeMockServerTab}
       cookieCount={vm.cookies.length}
       {requestTabLabel}
       switchRequest={vm.switchRequest}
@@ -631,6 +640,27 @@
         onSave={vm.saveCollectionSettings}
         onReset={vm.resetCollectionSettings}
         onCreateRequest={vm.createNewRequest}
+      />
+      {/if}
+    {:else if vm.topView === 'mock'}
+      {#if lazy.MockServerWorkspaceComponent}
+      <lazy.MockServerWorkspaceComponent
+        status={vm.mockServer}
+        routes={vm.mockServerRoutes()}
+        collections={vm.mockServerCollectionOptions()}
+        selectedCollectionId={vm.mockServerTargetCollectionId()}
+        port={vm.mockServerPort}
+        simulateLatency={vm.mockServerSimulateLatency}
+        busy={vm.mockServerBusy}
+        error={vm.mockServerError}
+        log={vm.mockServerLog}
+        onToggle={vm.toggleMockServer}
+        onRestart={vm.restartMockServerWithCurrentExamples}
+        onSelectCollection={vm.selectMockServerCollection}
+        onPortChange={vm.setMockServerPort}
+        onSimulateLatencyChange={(value: boolean) => (vm.mockServerSimulateLatency = value)}
+        onClearLog={vm.clearMockServerLog}
+        onCopyUrl={(url: string) => void clipboardSet(url)}
       />
       {/if}
     {:else if vm.topView === 'runner'}

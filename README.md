@@ -83,6 +83,8 @@ pm.test("has an id", () => pm.response.to.have.jsonSchema({ type: "object", requ
 - Git-backed YAML workspaces with diagnostics, conflict helpers, and local-only secrets
 - **CLI runner** — `relay run ./workspace --env CI` executes requests and their test scripts for CI, with data-driven iterations (`--data`), pretty/JSON/JUnit reporters, variable export, and a non-zero exit code on failure
 
+**Mock server** — serve a collection's saved examples over HTTP on a local port, so a client can be built against an endpoint that does not exist yet. Routing is by method and the example's path template (`/orders/:id`), a recorded query narrows which example answers, and a live log shows what the client asked for and which example replied. Loopback only; CORS preflight is answered for any origin.
+
 **Response viewer**
 - Syntax-highlighted body with line numbers
 - Paginated rendering for large responses (512 KB pages, once a response exceeds 10 MB)
