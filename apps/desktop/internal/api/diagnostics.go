@@ -8,14 +8,6 @@ import (
 	"strings"
 )
 
-// A bug report that says "it does not work" costs a round trip to answer.
-// These two are what closes that gap: a one-line version for `relay --version`
-// and the release smoke test, and a fuller report the app can put on the
-// clipboard. Both are built from the same facts so they cannot disagree, and
-// both are deliberately free of anything from the user's workspace — no paths
-// to their collections, no URLs, no credentials.
-
-// VersionLine is what `relay --version` prints.
 func VersionLine() string {
 	return fmt.Sprintf("Relay %s (%s/%s)", displayVersion(), runtime.GOOS, runtime.GOARCH)
 }
@@ -27,9 +19,6 @@ func displayVersion() string {
 	return "dev"
 }
 
-// DiagnosticsReport describes the installation, not the user. It names the
-// storage mode rather than the workspace path, since the path routinely
-// carries a client or project name.
 func DiagnosticsReport() string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "Relay %s\n", displayVersion())
@@ -43,8 +32,6 @@ func DiagnosticsReport() string {
 	return b.String()
 }
 
-// logFileStateForDiagnostics reports whether there is a log to ask for. The
-// path is Relay's own app-data directory, which carries no workspace detail.
 func logFileStateForDiagnostics() string {
 	path := LogFilePath()
 	info, err := os.Stat(path)
@@ -61,8 +48,6 @@ func buildKind() string {
 	return "release"
 }
 
-// gitVersionForDiagnostics reports what Relay would actually run, which is the
-// first question to ask about any Git-backed workspace problem.
 func gitVersionForDiagnostics() string {
 	path, err := lookupGitExecutable()
 	if err != nil {
@@ -72,8 +57,6 @@ func gitVersionForDiagnostics() string {
 	if err != nil {
 		trimmed := strings.TrimSpace(string(out))
 		if message := gitUnavailableMessage(trimmed, err); message != "" {
-			// The multi-line install guidance belongs in the interface, not
-			// in a one-line diagnostics field.
 			return "installed but not usable"
 		}
 		if trimmed != "" {

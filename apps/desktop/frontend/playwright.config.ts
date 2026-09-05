@@ -18,8 +18,6 @@ const reporter: PlaywrightTestConfig['reporter'] = process.env.CI || process.env
 
 export default defineConfig({
   testDir: './e2e',
-  // Keep test results in a subfolder so the html-report sibling doesn't live
-  // inside outputDir — Playwright warns the html reporter clears its folder.
   outputDir: join(artifactDir, 'test-results'),
   preserveOutput: 'failures-only',
   timeout: slowMo ? 180_000 : 90_000,
@@ -27,8 +25,6 @@ export default defineConfig({
     timeout: 10_000,
   },
   fullyParallel: false,
-  // Retry in CI to absorb the occasional cold-start/timing flake; locally a
-  // failure is always a real failure worth seeing immediately.
   retries: process.env.CI ? 2 : 0,
   reporter,
   use: {

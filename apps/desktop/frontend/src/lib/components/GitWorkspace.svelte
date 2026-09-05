@@ -187,9 +187,6 @@
     !status.workspaceRoot ||
     /[\\/](Application Support|AppData[\\/](Roaming|Local)|\.config)[\\/]Relay([\\/]|$)/i.test(status.workspaceRoot)
   ));
-  // Relay drives Git by running it. With no usable git binary every option
-  // below fails the same way, so they are offered as disabled rather than
-  // inviting a click that cannot work; status.error carries the reason.
   let gitUnavailable = $derived(Boolean(status.gitMissing));
   let localEyebrow = $derived(gitUnavailable ? 'Git unavailable' : (workspaceMissing ? 'Folder missing' : (isAppStoragePath ? 'App storage · default location' : 'Folder workspace')));
   let localDescription = $derived(gitUnavailable

@@ -13,9 +13,6 @@ import (
 	"github.com/relay-client/relay/apps/desktop/internal/model"
 )
 
-// TestEmptyRawBodyStillSendsContentType covers the 415 case: choosing JSON and
-// sending nothing dropped the header entirely, so servers that validate
-// Content-Type before they look at the body rejected the request.
 func TestEmptyRawBodyStillSendsContentType(t *testing.T) {
 	for _, tc := range []struct{ bodyType, want string }{
 		{"json", "application/json"},
@@ -44,8 +41,6 @@ func TestEmptyRawBodyStillSendsContentType(t *testing.T) {
 	}
 }
 
-// TestBodyTypeNoneSendsNoContentType is the other half: the default body type
-// must not start labelling every GET.
 func TestBodyTypeNoneSendsNoContentType(t *testing.T) {
 	var got string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -65,9 +60,6 @@ func TestBodyTypeNoneSendsNoContentType(t *testing.T) {
 	}
 }
 
-// TestDigestAuthWithoutUsernameFails guards the silent no-op: the digest
-// transport is only wired up when there is a username, so the request used to
-// go out unauthenticated and come back 401 with nothing to explain it.
 func TestDigestAuthWithoutUsernameFails(t *testing.T) {
 	err := auth.Apply(httptest.NewRequest(http.MethodGet, "https://example.com/", nil), model.AuthConfig{Type: "digest"})
 	if err == nil {
@@ -78,9 +70,6 @@ func TestDigestAuthWithoutUsernameFails(t *testing.T) {
 	}
 }
 
-// TestDownloadDecompressesBody covers Send-and-Download: with an explicit
-// Accept-Encoding Go stops decompressing, and the gzip stream was written to
-// disk under a name like report.json.
 func TestDownloadDecompressesBody(t *testing.T) {
 	const payload = `{"report":"readable"}`
 	var compressed bytes.Buffer
@@ -102,7 +91,6 @@ func TestDownloadDecompressesBody(t *testing.T) {
 	var saved bytes.Buffer
 	resp := sendRequestWithBodySink(t.Context(), model.HttpRequest{
 		Method: http.MethodGet, URL: server.URL,
-		// Asking for the encoding explicitly is what disables Go's own handling.
 		Headers:               []model.KeyValue{{Key: "Accept-Encoding", Value: "gzip", Enabled: true}},
 		EnableSSLVerification: true,
 	}, state.New(), newCookieJarRegistry(), newPreflightCache(),
@@ -118,8 +106,6 @@ func TestDownloadDecompressesBody(t *testing.T) {
 	}
 }
 
-// TestDownloadLeavesUnknownEncodingIntact makes sure the fallback is whole: an
-// encoding Relay cannot undo must still reach the file byte for byte.
 func TestDownloadLeavesUnknownEncodingIntact(t *testing.T) {
 	const raw = "opaque-bytes-abcdef"
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -146,9 +132,6 @@ func TestDownloadLeavesUnknownEncodingIntact(t *testing.T) {
 	}
 }
 
-// TestDownloadRewindsAfterFailedDecode is the nastier fallback: the encoding is
-// one Relay knows, but the stream is not actually valid. Nothing may be lost to
-// the constructor that already read part of it.
 func TestDownloadRewindsAfterFailedDecode(t *testing.T) {
 	const raw = "this is not gzip at all"
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

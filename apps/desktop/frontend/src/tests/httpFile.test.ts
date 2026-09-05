@@ -40,8 +40,6 @@ Content-Type: application/json
     ]);
     expect(requests).toHaveLength(2);
 
-    // The {{baseUrl}} reference is kept as-is: it resolves against the
-    // collection variables the importer creates from the file's `@` lines.
     expect(requests[0]).toMatchObject({
       name: 'List users',
       method: 'GET',
@@ -56,7 +54,6 @@ Content-Type: application/json
       ['Authorization', 'Bearer {{token}}'],
     ]);
 
-    // The `# @name` directive wins over the text on the ### line.
     expect(requests[1]).toMatchObject({
       name: 'createUser',
       method: 'POST',

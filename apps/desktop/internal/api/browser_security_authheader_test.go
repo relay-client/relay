@@ -2,9 +2,6 @@ package api
 
 import "testing"
 
-// Bug #4 regression: per the Fetch standard, an Access-Control-Allow-Headers
-// value of `*` covers any request header EXCEPT `Authorization`, which always
-// has to be listed explicitly — even for non-credentialed requests.
 func TestCorsHeaderAllowsTokenAuthorizationWildcard(t *testing.T) {
 	cases := []struct {
 		name     string
@@ -30,7 +27,6 @@ func TestCorsHeaderAllowsTokenAuthorizationWildcard(t *testing.T) {
 	}
 }
 
-// Methods continue to honour the wildcard regardless of the Authorization carve-out.
 func TestCorsHeaderAllowsTokenMethodWildcard(t *testing.T) {
 	if !corsHeaderAllowsToken("*", "PUT", true) {
 		t.Fatal("wildcard should allow PUT method without credentials")

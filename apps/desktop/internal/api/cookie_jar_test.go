@@ -204,7 +204,6 @@ func TestTrackedJarDeleteAndClear(t *testing.T) {
 func TestTrackedJarHostOnlyDistinctKeys(t *testing.T) {
 	jar := newTrackedCookieJar()
 	u := mustURL("https://example.com/")
-	// Same name/path, one host-only (no Domain) and one domain cookie -> both kept.
 	jar.SetCookies(u, []*http.Cookie{{Name: "dup", Value: "host", Path: "/"}})
 	jar.SetCookies(u, []*http.Cookie{{Name: "dup", Value: "domain", Domain: "example.com", Path: "/"}})
 	count := 0
@@ -280,11 +279,9 @@ func TestCookieJarRegistryIsolatesWorkspaces(t *testing.T) {
 		t.Fatalf("sandbox jar must not see prod's cookies, got %v", got)
 	}
 
-	// Same lookup returns the same jar instance.
 	if reg.jar("prod") != prodJar {
 		t.Fatal("registry must return the same jar for repeated lookups")
 	}
-	// Empty ID maps to the dedicated default jar.
 	if reg.jar("") == prodJar || reg.jar("") == sandboxJar {
 		t.Fatal("empty workspace id must map to its own default jar")
 	}

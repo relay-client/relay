@@ -119,8 +119,6 @@ func TestGrpcMaxReceiveBytes(t *testing.T) {
 }
 
 func TestGrpcImportPaths(t *testing.T) {
-	// The paths are normalised to the platform's separators, so the
-	// expectation has to be too — otherwise this only ever described Unix.
 	got := grpcImportPaths(filepath.Join("/a", "b", "x.proto"), []string{"/c", "/a/b", "", "/c"})
 	want := []string{filepath.Clean("/a/b"), filepath.Clean("/c")}
 	if len(got) != len(want) {
@@ -196,7 +194,6 @@ func TestGrpcMetadataToKeyValues(t *testing.T) {
 	if len(rows) != 2 {
 		t.Fatalf("expected 2 rows, got %d (%v)", len(rows), rows)
 	}
-	// sorted: content-type before meta-bin
 	if rows[0].Key != "content-type" || rows[0].Value != "application/grpc" {
 		t.Errorf("row 0 = %+v", rows[0])
 	}

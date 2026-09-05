@@ -70,7 +70,6 @@
     min-height: 0;
     padding: 20px;
     overflow: auto;
-    /* Checkerboard so transparent images read correctly in both themes. */
     background-image:
       linear-gradient(45deg, var(--hover) 25%, transparent 25%),
       linear-gradient(-45deg, var(--hover) 25%, transparent 25%),

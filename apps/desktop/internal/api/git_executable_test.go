@@ -11,8 +11,6 @@ import (
 	"testing"
 )
 
-// withoutGit stands the whole package in front of a machine that has no usable
-// Git, and restores the real lookup afterwards.
 func withoutGit(t *testing.T) {
 	t.Helper()
 	original := lookupGitExecutable
@@ -40,8 +38,6 @@ func TestGitUnavailableMessageRecognisesAMissingBinary(t *testing.T) {
 }
 
 func TestGitUnavailableMessageIgnoresOrdinaryGitFailures(t *testing.T) {
-	// A repository that genuinely reports a problem must not be described as
-	// a missing Git installation.
 	err := errors.New("exit status 128")
 	output := "fatal: not a git repository (or any of the parent directories): .git"
 	if got := gitUnavailableMessage(output, err); got != "" {
@@ -70,9 +66,6 @@ func TestGitUnavailableMessageRecognisesTheMacOSStub(t *testing.T) {
 }
 
 func TestGitStatusReportsAMissingGitInsteadOfPretendingItIsNotARepository(t *testing.T) {
-	// Without this, a real Git workspace opened on a machine with no Git
-	// looks like an ordinary folder and the interface offers to initialise a
-	// repository over the top of one that already exists.
 	root := t.TempDir()
 	withoutGit(t)
 
@@ -113,8 +106,6 @@ func TestGitOperationsExplainAMissingGitBinary(t *testing.T) {
 	}
 	withoutGit(t)
 
-	// git init is the first thing the interface offers on a folder it thinks
-	// is not a repository, so it is where the missing binary surfaces.
 	result := gitInitWorkspaceForRoot(root)
 
 	if result.Ok {
@@ -143,8 +134,6 @@ func TestGitRunFailsFastWhenGitIsMissing(t *testing.T) {
 	}
 }
 
-// requireGitBinary skips a test on a machine that genuinely has no Git,
-// matching how the rest of the Git suite guards itself.
 func requireGitBinary(t *testing.T) {
 	t.Helper()
 	if _, err := exec.LookPath("git"); err != nil {

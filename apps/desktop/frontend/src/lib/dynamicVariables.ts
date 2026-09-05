@@ -1,10 +1,3 @@
-// Dynamic variables resolve at send time instead of coming from an
-// environment: {{$guid}}, {{$timestamp}}, {{$randomEmail}} and friends. The
-// names match Postman's, so collections imported from it keep working — before
-// this, every one of them failed with "unresolved variable".
-//
-// Each occurrence is resolved independently, exactly like Postman: two
-// {{$guid}} in one request produce two different ids.
 
 export type DynamicVariable = {
   name: string;
@@ -141,16 +134,11 @@ export function isDynamicVariableName(name: string): boolean {
   return BY_NAME.has(name.trim());
 }
 
-/** Returns a freshly generated value, or null when the name isn't a known dynamic variable. */
 export function resolveDynamicVariable(name: string): string | null {
   const definition = BY_NAME.get(name.trim());
   return definition ? definition.generate() : null;
 }
 
-/**
- * True when the value still contains a `{{$…}}` that Relay doesn't implement.
- * Used to explain the failure instead of sending "{{$notAThing}}" to the server.
- */
 export function unknownDynamicVariables(value: string): string[] {
   const found = new Set<string>();
   for (const match of value.matchAll(/\{\{\s*(\$[A-Za-z0-9_]+)\s*\}\}/g)) {

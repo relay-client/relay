@@ -16,18 +16,8 @@ import (
 	"github.com/relay-client/relay/apps/desktop/internal/model"
 )
 
-// unsignedPayload is the literal AWS accepts in place of a body hash. Relay
-// falls back to it only for an upload too large to hash without holding it all
-// in memory — the S3-style case AWS documents it for. Everything smaller is
-// still hashed, because the request-shaped services (API Gateway, Lambda,
-// DynamoDB) reject an unsigned payload, and their own payload limits are far
-// below the threshold.
 const unsignedPayload = "UNSIGNED-PAYLOAD"
 
-// maxSignedPayloadBytes bounds what signing will buffer. It sits above every
-// service that requires a signed payload (API Gateway caps a request at 10 MB,
-// Lambda at 6 MB, DynamoDB at 400 KB) and far below Relay's own 256 MB file
-// body limit, so a large upload streams instead of being read into memory.
 var maxSignedPayloadBytes int64 = 32 * 1024 * 1024
 
 func Sign(req *http.Request, cfg model.AuthConfig) error {
@@ -50,9 +40,6 @@ func Sign(req *http.Request, cfg model.AuthConfig) error {
 		req.Header.Set("x-amz-security-token", cfg.AWSSessionToken)
 	}
 
-	// Host comes from Request.Host when the user overrode it: that is the value
-	// net/http actually writes on the wire, and signing URL.Host instead would
-	// sign a name the server never sees.
 	host := req.Host
 	if host == "" {
 		host = req.URL.Host
@@ -101,13 +88,6 @@ func Sign(req *http.Request, cfg model.AuthConfig) error {
 	return nil
 }
 
-// signedHeaderNames lists, lowercased and sorted, the headers that go into
-// SignedHeaders. AWS requires host and every x-amz-* header to be signed —
-// leaving out something like X-Amz-Target (DynamoDB), X-Amz-Invocation-Type
-// (Lambda) or x-amz-acl (S3) is rejected outright with SignatureDoesNotMatch,
-// which is why this is derived from the request instead of being a fixed list.
-// Content-Type is included when present because several services sign it, and
-// signing a header that is genuinely being sent is always safe.
 func signedHeaderNames(headers http.Header) []string {
 	seen := map[string]struct{}{"host": {}}
 	for name := range headers {
@@ -124,10 +104,6 @@ func signedHeaderNames(headers http.Header) []string {
 	return names
 }
 
-// canonicalHeaderBlock renders the canonical headers AWS hashes: lowercase
-// name, colon, the value with outer whitespace trimmed and internal runs of
-// spaces collapsed, one per line. Repeated headers are joined with a comma in
-// the order they were sent, which is what the specification asks for.
 func canonicalHeaderBlock(headers http.Header, names []string, host string) string {
 	var out strings.Builder
 	for _, name := range names {
@@ -153,15 +129,6 @@ func canonicalHeaderValue(value string) string {
 	return strings.Join(strings.Fields(value), " ")
 }
 
-// canonicalURIFor builds the path AWS signs.
-//
-// S3 signs the path exactly as it goes out, un-normalised and encoded once —
-// that is what lets a key contain characters that would not survive a round
-// trip. Every other service asks for the opposite: normalise the path per
-// RFC 3986, then URI-encode each segment *twice*. Signing those services with
-// one encoding is a SignatureDoesNotMatch for any path carrying a character
-// that needs escaping, which is the ordinary shape of a Lambda invoke URL
-// (the function ARN sits in the path, colons and all).
 func canonicalURIFor(service string, u *url.URL) string {
 	if strings.EqualFold(strings.TrimSpace(service), "s3") {
 		if escaped := u.EscapedPath(); escaped != "" {
@@ -173,9 +140,6 @@ func canonicalURIFor(service string, u *url.URL) string {
 	if normalized == "/" {
 		return "/"
 	}
-	// Splitting a path that opens (and may close) with "/" leaves empty
-	// segments at the ends; those encode to nothing, so the joins put the
-	// separators back exactly where they were.
 	segments := strings.Split(normalized, "/")
 	for i, segment := range segments {
 		segments[i] = awsEscapeQueryComponent(awsEscapeQueryComponent(segment))
@@ -183,10 +147,6 @@ func canonicalURIFor(service string, u *url.URL) string {
 	return strings.Join(segments, "/")
 }
 
-// normalizeAWSPath removes the redundant and relative components RFC 3986
-// defines: an empty or "." segment goes, ".." pops the one before it. A
-// trailing slash is kept, because /prefix/ and /prefix are not the same
-// resource.
 func normalizeAWSPath(path string) string {
 	if path == "" {
 		return "/"
@@ -215,14 +175,6 @@ func normalizeAWSPath(path string) string {
 	return normalized
 }
 
-// payloadHash returns the value for x-amz-content-sha256.
-//
-// A replayable body is hashed outright. One that is not — a file handle, a
-// multipart pipe — is read only up to maxSignedPayloadBytes: if it ends within
-// that, it is hashed and put back (so a non-seekable reader is still signed,
-// which the request-shaped AWS services require); if it does not, what was read
-// is pushed back in front of the rest and the payload is declared unsigned, so
-// a 256 MB upload streams to the wire instead of being buffered whole.
 func payloadHash(req *http.Request) (string, error) {
 	if req.Body == nil || req.Body == http.NoBody {
 		return hex.EncodeToString(hashSHA256(nil)), nil
@@ -250,8 +202,6 @@ func payloadHash(req *http.Request) (string, error) {
 		return hex.EncodeToString(hashSHA256(head)), nil
 	}
 
-	// Too large to sign: hand the bytes already read back to the transport in
-	// front of the remainder, so nothing is lost and nothing else is buffered.
 	req.Body = struct {
 		io.Reader
 		io.Closer

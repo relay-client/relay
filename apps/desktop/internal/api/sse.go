@@ -74,9 +74,6 @@ func (m *sseManager) disconnect(sessionID string) {
 	m.mu.Unlock()
 }
 
-// disconnectAll cancels every live stream. Called on app shutdown so SSE
-// sessions wind down deterministically alongside the WebSocket and Socket.IO
-// managers, rather than relying on the parent context to propagate.
 func (m *sseManager) disconnectAll() {
 	m.mu.Lock()
 	sessions := m.sessions
@@ -114,8 +111,6 @@ func (m *sseManager) runStream(sseCtx, appCtx context.Context, sessionID string,
 		res := m.runStreamAttempt(sseCtx, sessionID, req, lastEventID, onOpen, onEvent)
 		lastEventID = res.lastEventID
 
-		// EventSource semantics: keep retrying when the connection drops, unless
-		// the user disconnected, the session is cancelled, or reconnect is off.
 		if !res.reconnect || req.SSEDisableReconnect || sseCtx.Err() != nil {
 			batch.flush()
 			if res.errorEvent != nil {
@@ -174,9 +169,6 @@ type sseAttempt struct {
 	errorEvent  *model.SSEErrorEvent
 }
 
-// runStreamWithCallbacks runs a single SSE attempt and emits the terminal
-// close/error through the callbacks. Retained for the single-shot tests; the
-// reconnect loop in runStream calls runStreamAttempt directly.
 func (m *sseManager) runStreamWithCallbacks(
 	sseCtx context.Context,
 	sessionID string,
@@ -195,10 +187,6 @@ func (m *sseManager) runStreamWithCallbacks(
 	return res
 }
 
-// runStreamAttempt opens one SSE connection, streams events through onOpen/onEvent
-// in real time, and returns how the attempt ended so the caller can decide whether
-// to reconnect. lastEventID, when non-empty, is sent as the Last-Event-ID header so
-// the server can resume the stream.
 func (m *sseManager) runStreamAttempt(
 	sseCtx context.Context,
 	sessionID string,
@@ -284,8 +272,6 @@ func (m *sseManager) runStreamAttempt(
 		httpReq.Header.Del("Cookie")
 	}
 	transport := sharedHTTPTransport(sseReq)
-	// Look up the per-workspace cookie jar so streams from different
-	// workspaces don't share Set-Cookie state.
 	var jar http.CookieJar
 	if !sseReq.DisableCookieJar {
 		jar = m.jars.jar(sseReq.WorkspaceID)
@@ -309,8 +295,6 @@ func (m *sseManager) runStreamAttempt(
 	}
 	openedAt := time.Now()
 	defer resp.Body.Close()
-	// EventSource: only a 2xx text/event-stream warrants resuming; other statuses
-	// are terminal so we don't hammer a misconfigured endpoint.
 	status2xx := resp.StatusCode >= 200 && resp.StatusCode < 300
 
 	keys := make([]string, 0, len(resp.Header))
@@ -386,9 +370,6 @@ func (m *sseManager) runStreamAttempt(
 		switch field {
 		case "id":
 			currentID = value
-			// Per the SSE spec the last event ID buffer is updated as soon as an
-			// id field is parsed (NUL bytes make it ignored); it is what we resend
-			// as Last-Event-ID on reconnect.
 			if !strings.ContainsRune(value, '\x00') {
 				result.lastEventID = value
 			}
@@ -434,9 +415,6 @@ func (m *sseManager) runStreamAttempt(
 	}
 
 	if scanErr := scanner.Err(); scanErr != nil {
-		// A line that exceeds sseMaxLineSize means the upstream is
-		// streaming malformed/oversize SSE. Reconnecting would just
-		// loop forever — surface the error without retry.
 		if errors.Is(scanErr, bufio.ErrTooLong) {
 			return fail(fmt.Sprintf("SSE line exceeds %d bytes — stream is malformed", sseMaxLineSize), false)
 		}

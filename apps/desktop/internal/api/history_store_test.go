@@ -8,8 +8,6 @@ import (
 	"testing"
 )
 
-// withHistoryStore points the store at a temporary directory and a fixed key, so
-// a test never touches the developer's real profile.
 func withHistoryStore(t *testing.T) {
 	t.Helper()
 	configDir := t.TempDir()
@@ -50,8 +48,6 @@ func TestHistoryResponseRoundTrip(t *testing.T) {
 	}
 }
 
-// A response body is exactly the kind of thing that carries a token, so it gets
-// the same treatment as the rest of the local profile.
 func TestHistoryResponseIsEncryptedOnDisk(t *testing.T) {
 	withHistoryStore(t)
 	app := &App{}
@@ -67,8 +63,6 @@ func TestHistoryResponseIsEncryptedOnDisk(t *testing.T) {
 	}
 }
 
-// An entry recorded before this feature existed, or one whose body was pruned,
-// simply has no stored response. That is not an error.
 func TestMissingHistoryResponseIsNotAnError(t *testing.T) {
 	withHistoryStore(t)
 	app := &App{}
@@ -82,8 +76,6 @@ func TestMissingHistoryResponseIsNotAnError(t *testing.T) {
 	}
 }
 
-// A huge response keeps its head rather than costing a gigabyte across a
-// thousand entries — and says that it was cut.
 func TestOversizedHistoryResponseIsTruncated(t *testing.T) {
 	withHistoryStore(t)
 	app := &App{}
@@ -98,8 +90,6 @@ func TestOversizedHistoryResponseIsTruncated(t *testing.T) {
 	}
 }
 
-// History expires on its own schedule in the app; without pruning, the files
-// would outlive every entry that referred to them.
 func TestPruneHistoryResponsesKeepsOnlyLiveEntries(t *testing.T) {
 	withHistoryStore(t)
 	app := &App{}
@@ -130,14 +120,11 @@ func TestClearHistoryResponsesRemovesEverything(t *testing.T) {
 	if app.LoadHistoryResponse("history-1").Stored {
 		t.Error("clearing history left a stored response behind")
 	}
-	// Clearing twice is what "clear history" on an empty history does.
 	if err := app.ClearHistoryResponses(); err != "" {
 		t.Errorf("clearing an already-empty history should be a no-op, got %s", err)
 	}
 }
 
-// The id comes from the frontend and becomes a filename, so it must not be able
-// to name a path outside the history directory.
 func TestHistoryResponseIdCannotEscapeTheDirectory(t *testing.T) {
 	withHistoryStore(t)
 	app := &App{}

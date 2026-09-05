@@ -1,10 +1,6 @@
 export type VirtualRow = { key: string; height: number };
 export type VirtualWindow<T extends VirtualRow> = { rows: T[]; before: number; after: number; totalHeight: number };
 
-// Windows a flat row list for virtual scrolling. `row.height` is only an initial
-// estimate; when a real measured height is available in `measured` it is used
-// instead. Keeping `before + sum(visible heights) + after === totalHeight` exact
-// is what stops the scroll position from jumping as rows are measured.
 export function virtualizeRows<T extends VirtualRow>(
   rows: T[],
   scrollTop: number,

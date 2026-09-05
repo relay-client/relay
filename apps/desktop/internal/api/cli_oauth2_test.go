@@ -28,9 +28,6 @@ func oauth2TokenServer(t *testing.T, hits *int32) *httptest.Server {
 	}))
 }
 
-// A run used to carry only the saved oauth2Token, which lives in the machine's
-// local secret store — so an OAuth-protected collection run from a checkout
-// went out with no token at all.
 func TestCLIRunFetchesItsOwnClientCredentialsToken(t *testing.T) {
 	var hits int32
 	server := oauth2TokenServer(t, &hits)
@@ -52,7 +49,6 @@ func TestCLIRunFetchesItsOwnClientCredentialsToken(t *testing.T) {
 	}
 }
 
-// Fifty requests sharing one configuration should authenticate once.
 func TestCLIRunReusesOneTokenAcrossRequests(t *testing.T) {
 	var hits int32
 	server := oauth2TokenServer(t, &hits)
@@ -79,8 +75,6 @@ func TestCLIRunReusesOneTokenAcrossRequests(t *testing.T) {
 	}
 }
 
-// Authorization Code needs a browser, but its refresh token does not — that is
-// how such a grant is meant to be renewed unattended.
 func TestCLIRunUsesTheRefreshTokenForInteractiveGrants(t *testing.T) {
 	var hits int32
 	server := oauth2TokenServer(t, &hits)
@@ -102,8 +96,6 @@ func TestCLIRunUsesTheRefreshTokenForInteractiveGrants(t *testing.T) {
 	}
 }
 
-// With nothing a run can complete on its own, the failure has to say what to do
-// rather than letting the request go out unauthenticated and 401.
 func TestCLIRunExplainsWhenAGrantNeedsABrowser(t *testing.T) {
 	cfg := model.AuthConfig{
 		Type:                "oauth2",
@@ -121,8 +113,6 @@ func TestCLIRunExplainsWhenAGrantNeedsABrowser(t *testing.T) {
 	}
 }
 
-// A workspace that carries a still-usable token should run even if the token
-// endpoint is unreachable — the server is the judge of whether it is valid.
 func TestCLIRunKeepsAnExistingTokenWhenRenewalFails(t *testing.T) {
 	cfg := model.AuthConfig{
 		Type:            "oauth2",
@@ -139,7 +129,6 @@ func TestCLIRunKeepsAnExistingTokenWhenRenewalFails(t *testing.T) {
 	}
 }
 
-// Non-OAuth requests must pass through untouched.
 func TestCLIRunLeavesOtherAuthTypesAlone(t *testing.T) {
 	cfg := model.AuthConfig{Type: "bearer", Token: "static"}
 	if err := newOAuth2TokenCache().resolveOAuth2Token(&cfg); err != nil {

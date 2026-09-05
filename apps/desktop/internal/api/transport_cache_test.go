@@ -24,8 +24,6 @@ func baseTransportTestRequest(url string) model.HttpRequest {
 	}
 }
 
-// Every send used to build its own transport, so no connection was ever
-// reused: each request paid a fresh TCP (and, over TLS, handshake) round trip.
 func TestSendRequestReusesConnections(t *testing.T) {
 	httpTransports.closeAll()
 	t.Cleanup(httpTransports.closeAll)
@@ -33,8 +31,6 @@ func TestSendRequestReusesConnections(t *testing.T) {
 	var mu sync.Mutex
 	connections := 0
 
-	// ConnState has to be wired before Start: the running server reads it from
-	// its own goroutine.
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -63,8 +59,6 @@ func TestSendRequestReusesConnections(t *testing.T) {
 	}
 }
 
-// Turning off certificate verification must not let a request inherit a
-// connection that was opened under verification (or hand one over to it).
 func TestTransportCacheSeparatesTLSVerificationModes(t *testing.T) {
 	cache := newTransportCache()
 	t.Cleanup(cache.closeAll)
@@ -112,8 +106,6 @@ func TestTransportCacheSeparatesProxyAndHTTPVersion(t *testing.T) {
 	}
 }
 
-// "off" ignores the proxy URL, so those requests should land on one transport
-// instead of fragmenting the cache per stale URL left in the settings.
 func TestTransportCacheIgnoresProxyURLWhenProxyIsOff(t *testing.T) {
 	cache := newTransportCache()
 	t.Cleanup(cache.closeAll)
@@ -155,8 +147,6 @@ func TestTransportCacheEvictsLeastRecentlyUsed(t *testing.T) {
 		t.Fatalf("expected cache to fill to %d, got %d", maxCachedTransports, len(cache.entries))
 	}
 
-	// Touching the oldest entry makes it the newest, so the next insert must
-	// evict entry 2 instead.
 	now = now.Add(time.Second)
 	if cache.get(first) != firstTransport {
 		t.Fatal("expected the oldest entry to still be cached")

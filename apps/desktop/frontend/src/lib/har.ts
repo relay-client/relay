@@ -87,17 +87,12 @@ export function harCollectionName(payload: unknown, fileName: string): string {
   return asText(log.comment) || fileName.replace(/\.har$/i, '') || 'HAR Import';
 }
 
-// A HAR entry records the response the request actually got, which is exactly
-// what an example is. Relay used to keep only the request half, throwing away
-// the richest source of examples any import path has.
 function harExampleFromEntry(entry: Record<string, unknown>, requestId: string, request: {
   method: Method; url: string; params: KVRow[]; headers: KVRow[]; bodyType: BodyType; bodyContent: string;
 }): RequestExample | null {
   const response = isRecord(entry.response) ? entry.response : null;
   if (!response) return null;
   const status = Number(response.status) || 0;
-  // A HAR can carry an entry with no real response — a failed or aborted
-  // request records status 0 and nothing else. There is no example in that.
   if (status <= 0) return null;
   const statusText = asText(response.statusText);
   const content = isRecord(response.content) ? response.content : {};
@@ -108,8 +103,6 @@ function harExampleFromEntry(entry: Record<string, unknown>, requestId: string, 
     return row(key, asText(item.value));
   }).filter((item): item is KVRow => Boolean(item));
 
-  // Binary content is stored base64-encoded; those bytes are not something the
-  // viewer can show, so the example records what it was and keeps no body.
   const base64 = asText(content.encoding).toLowerCase() === 'base64';
   return normalizeRequestExample({
     name: `${status} ${statusText}`.trim() || String(status),
@@ -169,9 +162,6 @@ export function harRequestsFromLog(payload: unknown, collectionId: string, colle
       if (!isRecord(item)) return null;
       const key = asText((item as Record<string, unknown>).name);
       if (!key || key.startsWith(':')) return null;
-      // HAR records cookies both inline (Cookie header) and as a separate
-      // `cookies` array. Dropping the header avoids sending the same
-      // cookies twice once the jar pickup runs.
       if (key.toLowerCase() === 'cookie') return null;
       return row(key, asText((item as Record<string, unknown>).value));
     }).filter((r): r is KVRow => Boolean(r));

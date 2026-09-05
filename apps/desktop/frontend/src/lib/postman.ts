@@ -41,9 +41,6 @@ export type PostmanScripts = { preRequestScript: string; testScript: string };
 
 const NO_SCRIPTS: PostmanScripts = { preRequestScript: '', testScript: '' };
 
-// Postman stores a script as `exec`, an array of source lines (older exports
-// and some generators use a single string instead). `script.src` points at an
-// external file we cannot resolve, so those events are dropped.
 function postmanScriptSource(event: Record<string, unknown>): string {
   const script = isRecord(event.script) ? event.script : {};
   const exec = script.exec ?? event.exec;
@@ -68,8 +65,6 @@ function hasScripts(scripts: PostmanScripts) {
   return Boolean(scripts.preRequestScript.trim() || scripts.testScript.trim());
 }
 
-// `event` belongs on the item in the v2.1 schema, but Relay used to write it
-// under `request` — read both so our own older exports still round-trip.
 export function postmanScriptsFromEvents(...sources: unknown[]): PostmanScripts {
   const result = { preRequestScript: '', testScript: '' };
   for (const source of sources) {
@@ -85,9 +80,6 @@ export function postmanScriptsFromEvents(...sources: unknown[]): PostmanScripts 
   return result;
 }
 
-// A Postman folder runs its scripts before/after every request it contains.
-// Relay has no folder layer, so the folder's code is flattened into each
-// request, labelled with where it came from.
 function labelledFolderScripts(scripts: PostmanScripts, folderName: string): PostmanScripts {
   const label = `// --- from Postman folder "${folderName}" ---`;
   return {
@@ -132,9 +124,6 @@ function relaySIOArgs(value: unknown): SIOArg[] {
   }).filter((item): item is SIOArg => Boolean(item));
 }
 
-// Postman keeps per-request transport switches in protocolProfileBehavior.
-// They were read by nobody, so importing a collection that turns off redirects
-// or certificate checking silently produced a request that did neither.
 function postmanBehaviorSettings(value: unknown): Partial<RequestSettings> {
   if (!isRecord(value)) return {};
   const settings: Partial<RequestSettings> = {};
@@ -152,8 +141,6 @@ function postmanAuthParam(auth: Record<string, unknown>, bucket: string, key: st
   return isRecord(entry) ? asText(entry.value) : '';
 }
 
-// Postman's grant names, including the PKCE variant which is the same
-// authorization-code flow with a different challenge.
 function postmanGrantType(value: string): { grant: OAuth2GrantType; pkce: boolean } | null {
   switch (value.toLowerCase()) {
     case 'authorization_code': return { grant: 'authorization_code', pkce: false };
@@ -185,9 +172,6 @@ function postmanAuthConfig(authValue: unknown, inheritedAuth?: unknown): SavedRe
     config.apiKeyIn = postmanAuthParam(auth, 'apikey', 'in') === 'query' ? 'query' : 'header';
   } else if (type === 'oauth2') {
     config.type = 'oauth2';
-    // A stored access token expires; without the rest of the flow the request
-    // starts failing with a 401 some time after the import, so carry over
-    // everything Relay can use to fetch a fresh one.
     config.oauth2Token = postmanAuthParam(auth, 'oauth2', 'accessToken') || postmanAuthParam(auth, 'oauth2', 'token');
     config.bearerToken = config.oauth2Token;
     config.oauth2TokenURL = postmanAuthParam(auth, 'oauth2', 'accessTokenUrl');
@@ -217,10 +201,6 @@ function postmanAuthConfig(authValue: unknown, inheritedAuth?: unknown): SavedRe
   return config;
 }
 
-// Postman stores the value of a `:pathVariable` beside the URL rather than in
-// it. Relay has no per-request path variables, so the value is substituted into
-// the URL — the alternative was importing a request whose URL still said `:id`
-// and could not be sent at all. A variable with no value is left as written.
 function applyPostmanPathVariables(url: string, variables: unknown): string {
   const rows = asArray(variables).filter(isRecord);
   if (!rows.length) return url;
@@ -240,10 +220,6 @@ function postmanUrlToRelay(urlValue: unknown) {
   const declaredParams = postmanKvRows(urlValue.query);
   const raw = asText(urlValue.raw);
   if (raw) {
-    // Always lift the query string into params (even when Postman's
-    // `query` array is empty) and strip the fragment — otherwise the UI
-    // can't display/edit the params and the fragment leaks into the
-    // request URL.
     const params = declaredParams.length ? declaredParams : queryParamsFromUrl(raw);
     return { url: applyPostmanPathVariables(stripUrlQueryAndFragment(raw), urlValue.variable), params };
   }
@@ -260,7 +236,6 @@ function postmanUrlToRelay(urlValue: unknown) {
 }
 
 function stripUrlQueryAndFragment(raw: string): string {
-  // Hash before query so we don't accidentally keep a fragment in the path.
   return raw.split('#')[0]?.split('?')[0] ?? '';
 }
 
@@ -352,9 +327,6 @@ function postmanBodyToRelay(bodyValue: unknown) {
   return result;
 }
 
-// Postman keeps saved examples in `item.response[]`: each one is a response
-// plus the request that produced it. Relay dropped the array wholesale, so a
-// collection built around its examples imported as a set of bare requests.
 function postmanExamplesFromItem(item: Record<string, unknown>, requestId: string): RequestExample[] {
   return asArray(item.response)
     .map((entry, index) => {
@@ -381,8 +353,6 @@ function postmanExamplesFromItem(item: Record<string, unknown>, requestId: strin
           status: code ? `${code} ${statusText}`.trim() : statusText,
           headers,
           body: asText(entry.body),
-          // Content-Type is the reliable source; Postman's preview language is
-          // the fallback for an example saved without one.
           bodyMediaType: mediaTypeOf(headers.find(row => row.key.toLowerCase() === 'content-type')?.value ?? '')
             || postmanPreviewMediaType(asText(entry._postman_previewlanguage)),
         },
@@ -445,9 +415,6 @@ export function postmanRequestsFromItems(
       url: asText(relay.url) || socketIO?.url || urlData.url,
       requestTab: relayTab || (requestType === 'grpc' ? 'body' : requestType === 'socketio' ? 'events' : requestType === 'ws' ? 'body' : requestType === 'graphql' ? 'query' : 'params'),
       params, headers: postmanKvRows(req.header),
-      // Nothing declared anywhere up the tree means Postman would fall back to
-      // the collection's auth, which lands in Relay's collection defaults —
-      // so the request inherits rather than carrying a copy.
       auth: req.auth === undefined && childAuth === undefined ? inheritAuthState() : postmanAuthConfig(req.auth, childAuth),
       bodyType: requestType === 'grpc' && body.bodyType === 'none' ? 'json' : body.bodyType,
       rawBodyType: body.rawBodyType,
@@ -471,8 +438,6 @@ export function postmanRequestsFromItems(
         ...DEFAULT_REQUEST_SETTINGS,
         ...(socketIO?.settings ?? {}),
         ...postmanBehaviorSettings(item.protocolProfileBehavior ?? req.protocolProfileBehavior),
-        // Relay's own extension wins: it is the more precise record of what
-        // this request was, and it only exists on a collection Relay wrote.
         ...relaySettings(relay.settings),
       },
       ...(examples.length ? { examples } : {}),
@@ -486,8 +451,6 @@ function postmanVariableRows(list: unknown): KVRow[] {
       if (!isRecord(item)) return null;
       const key = asText(item.key || item.name);
       if (!key) return null;
-      // Collection variables carry `disabled`, environment values carry
-      // `enabled` — a file uses one or the other.
       const enabled = item.enabled === false ? false : item.disabled !== true;
       const row = importedRow(key, asText(item.value), enabled, postmanDescription(item.description));
       return asText(item.type).toLowerCase() === 'secret' ? { ...row, secret: true } : row;
@@ -495,8 +458,6 @@ function postmanVariableRows(list: unknown): KVRow[] {
     .filter((row): row is KVRow => Boolean(row));
 }
 
-// Folders are kept even when they hold no requests, so an imported collection
-// keeps its shape instead of collapsing to the requests that happen to exist.
 function postmanFolderPaths(items: unknown, path: string[] = []): string[][] {
   const paths: string[][] = [];
   for (const item of asArray(items)) {
@@ -516,10 +477,6 @@ export type PostmanCollectionBundle = {
   requests: SavedRequest[];
 };
 
-// Everything Postman hangs off the collection itself — variables, auth, and
-// the pre-request/test scripts that run for every request — maps onto Relay's
-// collection defaults. Reading only `item` (as the importer used to) silently
-// dropped all of it.
 export function postmanCollectionBundle(payload: unknown, collectionId: string, fallbackName: string): PostmanCollectionBundle {
   if (!isRecord(payload) || !Array.isArray(payload.item)) throw new Error('Expected a Postman collection JSON file');
   const info = isRecord(payload.info) ? payload.info : {};
@@ -546,8 +503,6 @@ export type PostmanVariableBundle = {
   values: KVRow[];
 };
 
-// Postman exports environments and globals as their own files, so an import
-// path that only understands collections leaves every {{variable}} unresolved.
 export function postmanVariableBundle(payload: unknown, fallbackName: string): PostmanVariableBundle | null {
   if (!isRecord(payload) || !Array.isArray(payload.values) || Array.isArray(payload.item)) return null;
   const scope = asText(payload._postman_variable_scope).toLowerCase() === 'globals' ? 'globals' : 'environment';
@@ -573,11 +528,6 @@ function appendQueryString(url: string, queryString: string) {
 function requestUrlWithParams(req: SavedRequest, includeSecrets = false) {
   const activeParams = req.params.filter(r => r.enabled && r.key);
   const cleanUrl = safeExportUrl(req.url.trim() || 'https://example.com', includeSecrets);
-  // We deliberately do NOT round-trip through `new URL(...)` here: that
-  // would percent-encode template placeholders like {{userId}} into
-  // %7B%7BuserId%7D%7D and break variable substitution in Postman /
-  // Insomnia after import. Build the query string manually so authored
-  // values pass through verbatim.
   if (!activeParams.length) return cleanUrl;
   const qs = activeParams
     .map(r => `${encodeURIComponent(r.key)}=${encodeURIComponent(safeExportValue(r.key, r.value, includeSecrets, r.secret === true))}`)
@@ -700,8 +650,6 @@ function relayExtensionFromRequest(req: SavedRequest, stripFn: (s: string, t: st
   return extension;
 }
 
-// An example goes back out as Postman stores one: the response, plus the request
-// that produced it, under the item's `response` array.
 function postmanResponsesFromExamples(req: SavedRequest, includeSecrets = false) {
   const examples = req.examples ?? [];
   if (!examples.length) return undefined;
@@ -718,8 +666,6 @@ function postmanResponsesFromExamples(req: SavedRequest, includeSecrets = false)
     status: example.response.status.replace(/^\d+\s*/, ''),
     code: example.response.statusCode,
     header: example.response.headers.filter(row => row.key).map(row => postmanKv(row, includeSecrets)),
-    // A saved response is data, not configuration, so it goes through the same
-    // sweep as any other exported body rather than leaking a captured token.
     body: exportBodyLikeValue(example.response.body, 'json', (value: string) => value, includeSecrets),
     ...(example.response.bodyMediaType ? { _postman_previewlanguage: postmanPreviewLanguage(example.response.bodyMediaType) } : {}),
   }));
@@ -742,8 +688,6 @@ function postmanItemFromRequest(req: SavedRequest, stripFn: (s: string, t: strin
   return {
     name,
     [RELAY_EXTENSION_KEY]: relayExtensionFromRequest(req, stripFn, includeSecrets),
-    // `event` belongs to the item in the v2.1 schema — Postman ignores it
-    // when it sits under `request`, which is where Relay used to write it.
     ...(event ? { event } : {}),
     ...(response ? { response } : {}),
     request: {

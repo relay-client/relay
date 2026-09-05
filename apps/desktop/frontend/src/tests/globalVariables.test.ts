@@ -63,8 +63,6 @@ describe('globalVariableValues', () => {
 });
 
 describe('mergeGlobalRowsWithValues', () => {
-  // Scripts write to the backend pool; folding values back must not destroy the
-  // metadata the user set on each row.
   it('updates values in place and keeps row identity and flags', () => {
     const rows = [row(7, 'token', 'old', { secret: true, description: 'from CI' })];
     const merged = mergeGlobalRowsWithValues(rows, { token: 'new' });
@@ -82,9 +80,6 @@ describe('mergeGlobalRowsWithValues', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  // A variable the user removed locally must not be silently resurrected just
-  // because the backend still remembers it... but the backend is the source of
-  // truth during a run, so it is re-added. Pin the behaviour either way.
   it('re-adds a key present in backend values', () => {
     const merged = mergeGlobalRowsWithValues([], { fromScript: 'v' });
     expect(merged.some(r => r.key === 'fromScript')).toBe(true);

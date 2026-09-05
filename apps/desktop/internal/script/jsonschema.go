@@ -10,16 +10,6 @@ import (
 	"strings"
 )
 
-// A JSON Schema validator covering the draft-07 keywords that appear in API
-// test suites. It exists so scripts can assert a response's shape the way they
-// do in Postman — through pm.response.to.have.jsonSchema, tv4, or Ajv — without
-// pulling a JavaScript validator into the sandbox.
-//
-// Deliberately not implemented: remote $ref (the sandbox has no network),
-// content/media keywords, and format assertions (Ajv does not check formats by
-// default either, so a schema that relies on them would report differently
-// there too).
-
 const maxSchemaErrors = 20
 
 type schemaValidator struct {
@@ -28,21 +18,15 @@ type schemaValidator struct {
 	suppressed int
 }
 
-// ValidateJSONSchema reports every reason data fails schema. An empty result
-// means the document is valid.
 func ValidateJSONSchema(schema, data any) []string {
 	v := &schemaValidator{root: schema}
 	v.validate(schema, data, "")
 	if v.suppressed > 0 {
-		// Reporting 20 of 200 failures as if they were all of them sends people
-		// hunting for a bug in the schema when the document is simply far off.
 		return append(v.errors, fmt.Sprintf("(and %d more failures — only the first %d are listed)", v.suppressed, maxSchemaErrors))
 	}
 	return v.errors
 }
 
-// ValidateJSONSchemaText takes the JSON text of both sides, which is what the
-// script host has on hand.
 func ValidateJSONSchemaText(schemaJSON, dataJSON string) ([]string, error) {
 	var schema, data any
 	if err := json.Unmarshal([]byte(schemaJSON), &schema); err != nil {
@@ -69,7 +53,6 @@ func (v *schemaValidator) fail(path, format string, args ...any) {
 func (v *schemaValidator) validate(schema, data any, path string) {
 	switch s := schema.(type) {
 	case bool:
-		// A boolean schema accepts everything or nothing.
 		if !s {
 			v.fail(path, "schema is false, no value is valid")
 		}
@@ -92,8 +75,6 @@ func (v *schemaValidator) validateObjectSchema(schema map[string]any, data any, 
 		return
 	}
 
-	// OpenAPI's nullable is common in schemas exported from specs and costs
-	// one line to honour.
 	if nullable, ok := schema["nullable"].(bool); ok && nullable && data == nil {
 		return
 	}
@@ -156,7 +137,6 @@ func typeMatches(want, actual string) bool {
 	if want == actual {
 		return true
 	}
-	// Every integer is also a number; the reverse is not true.
 	return want == "number" && actual == "integer"
 }
 
@@ -272,7 +252,6 @@ func (v *schemaValidator) checkArray(schema map[string]any, data any, path strin
 	switch itemSchema := schema["items"].(type) {
 	case nil:
 	case []any:
-		// Tuple form: each position has its own schema.
 		for index, entry := range itemSchema {
 			if index < len(items) {
 				v.validate(entry, items[index], fmt.Sprintf("%s/%d", path, index))
@@ -389,8 +368,6 @@ func (v *schemaValidator) matchesAny(branches []any, data any) bool {
 	return false
 }
 
-// rooted keeps $ref resolvable inside a sub-schema by carrying the definitions
-// from the document root along with it.
 func (v *schemaValidator) rooted(schema any) any {
 	object, ok := schema.(map[string]any)
 	if !ok {

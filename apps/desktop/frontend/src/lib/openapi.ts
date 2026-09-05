@@ -188,10 +188,6 @@ function openApiBody(operation: Record<string, unknown>, root: unknown): BodyImp
   return { ...empty, bodyType: 'json', rawBodyType: 'json', bodyContent: stringifyJson(example) };
 }
 
-// A spec's `responses` are the contract it documents, and they carry exactly
-// what an example holds: a status, headers, and a payload. The importer used to
-// read only the request half, so a spec full of documented responses arrived
-// with none of them.
 function openApiExamplesFromResponses(
   operation: Record<string, unknown>,
   root: unknown,
@@ -204,8 +200,6 @@ function openApiExamplesFromResponses(
   for (const [code, responseValue] of Object.entries(responses)) {
     const response = deref(root, responseValue);
     if (!isRecord(response)) continue;
-    // "default" is a catch-all rather than a status, and there is no single
-    // code an example could claim for it.
     const statusCode = Number(code);
     if (!Number.isFinite(statusCode) || statusCode <= 0) continue;
 
@@ -227,9 +221,6 @@ function openApiExamplesFromResponses(
   return examples;
 }
 
-// OpenAPI 3 puts the payload under `content`; Swagger 2 uses `examples` keyed by
-// media type alongside a `schema`. Both fall back to a value derived from the
-// schema, which is what makes a spec without hand-written examples still useful.
 function openApiResponsePayload(response: Record<string, unknown>, root: unknown): { body: string; mediaType: string } {
   const content = isRecord(response.content) ? response.content : null;
   if (content) {
@@ -268,8 +259,6 @@ function openApiResponseHeaders(response: Record<string, unknown>, root: unknown
       : undefined;
     return row(name, asText(value), isRecord(header) ? asText(header.description) : '');
   });
-  // The media type is part of the contract too, and the example's body file
-  // extension follows it.
   if (mediaType && !rows.some(item => item.key.toLowerCase() === 'content-type')) {
     rows.unshift(row('Content-Type', mediaType));
   }
@@ -301,8 +290,6 @@ function resolveServerUrl(server: Record<string, unknown>) {
   });
 }
 
-// Every server the document declares, most-preferred first. OpenAPI lists the
-// primary one at index 0; Swagger 2.0 describes a single host/basePath pair.
 function serverUrls(spec: Record<string, unknown>): string[] {
   if (Array.isArray(spec.servers)) {
     const urls = spec.servers.filter(isRecord).map(resolveServerUrl).filter(Boolean);
@@ -353,9 +340,6 @@ export function openApiCollectionName(spec: unknown, fileName: string) {
   return asText(info.title) || fileName.replace(/\.(json|ya?ml)$/i, '') || 'OpenAPI Import';
 }
 
-// The base URL becomes a collection variable rather than being baked into every
-// request, so pointing an imported spec at staging is one edit instead of one
-// per request.
 export const OPENAPI_BASE_URL_VARIABLE = 'baseUrl';
 
 export type OpenApiCollectionDefaults = {
@@ -371,8 +355,6 @@ function securitySchemes(spec: Record<string, unknown>): Record<string, unknown>
   return { ...swagger, ...components };
 }
 
-// The first requirement in a `security` list is enough: alternatives are ORed,
-// and a request can only carry one auth configuration.
 function firstSecuritySchemeName(security: unknown): string | null {
   const requirements = asArray(security);
   if (!requirements.length) return null;
@@ -382,10 +364,6 @@ function firstSecuritySchemeName(security: unknown): string | null {
   return name ?? null;
 }
 
-// Maps a declared scheme onto Relay's auth, referencing collection variables
-// for the values only the caller knows. The spec never carries credentials, so
-// the useful outcome is a request configured to the right scheme with one
-// obvious place to type the secret.
 function authFromSecurityScheme(scheme: unknown, variables: Map<string, KVRow>): AuthState | null {
   if (!isRecord(scheme)) return null;
   const declare = (key: string, description: string, secret = true) => {
@@ -433,7 +411,6 @@ function authFromSecurityScheme(scheme: unknown, variables: Map<string, KVRow>):
     const flow = ['clientCredentials', 'authorizationCode', 'password', 'implicit']
       .map(name => (isRecord(flows[name]) ? { name, value: flows[name] as Record<string, unknown> } : null))
       .find(Boolean);
-    // Swagger 2.0 puts the URLs directly on the scheme.
     const tokenURL = asText(flow?.value.tokenUrl) || asText(scheme.tokenUrl);
     const authURL = asText(flow?.value.authorizationUrl) || asText(scheme.authorizationUrl);
     const scopes = Object.keys(
@@ -454,8 +431,6 @@ function authFromSecurityScheme(scheme: unknown, variables: Map<string, KVRow>):
       oauth2Secret: declare('oauth2ClientSecret', 'OAuth 2.0 client secret'),
     };
   }
-  // openIdConnect and anything unrecognised: the endpoints cannot be derived
-  // without fetching the discovery document, so leave it for the user.
   return null;
 }
 
@@ -464,11 +439,6 @@ export type OpenApiImport = {
   defaults: OpenApiCollectionDefaults;
 };
 
-// An imported spec has to produce requests that can actually be sent. Before,
-// a path template like /users/{userId} became /users/{{userId}} with nothing
-// defining userId, the base URL was pasted into every request, and the declared
-// security schemes were dropped — so every request failed on an unresolved
-// variable, and the ones that did not came back 401.
 export function openApiImportFromSpec(specValue: unknown, collectionId: string, collectionName: string): OpenApiImport {
   const spec = isRecord(specValue) ? specValue : {};
   const paths = isRecord(spec.paths) ? spec.paths : {};
@@ -504,9 +474,6 @@ export function openApiImportFromSpec(specValue: unknown, collectionId: string, 
       const parameters = parametersFor(pathItem, operation, spec);
       const params = parameterRows(parameters, 'query', spec);
       const headers = parameterRows(parameters, 'header', spec);
-      // A path parameter is part of the URL, so it has to resolve to something
-      // before the request can be sent. The spec's example or default is the
-      // best starting value; a name already claimed keeps the first one.
       for (const pathParam of parameterRows(parameters, 'path', spec)) {
         if (!variables.has(pathParam.key)) {
           variables.set(pathParam.key, { ...pathParam, enabled: true });
@@ -561,10 +528,6 @@ export function openApiImportFromSpec(specValue: unknown, collectionId: string, 
   };
 }
 
-// An operation without its own `security` uses the document's, which lives on
-// the collection — so the request inherits rather than carrying a copy, and
-// changing the collection's auth later reaches every request. `security: []`
-// means the operation is explicitly public.
 function operationAuth(
   operation: Record<string, unknown>,
   spec: Record<string, unknown>,
@@ -582,7 +545,6 @@ function operationAuth(
   return auth;
 }
 
-// Kept for callers that only need the requests.
 export function openApiRequestsFromSpec(specValue: unknown, collectionId: string, collectionName: string): SavedRequest[] {
   return openApiImportFromSpec(specValue, collectionId, collectionName).requests;
 }

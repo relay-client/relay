@@ -15,8 +15,6 @@ type GlobalsHost = {
   scheduleGlobalsPersist: (delay?: number) => void;
 };
 
-// Globals are workspace-independent on purpose: they are the scope a script
-// reaches for when a value has to outlive the environment it was produced in.
 const GLOBALS_ROW_LIMIT = 5000;
 
 function nextRowId(rows: KVRow[]): number {
@@ -27,8 +25,6 @@ function blankRow(rows: KVRow[]): KVRow {
   return { id: nextRowId(rows), enabled: true, key: '', value: '', description: '' };
 }
 
-// Keep exactly one empty row at the end so there is always somewhere to type,
-// matching how the environment editor behaves.
 export function withTrailingRow(rows: KVRow[]): KVRow[] {
   const trimmed = [...rows];
   while (trimmed.length > 1 && !rowHasContent(trimmed[trimmed.length - 1]) && !rowHasContent(trimmed[trimmed.length - 2])) {
@@ -40,9 +36,6 @@ export function withTrailingRow(rows: KVRow[]): KVRow[] {
   return trimmed.slice(0, GLOBALS_ROW_LIMIT);
 }
 
-// mergeGlobalRowsWithValues folds backend values (what scripts wrote during a
-// send) back into the editable rows, preserving each row's id, enabled state and
-// description, and appending anything a script introduced.
 export function mergeGlobalRowsWithValues(rows: KVRow[], values: Record<string, string>): KVRow[] {
   const seen = new Set<string>();
   const merged = rows.map(row => {
@@ -143,8 +136,6 @@ export const globalsFeature = {
     await setGlobalVariables(this.globalVariableValues());
   },
 
-  // Called after a send: a script may have written globals, and those values
-  // only live in the backend until they are folded back into the rows here.
   async syncGlobalsFromBackend(this: GlobalsHost) {
     const values = await getGlobalVariables();
     const next = mergeGlobalRowsWithValues(this.globalVariables, values);

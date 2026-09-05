@@ -157,7 +157,6 @@
   {#each visibleLines as line (line.number)}
     <div class="response-line" data-line-number={line.number}>
       <span class="response-line-no">{line.number}</span>
-      <!-- Highlighted markup only; every interpolated value goes through escapeHtml(). -->
       <!-- eslint-disable-next-line svelte/no-at-html-tags -->
       <code class="response-line-code">{@html line.html}</code>
     </div>

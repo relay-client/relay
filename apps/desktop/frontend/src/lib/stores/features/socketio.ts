@@ -26,7 +26,6 @@ type SocketIOHost = {
   sioArgs: SIOArg[];
   sioAck: boolean;
   socketIOConnected: boolean;
-  // shared / cross-feature members that remain on AppVM
   cleanupRealtimeSessions: () => void;
   recordRequestHistory: (httpResponse: HttpResponse, requestSnapshot?: SavedRequest) => Promise<void>;
   snapshotActiveRequest: (options?: { forPersistence?: boolean }) => SavedRequest;
@@ -38,7 +37,6 @@ type SocketIOHost = {
   setActiveResponse: (response: HttpResponse | null, requestId?: string) => void;
   resolveTemplate: (value: string, values?: Record<string, string>) => string;
   environmentValuesForRequest: (req: Pick<SavedRequest, 'collectionId'>, envValues?: Record<string, string>) => Record<string, string>;
-  // intra-feature members (mixed into the same prototype)
   forgetSocketIOSession: (id: string) => void;
   _emptySocketIOSession: () => SocketIOSession;
   _sioSetSession: (id: string, patch: Partial<SocketIOSession>) => void;

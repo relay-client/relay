@@ -9,8 +9,6 @@ import (
 	"time"
 )
 
-// templateRe matches {{name}} and {{$dynamic}} references, mirroring the
-// frontend's resolver so the CLI resolves variables the same way the app does.
 var templateRe = regexp.MustCompile(`\{\{\s*(\$?[A-Za-z0-9_.-]+)\s*\}\}`)
 
 func randInt(min, max int64) int64 {
@@ -59,8 +57,6 @@ func offsetDate(ms int64) string {
 	return time.Now().Add(time.Duration(ms) * time.Millisecond).UTC().Format(time.RFC3339)
 }
 
-// These pools mirror apps/desktop/frontend/src/lib/dynamicVariables.ts so the
-// CLI and the desktop app draw from the same catalogue.
 var (
 	dvFirstNames      = []string{"Ada", "Grace", "Alan", "Linus", "Barbara", "Dennis", "Radia", "Ken", "Margaret", "Edsger", "Katherine", "Tim"}
 	dvLastNames       = []string{"Lovelace", "Hopper", "Turing", "Torvalds", "Liskov", "Ritchie", "Perlman", "Thompson", "Hamilton", "Dijkstra", "Johnson", "Berners-Lee"}
@@ -111,9 +107,6 @@ func dvUserName() string {
 	return strings.ToLower(pick(dvFirstNames)) + "." + last
 }
 
-// dynamicGenerators is the full catalogue, keyed by name (including the leading
-// "$"). It matches the desktop app so a collection using any dynamic variable
-// runs identically in the GUI and the CLI.
 var dynamicGenerators = map[string]func() string{
 	"$guid":               randomUUID,
 	"$randomUUID":         randomUUID,
@@ -196,9 +189,6 @@ var dynamicGenerators = map[string]func() string{
 	"$randomUserAgent":      func() string { return pick(dvUserAgents) },
 }
 
-// resolveDynamicCLIVariable returns a freshly generated value for a known
-// dynamic variable, or ("", false) so unknown references stay untouched and the
-// executor reports them as unresolved rather than sending a wrong value.
 func resolveDynamicCLIVariable(name string) (string, bool) {
 	if gen, ok := dynamicGenerators[name]; ok {
 		return gen(), true
@@ -206,9 +196,6 @@ func resolveDynamicCLIVariable(name string) (string, bool) {
 	return "", false
 }
 
-// resolveTemplateValue substitutes {{var}} references using the supplied values,
-// falling back to the dynamic-variable set. Unknown references are left as-is,
-// matching the desktop app so an unresolved variable stays visible.
 func resolveTemplateValue(value string, values map[string]string) string {
 	if !strings.Contains(value, "{{") {
 		return value

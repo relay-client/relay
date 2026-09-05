@@ -33,14 +33,11 @@
     | { type: 'none'; key: string; height: number }
     | { type: 'environment'; key: string; height: number; environment: Environment };
 
-  // Initial per-row height estimates (px). The collection list measures real heights
-  // after render (see measureRow) and uses those instead, so these only need to be
-  // close enough to seed the first paint. History/environment lists still rely on them.
-  const ROW_HEIGHT = 30; // history day toggle + history entry
-  const REQUEST_ROW_HEIGHT = 28; // .collection-request-wrap
-  const COLLECTION_ROW_HEIGHT = 28; // .collection-folder
-  const FOLDER_ROW_HEIGHT = 30; // .collection-subfolder
-  const PINNED_HEAD_HEIGHT = 24; // .pinned-head
+  const ROW_HEIGHT = 30;
+  const REQUEST_ROW_HEIGHT = 28;
+  const COLLECTION_ROW_HEIGHT = 28;
+  const FOLDER_ROW_HEIGHT = 30;
+  const PINNED_HEAD_HEIGHT = 24;
   const EMPTY_ROW_HEIGHT = 58;
   const FOLDER_EMPTY_ROW_HEIGHT = 124;
   const ONBOARDING_ROW_HEIGHT = 210;
@@ -227,8 +224,6 @@
     });
   });
 
-  // Cache of measured row heights keyed by row.key (SvelteMap so reads in the
-  // virtualization derived re-run when a measurement lands).
   function measureRow(node: HTMLElement, key: string) {
     let currentKey = key;
     const report = () => {
@@ -244,9 +239,6 @@
     };
   }
 
-  // Scroll handlers read clientHeight (a forced layout) and trigger an O(n) re-window.
-  // Coalesce bursts of scroll events into one update per animation frame so fast
-  // flicks stay smooth instead of thrashing layout on every wheel tick.
   let collectionScrollRaf = 0;
   let historyScrollRaf = 0;
   let environmentScrollRaf = 0;
@@ -730,8 +722,6 @@
                     <button type="button" onclick={() => openHistoryEntry(row.entry.id)} disabled={workspaceBlocked}>Open request</button>
                     {#if row.entry.responseStored}
                       <button type="button" onclick={() => showHistoryResponse(row.entry.id)}>View response</button>
-                      <!-- A history entry's request is a snapshot of its own, so
-                           the example lands on the request currently open. -->
                       {#if activeRequestId}
                         <button type="button" onclick={() => saveHistoryEntryAsExample(row.entry.id)} disabled={workspaceBlocked}>Save as example</button>
                       {/if}

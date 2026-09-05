@@ -8,12 +8,6 @@ import (
 	"testing"
 )
 
-// A request written to the workspace YAML and read back must come out with the
-// auth it went in with. The bug this covers dropped every field missing from
-// authActiveFields on every save — "Inherit Auth" became "No Auth", and the
-// AWS session token, device-code URL, password grant, and private-key JWT
-// config added in 1.2.0 vanished. The YAML is the only copy, so what the writer
-// drops is gone.
 func TestWorkspaceAuthSurvivesRoundTrip(t *testing.T) {
 	cases := []struct {
 		name string
@@ -81,9 +75,6 @@ func TestWorkspaceAuthSurvivesRoundTrip(t *testing.T) {
 	}
 }
 
-// authActiveFields is a whitelist, so a field added to the frontend AuthState
-// and forgotten here is discarded on the next save with no error anywhere. This
-// reads the model the app actually persists and fails when one is missing.
 func TestAuthActiveFieldsCoverAuthState(t *testing.T) {
 	source, err := os.ReadFile(filepath.Join("..", "..", "frontend", "src", "lib", "utils.ts"))
 	if err != nil {
@@ -102,8 +93,6 @@ func TestAuthActiveFieldsCoverAuthState(t *testing.T) {
 		}
 	}
 
-	// oauth2TokenExpiry is a number the frontend keeps alongside the token; it
-	// is in the oauth2 list already. Everything else must be too.
 	var missing []string
 	for _, match := range regexp.MustCompile(`(?m)[\{\s,]([A-Za-z][A-Za-z0-9]*):\s`).FindAllSubmatch(block, -1) {
 		field := string(match[1])
@@ -116,9 +105,6 @@ func TestAuthActiveFieldsCoverAuthState(t *testing.T) {
 	}
 }
 
-// The client-key passphrase lives in settings, not auth, and used to miss the
-// secret sweep entirely: a literal value went into the workspace YAML in plain
-// text, which a git-backed workspace then committed.
 func TestClientKeyPassphraseIsStoredAsASecret(t *testing.T) {
 	requests := []map[string]any{{
 		"id": "r1", "workspaceId": "w1", "collectionId": "c1", "name": "MTLS",
@@ -145,7 +131,6 @@ func TestClientKeyPassphraseIsStoredAsASecret(t *testing.T) {
 		t.Fatal("passphrase did not reach the local secret store")
 	}
 
-	// And it comes back when the workspace is read with its local secrets.
 	mergeRequestSecrets(sanitized[0], secrets)
 	restored, _ := sanitized[0]["settings"].(map[string]any)
 	if stringFromAny(restored["clientKeyPassword"]) != "super-secret-passphrase" {
@@ -153,9 +138,6 @@ func TestClientKeyPassphraseIsStoredAsASecret(t *testing.T) {
 	}
 }
 
-// Three settings the sender implements — SSE reconnection and its interval, and
-// the WebSocket keep-alive ping — were unreachable: no field in the frontend
-// model, so nothing to write and nothing to read back. They round-trip now.
 func TestRealtimeTuningSettingsSurviveRoundTrip(t *testing.T) {
 	root := t.TempDir()
 	workspaces := []map[string]any{{"id": "w1", "name": "WS"}}
@@ -197,7 +179,6 @@ func TestRealtimeTuningSettingsSurviveRoundTrip(t *testing.T) {
 	}
 }
 
-// YAML decodes whole numbers as int; JSON as float64. Compare on the value.
 func numberValue(value any) float64 {
 	switch typed := value.(type) {
 	case float64:

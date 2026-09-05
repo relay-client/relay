@@ -128,9 +128,6 @@ describe('environment manual-save scheduling', () => {
 });
 
 describe('nested variable resolution', () => {
-  // A variable's value is very often built from other variables. A single
-  // substitution pass left `{{baseUrl}}` as the literal `{{scheme}}://{{host}}`,
-  // and the sender then refused the request for having an unresolved variable.
   it('expands a variable whose value references other variables', () => {
     const host = {
       activeEnvironmentValues: () => ({

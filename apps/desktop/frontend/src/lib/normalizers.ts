@@ -163,8 +163,6 @@ export function normalizeSavedRequest(
         ? 'body'
         : isRealtime && ['scripts', 'query', 'schema'].includes(rawRequestTab)
         ? 'body'
-        // An SSE request has no Scripts tab — the SSE path never runs them — so a
-        // request saved while that tab was open reopens somewhere that exists.
         : (input.method ?? '').toUpperCase() === 'SSE' && ['scripts', 'query', 'schema'].includes(rawRequestTab)
         ? 'params'
         : rawRequestTab;
@@ -174,10 +172,6 @@ export function normalizeSavedRequest(
     let normalizedName = rawName;
     if (!folderPath.length && rawName.includes(' / ')) {
         const parts = rawName.split(' / ').map(p => p.trim()).filter(Boolean);
-        // Only treat " / " as a folder separator when the first segment
-        // looks like a folder name. A title like "GET /users / list" is the
-        // auto-generated `METHOD url` shape — splitting it would relocate
-        // a request to a phantom "GET /users" folder on every load.
         const looksLikeAutoTitle = /^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|GRAPHQL|GQL|WS|WEBSOCKET|SIO|SOCKET\.IO|GRPC|SSE)\b/i.test(parts[0] ?? '')
             || (parts[0] ?? '').includes('/');
         if (parts.length > 1 && !looksLikeAutoTitle) {
@@ -236,8 +230,6 @@ export function normalizeSavedRequest(
         grpcProtoFilePath: input.grpcProtoFilePath || '',
         grpcProtoFileName: input.grpcProtoFileName || '',
         grpcProtoImportPaths: Array.isArray(input.grpcProtoImportPaths) ? input.grpcProtoImportPaths.map(asText).filter(Boolean) : [],
-        // Left undefined when there are none, so a request that has no examples
-        // does not grow an empty array in the workspace YAML.
         ...(normalizedExamples ? { examples: normalizedExamples } : {}),
     };
 }

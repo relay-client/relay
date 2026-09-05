@@ -444,7 +444,6 @@
   animation: spin 0.7s linear infinite;
 }
 
-/* Timeline / raw request panel */
 .timeline-panel {
   overflow: auto;
   padding: 14px 16px 18px;
@@ -572,7 +571,6 @@
   white-space: pre;
 }
 
-/* Response diff */
 .diff-panel {
   overflow: auto;
   display: grid;
@@ -638,8 +636,6 @@
   color: var(--text-1);
 }
 
-/* Which saved response the current one is being compared against. Only shown
-   when there is more than one thing it could be. */
 .diff-baseline-picker {
   display: flex;
   align-items: center;

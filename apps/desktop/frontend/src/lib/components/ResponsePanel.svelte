@@ -63,8 +63,6 @@
     responseSearchIndex: number;
     responseTestSummary: { passed: number; total: number; allPassed: boolean } | null;
     responseDiffSummary?: ResponseDiff | null;
-    // What the current response is compared against: the previous response, or
-    // a saved example the user picked.
     diffBaseline?: HttpResponse | null;
     diffBaselineLabel?: string;
     diffBaselineOptions?: Array<{ id: string; label: string }>;
@@ -93,7 +91,6 @@
     saveResponseFile: () => void;
     loadResponseFromFile: () => void;
     setResponseTab: (tab: ResponseTab) => void;
-    // Absent for the transports that have no example to save.
     saveResponseAsExample?: (() => void) | null;
     clearResponseDiffBaseline?: () => void;
   } = $props();
@@ -243,9 +240,6 @@
 
       {#if responseTab === 'body'}
         <div class="response-tab-panel" id="response-panel-body" role="tabpanel">
-        <!-- Decisions the sender made about the request that the response alone
-             would not explain — a header row Relay declined to put on the wire,
-             for one. Silence here sends people debugging the server. -->
         {#each response.warnings ?? [] as warning}
           <div class="response-warning" role="status">{warning}</div>
         {/each}

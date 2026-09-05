@@ -37,7 +37,6 @@ func TestCSPNoneMixedWithOthersBlocks(t *testing.T) {
 	req := defaultBrowserReq(server.URL)
 	req.BrowserOrigin = "https://app.example.com"
 	req.BrowserEnforceCSP = true
-	// Per CSP spec, 'none' alongside other sources still blocks.
 	req.BrowserCSP = "connect-src 'none' http://" + target.Host
 
 	resp := NewApp().SendRequest(req)
@@ -139,7 +138,6 @@ func TestPreflightCacheNotReusedWithoutMaxAge(t *testing.T) {
 			w.Header().Set("Access-Control-Allow-Origin", "https://app.example.com")
 			w.Header().Set("Access-Control-Allow-Methods", "POST")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-			// No Access-Control-Max-Age — must not cache.
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
@@ -219,7 +217,6 @@ func TestPreflightCacheClampsAtFiveMinutes(t *testing.T) {
 	defer server.Close()
 
 	app := NewApp()
-	// Drive the cache's clock so we can observe clamp behaviour.
 	now := time.Unix(2_000_000_000, 0)
 	app.preflightCache.now = func() time.Time { return now }
 
@@ -233,7 +230,6 @@ func TestPreflightCacheClampsAtFiveMinutes(t *testing.T) {
 	if resp := app.SendRequest(req); resp.Error != "" {
 		t.Fatalf("first request errored: %q", resp.Error)
 	}
-	// Within clamp (5 min): cache should serve.
 	now = now.Add(4 * time.Minute)
 	if resp := app.SendRequest(req); resp.Error != "" {
 		t.Fatalf("within clamp errored: %q", resp.Error)
@@ -241,7 +237,6 @@ func TestPreflightCacheClampsAtFiveMinutes(t *testing.T) {
 	if got := optionsCount.Load(); got != 1 {
 		t.Fatalf("within clamp expected 1 preflight, got %d", got)
 	}
-	// Beyond clamp (>5 min): cache should expire.
 	now = now.Add(2 * time.Minute)
 	if resp := app.SendRequest(req); resp.Error != "" {
 		t.Fatalf("beyond clamp errored: %q", resp.Error)
@@ -259,7 +254,6 @@ func TestPreflightCacheInvalidatedWhenNewHeaderAppears(t *testing.T) {
 			gotHeaders := r.Header.Get("Access-Control-Request-Headers")
 			w.Header().Set("Access-Control-Allow-Origin", "https://app.example.com")
 			w.Header().Set("Access-Control-Allow-Methods", "POST")
-			// Only allow what was actually asked for.
 			w.Header().Set("Access-Control-Allow-Headers", gotHeaders)
 			w.Header().Set("Access-Control-Max-Age", "60")
 			w.WriteHeader(http.StatusNoContent)
@@ -297,7 +291,6 @@ func TestPreflightCacheInvalidatedWhenNewHeaderAppears(t *testing.T) {
 func TestSecFetchSiteUpdatedOnCrossOriginRedirect(t *testing.T) {
 	var sawCrossSite, sawSameOrigin atomic.Bool
 
-	// inner accepts redirected request and verifies header.
 	inner := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Sec-Fetch-Site") == "cross-site" {
 			sawCrossSite.Store(true)
@@ -306,7 +299,6 @@ func TestSecFetchSiteUpdatedOnCrossOriginRedirect(t *testing.T) {
 	}))
 	defer inner.Close()
 
-	// outer redirects to inner (different host means cross-origin from inner-relative-to-origin too).
 	outer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Sec-Fetch-Site") == "same-origin" {
 			sawSameOrigin.Store(true)
@@ -317,7 +309,7 @@ func TestSecFetchSiteUpdatedOnCrossOriginRedirect(t *testing.T) {
 
 	req := defaultBrowserReq(outer.URL)
 	req.BrowserEmulation = true
-	req.BrowserOrigin = outer.URL // first hop is same-origin
+	req.BrowserOrigin = outer.URL
 	resp := NewApp().SendRequest(req)
 	if resp.Error != "" {
 		t.Fatalf("unexpected error: %q", resp.Error)
@@ -354,7 +346,7 @@ func TestSecFetchSiteUpdatedOnSameOriginRedirect(t *testing.T) {
 
 	req := defaultBrowserReq(server.URL + "/start")
 	req.BrowserEmulation = true
-	req.BrowserOrigin = "https://app.example.com" // cross-origin to server
+	req.BrowserOrigin = "https://app.example.com"
 	resp := NewApp().SendRequest(req)
 	if resp.Error != "" {
 		t.Fatalf("unexpected error: %q", resp.Error)
@@ -371,8 +363,6 @@ func TestSecFetchSiteUpdatedOnSameOriginRedirect(t *testing.T) {
 }
 
 func TestPreflightCacheKeyExcludesQueryDifference(t *testing.T) {
-	// Cache key uses the URL incl. query — different queries are different resources.
-	// We verify that two different queries result in two preflights (no false cache hit).
 	var optionsCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodOptions {
@@ -442,7 +432,6 @@ func TestPreflightCacheCredentialedDoesNotShareWithUncredentialed(t *testing.T) 
 	credentialed := uncredentialed
 	credentialed.BrowserWithCredentials = true
 	resp = app.SendRequest(credentialed)
-	// '*' with credentials must reject and re-preflight.
 	if !strings.Contains(resp.Error, "credentials require the exact origin") {
 		t.Fatalf("credentialed request must not silently reuse a wildcard preflight, got %q", resp.Error)
 	}

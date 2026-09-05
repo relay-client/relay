@@ -9,8 +9,6 @@ import (
 	"testing"
 )
 
-// exampleStorePayload builds a store payload whose single request carries the
-// supplied examples, as the frontend would send them.
 func exampleStorePayload(t *testing.T, examples string) string {
 	t.Helper()
 	return fmt.Sprintf(`{
@@ -57,7 +55,6 @@ func exampleDirFor(root string) string {
 	return filepath.Join(root, "workspaces", "Main", "collections", "Core", "examples", "Create-order")
 }
 
-// requestExamplesFromPayload digs the examples back out of a loaded payload.
 func requestExamplesFromPayload(t *testing.T, payload string) []map[string]any {
 	t.Helper()
 	var decoded struct {
@@ -82,9 +79,6 @@ func requestExamplesFromPayload(t *testing.T, payload string) []map[string]any {
 	return out
 }
 
-// TestExamplesRoundTripThroughWorkspace is the whole point of phase one: an
-// example survives save and load, and the response body lands on disk as a
-// real .json file rather than a YAML block scalar.
 func TestExamplesRoundTripThroughWorkspace(t *testing.T) {
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()
@@ -151,9 +145,6 @@ func TestExamplesRoundTripThroughWorkspace(t *testing.T) {
 	}
 }
 
-// TestExamplesAreRemovedWithTheirBodyFile covers the pruning path: the body is
-// not YAML, so the extension filter used to skip it and a deleted example left
-// its body behind for ever.
 func TestExamplesAreRemovedWithTheirBodyFile(t *testing.T) {
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()
@@ -179,9 +170,6 @@ func TestExamplesAreRemovedWithTheirBodyFile(t *testing.T) {
 	}
 }
 
-// TestWorkspaceWithoutExamplesLoadsUnchanged pins backward compatibility: a
-// workspace written before examples existed must load with no examples and no
-// diagnostics.
 func TestWorkspaceWithoutExamplesLoadsUnchanged(t *testing.T) {
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()
@@ -203,8 +191,6 @@ func TestWorkspaceWithoutExamplesLoadsUnchanged(t *testing.T) {
 	}
 }
 
-// TestExampleBodyExtensionFollowsMediaType keeps the on-disk body diffable: the
-// extension is what makes a reviewer's tooling treat it as JSON or XML.
 func TestExampleBodyExtensionFollowsMediaType(t *testing.T) {
 	for _, tc := range []struct{ mediaType, want string }{
 		{"application/json", ".json"},
@@ -223,8 +209,6 @@ func TestExampleBodyExtensionFollowsMediaType(t *testing.T) {
 	}
 }
 
-// TestExampleBodyFileEscapingIsRefused guards the read path against a body
-// pointer that walks out of the example directory.
 func TestExampleBodyFileEscapingIsRefused(t *testing.T) {
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()
@@ -263,8 +247,6 @@ func TestExampleBodyFileEscapingIsRefused(t *testing.T) {
 	}
 }
 
-// TestExampleNamesAreMadeUniqueOnDisk covers two examples whose names collide:
-// each still needs its own pair of files.
 func TestExampleNamesAreMadeUniqueOnDisk(t *testing.T) {
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()

@@ -12,16 +12,12 @@ import (
 	"github.com/relay-client/relay/apps/desktop/internal/model"
 )
 
-// sentPart is one decoded multipart part. The body is captured as the part is
-// read, because advancing the reader invalidates the previous part.
 type sentPart struct {
 	contentType string
 	fileName    string
 	body        string
 }
 
-// readParts runs the multipart body the sender would produce back through a
-// reader, so the assertions are about what a server actually receives.
 func readParts(t *testing.T, rows []model.KeyValue) map[string]sentPart {
 	t.Helper()
 	body, err := buildMultipartRequestBody(rows)
@@ -58,9 +54,6 @@ func readParts(t *testing.T, rows []model.KeyValue) map[string]sentPart {
 	return parts
 }
 
-// TestMultipartFilePartUsesConfiguredContentType is the upload case: an API
-// that only accepts image/png rejected every upload, because the part was
-// always labelled application/octet-stream.
 func TestMultipartFilePartUsesConfiguredContentType(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "avatar.png")
@@ -86,8 +79,6 @@ func TestMultipartFilePartUsesConfiguredContentType(t *testing.T) {
 	}
 }
 
-// TestMultipartFilePartDefaultsToOctetStream pins the untouched behaviour: a
-// row that names no type keeps what Relay always sent.
 func TestMultipartFilePartDefaultsToOctetStream(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "data.bin")
@@ -107,8 +98,6 @@ func TestMultipartFilePartDefaultsToOctetStream(t *testing.T) {
 	}
 }
 
-// TestMultipartTextPartCanCarryContentType covers the other common shape: a
-// JSON part sitting next to a file in the same multipart body.
 func TestMultipartTextPartCanCarryContentType(t *testing.T) {
 	parts := readParts(t, []model.KeyValue{
 		{Key: "meta", Value: `{"a":1}`, Enabled: true, ContentType: "application/json"},
@@ -135,8 +124,6 @@ func TestMultipartTextPartCanCarryContentType(t *testing.T) {
 	}
 }
 
-// TestMultipartPartNameIsEscaped keeps a quote in a field name from breaking
-// out of the Content-Disposition header.
 func TestMultipartPartNameIsEscaped(t *testing.T) {
 	parts := readParts(t, []model.KeyValue{
 		{Key: `od"d`, Value: "v", Enabled: true, ContentType: "text/plain"},

@@ -138,10 +138,6 @@ export function prettyMarkup(raw: string) {
 }
 
 export function escapeHtml(raw: string) {
-  // Escape the full set required by both text-content and attribute-value
-  // contexts. The previous version only escaped &, < and >, which is safe
-  // inside an element body but becomes an XSS sink the moment a caller drops
-  // the value into an attribute (the response viewer's token rendering does).
   return raw
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')

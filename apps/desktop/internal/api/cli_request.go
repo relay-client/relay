@@ -7,10 +7,6 @@ import (
 	"github.com/relay-client/relay/apps/desktop/internal/model"
 )
 
-// The saved request/collection/environment shapes are defined by the frontend
-// and serialized to the YAML workspace. The CLI only needs the fields required
-// to build and run an HTTP request, so these structs decode a focused subset.
-
 type cliKV struct {
 	Key      string `json:"key"`
 	Value    string `json:"value"`
@@ -31,11 +27,6 @@ type cliAuth struct {
 	APIKeyValue string `json:"apiKeyValue"`
 	APIKeyIn    string `json:"apiKeyIn"`
 
-	// The full OAuth 2.0 configuration, not just the token. A run used to carry
-	// only oauth2Token — which lives in the machine-local secret store and is
-	// therefore absent in CI — so an OAuth-protected collection could not be run
-	// from a checkout at all. With the grant details present the runner can get
-	// its own token.
 	OAuth2GrantType           string `json:"oauth2GrantType"`
 	OAuth2Token               string `json:"oauth2Token"`
 	OAuth2TokenURL            string `json:"oauth2TokenURL"`
@@ -159,9 +150,6 @@ func enabledRowValues(rows []cliKV) map[string]string {
 	return values
 }
 
-// cliRunnable reports whether the CLI can execute this request. Realtime
-// transports need a live UI session, so they are skipped, matching the desktop
-// collection runner.
 func cliRunnable(req cliSavedRequest) bool {
 	switch strings.ToLower(strings.TrimSpace(req.RequestType)) {
 	case "", "http", "graphql":
@@ -175,9 +163,6 @@ func isGraphQLRequest(req cliSavedRequest) bool {
 	return strings.EqualFold(req.RequestType, "graphql") || req.BodyType == "graphql"
 }
 
-// buildHTTPRequest resolves the request's variables and produces the flat
-// model.HttpRequest the executor consumes — the Go equivalent of the frontend's
-// savedRequestToRunnableHttpRequest.
 func buildHTTPRequest(req cliSavedRequest, values map[string]string, secretValues []string, timeoutOverrideMs int) model.HttpRequest {
 	resolve := func(v string) string { return resolveTemplateValue(v, values) }
 	graphql := isGraphQLRequest(req)
@@ -285,8 +270,6 @@ func buildHTTPRequest(req cliSavedRequest, values map[string]string, secretValue
 	}
 }
 
-// cliScriptEngine mirrors the app default (JavaScript) while still honouring a
-// request that only carries legacy Tengo scripts.
 func cliScriptEngine(req cliSavedRequest) string {
 	if strings.TrimSpace(req.PreRequestScriptJs) != "" || strings.TrimSpace(req.TestScriptJs) != "" {
 		return "js"

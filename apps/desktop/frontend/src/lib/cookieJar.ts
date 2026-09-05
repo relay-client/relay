@@ -61,8 +61,6 @@ export function parseRawCookie(source: string, fallbackDomain: string, timestamp
         cookie.session = false;
       }
     } else if (key === 'max-age') {
-      // RFC 6265 §5.2.2: empty/non-numeric Max-Age must be ignored.
-      // Previously Number('') was 0, which silently expired the cookie.
       const trimmed = value.trim();
       if (trimmed !== '') {
         const seconds = Number(trimmed);
@@ -81,15 +79,9 @@ export function parseRawCookie(source: string, fallbackDomain: string, timestamp
   if (!cookie.name) throw new Error('Cookie name is required.');
   if (!cookie.domain) throw new Error('Cookie domain is required.');
   if (!cookie.path.startsWith('/')) cookie.path = `/${cookie.path}`;
-  // RFC 6265bis §5.4.7: SameSite=None requires Secure. Browsers reject
-  // such cookies; match that behavior so users don't author cookies that
-  // appear to work locally but get silently dropped in real flows.
   if (cookie.sameSite === 'none' && !cookie.secure) {
     throw new Error('SameSite=None cookies must also be marked Secure.');
   }
-  // Reject path attributes that try to traverse upward — they don't grant
-  // extra privileges (cookie matching is prefix-based) but a leading
-  // `/../...` is confusing and never what the user meant.
   if (cookie.path.includes('..')) {
     throw new Error('Cookie Path must not contain "..".');
   }

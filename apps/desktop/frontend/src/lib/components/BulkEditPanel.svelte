@@ -9,13 +9,7 @@
     hint = 'One key:value per line. Prefix a line with // to disable it.',
   }: { rows: KVRow[]; apply: (next: KVRow[]) => void; hint?: string } = $props();
 
-  // Seeded once from the rows as they are on open; from then on the textarea
-  // owns the text so typing never fights the round-trip through the rows.
   let text = $state(untrack(() => rowsToBulkText(rows)));
-  // What the rows looked like the last time this panel wrote them. When the
-  // rows change to anything else — a different request was opened, or the
-  // table was edited elsewhere — the textarea reloads instead of overwriting
-  // with stale text.
   let lastApplied = $state(untrack(() => rowsToBulkText(rows)));
 
   $effect(() => {

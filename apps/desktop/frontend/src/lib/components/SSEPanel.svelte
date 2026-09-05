@@ -450,7 +450,6 @@
 
             {#if expanded && hasExpandable}
               <div class="sse-event-body">
-                <!-- Highlighted markup only; every interpolated value goes through escapeHtml(). -->
                 <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                 <pre class="sse-event-data-viewer sse-event-pre" class:sse-event-data-json={isJson(ev.data)}><code>{@html renderEventDataHtml(ev.data)}</code></pre>
               </div>

@@ -1,19 +1,10 @@
-// Line diff between two response bodies, with no dependency on a diff library.
-//
-// The shape is a classic LCS, but the full O(n·m) table is only ever built for
-// the part that actually differs: identical prefixes and suffixes are trimmed
-// first, which is the common case when comparing two responses from the same
-// endpoint. Beyond a size cap the table would cost more memory than the answer
-// is worth, so the comparison degrades to a positional one and says so.
 
 export type DiffLineKind = 'equal' | 'added' | 'removed';
 
 export type DiffLine = {
   kind: DiffLineKind;
   text: string;
-  /** 1-based line number in the previous response, or null for added lines. */
   beforeLine: number | null;
-  /** 1-based line number in the current response, or null for removed lines. */
   afterLine: number | null;
 };
 
@@ -22,12 +13,9 @@ export type ResponseDiff = {
   added: number;
   removed: number;
   identical: boolean;
-  /** True when the bodies were too large for a real LCS and were compared line by line. */
   approximate: boolean;
 };
 
-// 4M cells of Uint32Array ≈ 16 MB, which is the most worth spending inside a
-// UI thread. Larger bodies fall back to a positional comparison.
 const MAX_LCS_CELLS = 4_000_000;
 
 function splitLines(value: string): string[] {
@@ -38,7 +26,6 @@ function splitLines(value: string): string[] {
 function lcsLines(before: string[], after: string[]): DiffLine[] {
   const rows = before.length;
   const columns = after.length;
-  // table[i][j] = LCS length of before[i…] and after[j…], stored flat.
   const width = columns + 1;
   const table = new Uint32Array((rows + 1) * width);
   for (let i = rows - 1; i >= 0; i -= 1) {
@@ -100,8 +87,6 @@ export function diffResponseBodies(previous: string, current: string): ResponseD
   const before = splitLines(previous);
   const after = splitLines(current);
 
-  // Shared head and tail never need the table, and trimming them is what keeps
-  // "one field changed in a large payload" cheap.
   let head = 0;
   while (head < before.length && head < after.length && before[head] === after[head]) head += 1;
   let tail = 0;
@@ -139,11 +124,6 @@ export function diffResponseBodies(previous: string, current: string): ResponseD
   return { lines, added, removed, identical: added === 0 && removed === 0, approximate };
 }
 
-/**
- * Drops runs of unchanged lines longer than `context * 2`, keeping `context`
- * lines on each side of a change. Returns the kept lines with gap markers so
- * the viewer can show "… 42 unchanged lines".
- */
 export type DiffChunk = { kind: 'lines'; lines: DiffLine[] } | { kind: 'gap'; count: number };
 
 export function collapseUnchanged(lines: DiffLine[], context = 3): DiffChunk[] {

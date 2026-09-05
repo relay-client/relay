@@ -12,7 +12,6 @@ import (
 )
 
 func TestParseCLIArgsLeadingWorkspaceAndFlags(t *testing.T) {
-	// The leading positional must not swallow the flags that follow it.
 	opts, err := parseCLIArgs([]string{"./ws", "--env", "Local", "--reporter", "json", "--var", "a=1", "--var", "b=2"}, &bytes.Buffer{}, &bytes.Buffer{})
 	if err != nil {
 		t.Fatalf("parse: %v", err)
@@ -91,7 +90,6 @@ func TestResolveCLIValuesPrecedence(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve: %v", err)
 	}
-	// collection < environment < --var
 	if values["base"] != "collection" {
 		t.Errorf("base = %q", values["base"])
 	}
@@ -128,7 +126,6 @@ func TestBuildHTTPRequestResolvesVariablesAndScripts(t *testing.T) {
 	if built.Method != "GET" {
 		t.Fatalf("method = %q", built.Method)
 	}
-	// JS scripts present → JS engine wins over the legacy field.
 	if built.ScriptEngine != "js" || built.TestScript == "" {
 		t.Fatalf("expected JS engine with the JS test script, got engine=%q test=%q", built.ScriptEngine, built.TestScript)
 	}
@@ -144,8 +141,6 @@ func TestBuildHTTPRequestTimeoutOverride(t *testing.T) {
 	}
 }
 
-// writeYAMLWorkspace lays down a minimal but real YAML workspace on disk so the
-// end-to-end test exercises the same loader the desktop app uses.
 func writeYAMLWorkspace(t *testing.T, baseURL string) string {
 	t.Helper()
 	root := t.TempDir()
@@ -227,8 +222,6 @@ func writeYAMLWorkspace(t *testing.T, baseURL string) string {
 		"  settings: {}",
 		"",
 	}, "\n"))
-	// The second request asserts on a variable the first request set, proving
-	// variable chaining works across a run.
 	write(filepath.Join(reqDir, "GET-2-chain.yml"), strings.Join([]string{
 		"version: 1",
 		"request:",

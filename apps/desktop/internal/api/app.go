@@ -65,20 +65,14 @@ func (a *App) Startup(ctx context.Context) {
 	a.ctx = ctx
 }
 
-// DiagnosticsReport is what the Support screen puts on the clipboard.
 func (a *App) DiagnosticsReport() string {
 	return DiagnosticsReport()
 }
 
-// LogFilePath lets the interface say where the log is even when the folder
-// cannot be opened for the user.
 func (a *App) LogFilePath() string {
 	return LogFilePath()
 }
 
-// OpenLogFolder reveals the log directory in the OS file manager. It creates
-// the directory first: a user asked to send the log should not be told the
-// folder does not exist.
 func (a *App) OpenLogFolder() string {
 	dir := logDir()
 	if err := os.MkdirAll(dir, 0700); err != nil {
@@ -348,10 +342,6 @@ func (a *App) RefreshOAuth2Token(cfg model.AuthConfig) model.OAuth2TokenResponse
 	return auth.RefreshToken(cfg)
 }
 
-// ListCookies returns the cookie jar entries scoped to a workspace. An empty
-// workspaceID refers to the default jar (used by callers without workspace
-// context). The frontend should always pass the active workspace ID so the
-// UI cookie inspector matches what the backend actually attaches to requests.
 func (a *App) ListCookies(workspaceID string) []model.Cookie {
 	return a.cookieJars.jar(workspaceID).ListCookies()
 }
@@ -394,11 +384,6 @@ func (a *App) CheckForUpdate() model.UpdateCheckResult {
 	return model.UpdateCheckResult{Info: info}
 }
 
-// ApplyUpdate ignores the UpdateInfo received from the frontend except for the
-// version (used to confirm the user is opting into the same release they were
-// shown). The DownloadURL, SHA256 and SignatureURL are re-fetched from the
-// trusted manifest on the Go side so a JS-bridge caller (or an XSS in the
-// WebView) can't redirect the updater at an attacker-controlled URL.
 func (a *App) ApplyUpdate(info model.UpdateInfo) string {
 	if isDevBuild() {
 		return "Updates are disabled in development builds. Install a release build to receive updates."
@@ -409,10 +394,6 @@ func (a *App) ApplyUpdate(info model.UpdateInfo) string {
 	if err != nil {
 		return friendlyUpdateError(err, "install the update")
 	}
-	// If the caller asked to install a specific version, only proceed when
-	// the trusted manifest still advertises that version (or newer). This
-	// protects against a race where the manifest changed between Check and
-	// Apply, but does not let the caller force a stale/older binary.
 	if requested := strings.TrimSpace(strings.TrimPrefix(info.Version, "v")); requested != "" {
 		if requested != trusted.Version && !semverIsNewer(trusted.Version, requested) {
 			return friendlyUpdateError(errUpdateVersionRollback, "install the update")
@@ -449,8 +430,6 @@ func (a *App) SendRequest(req model.HttpRequest) model.HttpResponse {
 	return sendRequest(ctx, req, a.state, a.cookieJars, a.preflightCache)
 }
 
-// DownloadResult carries the response (for normal display/history) plus the path the body was
-// written to, if the user picked one.
 type DownloadResult struct {
 	Response  model.HttpResponse `json:"response"`
 	SavedPath string             `json:"savedPath"`
@@ -499,9 +478,6 @@ func newResponseDownloadSink(path string, onCommit func()) (*responseBodySink, e
 	}, nil
 }
 
-// SendRequestToFile streams the full raw response into a temporary file while keeping only the
-// bounded viewer preview in resp.Body. Once the network request and scripts have finished, it asks
-// the user where to save and atomically copies the staged bytes into that destination.
 func (a *App) SendRequestToFile(req model.HttpRequest, defaultName string) DownloadResult {
 	baseCtx := context.Background()
 	if a.ctx != nil {
@@ -594,8 +570,6 @@ func (a *App) SendRequestToFile(req model.HttpRequest, defaultName string) Downl
 	return DownloadResult{Response: resp, SavedPath: path}
 }
 
-// downloadFilename picks a save name: the server's Content-Disposition filename if present,
-// otherwise the caller's default with an extension inferred from Content-Type when it lacks one.
 func downloadFilename(defaultName string, headers []model.KeyValue) string {
 	for _, h := range headers {
 		if !strings.EqualFold(h.Key, "Content-Disposition") {

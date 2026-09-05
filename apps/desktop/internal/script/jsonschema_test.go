@@ -94,8 +94,6 @@ func TestSchemaHonoursOpenAPINullable(t *testing.T) {
 }
 
 func TestSchemaSaysWhenItStoppedListingFailures(t *testing.T) {
-	// 30 items that are all the wrong type: the report is capped, and has to
-	// say so rather than looking like the whole story.
 	items := make([]string, 0, 30)
 	for i := 0; i < 30; i++ {
 		items = append(items, `1`)

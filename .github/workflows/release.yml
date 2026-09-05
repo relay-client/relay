@@ -220,13 +220,6 @@ jobs:
           ARCH=x86_64 ./appimagetool --appimage-extract-and-run \
             AppDir "release/relay-${VERSION}-linux-amd64.AppImage"
 
-      # Nothing above this point ever runs what it just built. A binary that
-      # compiles but cannot start — a broken embed, an unresolvable shared
-      # library, a version the linker never stamped — would otherwise reach
-      # users unnoticed. `--version` is answered before the window opens, so
-      # it works headless, and comparing it against the tag also proves the
-      # -ldflags stamp landed: auto-update compares versions, so a build that
-      # still calls itself "dev" would never offer an update again.
       - name: Smoke test the macOS binary
         if: runner.os == 'macOS'
         shell: bash
@@ -281,11 +274,6 @@ jobs:
             *) echo "::error::AppImage reports '$packaged', expected version $VERSION"; exit 1 ;;
           esac
 
-      # These exist only to hand the built files to the publish job below,
-      # which uploads them to the GitHub release — where they live for good
-      # and cost nothing against the Actions storage quota. Keeping a 90-day
-      # copy here duplicated every release at ~100 MB a run and was what
-      # filled the quota.
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:

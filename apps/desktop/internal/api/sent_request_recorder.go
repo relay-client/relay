@@ -8,11 +8,6 @@ import (
 	"github.com/relay-client/relay/apps/desktop/internal/model"
 )
 
-// sentRequestRecorder captures each request as the transport is about to write
-// it. That is the only place where the full picture exists: cookies from the
-// jar, the Authorization header a digest retry adds, and the rewritten method
-// and headers of a redirect hop are all applied after the caller's *Request is
-// built, so reading the caller's copy would show something the server never saw.
 type sentRequestRecorder struct {
 	base http.RoundTripper
 
@@ -64,10 +59,6 @@ func (s *sentRequestRecorder) snapshot() []model.SentRequest {
 	return out
 }
 
-// redactedHeaderRows flattens headers into stable, sorted rows with secret
-// environment values masked — the panel is something users screenshot and
-// paste into issues, and an Authorization header built from a secret variable
-// should not leak that way.
 func redactedHeaderRows(headers http.Header, secrets []string) []model.KeyValue {
 	rows := make([]model.KeyValue, 0, len(headers))
 	for key, values := range headers {

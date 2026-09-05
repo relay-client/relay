@@ -8,18 +8,9 @@ import (
 	"sync"
 )
 
-// Relay already logs the things worth knowing after something goes wrong —
-// a credential store that could not be reached, a key that fell back to the
-// recovery file. In a packaged app all of it went to a stdout nobody can see,
-// so every report started from "it does not work" with nothing attached.
-//
-// The log is deliberately small and boring: one current file, one previous,
-// capped, in the same app-data directory as the rest of Relay's state. It
-// records what Relay did, never what the user's requests contain.
-
 const (
 	logFileName      = "relay.log"
-	logMaxBytes      = 1 << 20 // 1 MiB
+	logMaxBytes      = 1 << 20
 	logRotatedSuffix = ".1"
 )
 
@@ -27,15 +18,10 @@ func logDir() string {
 	return filepath.Join(requestStoreDir(), "logs")
 }
 
-// LogFilePath is where the current log is written, whether or not it exists
-// yet.
 func LogFilePath() string {
 	return filepath.Join(logDir(), logFileName)
 }
 
-// rotatingLogWriter keeps the log from growing without bound. It rotates on
-// the write that would cross the cap, so a single entry is never split across
-// two files.
 type rotatingLogWriter struct {
 	mu       sync.Mutex
 	path     string
@@ -74,8 +60,6 @@ func (w *rotatingLogWriter) rotate() error {
 		_ = w.file.Close()
 		w.file = nil
 	}
-	// A failed rename must not leave Relay without a log; reopening the same
-	// path afterwards recovers either way.
 	_ = os.Remove(w.path + logRotatedSuffix)
 	_ = os.Rename(w.path, w.path+logRotatedSuffix)
 	return w.open()
@@ -115,10 +99,6 @@ var (
 	activeLogWriterMu sync.Mutex
 )
 
-// InstallLogFile points the standard logger at the log file, keeping stderr
-// as well so `wails dev` and `relay run` still print. It returns the path so
-// the caller can report where the log went; a failure to open it is not worth
-// refusing to start over, and is reported through the log itself.
 func InstallLogFile() (string, error) {
 	path := LogFilePath()
 	writer, err := newRotatingLogWriter(path, logMaxBytes)
@@ -140,8 +120,6 @@ func InstallLogFile() (string, error) {
 	return path, nil
 }
 
-// CloseLogFile releases the log file. Called on shutdown so Windows does not
-// hold the handle open against the next launch.
 func CloseLogFile() {
 	activeLogWriterMu.Lock()
 	writer := activeLogWriter

@@ -377,7 +377,6 @@
   onfocusout={onFocusOut}
 >
   {#if backdropHtml}
-    <!-- Highlighted markup only; every interpolated value goes through escapeHtml(). -->
     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     <div class="var-backdrop" bind:this={backdropEl} aria-hidden="true">{@html backdropHtml}</div>
   {/if}

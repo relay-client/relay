@@ -1,5 +1,3 @@
-// The bridge into Go. Types and zero values live in ./wire, which is pure data
-// and stays intact when a test mocks this module.
 import type {
   AppInfo, AuthConfig, CollectionTextFile, CollectionTextFilesResult, CookieJarEntry, CookieJarResult,
   DefaultWorkspaceLocationResult, DownloadResult, GitAuthConfigResult, GitBranchListResult,
@@ -24,8 +22,6 @@ export async function getAppInfo(): Promise<AppInfo> {
   return app.AppInfo();
 }
 
-// Support surfaces. Each degrades to something usable in the browser preview,
-// where there is no Go side to ask.
 export async function diagnosticsReport(): Promise<string> {
   const app = window.go?.api?.App;
   if (!app?.DiagnosticsReport) return 'Relay (browser preview)\nDiagnostics are only available in the desktop app.\n';
@@ -52,8 +48,6 @@ export async function sendHttpRequest(req: HttpRequest): Promise<HttpResponse> {
   return app.SendRequest(req);
 }
 
-// Send the request and let the backend write the raw response body to a user-chosen file.
-// Binary-safe: the bytes are written in Go, never round-tripped through the JS string body.
 export async function sendHttpRequestToFile(req: HttpRequest, defaultName: string): Promise<DownloadResult> {
   const app = window.go?.api?.App;
   if (!app?.SendRequestToFile) {
@@ -481,8 +475,6 @@ export async function socketIOEmit(sessionId: string, msg: SocketIOEmitMessage):
   return (await window.go?.api?.App?.SocketIOEmit?.(sessionId, msg)) ?? { ok: false, error: 'Wails bridge not available' };
 }
 
-// Stored responses for request history. The body is written to its own file
-// rather than into the request store; see internal/api/history_store.go.
 export async function saveHistoryResponse(id: string, payload: string): Promise<HistoryResponseResult> {
   return (await window.go?.api?.App?.SaveHistoryResponse?.(id, payload)) ?? { stored: false, truncated: false };
 }

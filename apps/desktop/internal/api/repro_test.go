@@ -46,8 +46,6 @@ func TestReproPostmanImportWithUserState(t *testing.T) {
 	postmanFile := os.Getenv("RELAY_REPRO_POSTMAN")
 	dstRoot := filepath.Join(tmp, "ws")
 
-	// Local-only reproduction harness: it depends on a developer's workspace
-	// state and a Postman export that don't exist in CI. Skip when absent.
 	if srcRoot == "" || postmanFile == "" {
 		t.Skip("skipping repro: set RELAY_REPRO_WORKSPACES and RELAY_REPRO_POSTMAN to run this test")
 	}

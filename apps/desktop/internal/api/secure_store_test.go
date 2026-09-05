@@ -51,7 +51,6 @@ func TestRequestStorePayloadTamperDetected(t *testing.T) {
 	if err != nil {
 		t.Fatalf("encrypt: %v", err)
 	}
-	// Flip a byte deep inside the JSON envelope's ciphertext field; GCM must reject it.
 	tampered := bytes.Replace(enc, []byte(`"ciphertext": "`), []byte(`"ciphertext": "A`), 1)
 	if _, err := decryptRequestStorePayload(tampered); err == nil {
 		t.Fatal("expected decrypt of tampered payload to fail authentication")
@@ -100,9 +99,6 @@ func TestDecryptDoesNotCreateReplacementKeyWhenExistingKeyIsMissing(t *testing.T
 	}
 }
 
-// Refactor #1: the key must be memoized so encrypt/decrypt don't spawn a keychain
-// subprocess every call. After the first load the on-disk key can disappear and
-// the cached key is still returned (rather than generating a fresh random one).
 func TestCachedRequestStoreKeyMemoizes(t *testing.T) {
 	tmp := t.TempDir()
 	useTempConfigDir(t, tmp)

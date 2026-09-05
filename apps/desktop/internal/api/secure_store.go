@@ -52,11 +52,6 @@ var (
 	}
 )
 
-// cachedRequestStoreKey memoizes the request-store key for the process lifetime.
-// Loading a key can spawn an OS credential-store subprocess, so without this
-// cache the frequent autosave path would fork a process on every write. Decrypt
-// uses cachedExistingRequestStoreKey so an existing encrypted store never causes
-// a fresh random key to be created just because the old key cannot be found.
 func cachedRequestStoreKey() ([]byte, error) {
 	return cachedRequestStoreKeyFromStore(true)
 }
@@ -208,12 +203,6 @@ func decryptRequestStorePayload(data []byte) ([]byte, error) {
 	if err == nil {
 		return plaintext, nil
 	}
-	// On any decrypt failure (authentication mismatch or otherwise), try the
-	// file-based recovery key before giving up. The previous implementation
-	// matched the stdlib error string ("cipher: message authentication
-	// failed") which is not a stable API — when Go reworded it the fallback
-	// would silently stop firing, and users whose keychain entry was lost
-	// would see "store corrupted" instead of being recovered.
 	if plaintext, fallbackErr := decryptRequestStorePayloadWithFileKey(nonce, ciphertext); fallbackErr == nil {
 		return plaintext, nil
 	}
@@ -382,16 +371,6 @@ func loadRequestStoreKeyMaterialWithSource() (material string, fromFileFallback 
 	return m, ferr == nil, ferr
 }
 
-// saveRequestStoreKeyMaterial writes the encryption-key material to the OS
-// credential store when available, falling back to a plaintext file.
-//
-// The file-based key is intentionally kept as a recovery copy even after a
-// successful credential-store write. If the user later clears the credential
-// store (logging out, wiping keychain, re-installing the OS), removing the
-// file backup would render every previously-encrypted secret unreadable —
-// silent data loss. The file is mode 0600 in the user's app-data dir, which
-// matches the threat model we already accept when no credential store is
-// reachable at all.
 func saveRequestStoreKeyMaterial(material string) error {
 	credStoreOK := false
 	if !requestStoreKeychainDisabled() {
@@ -416,12 +395,8 @@ func saveRequestStoreKeyMaterial(material string) error {
 			}
 		}
 	}
-	// Always keep a file-based copy as a recovery backup. Loss of the
-	// credential store entry must not destroy access to existing data.
 	if err := saveRequestStoreFileKeyMaterial(material); err != nil {
 		if credStoreOK {
-			// Credential store worked, file backup didn't. Log and keep
-			// going — we still have a working copy of the key.
 			log.Printf("relay: could not write recovery key file (%v); credential store entry will be the only copy", err)
 			return nil
 		}
@@ -580,8 +555,6 @@ func saveRequestStoreDPAPIMaterial(material string) error {
 	if err := os.WriteFile(path, []byte(encrypted), 0600); err != nil {
 		return err
 	}
-	// Intentionally do not delete the plaintext recovery key — see comment
-	// on saveRequestStoreKeyMaterial.
 	return syncDir(requestStoreDir())
 }
 

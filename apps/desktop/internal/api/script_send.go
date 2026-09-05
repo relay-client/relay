@@ -20,12 +20,6 @@ const (
 	scriptSendMaxHeaderSize = 64 * 1024
 )
 
-// newScriptSender wires pm.sendRequest to the network. transportCfg is the
-// request the script is running for: pm.sendRequest has to reach the same
-// network the main request does, so the proxy, the client certificate and the
-// TLS settings come from it rather than from a blank request. A script that
-// logs in through pm.sendRequest behind a corporate proxy, or against an mTLS
-// endpoint, could not reach it at all before.
 func newScriptSender(parent context.Context, allow bool, transportCfg model.HttpRequest) script.SendFunc {
 	if !allow {
 		return nil
@@ -106,9 +100,6 @@ func performScriptSend(parent context.Context, req script.SendRequest, transport
 
 	raw, truncated, readErr := readResponseBodyWithLimit(resp.Body, scriptSendMaxBodyBytes)
 	if readErr != nil {
-		// A partial body is still a failed read. Returning it as if it were the
-		// whole response let a script assert against a truncated payload and
-		// pass.
 		return script.SendResponse{Error: "pm.sendRequest: failed to read response: " + readErr.Error()}
 	}
 	elapsed := time.Since(start)

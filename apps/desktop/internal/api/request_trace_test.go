@@ -56,8 +56,6 @@ func TestSendRequestRecordsWhatWentOnTheWire(t *testing.T) {
 	if got := headerValue(sent.Headers, "X-Trace"); got != "on" {
 		t.Fatalf("expected the user header to be recorded, got %q", got)
 	}
-	// The User-Agent is added by Relay, not the caller: proof the capture
-	// happens at the transport rather than on the request the caller built.
 	if got := headerValue(sent.Headers, "User-Agent"); !strings.HasPrefix(got, "Relay/") {
 		t.Fatalf("expected Relay's own User-Agent to be recorded, got %q", got)
 	}
@@ -110,8 +108,6 @@ func TestSendRequestRecordsEveryRedirectHop(t *testing.T) {
 	}
 }
 
-// The panel is something users screenshot, so a header built from a secret
-// environment value must not carry that value into the trace.
 func TestSentRequestsRedactSecretValues(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -135,8 +131,6 @@ func TestSentRequestsRedactSecretValues(t *testing.T) {
 	}
 }
 
-// A request that fails is exactly when the timeline matters, so it has to be
-// attached to the error response too.
 func TestFailedRequestStillCarriesATimeline(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {}))
 	url := server.URL

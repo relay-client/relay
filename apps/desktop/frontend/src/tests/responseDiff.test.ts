@@ -57,8 +57,6 @@ describe('diffResponseBodies', () => {
     expect(diffResponseBodies('a\r\nb', 'a\nb').identical).toBe(true);
   });
 
-  // Trimming the shared head and tail is what keeps a one-field change in a
-  // large payload from building a huge table.
   it('stays exact and cheap when one field changes in a large body', () => {
     const lines = Array.from({ length: 20_000 }, (_, index) => `  "field${index}": ${index},`);
     const previous = `{\n${lines.join('\n')}\n}`;

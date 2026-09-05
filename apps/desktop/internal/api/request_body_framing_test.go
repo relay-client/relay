@@ -14,7 +14,6 @@ import (
 	"github.com/relay-client/relay/apps/desktop/internal/model"
 )
 
-// framing is what a server can tell about how the body arrived.
 type framing struct {
 	contentLength    string
 	transferEncoding []string
@@ -62,9 +61,6 @@ func writeFixture(t *testing.T, name, content string) string {
 	return path
 }
 
-// TestBinaryBodyDeclaresContentLength is the S3-presigned-PUT case. net/http
-// cannot measure an *os.File, so the upload went out chunked and every service
-// that requires a declared length rejected it.
 func TestBinaryBodyDeclaresContentLength(t *testing.T) {
 	payload := "hello world payload"
 	path := writeFixture(t, "payload.bin", payload)
@@ -86,8 +82,6 @@ func TestBinaryBodyDeclaresContentLength(t *testing.T) {
 	}
 }
 
-// TestBinaryBodySurvivesRedirect covers the other half of the same gap: with no
-// GetBody, net/http has nothing to replay through a 307 and abandons the send.
 func TestBinaryBodySurvivesRedirect(t *testing.T) {
 	payload := "replay me"
 	path := writeFixture(t, "payload.bin", payload)
@@ -127,8 +121,6 @@ func TestBinaryBodySurvivesRedirect(t *testing.T) {
 	}
 }
 
-// TestMultipartBodyDeclaresContentLength pins the computed length against what
-// a server actually counts.
 func TestMultipartBodyDeclaresContentLength(t *testing.T) {
 	path := writeFixture(t, "avatar.png", "not really a png")
 
@@ -151,9 +143,6 @@ func TestMultipartBodyDeclaresContentLength(t *testing.T) {
 	}
 }
 
-// TestMultipartBodyLengthMatchesStream is the guard on multipartBodyLength's
-// assumption about mime/multipart's framing: it measures a real body rather
-// than trusting the arithmetic.
 func TestMultipartBodyLengthMatchesStream(t *testing.T) {
 	dir := t.TempDir()
 	file := filepath.Join(dir, "data.bin")
@@ -208,8 +197,6 @@ func TestMultipartBodyLengthMatchesStream(t *testing.T) {
 	}
 }
 
-// TestMultipartLengthUnknownForMissingFile keeps a bad path from declaring a
-// wrong length: the send still fails, but it must not claim a size first.
 func TestMultipartLengthUnknownForMissingFile(t *testing.T) {
 	rows := []model.KeyValue{{Key: "f", Value: filepath.Join(t.TempDir(), "gone.bin"), Enabled: true, IsFile: true}}
 	if _, ok := multipartBodyLength(rows, "boundary"); ok {
@@ -217,8 +204,6 @@ func TestMultipartLengthUnknownForMissingFile(t *testing.T) {
 	}
 }
 
-// TestMultipartPartNameCannotInjectHeaders covers the path that used to fall
-// through to the stdlib helpers, which escape quotes but leave CR and LF alone.
 func TestMultipartPartNameCannotInjectHeaders(t *testing.T) {
 	body, err := buildMultipartRequestBody([]model.KeyValue{
 		{Key: "a\r\nX-Injected: yes", Value: "v", Enabled: true},
@@ -238,8 +223,6 @@ func TestMultipartPartNameCannotInjectHeaders(t *testing.T) {
 	}
 }
 
-// TestEmptyFormBodyOnGetSendsNothing matches the raw body types: an empty
-// payload on a method that conventionally carries none is no body at all.
 func TestEmptyFormBodyOnGetSendsNothing(t *testing.T) {
 	for _, bodyType := range []string{"urlencoded", "form"} {
 		t.Run(bodyType, func(t *testing.T) {
@@ -258,8 +241,6 @@ func TestEmptyFormBodyOnGetSendsNothing(t *testing.T) {
 	}
 }
 
-// TestPostWithEmptyFormStillSendsBody is the other side of that rule: POST
-// keeps framing an empty payload, which is what it always did.
 func TestPostWithEmptyFormStillSendsBody(t *testing.T) {
 	seen := captureFraming(t, model.HttpRequest{
 		Method:   http.MethodPost,
@@ -270,9 +251,6 @@ func TestPostWithEmptyFormStillSendsBody(t *testing.T) {
 	}
 }
 
-// TestAuthTabOverridingHeaderIsReported: auth is applied after the header rows,
-// so a hand-written Authorization is replaced. That precedence stays, but it
-// must say so — otherwise the user is looking at a header that never went out.
 func TestAuthTabOverridingHeaderIsReported(t *testing.T) {
 	cases := []struct {
 		name   string
@@ -322,7 +300,6 @@ func TestAuthTabOverridingHeaderIsReported(t *testing.T) {
 	}
 }
 
-// TestUnrelatedHeadersAreNotReported keeps the notice from crying wolf.
 func TestUnrelatedHeadersAreNotReported(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -359,10 +336,6 @@ func warningMentions(warnings []string, needle string) bool {
 	return false
 }
 
-// TestAwsHostIsNotReportedAsOverridden: a Host row travels through
-// Request.Host, never the header map, while SigV4 writes Host into the map
-// because it has to sign it. Comparing the two naively reads as an override
-// that never happened.
 func TestAwsHostIsNotReportedAsOverridden(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

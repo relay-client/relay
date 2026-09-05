@@ -21,8 +21,6 @@ func TestRotatingLogWriterAppendsAcrossReopens(t *testing.T) {
 		t.Fatalf("close: %v", err)
 	}
 
-	// A restart must not truncate what the previous run recorded — the
-	// interesting entry is usually the one just before the app was reopened.
 	second, err := newRotatingLogWriter(path, logMaxBytes)
 	if err != nil {
 		t.Fatalf("reopen log: %v", err)
@@ -68,7 +66,6 @@ func TestRotatingLogWriterKeepsOneGenerationAndStaysUnderTheCap(t *testing.T) {
 		t.Fatal("the rotated log should hold what was written before the roll")
 	}
 
-	// Exactly two files, so the log cannot creep up on a user's disk.
 	entries, err := os.ReadDir(filepath.Dir(path))
 	if err != nil {
 		t.Fatalf("read log dir: %v", err)
@@ -83,8 +80,6 @@ func TestRotatingLogWriterKeepsOneGenerationAndStaysUnderTheCap(t *testing.T) {
 }
 
 func TestRotatingLogWriterNeverSplitsAnEntry(t *testing.T) {
-	// An entry cut in half across a rotation is the one that is hardest to
-	// read and most likely to be the one that matters.
 	path := filepath.Join(t.TempDir(), "relay.log")
 	writer, err := newRotatingLogWriter(path, 32)
 	if err != nil {

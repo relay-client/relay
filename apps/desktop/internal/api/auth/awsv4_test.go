@@ -114,13 +114,9 @@ func TestSignWithSessionToken(t *testing.T) {
 	}
 }
 
-// TestSignSessionTokenChangesSignature guards the real failure mode: sending the
-// token header but leaving it out of the signature. AWS rejects that, and the
-// only way to catch it is to check the signature actually differs.
 func TestSignSessionTokenChangesSignature(t *testing.T) {
 	sigFor := func(cfg model.AuthConfig) string {
 		req, _ := http.NewRequest(http.MethodGet, "https://s3.us-east-1.amazonaws.com/bucket/key", nil)
-		// Pin the clock-derived headers so only the token differs between runs.
 		if err := Sign(req, cfg); err != nil {
 			t.Fatalf("Sign: %v", err)
 		}
@@ -140,8 +136,6 @@ func TestSignSessionTokenChangesSignature(t *testing.T) {
 	}
 }
 
-// TestSignSessionTokenCanonicalRequest recomputes the signature the way AWS
-// would, so the canonical request (not just the header list) is verified.
 func TestSignSessionTokenCanonicalRequest(t *testing.T) {
 	const token = "SESSIONTOKEN"
 	req, _ := http.NewRequest(http.MethodGet, "https://s3.us-east-1.amazonaws.com/bucket/key", nil)
@@ -179,9 +173,6 @@ func TestSignSessionTokenCanonicalRequest(t *testing.T) {
 	}
 }
 
-// TestSignIncludesAmzHeaders is the DynamoDB/Lambda case: AWS requires every
-// x-amz-* header to be signed, so a fixed SignedHeaders list made those
-// services reject every request with SignatureDoesNotMatch.
 func TestSignIncludesAmzHeaders(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodPost, "https://dynamodb.us-east-1.amazonaws.com/", strings.NewReader(`{}`))
 	req.Header.Set("X-Amz-Target", "DynamoDB_20120810.ListTables")
@@ -197,9 +188,6 @@ func TestSignIncludesAmzHeaders(t *testing.T) {
 	}
 }
 
-// TestSignUsesOverriddenHost pins what net/http actually puts on the wire.
-// Request.Host wins over URL.Host, so signing URL.Host signed a name the
-// server never sees.
 func TestSignUsesOverriddenHost(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "https://10.0.0.5/bucket/key", nil)
 	req.Host = "s3.us-east-1.amazonaws.com"
@@ -229,9 +217,6 @@ func TestSignUsesOverriddenHost(t *testing.T) {
 	}
 }
 
-// TestSignSmallStreamingBodyIsStillHashed pins what API Gateway, Lambda and
-// DynamoDB need: a body that cannot be replayed is still read back and signed,
-// because those services reject UNSIGNED-PAYLOAD.
 func TestSignSmallStreamingBodyIsStillHashed(t *testing.T) {
 	pr, pw := io.Pipe()
 	go func() {
@@ -259,9 +244,6 @@ func TestSignSmallStreamingBodyIsStillHashed(t *testing.T) {
 	}
 }
 
-// TestSignLargeStreamingBodyStaysUnbuffered covers the upload path: past the
-// threshold the payload is declared unsigned rather than read whole into
-// memory, and every byte must still reach the server.
 func TestSignLargeStreamingBodyStaysUnbuffered(t *testing.T) {
 	previous := maxSignedPayloadBytes
 	maxSignedPayloadBytes = 16
@@ -293,8 +275,6 @@ func TestSignLargeStreamingBodyStaysUnbuffered(t *testing.T) {
 	}
 }
 
-// TestSignHashesReplayableBody guards the other half: an in-memory body is
-// still hashed, so services that reject UNSIGNED-PAYLOAD keep working.
 func TestSignHashesReplayableBody(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodPost, "https://execute-api.us-east-1.amazonaws.com/prod", strings.NewReader(`{"a":1}`))
 	cfg := model.AuthConfig{AWSAccessKey: "AKID", AWSSecretKey: "SECRET", AWSRegion: "us-east-1", AWSService: "execute-api"}
@@ -311,16 +291,12 @@ func TestSignHashesReplayableBody(t *testing.T) {
 	}
 }
 
-// TestCanonicalHeaderValueCollapsesWhitespace pins the canonicalisation AWS
-// specifies: outer whitespace trimmed, internal runs collapsed to one space.
 func TestCanonicalHeaderValueCollapsesWhitespace(t *testing.T) {
 	if got := canonicalHeaderValue("  a   b  "); got != "a b" {
 		t.Errorf("canonicalHeaderValue = %q, want %q", got, "a b")
 	}
 }
 
-// TestSignJoinsRepeatedAmzHeaders covers a header sent twice: AWS expects one
-// canonical line with the values comma-joined, not two lines.
 func TestSignJoinsRepeatedAmzHeaders(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "https://s3.us-east-1.amazonaws.com/bucket", nil)
 	req.Header.Add("X-Amz-Meta-Tag", "one")
@@ -335,8 +311,6 @@ func TestSignJoinsRepeatedAmzHeaders(t *testing.T) {
 	}
 }
 
-// TestCanonicalURIForNonS3DoubleEncodes covers the rule Relay was missing:
-// every service but S3 normalises the path and encodes each segment twice.
 func TestCanonicalURIForNonS3DoubleEncodes(t *testing.T) {
 	cases := []struct {
 		name    string
@@ -348,8 +322,6 @@ func TestCanonicalURIForNonS3DoubleEncodes(t *testing.T) {
 		{"no path at all", "execute-api", "https://api.test", "/"},
 		{"plain segments", "execute-api", "https://api.test/v1/items", "/v1/items"},
 		{
-			// The ordinary Lambda invoke URL: the ARN's colons need escaping,
-			// and signing them once was a SignatureDoesNotMatch.
 			name:    "lambda arn in the path",
 			service: "lambda",
 			raw:     "https://lambda.test/2015-03-31/functions/arn:aws:lambda:us-east-1:1:function:fn/invocations",
@@ -361,7 +333,6 @@ func TestCanonicalURIForNonS3DoubleEncodes(t *testing.T) {
 		{"duplicate slashes collapse", "execute-api", "https://api.test/a//b", "/a/b"},
 		{"a trailing slash is kept", "execute-api", "https://api.test/a/b/", "/a/b/"},
 		{"climbing past the root stops there", "execute-api", "https://api.test/../..", "/"},
-		// S3 is the exception in both directions: encoded once, not normalised.
 		{"s3 encodes once", "s3", "https://bucket.test/my%20key", "/my%20key"},
 		{"s3 keeps relative components", "s3", "https://bucket.test/a/./b", "/a/./b"},
 		{"s3 is matched case-insensitively", "S3", "https://bucket.test/my%20key", "/my%20key"},

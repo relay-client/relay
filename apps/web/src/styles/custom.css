@@ -1,5 +1,4 @@
 :root {
-  /* Relay brand */
   --relay-brand: #5865f2;
   --relay-brand-strong: #4954e8;
   --relay-violet: #6d5cf5;
@@ -9,10 +8,6 @@
   --sl-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-/* Scoped to the dark theme on purpose. Starlight keeps its palette in
-   @layer starlight.base, and an unlayered rule beats a layered one regardless
-   of specificity — so declaring this ramp on a bare :root would apply it to
-   both themes and leave the theme toggle with nothing to change. */
 :root[data-theme='dark'] {
   --sl-color-accent-low: #20223f;
   --sl-color-accent: #5865f2;
@@ -34,7 +29,6 @@
   --sl-color-accent-high: #23275e;
 }
 
-/* ---- Header polish ---- */
 header.header {
   border-bottom: 1px solid var(--sl-color-hairline, var(--sl-color-gray-6));
   backdrop-filter: saturate(1.2) blur(8px);
@@ -49,11 +43,6 @@ header.header {
   border-radius: 9px;
 }
 
-/* =====================================================================
-   Landing hero (custom, dark gradient panel)
-   ===================================================================== */
-/* Splash landing builds its own H1 inside .relay-hero, so hide Starlight's
-   auto page-title panel on that page only (other pages keep their H1). */
 :root:has(.relay-hero) .content-panel:has(h1#_top) {
   display: none;
 }
@@ -72,7 +61,6 @@ header.header {
     linear-gradient(155deg, #181a30 0%, #101120 58%, #0d0e1a 100%);
   box-shadow: 0 40px 90px -40px rgba(40, 40, 100, 0.65);
 }
-/* subtle top sheen */
 .relay-hero::before {
   content: "";
   position: absolute;
@@ -203,9 +191,6 @@ header.header {
   .relay-hero-visual { margin-top: 0.5rem; }
 }
 
-/* =====================================================================
-   Feature cards on the landing
-   ===================================================================== */
 .sl-markdown-content .card {
   background: color-mix(in srgb, var(--sl-color-bg) 90%, var(--sl-color-accent) 10%);
   border: 1px solid color-mix(in srgb, var(--sl-color-gray-5) 60%, transparent);

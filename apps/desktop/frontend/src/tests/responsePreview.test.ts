@@ -32,8 +32,6 @@ describe('responsePreviewFor', () => {
     expect(preview.mediaType).toBe('image/png');
   });
 
-  // Images must never be rebuilt from the body string: it crosses the bridge as
-  // JSON and any non-UTF-8 byte is replaced along the way.
   it('does not treat an image content-type as previewable without the base64 field', () => {
     const preview = responsePreviewFor(response({ headers: ct('image/png'), body: '��PNG' }));
     expect(preview.kind).toBe('none');
@@ -67,8 +65,6 @@ describe('responsePreviewFor', () => {
     expect(responseHasPreview(null)).toBe(false);
   });
 
-  // The screenshot case: a server labels a binary payload text/html. Rendering
-  // that in a frame would show the same replacement characters as the Body tab.
   it('does not offer an HTML preview when the backend says the body is binary', () => {
     const preview = responsePreviewFor(response({
       headers: ct('text/html'),

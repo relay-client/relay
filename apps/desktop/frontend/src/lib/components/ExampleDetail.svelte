@@ -6,10 +6,6 @@
 
   let { example }: { example: RequestExample } = $props();
 
-  // CodeEditor reports edits only through bind:value, so the body is held in a
-  // local draft and pushed back to the store. Capturing the initial value is
-  // deliberate — the parent keys this component on the example id, so a
-  // different example arrives as a fresh mount with a fresh draft.
   let bodyDraft = $state(untrack(() => example.response.body));
 
   $effect(() => {
@@ -21,8 +17,6 @@
 
   let warning = $derived(vm.exampleWarning(example));
 
-  // Highlighting follows the media type the example recorded — the same value
-  // that decides the body file's extension on disk.
   let bodyLanguage = $derived.by(() => {
     const media = example.response.bodyMediaType;
     if (media.includes('json')) return 'json' as const;

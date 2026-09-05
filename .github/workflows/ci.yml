@@ -6,8 +6,6 @@ on:
   pull_request:
     branches: [main]
 
-# Cancel superseded runs on the same ref so a quick succession of pushes
-# doesn't pile up CI minutes.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -46,13 +44,9 @@ jobs:
       - name: Test frontend
         run: npm --workspace @relay/desktop-frontend run test
 
-      # main.go embeds frontend/dist (//go:embed), so the Go build/tests below
-      # need the frontend built first.
       - name: Build frontend
         run: npm run frontend:build
 
-      # Built with the same base as the deploy so the docs check can catch links
-      # that would 404 under the Pages sub-path.
       - name: Build web docs
         env:
           RELAY_SITE_URL: ${{ vars.RELAY_SITE_URL }}
@@ -79,9 +73,6 @@ jobs:
           fi
           echo "All Go files are formatted."
 
-      # The frontend's wire types are derived from these bindings rather than
-      # restated by hand, so a stale generated file is a stale interface. This
-      # regenerates and fails if the result differs from what is committed.
       - name: Check generated Wails bindings are current
         working-directory: apps/desktop
         run: |
@@ -112,24 +103,17 @@ jobs:
           fi
           echo "No dead code."
 
-  # Relay ships macOS, Windows and Linux builds, and the Go side is where the
-  # platform differences live: it shells out to git, resolves paths, and talks
-  # to each OS credential store. Testing only on Linux left all of that
-  # unexercised until a user hit it.
   go-cross-platform:
     name: Go tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
 
     strategy:
-      # One platform failing should not hide the result on the others.
       fail-fast: false
       matrix:
         include:
           - os: macos-latest
             race: true
           - os: windows-latest
-            # The race detector needs a working cgo toolchain, which the
-            # Windows runner does not reliably provide.
             race: false
 
     steps:
@@ -142,10 +126,6 @@ jobs:
           go-version-file: apps/desktop/go.mod
           cache-dependency-path: apps/desktop/go.sum
 
-      # main.go carries `//go:embed all:frontend/dist`, so the package needs
-      # that directory to exist before it will compile. The real frontend
-      # build is covered by the Linux job; this only has to satisfy the
-      # embed so the Go tests can run.
       - name: Stand in for the embedded frontend
         shell: bash
         run: |
@@ -192,13 +172,10 @@ jobs:
 
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
-        # The report is a debugging aid — an upload failure (e.g. artifact
-        # storage quota exhausted) must not fail an otherwise green job.
         continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: ${{ runner.temp }}/playwright/html-report
-          # Only useful while someone is looking at a failed run.
           retention-days: 3
           if-no-files-found: ignore

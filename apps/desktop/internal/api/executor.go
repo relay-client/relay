@@ -44,10 +44,6 @@ func sendRequest(requestCtx context.Context, req model.HttpRequest, sm *state.Ma
 }
 
 func sendRequestWithBodySink(requestCtx context.Context, req model.HttpRequest, sm *state.Manager, jars *cookieJarRegistry, cache *preflightCache, sinkFactory responseBodySinkFactory) model.HttpResponse {
-	// Resolve the per-workspace jar up front so cookies set by Set-Cookie on
-	// this response (and read by the next request in the same workspace)
-	// stay scoped to req.WorkspaceID. Empty WorkspaceID falls through to
-	// the default jar.
 	var jar http.CookieJar
 	if jars != nil {
 		jar = jars.jar(req.WorkspaceID)
@@ -67,10 +63,6 @@ func sendRequestWithBodySink(requestCtx context.Context, req model.HttpRequest, 
 		mergeScriptParams(ctx, &req)
 		mergeScriptBody(ctx, &req)
 		scope.commit(sm)
-		// Collection variables travel back inside the response, unlike the
-		// environment and session scopes which commit to shared state above. An
-		// early return has to carry them too, or a pre-request script that
-		// records something and then skips the send loses the write.
 		if preResult.Error != "" {
 			resp := model.HttpResponse{
 				Error:            "pre-request script failed: " + preResult.Error,
@@ -139,10 +131,6 @@ func mergeCollectionVariableResults(results ...model.ScriptResult) (map[string]s
 	return updates, keys
 }
 
-// scriptStateScope captures the variable/environment snapshot a request starts
-// from so script-driven changes can be merged back into shared state without a
-// lost-update race against concurrent requests. ctx carries the working copy
-// the script mutates; before* hold the pristine snapshot.
 type scriptStateScope struct {
 	ctx        *script.Context
 	beforeVars map[string]string
@@ -299,9 +287,6 @@ func doRequestWithBodySink(ctx context.Context, req model.HttpRequest, jar http.
 	if err != nil {
 		return earlyError(fmt.Sprintf("failed to build request: %s", err))
 	}
-	// A body net/http cannot measure is framed chunked, which the upload
-	// endpoints reject; one with no GetBody cannot be replayed through a
-	// 307/308. Both are known here for a file and a multipart stream.
 	if body.length >= 0 {
 		httpReq.ContentLength = body.length
 	}
@@ -323,12 +308,6 @@ func doRequestWithBodySink(ctx context.Context, req model.HttpRequest, jar http.
 	}
 	explicitCookieHeader := httpReq.Header.Get("Cookie") != ""
 
-	// Auth is applied after the header rows, so it replaces one the user typed
-	// by hand — Authorization for bearer/basic/OAuth, whatever name an API key
-	// is configured under. That is the precedence Relay has always had and the
-	// safe one to keep, but doing it silently leaves the user looking at a
-	// header in the table that never went out, with the request failing for a
-	// reason nothing on screen explains.
 	beforeAuth := userHeaderSnapshot(req.Headers, httpReq.Header)
 	if err := auth.Apply(httpReq, req.Auth); err != nil {
 		return earlyError("auth error: " + err.Error())
@@ -352,8 +331,6 @@ func doRequestWithBodySink(ctx context.Context, req model.HttpRequest, jar http.
 		requestJar = receiveOnlyCookieJar{jar: jar}
 	}
 	client, sentRequests := buildHTTPClient(req, requestJar, effectiveTimeout, browserCtx)
-	// Attached to every outcome from here on, including failures: a request
-	// that never got a response is exactly when the timeline is worth reading.
 	withTrace := func(resp model.HttpResponse) model.HttpResponse {
 		resp.SentRequests = sentRequests.snapshot()
 		resp.Connection = timings.connectionInfo()
@@ -457,10 +434,6 @@ func doRequestWithBodySink(ctx context.Context, req model.HttpRequest, jar http.
 				}()
 			}
 			var preview bytes.Buffer
-			// Decompress on the way to disk. Go only undoes gzip, and only when
-			// it set Accept-Encoding itself, so a request that asked for an
-			// encoding explicitly used to save the compressed stream under a
-			// name like report.json.
 			decoded := newDecodingReader(httpResp.Body, httpResp)
 			bodySize, truncated, readErr = copyResponseBody(&preview, sink.writer, decoded, maxResponseBodySize)
 			bodyBytes = preview.Bytes()
@@ -473,9 +446,6 @@ func doRequestWithBodySink(ctx context.Context, req model.HttpRequest, jar http.
 	if !streamedToSink {
 		bodyBytes, truncated, readErr = readResponseBodyWithLimit(httpResp.Body, maxResponseBodySize)
 		bodySize = int64(len(bodyBytes))
-		// Decompress gzip/deflate/br/zstd so the viewer shows readable text
-		// instead of raw compressed bytes. A truncated body is a partial
-		// compressed stream that cannot be decoded, so leave it as-is.
 		if readErr == nil && !truncated {
 			if decoded, ok := decodeResponseBody(bodyBytes, httpResp); ok {
 				bodyBytes = decoded
@@ -510,8 +480,6 @@ func doRequestWithBodySink(ctx context.Context, req model.HttpRequest, jar http.
 			total := bodySize / (1024 * 1024)
 			resp.Error = fmt.Sprintf("response truncated — showing %d MB of %d MB", shown, total)
 		} else if httpResp.ContentLength > 0 {
-			// Report the true total when the server declared it; the shown body is
-			// still capped at maxResponseBodySize.
 			resp.Size = httpResp.ContentLength
 			total := httpResp.ContentLength / (1024 * 1024)
 			resp.Error = fmt.Sprintf("response truncated — showing %d MB of %d MB", shown, total)
@@ -576,8 +544,6 @@ func isEventStreamResponse(headers http.Header) bool {
 	return strings.Contains(contentType, "text/event-stream")
 }
 
-// rawBodyContentTypes maps the body types whose payload is a plain string to
-// the Content-Type Relay sends for them.
 var rawBodyContentTypes = map[string]string{
 	"json":       "application/json",
 	"text":       "text/plain",
@@ -587,24 +553,12 @@ var rawBodyContentTypes = map[string]string{
 	"graphql":    "application/json",
 }
 
-// preparedBody is everything the transport needs to frame the request body: the
-// reader, the Content-Type the body type implies, and the length.
-//
-// The length is the reason this is a struct. net/http only works ContentLength
-// out for the in-memory reader types, so a file body and a multipart stream
-// went out with Transfer-Encoding: chunked — which S3 presigned PUT, Azure Blob
-// and a fair number of nginx and API-gateway setups reject outright, some with
-// a bare 411. getBody matters for the same bodies: without it net/http cannot
-// replay the payload through a 307/308 redirect and gives up instead.
 type preparedBody struct {
 	reader      io.Reader
 	contentType string
-	// length is the exact body size, or -1 to leave whatever http.NewRequest
-	// worked out for itself — which is right for the in-memory readers and
-	// means "unknown, frame it chunked" for anything else.
-	length  int64
-	getBody func() (io.ReadCloser, error)
-	cleanup func()
+	length      int64
+	getBody     func() (io.ReadCloser, error)
+	cleanup     func()
 }
 
 func noRequestBody() preparedBody {
@@ -616,13 +570,6 @@ func rawRequestBody(reader io.Reader, contentType string) preparedBody {
 }
 
 func buildRequestBody(req model.HttpRequest) (preparedBody, error) {
-	// A raw body type carries its Content-Type even when the text is empty, for
-	// the methods that carry a body. Choosing "JSON" and sending nothing is a
-	// deliberate choice — the default body type is "none" — and the servers
-	// that validate Content-Type before they look at the body answer 415 when
-	// it goes missing. GET and HEAD are left alone: labelling a request that
-	// has no body and conventionally never does is noise, not correctness.
-	// Either way the reader stays nil, so no empty body is framed on the wire.
 	if contentType, ok := rawBodyContentTypes[req.BodyType]; ok {
 		if req.Body == "" {
 			if methodConventionallyHasNoBody(req.Method) {
@@ -641,8 +588,6 @@ func buildRequestBody(req model.HttpRequest) (preparedBody, error) {
 			}
 		}
 		encoded := form.Encode()
-		// Same reasoning as the raw types above: a GET conventionally carries no
-		// payload, so an empty form is no body rather than an empty one.
 		if encoded == "" && methodConventionallyHasNoBody(req.Method) {
 			return noRequestBody(), nil
 		}
@@ -660,9 +605,6 @@ func buildRequestBody(req model.HttpRequest) (preparedBody, error) {
 	return noRequestBody(), nil
 }
 
-// buildFileRequestBody opens the binary body and reports its exact size. Every
-// handle it opens — the first one and any a redirect replay asks for — is
-// closed by the single cleanup the caller defers.
 func buildFileRequestBody(path string) (preparedBody, error) {
 	fi, err := os.Stat(path)
 	if err != nil {
@@ -693,8 +635,6 @@ func buildFileRequestBody(path string) (preparedBody, error) {
 	if err != nil {
 		return noRequestBody(), fmt.Errorf("failed to read file: %w", err)
 	}
-	// Measure the handle that is actually being sent rather than the earlier
-	// stat, so a file that changed size in between cannot be under-declared.
 	length := fi.Size()
 	if handle, ok := first.(*os.File); ok {
 		if stat, statErr := handle.Stat(); statErr == nil {
@@ -717,8 +657,6 @@ func buildFileRequestBody(path string) (preparedBody, error) {
 	}, nil
 }
 
-// methodConventionallyHasNoBody reports the methods for which an empty body
-// means "no payload at all" rather than "an empty payload of this type".
 func methodConventionallyHasNoBody(method string) bool {
 	switch strings.ToUpper(strings.TrimSpace(method)) {
 	case "", http.MethodGet, http.MethodHead:
@@ -727,7 +665,6 @@ func methodConventionallyHasNoBody(method string) bool {
 	return false
 }
 
-// multipartHasParts reports whether any row would produce a part at all.
 func multipartHasParts(fields []model.KeyValue) bool {
 	for _, kv := range fields {
 		if kv.Enabled && kv.Key != "" {
@@ -737,14 +674,10 @@ func multipartHasParts(fields []model.KeyValue) bool {
 	return false
 }
 
-// buildMultipartRequestBody streams the parts through a pipe, as before, but
-// pins one boundary for the whole send so the body can be measured up front and
-// rebuilt byte-for-byte if a redirect asks for it again.
 func buildMultipartRequestBody(fields []model.KeyValue) (preparedBody, error) {
 	if err := validateMultipartFiles(fields); err != nil {
 		return noRequestBody(), err
 	}
-	// NewWriter picks a random boundary; borrow one and reuse it everywhere.
 	boundary := multipart.NewWriter(io.Discard).Boundary()
 
 	var (
@@ -760,8 +693,6 @@ func buildMultipartRequestBody(fields []model.KeyValue) (preparedBody, error) {
 	}
 	first, _ := open()
 
-	// A file that cannot be measured leaves the length unknown, which frames the
-	// body chunked — the behaviour every multipart send had before.
 	length, ok := multipartBodyLength(fields, boundary)
 	if !ok {
 		length = -1
@@ -806,7 +737,6 @@ func validateMultipartFiles(fields []model.KeyValue) error {
 func streamMultipartBody(fields []model.KeyValue, boundary string) *io.PipeReader {
 	pr, pw := io.Pipe()
 	mw := multipart.NewWriter(pw)
-	// The boundary came from a multipart.Writer, so it is always acceptable here.
 	_ = mw.SetBoundary(boundary)
 	go func() {
 		var err error
@@ -833,16 +763,6 @@ func streamMultipartBody(fields []model.KeyValue, boundary string) *io.PipeReade
 	return pr
 }
 
-// multipartPartHeader is the header block Relay writes for one row.
-//
-// Building it here for every part, rather than falling through to
-// CreateFormFile/WriteField when the row names no Content-Type, does two
-// things. It applies Relay's own escaping everywhere — the stdlib helpers
-// escape quotes but leave a CR or LF in a field name intact, which lets that
-// name inject headers of its own — and it gives multipartBodyLength an exact
-// thing to measure. A file part with no Content-Type of its own still declares
-// application/octet-stream, which is what CreateFormFile wrote before, so
-// nothing changes on the wire for an upload that already worked.
 func multipartPartHeader(kv model.KeyValue) textproto.MIMEHeader {
 	disposition := fmt.Sprintf(`form-data; name="%s"`, escapeMultipartValue(kv.Key))
 	contentType := strings.TrimSpace(kv.ContentType)
@@ -886,16 +806,6 @@ func writeMultipartPart(mw *multipart.Writer, kv model.KeyValue) error {
 	return nil
 }
 
-// multipartBodyLength computes, without writing anything, the exact number of
-// bytes streamMultipartBody will produce for the same rows and boundary. It
-// mirrors mime/multipart's framing — "--boundary\r\n" before the first part,
-// "\r\n--boundary\r\n" before each one after it, a sorted header block ending
-// in a blank line, and "\r\n--boundary--\r\n" to close — which is an assumption
-// about the standard library, so TestMultipartBodyLengthMatchesStream measures
-// a real body against it.
-//
-// ok is false when a file cannot be stat'd; the caller then leaves the length
-// unknown rather than declaring a wrong one.
 func multipartBodyLength(fields []model.KeyValue, boundary string) (int64, bool) {
 	var total int64
 	parts := 0
@@ -932,12 +842,9 @@ func multipartHeaderBlockLength(header textproto.MIMEHeader) int64 {
 			total += int64(len(key) + len(": ") + len(value) + len("\r\n"))
 		}
 	}
-	// The blank line that separates the header block from the part content.
 	return total + int64(len("\r\n"))
 }
 
-// escapeMultipartValue mirrors what mime/multipart does for the names it
-// writes itself, so a quote or newline in a key cannot break out of the header.
 var multipartValueEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"", "\r", "", "\n", "")
 
 func escapeMultipartValue(value string) string {
@@ -1001,13 +908,6 @@ func buildRedirectPolicy(req model.HttpRequest, maxRedirects int, browserCtx bro
 				return fmt.Errorf("cannot replay request body through redirect: body is not reusable")
 			}
 		}
-		// Follow the standard library behavior: drop Authorization when
-		// the redirect crosses hosts. This protects bearer/basic tokens
-		// from leaking to a third-party server that an attacker could
-		// reach via a malicious 302. The FollowAuthorizationHeader flag
-		// only re-attaches credentials when the destination host (and
-		// scheme) match the previous hop — Postman/Insomnia behave the
-		// same way for the same reason.
 		if req.FollowAuthorizationHeader {
 			if authorization := prev.Header.Get("Authorization"); authorization != "" {
 				if sameHostAndScheme(prev.URL, next.URL) {
@@ -1029,9 +929,6 @@ func buildRedirectPolicy(req model.HttpRequest, maxRedirects int, browserCtx bro
 			} else {
 				next.Header.Set("Sec-Fetch-Site", "cross-site")
 			}
-			// Re-validate CSP connect-src against the redirect target.
-			// Without this the user-facing guarantee "browser-mode would
-			// have blocked this" is bypassed by a single 302.
 			if msg := validateBrowserCSP(req, next.URL, browserCtx); msg != "" {
 				return errors.New(msg)
 			}
@@ -1040,9 +937,6 @@ func buildRedirectPolicy(req model.HttpRequest, maxRedirects int, browserCtx bro
 	}
 }
 
-// sameHostAndScheme reports whether two URLs share scheme and host (port
-// included). Used to decide whether Authorization may be propagated through a
-// redirect.
 func sameHostAndScheme(a, b *url.URL) bool {
 	if a == nil || b == nil {
 		return false
@@ -1050,15 +944,6 @@ func sameHostAndScheme(a, b *url.URL) bool {
 	return strings.EqualFold(a.Scheme, b.Scheme) && strings.EqualFold(a.Host, b.Host)
 }
 
-// applyQueryParams merges the request's param rows into the URL's own query
-// string, preserving order end to end: whatever the URL already carried first,
-// then the param rows in table order, then the API-key param.
-//
-// Order matters. url.Values.Encode sorts alphabetically, which silently breaks
-// every API that signs the query string verbatim (HMAC signatures, payment
-// gateways) and reshuffles what the user deliberately typed. url.Values also
-// can't tell a bare flag ("?debug") from an empty assignment ("?debug="), and
-// turns the former into the latter.
 func applyQueryParams(u *url.URL, req model.HttpRequest) {
 	pairs := parseRawQuery(u.RawQuery)
 	if req.EncodeURLAutomatically {
@@ -1080,21 +965,6 @@ func applyQueryParams(u *url.URL, req model.HttpRequest) {
 	u.RawQuery = encodeQueryPairs(pairs)
 }
 
-// applyUserHeaders copies enabled rows onto the outgoing request. Hop-by-hop
-// and framing-controlling headers (Transfer-Encoding, Content-Length,
-// Connection, Upgrade, Proxy-*) are dropped: letting the user override these
-// can enable HTTP request smuggling through downstream proxies and breaks the
-// net/http transport's own framing assumptions. The user-visible URL/body
-// fields still control the body length, as expected.
-//
-// Host is the exception. It is a legitimate thing to override — testing a
-// virtual host, or reaching a service behind a load balancer — and net/http
-// supports it properly through Request.Host, which sets the header without
-// disturbing the connection's target. Setting it through Header would be
-// ignored, so it takes its own path.
-//
-// Every row that is dropped is returned by name so the caller can say so
-// instead of leaving the user with a header they can see but never sent.
 func applyUserHeaders(headers http.Header, rows []model.KeyValue) (hostOverride string, dropped []string) {
 	seen := make(map[string]struct{}, len(rows))
 	for _, h := range rows {
@@ -1132,9 +1002,6 @@ func isReservedFramingHeader(name string) bool {
 	return false
 }
 
-// droppedHeaderNotice explains, once per send, which header rows Relay refused
-// to put on the wire. Silence here reads as "Relay sent my header and the
-// server ignored it", which is the wrong thing to go debugging.
 func droppedHeaderNotice(names []string) string {
 	if len(names) == 0 {
 		return ""
@@ -1145,15 +1012,6 @@ func droppedHeaderNotice(names []string) string {
 	)
 }
 
-// userHeaderSnapshot records the value of every header the user set by hand, so
-// a later stage that overwrites one can be reported by name.
-//
-// A framing header the user asked for was dropped, so it reads as empty here
-// and stays empty — no false positive, and droppedHeaderNotice already explains
-// it. Host is skipped outright: it travels through Request.Host rather than the
-// header map, while SigV4 writes Host *into* the map because it has to sign the
-// name that goes on the wire. Comparing those two would report an override that
-// never happened.
 func userHeaderSnapshot(rows []model.KeyValue, headers http.Header) map[string][]string {
 	snapshot := make(map[string][]string, len(rows))
 	for _, row := range rows {
@@ -1183,9 +1041,6 @@ func changedUserHeaders(before map[string][]string, headers http.Header) []strin
 	return changed
 }
 
-// overriddenHeaderNotice explains that the Authorization tab won over a header
-// the user wrote themselves. Silence here reads as "Relay sent my header and
-// the server rejected it", which sends the user debugging the wrong end.
 func overriddenHeaderNotice(names []string) string {
 	if len(names) == 0 {
 		return ""
@@ -1302,18 +1157,12 @@ func urlWithoutFragment(u *url.URL) string {
 	return noFrag.String()
 }
 
-// queryPair is one query-string parameter, kept in the order it appeared and
-// still percent-encoded. hasValue distinguishes "?flag" from "?flag=".
 type queryPair struct {
 	key      string
 	value    string
 	hasValue bool
 }
 
-// parseRawQuery splits a raw query on "&" without decoding, so the
-// non-encoding path can pass the user's own spelling through untouched.
-// Unlike url.ParseQuery it keeps duplicate keys in place and never drops a
-// segment it fails to decode.
 func parseRawQuery(raw string) []queryPair {
 	if raw == "" {
 		return nil
@@ -1334,9 +1183,6 @@ func escapedQueryPair(key, value string) queryPair {
 	return queryPair{key: url.QueryEscape(key), value: url.QueryEscape(value), hasValue: true}
 }
 
-// reencodeQueryComponent normalises a component the user typed by hand: decode
-// it, then re-encode it properly. A component that doesn't decode (a stray "%"
-// or "%zz") is escaped whole rather than dropped.
 func reencodeQueryComponent(raw string) string {
 	decoded, err := url.QueryUnescape(raw)
 	if err != nil {
@@ -1366,13 +1212,7 @@ func mergeScriptURL(ctx *script.Context, req *model.HttpRequest) {
 	}
 }
 
-// A pre-request script that writes the body is usually generating or signing
-// it, so an explicit write wins even when it clears the body. A request whose
-// body came from a file keeps the file: the script never saw those bytes.
 func mergeScriptBody(ctx *script.Context, req *model.HttpRequest) {
-	// A form or urlencoded body is sent from its fields, so that is what
-	// pm.request.body.urlencoded / .formdata edit — a raw write cannot reach it
-	// and the sandbox says so in the log rather than dropping it in silence.
 	if ctx.RequestFormDataChanged && (req.BodyType == "urlencoded" || req.BodyType == "form") {
 		req.FormData = ctx.RequestFormData
 	}
@@ -1383,9 +1223,6 @@ func mergeScriptBody(ctx *script.Context, req *model.HttpRequest) {
 		return
 	}
 	req.Body = ctx.RequestBody
-	// A script that builds a body for a request that had none would otherwise
-	// see it dropped, because a "none" body type sends nothing — and neither
-	// does a "binary" one with no file behind it.
 	if req.Body != "" && (req.BodyType == "" || req.BodyType == "none" || req.BodyType == "binary") {
 		if json.Valid([]byte(req.Body)) {
 			req.BodyType = "json"
@@ -1394,18 +1231,6 @@ func mergeScriptBody(ctx *script.Context, req *model.HttpRequest) {
 		}
 	}
 }
-
-// mergeScriptHeaders and mergeScriptParams write back only what the script
-// actually touched. The script's view of headers and params is a map, which
-// cannot hold two rows sharing a key — so merging the whole map back collapsed
-// every duplicate onto the last value ("?id=1&id=2" went out as "?id=2&id=2")
-// and re-enabled disabled rows, for any request that ran a script at all, even
-// an empty one. Rows the script never named are now left exactly as the user
-// wrote them.
-//
-// A key the script did write follows Postman's upsert: the first matching row
-// takes the new value, and any further rows with that key are dropped, because
-// the script said what that header is — not what to add alongside it.
 
 func mergeScriptHeaders(ctx *script.Context, req *model.HttpRequest) {
 	if len(ctx.RemovedHeaders) > 0 {
@@ -1440,9 +1265,6 @@ func mergeScriptParams(ctx *script.Context, req *model.HttpRequest) {
 	}
 }
 
-// writtenKeys returns the keys still present in values that the script wrote,
-// sorted so the resulting header order is stable — a request signed over its
-// canonical header order must not change between two identical sends.
 func writtenKeys(values map[string]string, touched map[string]struct{}, normalize func(string) string) []string {
 	if len(touched) == 0 {
 		return nil
@@ -1457,8 +1279,6 @@ func writtenKeys(values map[string]string, touched map[string]struct{}, normaliz
 	return keys
 }
 
-// upsertRow gives key the supplied value on the first row that matches,
-// preferring an enabled row, and removes any later duplicates of that key.
 func upsertRow(rows []model.KeyValue, key, value string, matches func(string, string) bool) []model.KeyValue {
 	target := -1
 	for i, row := range rows {

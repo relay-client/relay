@@ -6,8 +6,6 @@ import {
   stormOverlayMessage,
 } from '../lib/fatalError';
 
-// Feeds a run of errors through the classifier the way the guard does, one
-// after another, carrying the window forward.
 function burst(count: number, options: { message?: string; spacingMs?: number; startAt?: number } = {}) {
   const { message = 'TypeError: x is not a function', spacingMs = 10, startAt = 1_000_000 } = options;
   let recent: number[] = [];
@@ -24,9 +22,6 @@ describe('fatal error guard', () => {
   const now = 1_000_000;
 
   it('ignores the noise that does not mean anything is broken', () => {
-    // A ResizeObserver loop warning fires during ordinary layout, and Vite's
-    // own messages arrive in dev. Counting either towards a storm would put
-    // the overlay in front of a perfectly healthy app.
     for (const message of [
       'ResizeObserver loop completed with undelivered notifications.',
       '[vite] connecting...',
@@ -41,8 +36,6 @@ describe('fatal error guard', () => {
   });
 
   it('treats a wedged Svelte scheduler as immediately fatal', () => {
-    // These leave the UI frozen with no way out, so they do not wait for a
-    // storm to build up.
     for (const message of [
       'Svelte error: effect_update_depth_exceeded',
       'Maximum update depth exceeded',
@@ -70,8 +63,6 @@ describe('fatal error guard', () => {
   });
 
   it('lets a slow trickle of errors go by', () => {
-    // The same number of errors spread beyond the window is an app that keeps
-    // running with a recurring problem, not one that has stopped responding.
     const { verdicts, recent } = burst(ERROR_STORM_THRESHOLD * 2, { spacingMs: ERROR_STORM_WINDOW_MS });
     expect(verdicts).not.toContain('storm');
     expect(recent).toHaveLength(1);

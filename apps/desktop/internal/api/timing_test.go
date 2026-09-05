@@ -49,8 +49,6 @@ func TestMillisBetween(t *testing.T) {
 	}
 }
 
-// Drive the httptrace callbacks in order and verify the snapshot attributes
-// non-negative, sensible durations to each phase.
 func TestResponseTimingSnapshot(t *testing.T) {
 	start := time.Now()
 	_, rec := withResponseTiming(context.Background(), start)
@@ -105,7 +103,6 @@ func TestResponseTimingSnapshotEmpty(t *testing.T) {
 	if snap.Total != 10 {
 		t.Errorf("expected total 10ms, got %v", snap.Total)
 	}
-	// No trace callbacks fired: phase breakdowns stay zero, process absorbs the rest.
 	if snap.DNSLookup != 0 || snap.TCPHandshake != 0 || snap.TLSHandshake != 0 {
 		t.Errorf("expected zero network phases, got %+v", snap)
 	}

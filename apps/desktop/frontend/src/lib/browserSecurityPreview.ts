@@ -67,7 +67,6 @@ function originMatchesTarget(origin: URL, target: URL, kind: BrowserSecurityPrev
   const originScheme = origin.protocol.replace(/:$/, '').toLowerCase();
   const targetScheme = target.protocol.replace(/:$/, '').toLowerCase();
   if (originScheme === targetScheme) return true;
-  // WS/Socket.IO handshakes upgrade scheme (http↔ws, https↔wss); treat them as same-site.
   if (kind !== 'handshake') return false;
   if (originScheme === 'http') return targetScheme === 'https' || targetScheme === 'ws' || targetScheme === 'wss';
   if (originScheme === 'https') return targetScheme === 'wss';

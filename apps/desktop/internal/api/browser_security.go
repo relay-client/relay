@@ -28,9 +28,7 @@ type browserSecurityContext struct {
 type browserSecurityKind int
 
 const (
-	// browserKindFetch — CORS-mode HTTP fetch. Sets Origin + Sec-Fetch-* headers.
 	browserKindFetch browserSecurityKind = iota
-	// browserKindHandshake — WS/Socket.IO upgrade. Browsers send Origin only, no Sec-Fetch-*.
 	browserKindHandshake
 )
 
@@ -235,8 +233,6 @@ func validateCORSPreflightResponse(resp *http.Response, method string, requestHe
 	if msg := validateCORSOrigin(resp.Header, ctx); msg != "" {
 		return "preflight " + msg
 	}
-	// CORS-safelisted methods (GET/HEAD/POST) are allowed implicitly, even when
-	// Access-Control-Allow-Methods omits them (Fetch §CORS-preflight fetch).
 	if !isSimpleCORSMethod(method) && !corsHeaderAllowsToken(resp.Header.Get("Access-Control-Allow-Methods"), method, !ctx.withCredentials) {
 		return fmt.Sprintf("preflight Access-Control-Allow-Methods does not allow %s", strings.ToUpper(method))
 	}
@@ -256,9 +252,6 @@ func validateCORSActualResponse(resp *http.Response, ctx browserSecurityContext)
 }
 
 func validateCORSOrigin(headers http.Header, ctx browserSecurityContext) string {
-	// Browsers (and Fetch §CORS check) reject multiple Access-Control-Allow-Origin
-	// headers — a common misconfiguration in proxies that "helpfully" re-add the
-	// header. Match browser behavior.
 	if values := headers.Values("Access-Control-Allow-Origin"); len(values) > 1 {
 		return fmt.Sprintf("response contains %d Access-Control-Allow-Origin headers; browsers require exactly one", len(values))
 	}
@@ -280,9 +273,6 @@ func validateCORSOrigin(headers http.Header, ctx browserSecurityContext) string 
 
 func corsHeaderAllowsToken(headerValue, token string, wildcardAllowed bool) bool {
 	token = strings.ToLower(strings.TrimSpace(token))
-	// Per Fetch §CORS: the `*` wildcard in Access-Control-Allow-Headers never
-	// covers `authorization` — it must be named explicitly. (Method checks never
-	// pass "authorization", so this only affects header matching.)
 	wildcardCoversToken := wildcardAllowed && token != "authorization"
 	for _, part := range strings.Split(headerValue, ",") {
 		part = strings.ToLower(strings.TrimSpace(part))
@@ -453,9 +443,6 @@ func cspHostMatches(pattern, host string) bool {
 	}
 	if strings.HasPrefix(pattern, "*.") {
 		base := strings.TrimPrefix(pattern, "*.")
-		// Reject degenerate wildcards like "*." or "*..": a wildcard
-		// must have a non-empty base host, otherwise it would match
-		// every host on the internet — that's not what CSP `*.` means.
 		if base == "" || strings.HasPrefix(base, ".") {
 			return false
 		}
@@ -469,7 +456,6 @@ func browserOriginMatchesTarget(origin, target *url.URL, kind browserSecurityKin
 	if origin == nil || target == nil {
 		return false
 	}
-	// WS/Socket.IO handshakes upgrade scheme (http↔ws, https↔wss); treat them as same-site.
 	if kind == browserKindHandshake {
 		return cspSelfMatches(origin, target)
 	}

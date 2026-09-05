@@ -6,9 +6,6 @@ import (
 	"time"
 )
 
-// Bug #1 regression: a burst of events followed by silence must still be
-// delivered within the window via the background timer, not stall until the
-// next event or the connection close.
 func TestEventBatcherFlushesIdleTail(t *testing.T) {
 	var mu sync.Mutex
 	var delivered []int
@@ -43,7 +40,7 @@ func TestEventBatcherFlushesAtMax(t *testing.T) {
 		func(vs []int) { batches = append(batches, append([]int(nil), vs...)) },
 	)
 	b.add(1)
-	b.add(2) // hits max=2 -> immediate flush, no timer wait
+	b.add(2)
 	if len(batches) != 1 || len(batches[0]) != 2 {
 		t.Fatalf("expected one batch of 2, got %v", batches)
 	}

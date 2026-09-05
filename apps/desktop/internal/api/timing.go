@@ -47,7 +47,6 @@ func (r *responseTimingRecorder) addEventLocked(label string, at time.Time, deta
 	})
 }
 
-// timeline returns the recorded events in the order they happened.
 func (r *responseTimingRecorder) timeline() []model.TimelineEvent {
 	r.mu.Lock()
 	defer r.mu.Unlock()

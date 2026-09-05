@@ -1,24 +1,11 @@
-// The wire types are the Go structs in internal/model and internal/api. They are
-// not restated here: Wails generates them into wailsjs/go/models.ts from the Go
-// source, and this file derives from that. A field added on the Go side reaches
-// the interface by regenerating, not by someone remembering to edit two files —
-// which is how `wsKeepAliveIntervalMs`, `sseDisableReconnect` and
-// `sseReconnectIntervalMs` ended up implemented in Go and unreachable from the
-// app for two releases.
 import type { api, model } from '../../wailsjs/go/models';
 
-// Wails emits classes so a response can be rehydrated with `new Model(json)`.
-// `convertValues` is that machinery, not part of the payload, so it is stripped:
-// otherwise every plain object literal the app builds would be missing a method
-// and fail to typecheck. The mapping is homomorphic, so optional fields stay
-// optional.
 type Wire<T> = T extends (infer U)[]
   ? Wire<U>[]
   : T extends object
     ? { [K in keyof T as K extends 'convertValues' ? never : K]: Wire<T[K]> }
     : T;
 
-/* Bound Go methods — one line each, shape owned by Go. */
 export type AppInfo = Wire<model.AppInfo>;
 export type AuthConfig = Wire<model.AuthConfig>;
 export type ConnectionInfo = Wire<model.ConnectionInfo>;
@@ -67,15 +54,9 @@ export type WorkspaceSecretRef = Wire<api.WorkspaceSecretRef>;
 export type WorkspaceYAMLFileResult = Wire<api.WorkspaceYAMLFileResult>;
 export type HistoryResponseResult = Wire<api.HistoryResponseResult>;
 
-// Names the app uses that differ from the Go type's.
 export type CookieJarEntry = Wire<model.Cookie>;
 export type ResponseTimings = Wire<model.ResponseTime>;
 
-/* Payloads that arrive over the runtime event bus rather than as the return
-   value of a bound method. Wails only generates types it can reach from a bound
-   signature, so these are the one place a Go struct is still restated by hand —
-   keep them in step with grpcHeadersEvent/grpcMessageEvent/grpcTrailersEvent in
-   internal/api/grpc.go and OAuth2DevicePrompt in internal/model/http.go. */
 export type OAuth2DevicePrompt = {
   userCode: string;
   verificationUri: string;
@@ -117,9 +98,6 @@ export type GrpcDoneEvent = {
   timestamp: number;
 };
 
-// The Wails runtime, which is injected by the desktop shell rather than bound
-// from Go. Every member is optional because the app also runs as a plain page in
-// a browser during development, where none of this exists.
 export type RuntimeBridge = {
   EventsOn?: <T = unknown>(eventName: string, callback: (payload: T) => void) => () => void;
   BrowserOpenURL?: (url: string) => void;
@@ -132,10 +110,6 @@ export type RuntimeBridge = {
   Quit?: () => void | Promise<void>;
 };
 
-// The bridge the desktop shell puts on `window`, derived from the generated
-// bindings so the method list cannot drift from what Go actually exposes.
-// Methods are optional for the same reason as above: in a browser there is no
-// bridge, and every call site checks before calling.
 type AppBindings = typeof import('../../wailsjs/go/api/App');
 
 type WireFn<F> = F extends (...args: infer A) => Promise<infer R>
@@ -151,11 +125,6 @@ declare global {
   }
 }
 
-// Zero values for the two big wire structs. A synthetic request or response —
-// a schema introspection, or the shell a realtime panel renders before any
-// bytes arrive — spreads one of these and overrides what it means, instead of
-// listing fifty fields it does not care about and falling behind Go on the next
-// one. The values mirror Go's own zero values.
 export function emptyResponseTimings(): ResponseTimings {
   return {
     total: 0, prepare: 0, socketInitialization: 0, dnsLookup: 0,
@@ -204,10 +173,6 @@ export function emptyHttpResponse(): HttpResponse {
   };
 }
 
-// The zero value of AuthConfig. A request that deliberately sends no
-// credentials — a schema introspection, say — spells that as a spread of this
-// rather than restating all twenty-odd fields, which is how such a literal
-// silently falls behind the Go struct.
 export function emptyAuthConfig(): AuthConfig {
   return {
     type: 'none',
@@ -244,8 +209,6 @@ export function emptyAuthConfig(): AuthConfig {
   };
 }
 
-// The zero value of the Go struct, kept beside the type it mirrors so the two
-// cannot drift. Everything that needs a blank git status imports this one.
 export const EMPTY_GIT_STATUS: GitWorkspaceStatus = {
   isRepo: false,
   workspaceRoot: '',
@@ -274,10 +237,6 @@ export const EMPTY_GIT_STATUS: GitWorkspaceStatus = {
 
 export const EMPTY_GIT_PULL_SUMMARY: GitPullSummary = { changed: 0, added: 0, updated: 0, deleted: 0, renamed: 0 };
 
-// One "the bridge isn't here" value per result shape, typed against the
-// generated Go struct. The eighteen copies of this literal that used to be
-// inline all drifted together the moment Go grew a field; now the compiler
-// points at exactly one place.
 export const EMPTY_WORKSPACE_OPEN_RESULT: WorkspaceOpenResult = {
   ok: false,
   root: '',

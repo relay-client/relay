@@ -159,7 +159,6 @@
       <span class="kv-auto-badge">auto</span>
       <span class="kv-cell kv-auto-key">{header.key}</span>
       <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <!-- Read-only value: selectable text (double-click opens the full value for long ones). -->
       <span
         class="kv-cell kv-auto-value kv-value-open"
         title={header.value}

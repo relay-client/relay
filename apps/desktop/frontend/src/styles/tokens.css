@@ -548,7 +548,6 @@ html, body, #app {
   :root[data-platform="darwin"] .brand {
     padding-top: var(--titlebar-h);
   }
-  /* Collapsed sidebar slides the header to the window edge, under the macOS traffic lights — reserve room. */
   :root[data-platform="darwin"] .shell.sidebar-hidden .workspace-searchbar {
     padding-left: var(--mac-traffic-w, 80px);
   }
@@ -569,7 +568,6 @@ html, body, #app {
   }
 }
 
-/* Custom window controls live only on the frameless Windows build. */
 .win-controls {
   display: none;
 }
@@ -594,8 +592,8 @@ html, body, #app {
 :root[data-platform="windows"] .win-controls {
   display: flex;
   align-items: stretch;
-  height: 50px; /* searchbar content (34px) + vertical padding (8px × 2) */
-  margin: -8px -16px -8px 6px; /* bleed over searchbar padding to the window corner */
+  height: 50px;
+  margin: -8px -16px -8px 6px;
 }
 
 :root[data-platform="windows"] .win-control {
@@ -627,8 +625,6 @@ html, body, #app {
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
 
-/* App chrome is not text-selectable (like Postman / VS Code); only real content
-   opts back in — field values, the code editor, and code / response output. */
 #app {
   -webkit-user-select: none;
   user-select: none;

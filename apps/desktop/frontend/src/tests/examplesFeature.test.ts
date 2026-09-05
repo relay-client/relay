@@ -70,8 +70,6 @@ function hostFor(options: {
   prompt?: string | null;
   secretValues?: string[];
 } = {}) {
-  // The feature's own methods call each other; in the app they all sit on the
-  // AppVM prototype, so the test host mixes them in the same way.
   const host = {
     ...examplesFeature,
     requestExamples: options.examples ?? [],
@@ -131,8 +129,6 @@ describe('saveResponseAsExample', () => {
   });
 
   it('warns when the captured response still holds something credential-shaped', async () => {
-    // A non-JSON body cannot be swept by key, so a token in it survives — that
-    // is exactly the case worth telling the user about before it is committed.
     const host = hostFor({ response: response({ body: 'set token=abcdef123456', headers: [] }) });
     await examplesFeature.saveResponseAsExample.call(host);
     const state = host;
@@ -164,7 +160,6 @@ describe('saveResponseAsExample', () => {
       await examplesFeature.saveResponseAsExample.call(host);
       vi.advanceTimersByTime(2000);
 
-      // A second capture puts up its own message with 2200ms of its own.
       await examplesFeature.saveResponseAsExample.call(host);
       const second = host.collectionImportToast;
       expect(second).toContain('(2)');
@@ -192,8 +187,6 @@ describe('saveResponseAsExample', () => {
 
 describe('addCapturedExample', () => {
   it('re-points the example at the request being edited', () => {
-    // A history entry carries a request snapshot with an id of its own, which
-    // belongs to no request that still exists.
     const host = hostFor();
     examplesFeature.addCapturedExample.call(host, example({ id: 'ex-x', requestId: 'req-from-history' }));
 

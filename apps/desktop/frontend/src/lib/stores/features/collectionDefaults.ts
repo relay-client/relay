@@ -170,7 +170,6 @@ export const collectionDefaultsFeature = {
     if (key === 'wsMaxMessageSizeMb') return `${value} MB`;
     if (key === 'grpcMaxResponseMessageSizeMb') return `${value} MB`;
     if (key === 'proxyUrl') return this.maskedProxyUrl(String(value).trim());
-    // Never echo the key passphrase into a collection-default note.
     if (key === 'clientKeyPassword') return String(value) ? '••••••' : '';
     if (key === 'clientCertPath' || key === 'clientKeyPath') {
       const path = String(value).trim();

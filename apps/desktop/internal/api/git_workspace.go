@@ -34,9 +34,6 @@ var gitCommitHashPattern = regexp.MustCompile(`^[0-9A-Fa-f]{4,64}$`)
 var gitStashRefPattern = regexp.MustCompile(`^stash@\{\d+\}$`)
 var gitCredentialURLPattern = regexp.MustCompile(`(https?://)[^/\s:@]+:[^/\s@]+@`)
 
-// relayRunnerReportArtifactPattern matches the basename of runner-report HTML
-// files Relay generates (`<slug>-YYYY-MM-DDTHH-MM-SS.html`). It mirrors the
-// `*-????-??-??T??-??-??.html` entry kept in relayGitignoreEntries.
 var relayRunnerReportArtifactPattern = regexp.MustCompile(`-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.html$`)
 
 var gitOperationMu sync.RWMutex
@@ -68,10 +65,7 @@ type GitWorkspaceStatus struct {
 	Remotes         []string        `json:"remotes"`
 	Stashes         []GitStashEntry `json:"stashes"`
 	Error           string          `json:"error"`
-	// GitMissing reports that no usable `git` binary was found, which is why
-	// IsRepo is false. Without it the interface cannot tell "this folder is
-	// not a repository" apart from "Relay could not ask".
-	GitMissing bool `json:"gitMissing"`
+	GitMissing      bool            `json:"gitMissing"`
 
 	AuthRequired  bool   `json:"authRequired"`
 	AuthScheme    string `json:"authScheme"`
@@ -808,9 +802,6 @@ func (a *App) gitCloneWorkspace(remoteURL, parentDir, directoryName, initMode, s
 		return WorkspaceOpenResult{Root: target, Error: message, Output: output, Git: st}
 	}
 
-	// On overwrite, move the original aside (don't delete) so a later failure can
-	// restore it — deleting up front meant a failed init left the user with neither
-	// their original folder nor the clone.
 	backupDir := ""
 	if cloneDest != target {
 		backupDir = filepath.Join(parent, fmt.Sprintf(".relay-backup-%d", time.Now().UnixNano()))
@@ -825,8 +816,6 @@ func (a *App) gitCloneWorkspace(remoteURL, parentDir, directoryName, initMode, s
 		}
 	}
 
-	// rollback removes the fresh clone and (when overwriting) restores the original;
-	// commit discards the backup once we're past the failure-prone init steps.
 	rollback := func() {
 		_ = os.RemoveAll(target)
 		if backupDir != "" {
@@ -912,9 +901,6 @@ func (a *App) openWorkspaceRoot(path string) WorkspaceOpenResult {
 	return a.openWorkspaceRootOpts(path, true)
 }
 
-// openWorkspaceRootOpts reloads a Git-mode workspace. When ensureGitignore is
-// false the canonical Relay .gitignore is not re-applied, so an explicit discard
-// of .gitignore is not immediately undone by re-adding Relay's managed entries.
 func (a *App) openWorkspaceRootOpts(path string, ensureGitignore bool) WorkspaceOpenResult {
 	root, err := normalizeExistingDir(path)
 	if err != nil {
@@ -1044,18 +1030,10 @@ func gitStatusForWorkspace(workspaceRoot string) GitWorkspaceStatus {
 	}
 	root, err := gitOutput(workspaceRoot, "rev-parse", "--show-toplevel")
 	if err != nil {
-		// A plain non-zero exit here means "not a repository", which is a
-		// normal state and not worth an error. Git being unusable is not:
-		// swallowing it leaves a real repository looking like a plain folder.
 		status.Error = gitUnavailableMessage(root, err)
 		status.GitMissing = status.Error != ""
 		return status
 	}
-	// Git reports the toplevel with forward slashes on every platform, so on
-	// Windows this is the one place a path enters Relay in a foreign shape.
-	// Cleaning it keeps Root comparable to paths built with filepath, and
-	// displayable as the OS writes them. Clean("") is ".", so the empty case
-	// has to stay empty or a non-repository would look like one.
 	status.Root = strings.TrimSpace(root)
 	if status.Root != "" {
 		status.Root = filepath.Clean(status.Root)
@@ -3076,10 +3054,6 @@ func isManagedWorkspaceGitPath(workspaceRoot, repoRoot, repoRelPath string) bool
 		(strings.HasPrefix(path, fileStoreWorkspacesDir+"/") && filepath.Ext(path) == fileStoreYAMLExt)
 }
 
-// isRelayGeneratedArtifactGitPath reports whether repoRelPath, scoped to the
-// Relay workspace, is a Relay-generated artifact (currently runner-report HTML
-// files). These are not workspace files, but Relay produced them, so it may
-// clean them up on discard without touching the user's own files.
 func isRelayGeneratedArtifactGitPath(workspaceRoot, repoRoot, repoRelPath string) bool {
 	prefix := workspaceGitPrefix(workspaceRoot, repoRoot)
 	path := filepath.ToSlash(strings.TrimSpace(repoRelPath))
@@ -3095,9 +3069,6 @@ func isRelayGeneratedArtifactGitPath(workspaceRoot, repoRoot, repoRelPath string
 	return relayRunnerReportArtifactPattern.MatchString(filepath.Base(path))
 }
 
-// isDiscardableRelayGitPath is the discard-only allow-list: managed workspace
-// files plus Relay-generated artifacts. Staging/commit deliberately stay
-// restricted to managed workspace files via isManagedWorkspaceGitPath.
 func isDiscardableRelayGitPath(workspaceRoot, repoRoot, repoRelPath string) bool {
 	return isManagedWorkspaceGitPath(workspaceRoot, repoRoot, repoRelPath) ||
 		isRelayGeneratedArtifactGitPath(workspaceRoot, repoRoot, repoRelPath)
@@ -3396,8 +3367,6 @@ func emptyRelayWorkspacePayload(workspaceName string) (string, error) {
 }
 
 func friendlyGitError(action, output string, err error) string {
-	// "git is not installed" explains every command at once, and none of the
-	// auth hints below apply to it.
 	if unavailable := gitUnavailableMessage(output, err); unavailable != "" {
 		return unavailable
 	}

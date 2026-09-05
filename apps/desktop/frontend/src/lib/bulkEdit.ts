@@ -2,13 +2,6 @@ import { mkRow } from './constants';
 import type { KVRow } from './types/models';
 import { rowHasContent } from './utils';
 
-// Bulk edit is the text form of a key/value table: one `key:value` per line,
-// with `//` marking a disabled row. It matches Postman's format so a block of
-// headers can be pasted straight across, and it is the fastest way to add or
-// reorder twenty rows without twenty rounds of clicking.
-//
-// Descriptions and file rows have no text representation. They are carried
-// through by matching keys instead of being silently dropped.
 
 export function rowsToBulkText(rows: KVRow[]): string {
   return rows
@@ -42,13 +35,10 @@ export function bulkTextToRows(text: string, previous: KVRow[] = []): KVRow[] {
       enabled: !disabled,
       description: source?.description ?? '',
       ...(source?.secret ? { secret: true } : {}),
-      // A file row's value is a path the user picked through a dialog; keep
-      // the attachment as long as its key is still in the text.
       ...(source?.isFile ? { isFile: true, fileName: source.fileName } : {}),
     });
   }
 
-  // The table always ends in a blank row so there is somewhere to type.
   rows.push(mkRow());
   return rows;
 }

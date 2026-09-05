@@ -11,20 +11,8 @@ import (
 	"testing"
 )
 
-// latest.json is written by scripts/make-latest-json.py during a release and
-// read back by the Go updater on every installed copy of Relay. Nothing else
-// connects the two: if the generator's field names, platform keys or URL shape
-// drift from what this package decodes, auto-update stops working everywhere
-// at once, silently, and the next release cannot fix it — the copies that
-// would need the fix are the ones that can no longer see it.
-//
-// These tests run the real script and decode its real output with the real
-// parser. Together with the cross-platform CI matrix, the platform-key check
-// is exercised on each OS Relay ships.
-
 func repoRootForTest(t *testing.T) string {
 	t.Helper()
-	// internal/api -> internal -> desktop -> apps -> repo root
 	root, err := filepath.Abs(filepath.Join("..", "..", "..", ".."))
 	if err != nil {
 		t.Fatalf("resolve repository root: %v", err)
@@ -46,8 +34,6 @@ func requirePython(t *testing.T) string {
 	return ""
 }
 
-// buildFakeRelease writes the assets the generator expects, with the exact
-// names the release workflow produces.
 func buildFakeRelease(t *testing.T, withSignatures bool) (dir string, checksums map[string]string) {
 	t.Helper()
 	dir = t.TempDir()
@@ -134,10 +120,6 @@ func TestGeneratedManifestDecodesWithTheUpdaterParser(t *testing.T) {
 }
 
 func TestGeneratedManifestCarriesThisPlatformsKey(t *testing.T) {
-	// The one that breaks silently: the updater looks its own platform up by
-	// key, so a generator that spells the key differently leaves this build
-	// permanently unable to find an update. With the cross-platform CI
-	// matrix, this runs once per OS Relay ships.
 	releaseDir, checksums := buildFakeRelease(t, true)
 
 	manifest := generateManifest(t, releaseDir, "--require-signature")
@@ -161,8 +143,6 @@ func TestGeneratedManifestCarriesThisPlatformsKey(t *testing.T) {
 }
 
 func TestGeneratedManifestIsRejectedWhenASignatureIsMissing(t *testing.T) {
-	// The release runs with --require-signature. An unsigned artifact must
-	// stop the release rather than publish an update the app will refuse.
 	releaseDir, _ := buildFakeRelease(t, false)
 	root := repoRootForTest(t)
 	python := requirePython(t)
@@ -188,8 +168,6 @@ func TestGeneratedManifestIsRejectedWhenASignatureIsMissing(t *testing.T) {
 }
 
 func TestGeneratedManifestFailsOnAMissingAsset(t *testing.T) {
-	// A platform whose build silently produced nothing must not become a
-	// manifest that omits it — that is an update that skips one OS.
 	releaseDir, _ := buildFakeRelease(t, true)
 	if err := os.Remove(filepath.Join(releaseDir, "relay-linux-amd64")); err != nil {
 		t.Fatalf("remove asset: %v", err)

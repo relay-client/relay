@@ -1,8 +1,6 @@
 .dialog-backdrop {
   position: fixed;
   inset: 0;
-  /* Confirm/alert/select/prompt dialogs are invoked from inside other modals
-     (Settings z-index 200, cookie jar 190, runner 180), so they must sit above all of them. */
   z-index: 300;
   display: grid;
   place-items: center;
@@ -1599,7 +1597,6 @@
   color: var(--text-3);
 }
 
-/* What's new (first launch after an update) */
 .whats-new-modal {
   width: min(560px, 100%);
   max-height: min(76vh, 720px);

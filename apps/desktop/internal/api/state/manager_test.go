@@ -14,10 +14,6 @@ func cloneStringMap(m map[string]string) map[string]string {
 	return out
 }
 
-// TestMergeKeepsConcurrentWritesToDistinctKeys is the regression test for the
-// lost-update race: two requests snapshot the same base, each sets a distinct
-// variable, and committing one must not wipe the other's key. The previous
-// wholesale-replace Apply failed this.
 func TestMergeKeepsConcurrentWritesToDistinctKeys(t *testing.T) {
 	m := New()
 	m.SetVariable("base", "0")
@@ -74,18 +70,14 @@ func TestMergeAppliesAdditionsModificationsAndDeletions(t *testing.T) {
 	}
 }
 
-// TestMergeDeletionDoesNotClobberConcurrentAdd shows a deletion only removes the
-// keys that were actually present in the caller's snapshot — a key another
-// request added in the meantime survives.
 func TestMergeDeletionDoesNotClobberConcurrentAdd(t *testing.T) {
 	m := New()
 	m.SetVariable("drop", "2")
 
-	before, _ := m.Snapshot() // {drop:2}
+	before, _ := m.Snapshot()
 	after := cloneStringMap(before)
 	delete(after, "drop")
 
-	// A concurrent request adds an unrelated key before this one commits.
 	m.SetVariable("added", "9")
 
 	m.Merge(before, after, nil, nil)
@@ -119,9 +111,6 @@ func TestMergeHandlesEnvironmentDeltas(t *testing.T) {
 	}
 }
 
-// TestMergeConcurrentNoRace runs many merges in parallel, each adding one
-// distinct key from its own snapshot. All keys must survive and the run must be
-// clean under -race.
 func TestMergeConcurrentNoRace(t *testing.T) {
 	const n = 64
 	m := New()

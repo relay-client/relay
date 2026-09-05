@@ -160,9 +160,6 @@ function rowsFromBruBlock(block = '') {
     .filter((row): row is KVRow => Boolean(row && (row.key || row.value)));
 }
 
-// kvArrayToRecord converts Postman-style [{key, value}, ...] into a flat
-// Record<key, value> object so the rest of the auth parser can look up
-// credentials uniformly.
 function kvArrayToRecord(arr: unknown[]): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const item of arr) {
@@ -212,9 +209,6 @@ function openCollectionAuth(value: unknown): SavedRequest['auth'] {
     };
   }
   if (type === 'awsv4' || type === 'aws') {
-    // Postman serializes `awsv4` as an array of {key,value} entries. The
-    // previous fallback only handled object form and silently dropped all
-    // credentials for the array form.
     const awsArr = Array.isArray(value.awsv4) ? kvArrayToRecord(value.awsv4) :
                    Array.isArray(value.aws) ? kvArrayToRecord(value.aws) : null;
     const aws = isRecord(value.awsv4) ? value.awsv4 :
@@ -679,10 +673,6 @@ function requestFromOpenCollectionFile(file: CollectionTextFile, collectionId: s
   };
 }
 
-// OpenCollection has no notion of a saved example, so Relay writes them under
-// its own top-level `examples` key. The shape is the one the workspace YAML
-// uses, which means importing is just normalisation — and another tool reading
-// the file simply ignores a key it does not know.
 function examplesFromOpenCollection(value: unknown, requestId: string): RequestExample[] {
   return asArray(value)
     .filter(isRecord)
@@ -713,8 +703,6 @@ function examplesToOpenCollection(
       status: example.response.status,
       ...(example.response.headers.length ? { headers: rows(example.response.headers.map(row => safeExportRow(row, includeSecrets))) } : {}),
       bodyMediaType: example.response.bodyMediaType,
-      // A saved response goes through the same sweep as any other exported
-      // body: it is the most likely place for a captured token to sit.
       ...(example.response.body ? { body: exportBodyLikeValue(example.response.body, 'json', stripFn, includeSecrets) } : {}),
     },
     match: example.match,

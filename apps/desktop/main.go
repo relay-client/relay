@@ -20,8 +20,6 @@ import (
 var assets embed.FS
 
 func main() {
-	// Answered before Wails starts, so they work on a machine where the
-	// window cannot open — which is exactly when someone needs to read them.
 	if len(os.Args) >= 2 {
 		switch os.Args[1] {
 		case "--version", "-version", "version":
@@ -39,8 +37,6 @@ func main() {
 		os.Exit(api.RunCLI(os.Args[2:]))
 	}
 
-	// Before anything that might log: a failure during startup is exactly
-	// what someone will be asked to send.
 	if path, err := api.InstallLogFile(); err != nil {
 		fmt.Fprintf(os.Stderr, "relay: could not open the log file at %s: %v\n", path, err)
 	}
@@ -64,11 +60,7 @@ func buildAppOptions(app *api.App, frontendAssets embed.FS) *options.App {
 		MinWidth:          1120,
 		MinHeight:         680,
 		HideWindowOnClose: true,
-		// Windows draws an opaque native title bar that clashes with Relay's
-		// chrome. Go frameless there and render our own controls in the top bar
-		// (matches the seamless macOS title bar). macOS/Linux keep their native
-		// frames.
-		Frameless: runtime.GOOS == "windows",
+		Frameless:         runtime.GOOS == "windows",
 		AssetServer: &assetserver.Options{
 			Assets: frontendAssets,
 		},

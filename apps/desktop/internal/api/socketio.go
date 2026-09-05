@@ -73,9 +73,6 @@ type pendingSocketIOAck struct {
 	ch        chan model.SocketIOAckEvent
 }
 
-// socketIOAckTimeout bounds how long an emitted-with-ack entry is retained while
-// waiting for the server's ack. Without eviction a server that never acks would
-// grow pendingAcks for the session's lifetime. Package var so tests can shorten it.
 var socketIOAckTimeout = 60 * time.Second
 
 func newSocketIOManager(jars *cookieJarRegistry) *socketIOManager {
@@ -463,7 +460,6 @@ func (m *socketIOManager) runConnectionOnce(ctx context.Context, sessionID strin
 			}
 		}
 	}
-	// Pin TLS 1.2+ regardless of cert-verification opt-out.
 	if !req.EnableSSLVerification {
 		dialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS12}
 	} else {
@@ -554,9 +550,6 @@ func (m *socketIOManager) runConnectionOnce(ctx context.Context, sessionID strin
 			return false
 		}
 
-		// Scope the keep-alive ping to this connection attempt. Deriving from the
-		// session ctx (and not cancelling per attempt) leaked one ping goroutine
-		// per reconnect — they kept writing to closed conns until full disconnect.
 		pingCtx, stopPing := context.WithCancel(ctx)
 		defer stopPing()
 		go func() {

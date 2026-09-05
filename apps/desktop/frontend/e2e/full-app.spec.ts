@@ -290,8 +290,6 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
         state.savedStores.push(clone(state.store));
         return true;
       },
-      // Stored history responses. Modelled after internal/api/history_store.go:
-      // the bodies live outside the request store, keyed by the entry's id.
       SaveHistoryResponse: async (id, payload) => {
         state.historyResponses[id] = payload;
         return { stored: true, truncated: false };
@@ -531,9 +529,6 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
         truncated: false,
         error: '',
       }),
-      // The Git operations that rewrite the worktree. Each records itself so
-      // a test can assert what ran, and in which order relative to the
-      // request-store write the editor owes before them.
       GitStageWorkspaceFiles: async () => {
         state.calls.push('GitStageWorkspaceFiles');
         return { ok: true, git: currentGitStatus(), files: [], error: '', output: '' };
@@ -674,8 +669,6 @@ async function waitForTransientToasts(page: Page) {
   await page.locator('.curl-toast').waitFor({ state: 'hidden', timeout: 2500 }).catch(() => {});
 }
 
-// The stubbed bridge answers Git from an override, so a test can put the
-// workspace into the state it wants to exercise without a real repository.
 async function setGitStatus(page: Page, status: Record<string, unknown>) {
   await page.evaluate((partial) => {
     const state = window.__relayE2E as unknown as { gitStatusOverride: Record<string, unknown> | null };
@@ -1626,9 +1619,6 @@ test.describe('Relay desktop browser E2E', () => {
     expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth + 1);
   });
 
-  // The Git panel drives the operations that rewrite the workspace on disk.
-  // These cover the ordering the panel owes the editor, and the guard that
-  // keeps local changes from being carried onto another branch.
   test('Git panel commits Relay changes, and writes the pending edit first', async ({ page }) => {
     await installRelayBridge(page);
     await page.goto('/');
@@ -1659,8 +1649,6 @@ test.describe('Relay desktop browser E2E', () => {
 
     expect(commitIndex).toBeGreaterThan(-1);
     expect(calls[commitIndex]).toBe('GitCommitWorkspace:Update the login request');
-    // The editor's pending write has to land before the commit, or the commit
-    // captures the workspace as it was one debounce ago.
     expect(saveIndex).toBeGreaterThan(-1);
     expect(saveIndex).toBeLessThan(commitIndex);
   });
@@ -1751,7 +1739,6 @@ test.describe('Relay desktop browser E2E', () => {
     await expect(page.getByRole('button', { name: 'GET List invoices' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'POST Create invoice' })).toBeVisible();
 
-    // The import is only real once it reaches the store the app persists.
     const store = await page.evaluate(() => window.__relayE2E.store as {
       collections: Array<{ id: string; name: string }>;
       requests: Array<{ name: string; method: string; url: string; testScriptJs?: string }>;
@@ -1762,9 +1749,6 @@ test.describe('Relay desktop browser E2E', () => {
     expect(requests).toHaveLength(2);
     expect(requests.find(entry => entry.name === 'List invoices')?.method).toBe('GET');
     expect(requests.find(entry => entry.name === 'List invoices')?.url).toContain('{{baseUrl}}/invoices');
-    // Scripts are the usual reason a collection exists, and were silently
-    // dropped by the importer until 1.3.0. A Postman script is JavaScript, so
-    // it belongs in the JS slot rather than the legacy Tengo one.
     expect(requests.find(entry => entry.name === 'List invoices')?.testScriptJs ?? '').toContain('pm.test');
   });
 
@@ -1787,10 +1771,6 @@ test.describe('Relay desktop browser E2E', () => {
     await page.getByRole('button', { name: 'Collection runner', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Collection runner', exact: true })).toHaveClass(/active/);
 
-    // Save and Revert only exist for a request, so entering the runner unmounts
-    // them. The buttons that stay — runner, cookies, settings — must not move or
-    // resize when that happens, and no gap may open after them: the last grid
-    // track takes the slack instead of sizing to its contents.
     expect(await rightEdge()).toBe(inRequest.edge);
     expect(await settingsSize()).toBe(inRequest.size);
   });
@@ -1802,15 +1782,11 @@ test.describe('Relay desktop browser E2E', () => {
     await chooseRequestType(page, 'HTTP Request');
     await page.getByLabel('Request URL').fill('https://api.relay.test/orders');
     await page.getByRole('button', { name: 'Send', exact: true }).click();
-    // The example row is named after the status too, so the assertion is scoped
-    // to the response panel's own badge.
     const responseStatus = page.locator('.status-badge');
     await expect(responseStatus).toContainText('200 OK');
     await page.getByRole('button', { name: 'Save as example', exact: true }).click();
     await expect(page.locator('.examples-row')).toHaveCount(1);
 
-    // The stub echoes the URL into the body, so sending a different one is a
-    // response that no longer matches what the example recorded.
     await page.getByLabel('Request URL').fill('https://api.relay.test/orders/moved');
     await page.getByRole('button', { name: 'Send', exact: true }).click();
     await expect(responseStatus).toContainText('200 OK');
@@ -1819,8 +1795,6 @@ test.describe('Relay desktop browser E2E', () => {
     await expect(diffTab).toBeVisible();
     await diffTab.click();
 
-    // Two baselines exist now — the previous response and the example — so the
-    // picker appears and the example can be chosen.
     const picker = page.locator('.diff-baseline-picker select');
     await expect(picker).toBeVisible();
     await picker.selectOption({ label: '200 OK' });
@@ -1829,8 +1803,6 @@ test.describe('Relay desktop browser E2E', () => {
     await expect(page.locator('.diff-count-add')).toBeVisible();
     await expect(page.locator('.diff-line.diff-removed').first()).toContainText('/orders');
 
-    // Clearing an example baseline falls back to the previous response rather
-    // than closing the tab outright.
     await page.getByRole('button', { name: 'Clear baseline' }).click();
     await expect(page.locator('.diff-side-before')).toContainText('previous');
   });
@@ -1839,8 +1811,6 @@ test.describe('Relay desktop browser E2E', () => {
     await installRelayBridge(page);
     await page.goto('/');
 
-    // A saved request, not a draft: a draft is never written to the store, so a
-    // draft would prove nothing about examples surviving.
     await page.getByLabel('New collection').click();
     await fillPrompt(page, 'New collection', 'Orders API');
     await collectionRow(page, 'Orders API').getByLabel('Collection menu').click();
@@ -1854,41 +1824,29 @@ test.describe('Relay desktop browser E2E', () => {
 
     await page.getByRole('button', { name: 'Save as example', exact: true }).click();
 
-    // Capturing opens the tab on what was just saved.
     await expect(page.locator('.examples-row')).toHaveCount(1);
     await expect(page.locator('.examples-name')).toHaveText('200 OK');
     await expect(page.locator('.request-editor-tabs-shell').getByRole('tab', { name: /Examples/ })).toContainText('1');
 
-    // The concrete id in the URL becomes a parameter: an example matched on
-    // /orders/8123 would only ever serve that one order.
     await expect(page.locator('.examples-meta')).toContainText('/orders/:id');
     await expect(page.locator('.examples-status-input')).toHaveValue('200');
 
-    // A second capture must not produce two rows that read the same.
     await page.locator('.response-mini-tabs').getByRole('tab', { name: 'Body' }).click();
     await page.getByRole('button', { name: 'Save as example', exact: true }).click();
     await expect(page.locator('.examples-row')).toHaveCount(2);
     await expect(page.locator('.examples-name').nth(1)).toHaveText('200 OK (2)');
 
-    // Deleting takes the response with it.
     await page.locator('.examples-row').nth(1).getByRole('button', { name: /^Delete/ }).click();
     const confirm = page.getByRole('dialog', { name: 'Delete example' });
     await expect(confirm).toBeVisible();
     await confirm.getByRole('button', { name: 'Delete', exact: true }).click();
     await expect(page.locator('.examples-row')).toHaveCount(1);
 
-    // Capturing an example is an edit like any other, so it marks the request
-    // dirty — without that the save button stays disabled and the example is
-    // only ever in memory.
     const saveButton = page.locator('.save-btn').first();
     await expect(saveButton).toBeEnabled();
     await saveButton.click();
     await expect(saveButton).toBeDisabled();
 
-    // An example is only real once it reaches the store the app persists. The
-    // url is asserted alongside it to guard the manual-save path itself: an
-    // explicit save used to write the previously saved version of the whole
-    // request and still report success, so the edit was lost on the next load.
     await expect.poll(async () => {
       const store = await page.evaluate(() => window.__relayE2E.store as {
         requests: Array<{ url?: string; examples?: Array<{ name: string; response: { statusCode: number } }> }>;

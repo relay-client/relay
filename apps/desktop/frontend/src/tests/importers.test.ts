@@ -731,8 +731,6 @@ paths:
     const { requests, defaults } = openApiImportFromSpec(spec, 'collection-1', 'Petstore');
 
     expect(requests).toHaveLength(2);
-    // The server becomes a collection variable rather than being baked into
-    // every request, so retargeting an imported spec is one edit.
     expect(requests[0]).toMatchObject({
       method: 'GET',
       folderPath: ['Pets'],
@@ -741,8 +739,6 @@ paths:
     expect(defaults.variables).toContainEqual(
       expect.objectContaining({ key: 'baseUrl', value: 'https://api.example.test/v1' }),
     );
-    // A path parameter has to resolve to something, or the request cannot be
-    // sent at all — it used to be left as an undefined {{petId}}.
     expect(defaults.variables).toContainEqual(expect.objectContaining({ key: 'petId' }));
     expect(requests[0].params[0]).toMatchObject({ key: 'verbose', value: 'true' });
     expect(requests[1]).toMatchObject({ method: 'POST', bodyType: 'json' });
@@ -781,9 +777,6 @@ paths:
     expect(JSON.parse(requests[0].bodyContent)).toEqual({ email: 'user@example.com' });
   });
 
-  // Every request used to come in with No Auth even when the spec said exactly
-  // how the API is protected, so an imported collection returned 401 until each
-  // request was configured by hand.
   it('maps a document-level security scheme onto the collection', () => {
     const { requests, defaults } = openApiImportFromSpec({
       openapi: '3.0.0',
@@ -796,10 +789,7 @@ paths:
 
     expect(defaults.auth).toMatchObject({ type: 'bearer', bearerToken: '{{bearerToken}}' });
     expect(defaults.variables).toContainEqual(expect.objectContaining({ key: 'bearerToken', secret: true }));
-    // Inherit rather than a copy, so changing the collection's token later
-    // reaches every request.
     expect(requests[0].auth.type).toBe('inherit');
-    // Alternative servers are recorded so they are not silently lost.
     expect(defaults.variables.find(row => row.key === 'baseUrl')?.description).toContain('staging.example.test');
   });
 
@@ -1262,7 +1252,6 @@ describe('buildPostmanCollection', () => {
     };
 
     const exported = buildPostmanCollection('API', 'Docs.', [request], strip, true, defaults);
-    // The v2.1 schema hangs `event` off the item, not off `request`.
     expect(exported.item[0]).toMatchObject({ event: expect.any(Array) });
     expect(exported.item[0].request).toMatchObject({ description: 'Exchanges credentials for a token.' });
 
@@ -1965,8 +1954,6 @@ describe('examples from imports', () => {
     expect(examples[0].snapshot.bodyContent).toBe('{"amount":5}');
     expect(examples[0].match.pathTemplate).toBe('/orders');
 
-    // No name in the export, so the status line names it; the preview language
-    // stands in for a missing Content-Type.
     expect(examples[1].name).toBe('429 Too Many Requests');
     expect(examples[1].response.bodyMediaType).toBe('text/plain');
   });
@@ -2036,7 +2023,6 @@ describe('examples from imports', () => {
     expect(example).toBeTruthy();
     expect(example.response).toMatchObject({ statusCode: 200, status: '200 OK', bodyMediaType: 'application/json' });
     expect(example.response.body).toBe('{"id":8123}');
-    // The captured id becomes a parameter, so a mock would match the shape.
     expect(example.match.pathTemplate).toBe('/orders/:id');
   });
 
@@ -2089,7 +2075,6 @@ describe('examples from imports', () => {
 
     const requests = openApiRequestsFromSpec(spec, 'col-1', 'Orders');
     const examples = requests[0].examples ?? [];
-    // "default" is a catch-all, not a status, so it produces no example.
     expect(examples.map(item => item.response.statusCode)).toEqual([201, 422]);
     expect(examples[0].name).toBe('201 Created');
     expect(JSON.parse(examples[0].response.body)).toEqual({ id: 'ord_1' });
@@ -2186,8 +2171,6 @@ describe('examples through OpenCollection and Postman settings', () => {
       },
     }], 'col-1', 'API');
 
-    // The value that was declared is filled in; one without a value is left as
-    // written rather than being mangled.
     expect(requests[0].url).toBe('https://api.example.com/users/42/posts/:postId');
   });
 

@@ -56,9 +56,6 @@ func writeDefaultsWorkspace(t *testing.T, baseURL, collectionDefaults, requestBo
 	return root
 }
 
-// The regression this fixes: a request set to inherit used to abort the run with
-// `auth error: unsupported auth type "inherit"`, so any workspace following the
-// documented collection-auth pattern was unrunnable in CI.
 func TestRunCLIAppliesCollectionAuthForInherit(t *testing.T) {
 	httpTransports.closeAll()
 	t.Cleanup(httpTransports.closeAll)
@@ -93,7 +90,6 @@ func TestRunCLIAppliesCollectionAuthForInherit(t *testing.T) {
 	}
 }
 
-// Inheriting with nothing to inherit must send no auth rather than fail.
 func TestRunCLIInheritWithoutCollectionAuthSendsNone(t *testing.T) {
 	httpTransports.closeAll()
 	t.Cleanup(httpTransports.closeAll)
@@ -122,10 +118,6 @@ func TestRunCLIInheritWithoutCollectionAuthSendsNone(t *testing.T) {
 	}
 }
 
-// A workspace that raises the script timeout or opens up pm.sendRequest has to
-// behave the same in CI as it does in the app. Both settings used to be read
-// only from the command line, so a run silently ignored what the collection
-// (and the request) were configured with.
 func TestRunCLIAppliesCollectionScriptSettings(t *testing.T) {
 	httpTransports.closeAll()
 	t.Cleanup(httpTransports.closeAll)
@@ -226,27 +218,22 @@ func TestRunCLIAppliesCollectionHeadersAndScripts(t *testing.T) {
 	}
 }
 
-// --- merge semantics, matching the app ---
-
 func TestMergeCollectionAuth(t *testing.T) {
 	collectionAuth := cliAuth{Type: "bearer", BearerToken: "t"}
 
 	if got := mergeCollectionAuth(collectionAuth, cliAuth{Type: "inherit"}); got.Type != "bearer" {
 		t.Errorf("inherit should take the collection auth, got %q", got.Type)
 	}
-	// A request with its own auth always wins.
 	own := cliAuth{Type: "basic", BasicUser: "u"}
 	if got := mergeCollectionAuth(collectionAuth, own); got.Type != "basic" {
 		t.Errorf("request auth should win, got %q", got.Type)
 	}
-	// Inheriting from a collection with no auth yields none, never "inherit".
 	if got := mergeCollectionAuth(cliAuth{Type: "none"}, cliAuth{Type: "inherit"}); got.Type != "none" {
 		t.Errorf("got %q, want none", got.Type)
 	}
 	if got := mergeCollectionAuth(cliAuth{}, cliAuth{Type: "inherit"}); got.Type != "none" {
 		t.Errorf("got %q, want none", got.Type)
 	}
-	// A collection that itself says inherit must not propagate the token.
 	if got := mergeCollectionAuth(cliAuth{Type: "inherit"}, cliAuth{Type: "inherit"}); got.Type != "none" {
 		t.Errorf("got %q, want none", got.Type)
 	}
@@ -260,7 +247,6 @@ func TestMergeDefaultRows(t *testing.T) {
 	if len(merged) != 2 {
 		t.Fatalf("expected 2 rows, got %#v", merged)
 	}
-	// The request's Accept wins, case-insensitively, and is not duplicated.
 	if merged[0].Key != "X-Client" || merged[1].Key != "accept" {
 		t.Errorf("unexpected merge order/content: %#v", merged)
 	}

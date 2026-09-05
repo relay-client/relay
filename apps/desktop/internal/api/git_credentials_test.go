@@ -148,9 +148,6 @@ func TestShellQuoteDoesNotAllowShellExpansion(t *testing.T) {
 }
 
 func TestGitSSHCommandEnvQuotesKeyPath(t *testing.T) {
-	// gitSSHCommandEnv now refuses non-existent key paths, so create a real
-	// (empty) file with the dangerous-looking name to exercise the shell
-	// quoting logic itself.
 	dir := t.TempDir()
 	keyPath := filepath.Join(dir, `id_$(touch relay-pwn)`)
 	if err := os.WriteFile(keyPath, []byte("x"), 0o600); err != nil {
@@ -175,10 +172,6 @@ func TestGitSSHCommandEnvRejectsMissingKeyFile(t *testing.T) {
 	}
 }
 
-// Bug #3 regression: a transient failure reading the existing credential store
-// must not wipe every other stored host token. gitCredentialSet should abort and
-// leave the file intact so the other credentials survive once the store is
-// readable again.
 func TestGitCredentialSetPreservesOnLoadError(t *testing.T) {
 	withIsolatedStore(t)
 	workingProvider := requestStoreKeyProvider
@@ -191,7 +184,6 @@ func TestGitCredentialSetPreservesOnLoadError(t *testing.T) {
 		t.Fatalf("seed github: %v", err)
 	}
 
-	// Simulate a transient store failure (e.g. keychain subprocess error).
 	requestStoreKeyProvider = func() ([]byte, error) {
 		return nil, errors.New("keychain temporarily unavailable")
 	}
@@ -200,8 +192,6 @@ func TestGitCredentialSetPreservesOnLoadError(t *testing.T) {
 		t.Fatal("expected gitCredentialSet to fail when the store is unreadable")
 	}
 
-	// Recover: the original credentials must still be intact and the failed set
-	// must not have been persisted.
 	requestStoreKeyProvider = workingProvider
 	requestStoreKeyLoader = workingLoader
 	if cred, ok := gitCredentialLookup("gitlab.com"); !ok || cred.Token != "glpat-1" {

@@ -47,17 +47,6 @@ var collectionFieldDefaults = map[string]any{
 	"collapsed": false,
 }
 
-// authActiveFields lists, per auth type, the fields that belong to that type and
-// are therefore written to the workspace YAML. Everything else is dropped so a
-// request that switched from Basic to Bearer does not leave the old credentials
-// behind in a file that gets committed.
-//
-// A field missing from this map is a field silently lost on every save, so the
-// lists are checked against the frontend AuthState by TestAuthActiveFieldsCover
-// AuthState — add the field here whenever one is added to the model.
-//
-// "inherit" carries no fields of its own but must survive: dropping it turns a
-// request that inherits its collection's auth into one that sends none.
 var authActiveFields = map[string][]string{
 	"none":    nil,
 	"inherit": nil,
@@ -76,9 +65,6 @@ var authActiveFields = map[string][]string{
 	"aws": {"awsAccessKey", "awsSecretKey", "awsSessionToken", "awsRegion", "awsService"},
 }
 
-// authTypesWithoutFields keeps a bare `type:` in the file for auth types that
-// carry no other data. Only "none" is safe to drop entirely, because a missing
-// auth block already loads back as "none".
 var authTypesWithoutFields = map[string]bool{"inherit": true}
 
 var requestRowFieldsForStrip = []string{"params", "headers", "formRows", "sioEvents", "grpcMetadata"}

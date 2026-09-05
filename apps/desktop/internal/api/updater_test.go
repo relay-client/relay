@@ -222,9 +222,6 @@ func TestSemverIsNewerTreatsDevBuildAsOutdated(t *testing.T) {
 }
 
 func TestVerifyUpdateSignatureEmptyPublicKeyFailsClosed(t *testing.T) {
-	// Previously an empty embedded public key silently skipped verification.
-	// That made any build without ldflags injection trust unsigned binaries.
-	// Now it must fail closed.
 	if err := verifyUpdateSignature(context.Background(), "/does/not/exist", "", ""); !errors.Is(err, errUpdateSignatureRequired) {
 		t.Fatalf("expected errUpdateSignatureRequired, got: %v", err)
 	}
@@ -233,9 +230,6 @@ func TestVerifyUpdateSignatureEmptyPublicKeyFailsClosed(t *testing.T) {
 	}
 }
 
-// allowAllTrustedURLsForTest disables the github.com host pin for the
-// duration of a single test, so httptest servers can stand in for the real
-// release host.
 func allowAllTrustedURLsForTest(t *testing.T) {
 	t.Helper()
 	prev := trustedReleaseURLOverride

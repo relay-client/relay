@@ -171,8 +171,6 @@ export const requestSerializationFeature = {
       disableCookieJar: req.settings.disableCookieJar,
       maxRedirects: req.settings.maxRedirects,
       ...this.resolveProxyFields(req.settings.proxyUrl ?? ''),
-      // Paths and password are template-resolved so the password can point at a
-      // workspace secret ({{certPassword}}) instead of sitting in the YAML.
       clientCertPath: this.resolveTemplate(req.settings.clientCertPath ?? '', envValues),
       clientKeyPath: this.resolveTemplate(req.settings.clientKeyPath ?? '', envValues),
       clientKeyPassword: this.resolveTemplate(req.settings.clientKeyPassword ?? '', envValues),

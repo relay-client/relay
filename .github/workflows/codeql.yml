@@ -6,7 +6,6 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    # Weekly run so newly published queries reach an idle repository too.
     - cron: '31 4 * * 1'
 
 permissions:

@@ -80,8 +80,6 @@ describe('latestReleaseNotes', () => {
     expect(latestReleaseNotes(CHANGELOG)?.version).toBe('1.1.0');
   });
 
-  // Settings falls back to this when the running build has no matching entry,
-  // so an in-progress "Unreleased" heading must not be what it lands on.
   it('skips a non-numeric heading like Unreleased', () => {
     const withUnreleased = `## [Unreleased]\n\n- work in progress\n\n---\n\n## [1.2.0] - 2026-08-01\n\n- shipped\n`;
     expect(latestReleaseNotes(withUnreleased)?.version).toBe('1.2.0');
@@ -120,8 +118,6 @@ describe('shouldShowWhatsNew', () => {
     expect(shouldShowWhatsNew('1.1.0', '1.0.0', true)).toBe(true);
   });
 
-  // A brand-new user has nothing to catch up on; greeting them with a
-  // changelog is noise.
   it('stays quiet on a fresh install', () => {
     expect(shouldShowWhatsNew('1.1.0', null, true)).toBe(false);
   });
@@ -148,8 +144,6 @@ describe('formatSectionBlocks', () => {
     expect(blocks[1].items.map(i => i.text)).toEqual(['Query parameters keep their order on the wire.']);
   });
 
-  // Folding sub-bullets into the parent turned the CLI entry into a wall of
-  // text in the modal, so nesting is preserved.
   it('keeps a nested bullet as a child of its parent', () => {
     const blocks = formatSectionBlocks(parseChangelog(CHANGELOG)[0].body);
     expect(blocks[0].items[1]).toEqual({

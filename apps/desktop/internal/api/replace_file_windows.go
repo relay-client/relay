@@ -7,9 +7,6 @@ import (
 	"syscall"
 )
 
-// The two ways Windows reports "someone else still has this file open".
-// ERROR_ACCESS_DENIED also covers permanent permission problems, which is why
-// the retry is bounded rather than indefinite.
 const (
 	errorAccessDenied     = syscall.Errno(5)
 	errorSharingViolation = syscall.Errno(32)

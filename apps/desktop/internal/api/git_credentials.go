@@ -145,9 +145,6 @@ func gitCredentialSet(host, username, token string) error {
 	defer gitCredentialsMu.Unlock()
 	creds, err := loadGitCredentials()
 	if err != nil {
-		// Don't overwrite: a transient read/decrypt failure here would wipe every
-		// other stored host token. Missing file returns (emptyMap, nil), so this
-		// only triggers on a real failure.
 		return fmt.Errorf("could not read existing git credentials: %w", err)
 	}
 	creds[host] = gitCredential{Username: strings.TrimSpace(username), Token: token}
@@ -256,11 +253,6 @@ func gitSSHCommandEnv(keyPath string) []string {
 	if key == "" {
 		return nil
 	}
-	// Verify the key file exists before injecting GIT_SSH_COMMAND. A stale
-	// path from imported workspace config would otherwise silently redirect
-	// SSH at a non-existent file (ssh errors are then attributed to the
-	// remote rather than to the local key path). os.Stat also catches the
-	// path pointing at a directory.
 	if info, err := os.Stat(key); err != nil || info.IsDir() {
 		return nil
 	}

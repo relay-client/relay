@@ -186,9 +186,6 @@ export const responseFeature = {
     return { passed, total: result.tests.length, allPassed: passed === result.tests.length };
   },
 
-  // The response being replaced is kept as the baseline for the diff view.
-  // It stays in memory only: bodies are up to 100 MB, which has no business
-  // going into the persisted store.
   setActiveResponse(this: ResponseHost, response: HttpResponse | null, requestId = this.activeRequestId) {
     const replaced = requestId ? this.responses.get(requestId) : null;
     this.response = response;
@@ -208,16 +205,9 @@ export const responseFeature = {
     return (requestId && this.previousResponses.get(requestId)) || null;
   },
 
-  /**
-   * What the current response is compared against. The previous response
-   * answers "did this change since last time"; a saved example answers "does
-   * this still match what we agreed", which is what keeps an example from
-   * quietly going stale.
-   */
   diffBaselineExampleId(this: ResponseHost, requestId = this.activeRequestId): string {
     const chosen = requestId ? this.diffBaselineExampleIds.get(requestId) : '';
     if (!chosen) return '';
-    // A chosen example can be renamed away or deleted while it is selected.
     return this.requestExamples.some(example => example.id === chosen) ? chosen : '';
   },
 
@@ -259,8 +249,6 @@ export const responseFeature = {
 
   clearResponseDiffBaseline(this: ResponseHost, requestId = this.activeRequestId) {
     if (!requestId) return;
-    // Dismissing drops whichever baseline is in use: a chosen example is put
-    // back to the previous response, and dismissing that closes the tab.
     if (this.diffBaselineExampleId(requestId)) {
       this.setDiffBaselineExample('', requestId);
       if (this.previousResponse(requestId)) return;

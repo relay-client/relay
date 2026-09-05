@@ -9,9 +9,6 @@ import (
 	"strings"
 )
 
-// loadDataFile reads a CSV or JSON data file into rows of string values, one map
-// per iteration. The format is chosen by extension, then by sniffing content,
-// matching the desktop collection runner.
 func loadDataFile(path string) ([]map[string]string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -35,8 +32,6 @@ func parseJSONDataRows(text string) ([]map[string]string, error) {
 	if err := json.Unmarshal([]byte(text), &payload); err != nil {
 		return nil, fmt.Errorf("data file is not valid JSON: %w", err)
 	}
-	// Accept a bare array, or an object wrapping the rows under "data"/"rows",
-	// or a single object treated as one row.
 	var rawRows []any
 	switch value := payload.(type) {
 	case []any:
@@ -83,7 +78,6 @@ func jsonCellToString(cell any) string {
 	case bool:
 		return strconv.FormatBool(value)
 	case float64:
-		// Render integers without a trailing ".0".
 		if value == float64(int64(value)) {
 			return strconv.FormatInt(int64(value), 10)
 		}

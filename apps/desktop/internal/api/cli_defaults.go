@@ -4,16 +4,8 @@ import (
 	"strings"
 )
 
-// Collection defaults have to be resolved the same way the app resolves them,
-// or a workspace behaves differently in CI than it does on a desktop. This is a
-// port of applyCollectionDefaultsToRequest in the frontend; the merge rules are
-// deliberately identical, including which side of a joined script wins.
-
-// applyCollectionDefaults folds a collection's defaults into a request.
 func applyCollectionDefaults(req cliSavedRequest, collection *cliCollection) cliSavedRequest {
 	if collection == nil {
-		// A request set to inherit with nowhere to inherit from sends no auth,
-		// rather than failing on an "inherit" auth type it cannot apply.
 		if strings.EqualFold(req.Auth.Type, "inherit") {
 			req.Auth = cliAuth{Type: "none"}
 		}
@@ -23,8 +15,6 @@ func applyCollectionDefaults(req cliSavedRequest, collection *cliCollection) cli
 
 	req.Auth = mergeCollectionAuth(defaults.Auth, req.Auth)
 	req.Headers = mergeDefaultRows(defaults.Headers, req.Headers)
-	// Pre-request scripts run collection-first; test scripts run request-first,
-	// so a collection-level assertion sees what the request already checked.
 	req.PreRequestScript = joinScripts(defaults.PreRequestScript, req.PreRequestScript)
 	req.TestScript = joinScripts(req.TestScript, defaults.TestScript)
 	req.PreRequestScriptJs = joinScripts(defaults.PreRequestScriptJs, req.PreRequestScriptJs)
@@ -33,8 +23,6 @@ func applyCollectionDefaults(req cliSavedRequest, collection *cliCollection) cli
 	return req
 }
 
-// mergeCollectionAuth resolves auth: "inherit" against the collection default.
-// Anything else on the request wins outright.
 func mergeCollectionAuth(defaultAuth, requestAuth cliAuth) cliAuth {
 	if !strings.EqualFold(requestAuth.Type, "inherit") {
 		return requestAuth
@@ -45,8 +33,6 @@ func mergeCollectionAuth(defaultAuth, requestAuth cliAuth) cliAuth {
 	return cliAuth{Type: "none"}
 }
 
-// mergeDefaultRows prepends the collection's rows, skipping any key the request
-// already sets. Matching is case-insensitive because these are header names.
 func mergeDefaultRows(defaultRows, requestRows []cliKV) []cliKV {
 	taken := make(map[string]struct{}, len(requestRows))
 	for _, row := range requestRows {
@@ -68,9 +54,6 @@ func mergeDefaultRows(defaultRows, requestRows []cliKV) []cliKV {
 	return append(merged, requestRows...)
 }
 
-// mergeCollectionSettings fills in each setting the request left at its zero
-// value. The CLI has no settingsOverrides map, so "unset" is the signal — which
-// is why the pointer fields in cliSettings matter.
 func mergeCollectionSettings(defaults, req cliSettings) cliSettings {
 	if req.HTTPVersion == "" {
 		req.HTTPVersion = defaults.HTTPVersion
