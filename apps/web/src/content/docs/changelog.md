@@ -5,6 +5,23 @@ description: Notable Relay changes and links to the exact notes for each publish
 
 This page summarizes the notable-change log maintained in the source repository. For the exact notes and artifacts attached to every published tag, use the [Relay releases page](https://github.com/relay-client/relay/releases).
 
+## 1.6.0
+
+### Added
+
+- **Import an OpenAPI or Swagger spec from a link.** Every import path wanted a file, so bringing in a spec meant downloading it first — and the URL is what teams actually pass around, because it is the one that stays current. **Import collection → OpenAPI / Swagger from URL** takes the link and builds the same collection the file import would: `{{baseUrl}}` as a collection variable, path parameters seeded from the spec, and declared security schemes mapped onto each request's auth. See [Import and export](/docs/guides/import-export/).
+- A link that turns out not to be a spec explains which of the several things went wrong. Pasting the Swagger UI page instead of the document it renders is the common one, and Relay says so rather than reporting a parse failure.
+
+### Fixed
+
+- **Uploads went out without a `Content-Length`.** A file body and a multipart body were sent chunked, which S3 presigned uploads, Azure Blob and a fair number of gateways reject outright — often with nothing more than `411 Length Required`. Both declare their size now, and a file body survives a redirect instead of abandoning the send.
+- **AWS Signature v4 was rejected by everything except S3 when the path needed escaping.** Lambda's invoke URL carries the function ARN in the path, colons and all, and every service but S3 wants that path encoded twice. Those requests came back `SignatureDoesNotMatch`.
+- **The Authorization tab silently replaced a header you typed yourself.** It still wins, but the response panel now tells you it did, instead of leaving you looking at a header that never went out.
+- **Pasted cURL commands lost things Relay can represent**: a form part's `Content-Type`, and the `-k`, `--max-time` and `--proxy` flags, so the request quietly behaved differently from the command.
+- **Copying a request as cURL or as a code snippet mislabelled the body.** An XML, HTML or plain-text body arrived as curl's default `application/x-www-form-urlencoded` — a different request from the one you copied.
+- **A second value for a query parameter already in the URL was dropped**, so `?tag=a` in the URL with `tag=b` in the Params tab sent only the first.
+- **Capturing a response example rewrote the body** even when nothing was redacted, which turned an id larger than JavaScript's safe integer range into a different number. See [Response examples](/docs/guides/response-viewer/).
+
 ## 1.5.0
 
 ### Added

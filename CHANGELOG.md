@@ -7,6 +7,10 @@ All notable changes to Relay are documented here. This project follows
 
 ## [Unreleased]
 
+---
+
+## [1.6.0] - 2026-09-05
+
 ### Added
 - **Import an OpenAPI or Swagger spec from a URL.** Every import path took a file, so bringing in a spec meant downloading it first — and a spec URL is what teams actually pass around, because it is the one that stays current. **Import collection → OpenAPI / Swagger from URL** takes the link, fetches it, and builds the same collection the file import would: `{{baseUrl}}` as a collection variable, path parameters seeded from the spec, declared security schemes mapped onto each request's auth. The fetch goes through the Go sender rather than the WebView — a spec host has no reason to send CORS headers, and it brings redirect following, the proxy settings a corporate network needs, and the response cap. A link with no scheme is read as `https`, cookies are left out of the request, and the collection is named from the spec's `info.title`, falling back to the host rather than to a generic path segment like `/v3/api-docs`.
 - A URL that turns out not to be a spec says which of the several things went wrong, in a dialog rather than a toast that has gone by the time it is read. The one worth naming: pasting the **Swagger UI page** rather than the document it renders is the most common mistake by far, and "could not parse" would send someone looking at the wrong end of it — so that case says so, and names where the document usually lives.
@@ -24,6 +28,7 @@ All notable changes to Relay are documented here. This project follows
 - **An empty `form-data` or `x-www-form-urlencoded` body was framed on a `GET`.** The raw body types already treated an empty payload on a method that conventionally carries none as no body at all; these two did not.
 
 ### Changed
+- **Code comments were removed across the repository**, at the maintainer's request. What stays is anything that instructs a tool rather than a reader: `//go:build` and `//go:embed`, `//nolint`, `eslint-disable`, `svelte-ignore`. Each language was cut with its own parser rather than a regular expression — Go through `go/scanner`, TypeScript and the Svelte `<script>` blocks through the TypeScript parser, stylesheets through a CSS scanner that tracks strings — so a `//` inside a string or a regex literal was never mistaken for a comment. Go token streams were compared before and after across every file and are identical, the YAML workflows were parsed both ways and compared as documents, and the generated Wails bindings were left alone because CI checks them against the generator's own output.
 - The README no longer understates what is there: OAuth 2.0 lists the Password and Device Code grants added in 1.4.0, the per-request settings mention the proxy, and the scripting section gives the configurable timeout rather than only the 2-second default — and stops listing `require` as disabled two paragraphs after describing what it resolves.
 
 ---
