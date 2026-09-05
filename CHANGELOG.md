@@ -7,6 +7,13 @@ All notable changes to Relay are documented here. This project follows
 
 ## [Unreleased]
 
+### Added
+- **A local mock server, built on saved examples.** Point it at a collection and Relay serves every example it holds over HTTP, so a client can be written against an endpoint that does not exist yet — or against the failure cases a real staging environment will not produce on demand. This is what examples were leading to: they already stored the response, the request that produced it, and a path template (`/orders/8123` captured as `/orders/:id`), so the mock is matching rather than a new kind of data. Postman's equivalent lives in the cloud and needs an account; this one is a port on your own machine, serving files that are in your Git history.
+- Routing takes the method and the path template, with a literal segment beating a parameter, so `/pets/featured` wins over `/pets/:id` no matter which example was captured first. An example that recorded query parameters only answers requests carrying them, which is how one endpoint serves its empty, its full and its error case from three examples. OpenAPI-style `{petId}` segments match the same way `:petId` does.
+- The server binds **loopback only** — a mock made from real recorded responses is not something to put on the network by accident — and answers CORS preflight for any origin, since the first client to hit it is usually a browser app on another port. A request that matches nothing gets a 404 naming the routes that do exist, rather than a bare status.
+- **Requests-served log**, live, showing what a client actually asked for and which example answered. The unmatched rows are the useful ones: they are the difference between "my fetch is wrong" and "no example covers this yet". The log is kept on the Go side too, so reopening the tab shows what happened while it was closed.
+- **Reproduce recorded latency**, off by default: each example knows how long the real response took, which is a cheap way to see a loading state that a local mock otherwise never shows.
+
 ---
 
 ## [1.6.0] - 2026-09-05

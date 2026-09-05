@@ -36,6 +36,7 @@ type App struct {
 	sse            *sseManager
 	ws             *websocketManager
 	sio            *socketIOManager
+	mock           *mockServer
 }
 
 type SaveRequestStoreResult struct {
@@ -58,6 +59,7 @@ func NewApp() *App {
 		sse:            newSSEManager(jars),
 		ws:             newWebSocketManager(jars),
 		sio:            newSocketIOManager(jars),
+		mock:           newMockServer(),
 	}
 }
 
@@ -95,6 +97,9 @@ func (a *App) Shutdown(_ context.Context) {
 	}
 	if a.sse != nil {
 		a.sse.disconnectAll()
+	}
+	if a.mock != nil {
+		a.mock.stop()
 	}
 	httpTransports.closeAll()
 }
@@ -758,4 +763,39 @@ func (a *App) SocketIODisconnect(sessionID string) {
 
 func (a *App) SocketIOEmit(sessionID string, msg model.SocketIOEmitMessage) model.SocketIOEmitResult {
 	return a.sio.emit(sessionID, msg)
+}
+
+func (a *App) StartMockServer(config model.MockServerConfig) model.MockServerStatus {
+	if a.mock == nil {
+		return model.MockServerStatus{Error: "mock server is unavailable"}
+	}
+	return a.mock.start(config, a.emitMockRequest)
+}
+
+func (a *App) StopMockServer() model.MockServerStatus {
+	if a.mock == nil {
+		return model.MockServerStatus{}
+	}
+	return a.mock.stop()
+}
+
+func (a *App) MockServerStatus() model.MockServerStatus {
+	if a.mock == nil {
+		return model.MockServerStatus{}
+	}
+	return a.mock.status()
+}
+
+func (a *App) MockServerLog() []model.MockRequestLog {
+	if a.mock == nil {
+		return []model.MockRequestLog{}
+	}
+	return a.mock.recentLog()
+}
+
+func (a *App) emitMockRequest(entry model.MockRequestLog) {
+	if a.ctx == nil {
+		return
+	}
+	runtime.EventsEmit(a.ctx, "mock:request", entry)
 }

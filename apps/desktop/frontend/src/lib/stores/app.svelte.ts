@@ -4,7 +4,9 @@ import {
   gitStatus, gitCommitLogPage, gitListBranches,
   useLocalWorkspaceStore, createLocalWorkspaceRoot, saveWorkspaceSecrets,
 } from '../backend';
-import type { CookieJarEntry, GitBranchListResult, GitConflictFileResult, GitDiffResult, GitLogResult, GitWorkspaceStatus, HttpResponse, OAuth2DevicePrompt, WorkspaceDiagnostic, WorkspaceOpenResult, WorkspaceSecretRef } from '../backend';
+import type { CookieJarEntry, GitBranchListResult, GitConflictFileResult, GitDiffResult, GitLogResult, GitWorkspaceStatus, HttpResponse, MockRequestLog, MockServerStatus, OAuth2DevicePrompt, WorkspaceDiagnostic, WorkspaceOpenResult, WorkspaceSecretRef } from '../backend';
+import { EMPTY_MOCK_SERVER_STATUS } from '../wire';
+import { DEFAULT_MOCK_PORT } from '../mockRoutes';
 import type { SSEEventEntry, SSESession, WebSocketMessageEntry, WebSocketSession, SocketIOMessageEntry, SocketIOSession, SocketIOClientVersion } from '../types/models';
 import { initialThemeState, type AppTheme, type ResolvedAppTheme } from '../theme';
 import {
@@ -68,6 +70,7 @@ import { sseFeature } from './features/sse';
 import { websocketFeature } from './features/websocket';
 import { socketioFeature } from './features/socketio';
 import { mkSioEventRow, socketioFormFeature } from './features/socketioForm';
+import { mockServerFeature } from './features/mockServer';
 import { dialogFeature } from './features/dialogs';
 import { environmentFeature } from './features/environments';
 import { globalsFeature, withTrailingRow as withTrailingGlobalRow } from './features/globals';
@@ -214,6 +217,30 @@ class AppVM {
   declare sioCurrentArgLang: typeof socketioFormFeature.sioCurrentArgLang;
   declare sioEventsWithTrailing: typeof socketioFormFeature.sioEventsWithTrailing;
   declare updateSioEventRow: typeof socketioFormFeature.updateSioEventRow;
+
+  mockServer = $state<MockServerStatus>({ ...EMPTY_MOCK_SERVER_STATUS });
+  mockServerCollectionId = $state('');
+  mockServerPort = $state(DEFAULT_MOCK_PORT);
+  mockServerSimulateLatency = $state(false);
+  mockServerBusy = $state(false);
+  mockServerLog = $state<MockRequestLog[]>([]);
+  mockServerError = $state('');
+  mockServerTabOpen = $state(false);
+  declare mockServerTargetCollectionId: typeof mockServerFeature.mockServerTargetCollectionId;
+  declare mockServerRoutes: typeof mockServerFeature.mockServerRoutes;
+  declare mockServerRouteCount: typeof mockServerFeature.mockServerRouteCount;
+  declare mockServerCollectionOptions: typeof mockServerFeature.mockServerCollectionOptions;
+  declare refreshMockServerStatus: typeof mockServerFeature.refreshMockServerStatus;
+  declare startMockServerForCollection: typeof mockServerFeature.startMockServerForCollection;
+  declare stopMockServerNow: typeof mockServerFeature.stopMockServerNow;
+  declare toggleMockServer: typeof mockServerFeature.toggleMockServer;
+  declare restartMockServerWithCurrentExamples: typeof mockServerFeature.restartMockServerWithCurrentExamples;
+  declare recordMockRequest: typeof mockServerFeature.recordMockRequest;
+  declare clearMockServerLog: typeof mockServerFeature.clearMockServerLog;
+  declare selectMockServerCollection: typeof mockServerFeature.selectMockServerCollection;
+  declare setMockServerPort: typeof mockServerFeature.setMockServerPort;
+  declare openMockServerTab: typeof mockServerFeature.openMockServerTab;
+  declare closeMockServerTab: typeof mockServerFeature.closeMockServerTab;
   declare removeSioEventRow: typeof socketioFormFeature.removeSioEventRow;
 
   declare currentSSESession: typeof realtimeFeature.currentSSESession;
@@ -1640,6 +1667,7 @@ applyFeatures(
   websocketFeature,
   socketioFeature,
   socketioFormFeature,
+  mockServerFeature,
   realtimeFeature,
   collectionRunnerDerivedFeature,
   collectionRunnerFeature,

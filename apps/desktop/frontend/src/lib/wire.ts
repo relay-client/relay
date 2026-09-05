@@ -18,6 +18,10 @@ export type GrpcServiceDefinition = Wire<model.GrpcServiceDefinition>;
 export type HttpRequest = Wire<model.HttpRequest>;
 export type HttpResponse = Wire<model.HttpResponse>;
 export type KeyValue = Wire<model.KeyValue>;
+export type MockRoute = Wire<model.MockRoute>;
+export type MockServerConfig = Wire<model.MockServerConfig>;
+export type MockServerStatus = Wire<model.MockServerStatus>;
+export type MockRequestLog = Wire<model.MockRequestLog>;
 export type OAuth2TokenResponse = Wire<model.OAuth2TokenResponse>;
 export type ScriptResult = Wire<model.ScriptResult>;
 export type SentRequest = Wire<model.SentRequest>;
@@ -208,6 +212,15 @@ export function emptyAuthConfig(): AuthConfig {
     awsService: '',
   };
 }
+
+export const EMPTY_MOCK_SERVER_STATUS: MockServerStatus = {
+  running: false,
+  port: 0,
+  url: '',
+  collectionId: '',
+  collectionName: '',
+  routeCount: 0,
+};
 
 export const EMPTY_GIT_STATUS: GitWorkspaceStatus = {
   isRepo: false,

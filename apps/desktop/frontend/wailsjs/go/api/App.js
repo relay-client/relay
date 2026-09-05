@@ -290,6 +290,14 @@ export function LogFilePath() {
   return window['go']['api']['App']['LogFilePath']();
 }
 
+export function MockServerLog() {
+  return window['go']['api']['App']['MockServerLog']();
+}
+
+export function MockServerStatus() {
+  return window['go']['api']['App']['MockServerStatus']();
+}
+
 export function OpenDirectoryDialog(arg1) {
   return window['go']['api']['App']['OpenDirectoryDialog'](arg1);
 }
@@ -416,6 +424,14 @@ export function SocketIODisconnect(arg1) {
 
 export function SocketIOEmit(arg1, arg2) {
   return window['go']['api']['App']['SocketIOEmit'](arg1, arg2);
+}
+
+export function StartMockServer(arg1) {
+  return window['go']['api']['App']['StartMockServer'](arg1);
+}
+
+export function StopMockServer() {
+  return window['go']['api']['App']['StopMockServer']();
 }
 
 export function UpsertCookie(arg1, arg2) {

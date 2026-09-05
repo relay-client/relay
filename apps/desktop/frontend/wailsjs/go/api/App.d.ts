@@ -147,6 +147,10 @@ export function LoadWorkspaceDiagnostics():Promise<Array<api.WorkspaceDiagnostic
 
 export function LogFilePath():Promise<string>;
 
+export function MockServerLog():Promise<Array<model.MockRequestLog>>;
+
+export function MockServerStatus():Promise<model.MockServerStatus>;
+
 export function OpenDirectoryDialog(arg1:string):Promise<string>;
 
 export function OpenDirectoryDialogWithDefault(arg1:string,arg2:string):Promise<string>;
@@ -210,6 +214,10 @@ export function SocketIOConnect(arg1:string,arg2:model.HttpRequest):Promise<void
 export function SocketIODisconnect(arg1:string):Promise<void>;
 
 export function SocketIOEmit(arg1:string,arg2:model.SocketIOEmitMessage):Promise<model.SocketIOEmitResult>;
+
+export function StartMockServer(arg1:model.MockServerConfig):Promise<model.MockServerStatus>;
+
+export function StopMockServer():Promise<model.MockServerStatus>;
 
 export function UpsertCookie(arg1:string,arg2:model.Cookie):Promise<model.CookieJarResult>;
 

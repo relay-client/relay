@@ -5,11 +5,11 @@ import type {
   GitWorkspaceStatus, GrpcRequest, GrpcResponse, GrpcServiceDefinition, HttpRequest, HttpResponse,
   OAuth2TokenResponse, SaveRequestStoreResult, SocketIOEmitMessage, SocketIOEmitResult, UpdateCheckResult,
   UpdateInfo, WebSocketSendMessage, WebSocketSendResult, WorkspaceDiagnostic, WorkspaceOpenResult,
-  WorkspaceYAMLFileResult, HistoryResponseResult,
+  WorkspaceYAMLFileResult, HistoryResponseResult, MockServerConfig, MockServerStatus, MockRequestLog,
 } from './wire';
 import {
   EMPTY_GIT_BRANCH_LIST, EMPTY_GIT_CONFLICT_FILE, EMPTY_GIT_LOG,
-  EMPTY_GIT_OPERATION_RESULT, EMPTY_GIT_STATUS, EMPTY_WORKSPACE_OPEN_RESULT,
+  EMPTY_GIT_OPERATION_RESULT, EMPTY_GIT_STATUS, EMPTY_WORKSPACE_OPEN_RESULT, EMPTY_MOCK_SERVER_STATUS,
 } from './wire';
 
 export * from './wire';
@@ -489,4 +489,30 @@ export async function pruneHistoryResponses(keepIds: string[]): Promise<string> 
 
 export async function clearHistoryResponses(): Promise<string> {
   return (await window.go?.api?.App?.ClearHistoryResponses?.()) ?? '';
+}
+
+export async function startMockServer(config: MockServerConfig): Promise<MockServerStatus> {
+  const app = window.go?.api?.App;
+  if (!app?.StartMockServer) {
+    return { ...EMPTY_MOCK_SERVER_STATUS, error: 'The mock server is only available in the desktop app.' };
+  }
+  return app.StartMockServer(config);
+}
+
+export async function stopMockServer(): Promise<MockServerStatus> {
+  const app = window.go?.api?.App;
+  if (!app?.StopMockServer) return EMPTY_MOCK_SERVER_STATUS;
+  return app.StopMockServer();
+}
+
+export async function mockServerStatus(): Promise<MockServerStatus> {
+  const app = window.go?.api?.App;
+  if (!app?.MockServerStatus) return EMPTY_MOCK_SERVER_STATUS;
+  return app.MockServerStatus();
+}
+
+export async function mockServerLog(): Promise<MockRequestLog[]> {
+  const app = window.go?.api?.App;
+  if (!app?.MockServerLog) return [];
+  return app.MockServerLog();
 }
