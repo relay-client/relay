@@ -19,12 +19,12 @@ function selectedEnabledOption(options: DialogOption[] | undefined, value: strin
 }
 
 export const dialogFeature = {
-  openPromptDialog(this: DialogHost, title: string, initialValue = '', message = '') {
+  openPromptDialog(this: DialogHost, title: string, initialValue = '', message = '', placeholder = 'Name', confirmLabel = 'Save') {
     this.closeFloatingMenus();
     this.dialogSelectOpen = false;
     this.dialogInputValue = initialValue;
     return new Promise<string | null>((resolve) => {
-      this.appDialog = { mode: 'prompt', title, message, confirmLabel: 'Save', cancelLabel: 'Cancel', danger: false, resolve: (value) => resolve(typeof value === 'string' ? value : null) };
+      this.appDialog = { mode: 'prompt', title, message, confirmLabel, cancelLabel: 'Cancel', danger: false, placeholder, resolve: (value) => resolve(typeof value === 'string' ? value : null) };
     });
   },
   openConfirmDialog(this: DialogHost, title: string, message: string, confirmLabel = 'Delete') {

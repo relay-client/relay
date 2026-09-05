@@ -1,4 +1,5 @@
-import { openDirectoryDialog, readCollectionTextFiles, writeCollectionTextFiles } from '../../backend';
+import { openDirectoryDialog, readCollectionTextFiles, sendHttpRequest, writeCollectionTextFiles } from '../../backend';
+import { emptyAuthConfig, emptyHttpRequest } from '../../wire';
 import type { BodyType, Collection, CollectionDefaults, Environment, KVRow, RequestHistoryEntry, SavedRequest, ScriptEngine, Workspace } from '../../types/models';
 import { mergeGlobalRowsWithValues } from './globals';
 import { mkRow } from '../../constants';
@@ -14,6 +15,59 @@ type ImportedCollectionDefaults = { variables?: KVRow[]; auth?: import('../../ty
 type ImportSource = 'bruno' | 'postman' | 'insomnia' | 'openapi' | 'har' | 'httpfile';
 
 type DialogOptionInput = { value: string; label: string; icon?: string; description?: string };
+
+// A spec URL is nearly always https, and pasting one without the scheme is
+// ordinary. The sender would default a bare host to http, which for a public
+// spec is the wrong guess and usually just redirects.
+export function normalizeSpecUrl(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return '';
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed.replace(/^\/+/, '')}`;
+}
+
+function headerValue(headers: Array<{ key: string; value: string }> | undefined, name: string): string {
+  return headers?.find(header => header.key.toLowerCase() === name.toLowerCase())?.value ?? '';
+}
+
+/**
+ * Fetch a document through the Go sender rather than the WebView. A spec host
+ * has no reason to send CORS headers, so `fetch` from the app origin would be
+ * blocked for most of them; the sender also brings redirect following, which
+ * spec URLs lean on heavily, and the proxy and TLS settings a corporate network
+ * needs. Redirects are capped and the response size is bounded by the executor.
+ */
+async function fetchImportDocument(url: string): Promise<{ body: string; contentType: string }> {
+  const response = await sendHttpRequest({
+    ...emptyHttpRequest(),
+    requestId: `import-url-${Date.now()}`,
+    method: 'GET',
+    url,
+    headers: [{
+      key: 'Accept',
+      value: 'application/json, application/yaml, text/yaml, text/plain;q=0.9, */*;q=0.8',
+      enabled: true,
+      isFile: false,
+      fileName: '',
+      contentType: '',
+    }],
+    auth: emptyAuthConfig(),
+    bodyType: 'none',
+    followRedirects: true,
+    maxRedirects: 10,
+    timeoutMs: 30000,
+    enableSSLVerification: true,
+    encodeUrlAutomatically: true,
+    // A spec is public data; sending the workspace's cookies with it would be
+    // the wrong default for a URL the user only pasted to read once.
+    disableCookieJar: true,
+  });
+  if (response.error && !response.statusCode) throw new Error(response.error);
+  if (response.statusCode >= 400) {
+    throw new Error(`That URL answered ${response.status || response.statusCode}.`);
+  }
+  return { body: response.body ?? '', contentType: headerValue(response.headers, 'content-type') };
+}
 
 export type ImportedCollectionBundle = {
   id?: string;
@@ -48,7 +102,7 @@ type ImportExportHost = {
   closeFloatingMenus: () => void;
   openSelectDialog: (title: string, message: string, options: DialogOptionInput[], confirmLabel?: string, cancelLabel?: string) => Promise<string>;
   openAlertDialog: (title: string, message: string) => Promise<void>;
-  openPromptDialog: (title: string, initialValue?: string, message?: string) => Promise<string>;
+  openPromptDialog: (title: string, initialValue?: string, message?: string, placeholder?: string, confirmLabel?: string) => Promise<string>;
   persistActiveRequestNow: (forceDisk?: boolean) => Promise<void>;
   persistRequestStore: (nextRequests?: SavedRequest[], activeId?: string, nextOpenIds?: string[], nextWorkspaces?: Workspace[], nextCollections?: Collection[], workspaceId?: string, nextHistory?: RequestHistoryEntry[], nextEnvironments?: Environment[], nextActiveEnvId?: string) => Promise<boolean>;
   applySavedRequest: (req: SavedRequest) => void;
@@ -70,6 +124,8 @@ type ImportExportHost = {
   importPostmanPayload: (payload: unknown, fileName: string) => Promise<number>;
   importInsomniaPayload: (payload: unknown, fileName: string) => Promise<number>;
   importOpenApiPayload: (payload: unknown, fileName: string) => Promise<number>;
+  importOpenApiFromUrl: (specUrl: string) => Promise<number>;
+  openOpenApiUrlImport: () => Promise<void>;
   exportCollectionToOpenCollection: (collectionId: string) => Promise<void>;
   exportCollectionToPostman: (collectionId: string) => Promise<void>;
   exportCollectionToInsomnia: (collectionId: string) => Promise<void>;
@@ -86,16 +142,58 @@ export const importExportFeature = {
       { value: 'postman', label: 'Postman Collection', icon: 'postman', description: 'Import a Postman v2.1 collection, environment, or globals JSON file.' },
       { value: 'insomnia', label: 'Insomnia Export', icon: 'insomnia', description: 'Import an Insomnia workspace or collection export JSON file.' },
       { value: 'openapi', label: 'OpenAPI / Swagger', icon: 'openapi', description: 'Import OpenAPI 3.x or Swagger 2.0 JSON/YAML specs.' },
+      { value: 'openapi-url', label: 'OpenAPI / Swagger from URL', icon: 'openapi', description: 'Fetch a spec from a link — https://api.example.com/openapi.json' },
       { value: 'har', label: 'HAR from DevTools', icon: 'har', description: 'Turn captured browser traffic into requests.' },
       { value: 'httpfile', label: '.http / .rest file', icon: 'httpfile', description: 'Import a JetBrains HTTP Client or VS Code REST Client file.' },
     ], 'Import');
     if (!source) return;
+    if (source === 'openapi-url') {
+      await this.openOpenApiUrlImport();
+      return;
+    }
     this.collectionImportSource = source as ImportSource;
     if (this.collectionImportSource === 'bruno') {
       await this.importBrunoOpenCollectionFolder();
       return;
     }
     this._postmanImportInput?.click();
+  },
+  async openOpenApiUrlImport(this: ImportExportHost) {
+    if (!this.guardWorkspaceWritable('Importing')) return;
+    const entered = await this.openPromptDialog(
+      'Import from URL',
+      '',
+      'Paste a link to an OpenAPI 3.x or Swagger 2.0 document. Relay fetches it and builds a collection from the paths it declares.',
+      'https://api.example.com/openapi.json',
+      'Import',
+    );
+    if (!entered?.trim()) return;
+    this.collectionImportToast = 'Fetching spec…';
+    try {
+      const count = await this.importOpenApiFromUrl(entered);
+      this.collectionImportToast = this.collectionImportSummary
+        || (count ? `Imported ${count} request${count === 1 ? '' : 's'}` : 'Imported empty collection');
+      this.collectionImportSummary = '';
+    } catch (err) {
+      this.collectionImportToast = '';
+      // The failures here are things the user can fix — a wrong link, a page
+      // instead of a document, a 404 — so they get a dialog that stays put
+      // rather than a toast that has gone by the time it is read.
+      await this.openAlertDialog('Import from URL failed', err instanceof Error ? err.message : String(err));
+      return;
+    } finally {
+      this.collectionImportSummary = '';
+    }
+    setTimeout(() => (this.collectionImportToast = ''), 3200);
+  },
+  async importOpenApiFromUrl(this: ImportExportHost, specUrl: string) {
+    if (!this.guardWorkspaceWritable('Importing')) return 0;
+    const url = normalizeSpecUrl(specUrl);
+    if (!url) throw new Error('Enter a URL to import from.');
+    const { parseOpenApiResponse, openApiNameFromUrl } = await import('../../openapi');
+    const { body, contentType } = await fetchImportDocument(url);
+    const spec = parseOpenApiResponse(body, contentType);
+    return this.importOpenApiPayload(spec, openApiNameFromUrl(url));
   },
   async onPostmanImportFile(this: ImportExportHost, e: Event) {
     const input = e.currentTarget as HTMLInputElement;

@@ -335,6 +335,65 @@ export function parseOpenApiDocument(text: string): unknown {
   }
 }
 
+export function isOpenApiDocument(value: unknown): boolean {
+  return isRecord(value) && (Boolean(asText(value.openapi)) || Boolean(asText(value.swagger)));
+}
+
+function looksLikeHtml(body: string, contentType: string): boolean {
+  if (/\btext\/html\b/i.test(contentType)) return true;
+  return /^\s*(<!doctype\s+html|<html[\s>])/i.test(body);
+}
+
+/**
+ * Turn a fetched document into a spec, or throw something the user can act on.
+ * Every failure here has a specific cause worth naming: the most common by far
+ * is a link to the Swagger UI page rather than to the document it renders, and
+ * "could not parse" would send someone looking at the wrong thing entirely.
+ */
+export function parseOpenApiResponse(body: string, contentType = ''): unknown {
+  if (!body.trim()) {
+    throw new Error('That URL returned an empty document.');
+  }
+  if (looksLikeHtml(body, contentType)) {
+    throw new Error(
+      'That URL returns a web page, not a spec. Swagger UI serves the document itself at a separate path — usually /swagger.json, /openapi.json or /v3/api-docs.',
+    );
+  }
+  let spec: unknown;
+  try {
+    spec = parseOpenApiDocument(body);
+  } catch {
+    throw new Error('Could not read that document as JSON or YAML.');
+  }
+  // The YAML parser is lenient — it answers {} for most junk rather than
+  // throwing — so the version field, not the parse, is what actually decides
+  // whether this is a spec. A document of the wrong shape entirely (a bare list)
+  // lands here too, and the same sentence is the useful one for it.
+  if (!isOpenApiDocument(spec)) {
+    throw new Error('That document has no "openapi" or "swagger" version field, so it is not a spec Relay can import.');
+  }
+  return spec as Record<string, unknown>;
+}
+
+/**
+ * A fallback collection name for a spec whose info.title is missing: the last
+ * meaningful path segment, else the host. "openapi.json" reads better than the
+ * whole URL, and the host reads better than a bare "/v3/api-docs".
+ */
+export function openApiNameFromUrl(url: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return '';
+  }
+  const segments = parsed.pathname.split('/').filter(Boolean);
+  const last = segments.at(-1) ?? '';
+  const stem = last.replace(/\.(json|ya?ml)$/i, '');
+  if (stem && !/^(v\d+|api-docs|openapi|swagger|spec)$/i.test(stem)) return stem;
+  return parsed.hostname || stem;
+}
+
 export function openApiCollectionName(spec: unknown, fileName: string) {
   const info = isRecord(spec) && isRecord(spec.info) ? spec.info : {};
   return asText(info.title) || fileName.replace(/\.(json|ya?ml)$/i, '') || 'OpenAPI Import';

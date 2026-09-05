@@ -14,6 +14,7 @@ type AppDialogBase = {
   confirmLabel: string;
   cancelLabel: string;
   danger: boolean;
+  placeholder?: string;
   resolve: (value?: DialogResult) => void;
 };
 

@@ -44,7 +44,7 @@
       <input
         bind:value={inputValue}
         onkeydown={onInputKeydown}
-        placeholder="Name"
+        placeholder={dialog.placeholder || 'Name'}
         spellcheck="false"
         data-autofocus
       />

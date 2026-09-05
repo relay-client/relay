@@ -41,6 +41,7 @@ Guides, the scripting reference, and the YAML workspace format live in the **[do
 - cURL import — paste a curl command into the URL field, it parses automatically
 - GraphQL, Server-Sent Events, WebSocket, Socket.IO, and gRPC request types
 - Postman, Insomnia, Bruno/OpenCollection, OpenAPI/Swagger, HAR, cURL, and all-data backup import paths
+- OpenAPI/Swagger imports from a link as well as a file — paste the spec URL and Relay fetches it and builds the collection
 - Postman, OpenAPI, OpenCollection, and all-data backup export paths
 
 **Authentication**
