@@ -48,7 +48,7 @@ Guides, the scripting reference, and the YAML workspace format live in the **[do
 - Basic Auth
 - Digest Auth (full MD5 challenge-response)
 - API Key — in header or query string
-- OAuth 2.0 — Client Credentials and Authorization Code (with PKCE) grants; loopback browser sign-in, refresh tokens, and automatic token refresh before each send
+- OAuth 2.0 — Client Credentials, Authorization Code (with PKCE), Password, and Device Code grants; loopback browser sign-in, refresh tokens, and automatic token refresh before each send
 - AWS Signature v4
 - Client certificates (mutual TLS), per request or inherited from a collection
 - Per-request and collection defaults with inheritance
@@ -97,7 +97,7 @@ pm.test("has an id", () => pm.response.to.have.jsonSchema({ type: "object", requ
 - Go `net/http`
 - More in the side panel
 
-**Settings per request**: HTTP version (auto / 1.1 / 2), SSL verification, redirect policy (follow, preserve method, preserve auth), cookie jar, timeout, URL encoding.
+**Settings per request**: HTTP version (auto / 1.1 / 2), SSL verification, redirect policy (follow, preserve method, preserve auth), cookie jar, timeout, proxy, URL encoding.
 
 **Keyboard-first**: all actions have configurable shortcuts. Global search (`⌘K`), quick send (`⌘Enter`), tab switching (`⌘1`–`⌘9`).
 
@@ -170,7 +170,7 @@ perf/                       Generated performance fixtures (ignored by Git)
 
 ## Scripting API reference
 
-Scripts run in a sandboxed JavaScript environment by default, or in the legacy [Tengo](https://github.com/d5/tengo) engine for existing requests. Imports, `require`, filesystem, process, and network access are disabled. Execution timeout: 2 seconds.
+Scripts run in a sandboxed JavaScript environment by default, or in the legacy [Tengo](https://github.com/d5/tengo) engine for existing requests. Imports, filesystem, process, and network access are disabled. Execution timeout: 2 seconds by default, configurable per request up to 60.
 
 **`pm.request`**
 

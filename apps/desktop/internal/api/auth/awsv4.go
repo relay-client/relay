@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -62,10 +63,7 @@ func Sign(req *http.Request, cfg model.AuthConfig) error {
 	canonicalHeaders := canonicalHeaderBlock(req.Header, signedHeaders, host)
 	signedHeadersStr := strings.Join(signedHeaders, ";")
 
-	canonicalURI := req.URL.EscapedPath()
-	if canonicalURI == "" {
-		canonicalURI = "/"
-	}
+	canonicalURI := canonicalURIFor(cfg.AWSService, req.URL)
 
 	canonicalRequest := strings.Join([]string{
 		req.Method,
@@ -153,6 +151,68 @@ func canonicalHeaderBlock(headers http.Header, names []string, host string) stri
 
 func canonicalHeaderValue(value string) string {
 	return strings.Join(strings.Fields(value), " ")
+}
+
+// canonicalURIFor builds the path AWS signs.
+//
+// S3 signs the path exactly as it goes out, un-normalised and encoded once —
+// that is what lets a key contain characters that would not survive a round
+// trip. Every other service asks for the opposite: normalise the path per
+// RFC 3986, then URI-encode each segment *twice*. Signing those services with
+// one encoding is a SignatureDoesNotMatch for any path carrying a character
+// that needs escaping, which is the ordinary shape of a Lambda invoke URL
+// (the function ARN sits in the path, colons and all).
+func canonicalURIFor(service string, u *url.URL) string {
+	if strings.EqualFold(strings.TrimSpace(service), "s3") {
+		if escaped := u.EscapedPath(); escaped != "" {
+			return escaped
+		}
+		return "/"
+	}
+	normalized := normalizeAWSPath(u.Path)
+	if normalized == "/" {
+		return "/"
+	}
+	// Splitting a path that opens (and may close) with "/" leaves empty
+	// segments at the ends; those encode to nothing, so the joins put the
+	// separators back exactly where they were.
+	segments := strings.Split(normalized, "/")
+	for i, segment := range segments {
+		segments[i] = awsEscapeQueryComponent(awsEscapeQueryComponent(segment))
+	}
+	return strings.Join(segments, "/")
+}
+
+// normalizeAWSPath removes the redundant and relative components RFC 3986
+// defines: an empty or "." segment goes, ".." pops the one before it. A
+// trailing slash is kept, because /prefix/ and /prefix are not the same
+// resource.
+func normalizeAWSPath(path string) string {
+	if path == "" {
+		return "/"
+	}
+	trailingSlash := strings.HasSuffix(path, "/")
+	var segments []string
+	for _, segment := range strings.Split(path, "/") {
+		switch segment {
+		case "", ".":
+			continue
+		case "..":
+			if len(segments) > 0 {
+				segments = segments[:len(segments)-1]
+			}
+		default:
+			segments = append(segments, segment)
+		}
+	}
+	if len(segments) == 0 {
+		return "/"
+	}
+	normalized := "/" + strings.Join(segments, "/")
+	if trailingSlash {
+		normalized += "/"
+	}
+	return normalized
 }
 
 // payloadHash returns the value for x-amz-content-sha256.

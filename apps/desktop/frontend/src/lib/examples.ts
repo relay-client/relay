@@ -92,10 +92,30 @@ export function maskKnownSecrets(text: string, secretValues: string[]): string {
 export function redactExampleBody(body: string, secretValues: string[]): string {
   const masked = maskKnownSecrets(body, secretValues);
   if (!masked.trim()) return masked;
+  let parsed: unknown;
   try {
-    return JSON.stringify(sanitizeExportExample(JSON.parse(masked)), null, 2);
+    parsed = JSON.parse(masked);
   } catch {
     return masked;
+  }
+  const swept = sanitizeExportExample(parsed);
+  // An example is a record of what the endpoint really returned, so the bytes
+  // only get rewritten when the key sweep actually removed something. A round
+  // trip through JSON.parse is lossy in ways that matter here: an id past
+  // Number.MAX_SAFE_INTEGER comes back a different number, and a duplicate key
+  // collapses. Nothing redacted, nothing rewritten.
+  if (!jsonRedactionChanged(parsed, swept)) return masked;
+  return JSON.stringify(swept, null, 2);
+}
+
+/** Whether the key sweep altered the parsed body at all. */
+function jsonRedactionChanged(before: unknown, after: unknown): boolean {
+  try {
+    return JSON.stringify(before) !== JSON.stringify(after);
+  } catch {
+    // A structure JSON.stringify refuses (a cycle cannot come out of
+    // JSON.parse, but be safe) is treated as changed, so redaction still wins.
+    return true;
   }
 }
 

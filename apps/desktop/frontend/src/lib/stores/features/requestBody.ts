@@ -46,6 +46,9 @@ type RequestBodyHost = {
   method: Method;
   params: KVRow[];
   oauth2Token: string;
+  enableSSLVerification: boolean;
+  timeoutMs: number;
+  proxyUrl: string;
   openFormTypeMenuId: number | null;
   rawBodyType: RawBodyType;
   rawTypeMenuOpen: boolean;
@@ -308,7 +311,30 @@ export const requestBodyFeature = {
       this.bodyFilePath = parsed.bodyFilePath;
       this.bodyFileName = parsed.bodyFilePath.split('/').pop() ?? parsed.bodyFilePath;
     }
-    if (parsed.formData?.length) this.formRows = [...parsed.formData.map(f => ({ ...mkRow(), key: f.key, value: f.value, isFile: f.isFile, fileName: f.isFile ? f.value.split('/').pop() : undefined })), mkRow()];
+    // contentType comes off curl's ";type=" suffix. Dropping it here was the one
+    // gap in a round trip the parser, the writer and every import path already
+    // carry, and it is exactly what an API checking the MIME type of an upload
+    // rejects the request for.
+    if (parsed.formData?.length) {
+      this.formRows = [
+        ...parsed.formData.map(f => ({
+          ...mkRow(),
+          key: f.key,
+          value: f.value,
+          isFile: f.isFile,
+          fileName: f.isFile ? f.value.split('/').pop() : undefined,
+          ...(f.contentType ? { contentType: f.contentType } : {}),
+        })),
+        mkRow(),
+      ];
+    }
+    // Flags that map onto a request setting Relay already has. Ignoring them
+    // produced a request that quietly behaved differently from the command that
+    // was pasted — the -k case most of all, where the whole point of the flag is
+    // that the endpoint's certificate does not verify.
+    if (parsed.insecure) this.enableSSLVerification = false;
+    if (parsed.timeoutMs !== undefined) this.timeoutMs = parsed.timeoutMs;
+    if (parsed.proxyUrl) this.proxyUrl = parsed.proxyUrl;
     this.requestTab = parsed.bodyType || parsed.formData?.length ? 'body' : parsed.headers?.length ? 'headers' : 'params';
   },
 
