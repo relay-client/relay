@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -331,5 +332,49 @@ func TestSignJoinsRepeatedAmzHeaders(t *testing.T) {
 	block := canonicalHeaderBlock(req.Header, signedHeaderNames(req.Header), "s3.us-east-1.amazonaws.com")
 	if !strings.Contains(block, "x-amz-meta-tag:one,two\n") {
 		t.Errorf("repeated header must be comma-joined, got:\n%s", block)
+	}
+}
+
+// TestCanonicalURIForNonS3DoubleEncodes covers the rule Relay was missing:
+// every service but S3 normalises the path and encodes each segment twice.
+func TestCanonicalURIForNonS3DoubleEncodes(t *testing.T) {
+	cases := []struct {
+		name    string
+		service string
+		raw     string
+		want    string
+	}{
+		{"root", "execute-api", "https://api.test/", "/"},
+		{"no path at all", "execute-api", "https://api.test", "/"},
+		{"plain segments", "execute-api", "https://api.test/v1/items", "/v1/items"},
+		{
+			// The ordinary Lambda invoke URL: the ARN's colons need escaping,
+			// and signing them once was a SignatureDoesNotMatch.
+			name:    "lambda arn in the path",
+			service: "lambda",
+			raw:     "https://lambda.test/2015-03-31/functions/arn:aws:lambda:us-east-1:1:function:fn/invocations",
+			want:    "/2015-03-31/functions/arn%253Aaws%253Alambda%253Aus-east-1%253A1%253Afunction%253Afn/invocations",
+		},
+		{"space in a segment", "execute-api", "https://api.test/my%20item", "/my%2520item"},
+		{"unreserved characters stay put", "execute-api", "https://api.test/a-b_c.d~e", "/a-b_c.d~e"},
+		{"relative components are removed", "execute-api", "https://api.test/a/./b/../c", "/a/c"},
+		{"duplicate slashes collapse", "execute-api", "https://api.test/a//b", "/a/b"},
+		{"a trailing slash is kept", "execute-api", "https://api.test/a/b/", "/a/b/"},
+		{"climbing past the root stops there", "execute-api", "https://api.test/../..", "/"},
+		// S3 is the exception in both directions: encoded once, not normalised.
+		{"s3 encodes once", "s3", "https://bucket.test/my%20key", "/my%20key"},
+		{"s3 keeps relative components", "s3", "https://bucket.test/a/./b", "/a/./b"},
+		{"s3 is matched case-insensitively", "S3", "https://bucket.test/my%20key", "/my%20key"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			u, err := url.Parse(tc.raw)
+			if err != nil {
+				t.Fatalf("parse %q: %v", tc.raw, err)
+			}
+			if got := canonicalURIFor(tc.service, u); got != tc.want {
+				t.Errorf("canonicalURIFor(%q, %q) = %q, want %q", tc.service, tc.raw, got, tc.want)
+			}
+		})
 	}
 }

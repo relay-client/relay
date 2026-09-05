@@ -137,6 +137,35 @@ describe('flattenUrlParams', () => {
       { key: 'a', value: '2', enabled: true },
     ]);
   });
+
+  // Deduplicating by key alone dropped the second value outright: the table's
+  // own row for a key the URL already mentions never reached the wire.
+  it('keeps a second value for a key the URL already carries', () => {
+    const { params } = flattenUrlParams('https://x.com/p?tag=a', [row('tag', 'b'), mkRow()]);
+    expect(kv(params)).toEqual([
+      { key: 'tag', value: 'a', enabled: true },
+      { key: 'tag', value: 'b', enabled: true },
+    ]);
+  });
+
+  it('folds away only the row the two-way sync mirrored', () => {
+    const { params } = flattenUrlParams('https://x.com/p?tag=a', [row('tag', 'a'), row('tag', 'b'), mkRow()]);
+    expect(kv(params)).toEqual([
+      { key: 'tag', value: 'a', enabled: true },
+      { key: 'tag', value: 'b', enabled: true },
+    ]);
+  });
+
+  it('keeps a disabled row whose key the URL also carries', () => {
+    const { params } = flattenUrlParams('https://x.com/p?tag=a', [
+      { ...mkRow(), key: 'tag', value: 'draft', enabled: false },
+      mkRow(),
+    ]);
+    expect(kv(params)).toEqual([
+      { key: 'tag', value: 'a', enabled: true },
+      { key: 'tag', value: 'draft', enabled: false },
+    ]);
+  });
 });
 
 describe('requestBody query sync methods', () => {

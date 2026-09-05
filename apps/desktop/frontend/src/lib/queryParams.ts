@@ -71,14 +71,25 @@ export function paramsFromUrl(url: string, existing: KVRow[]): KVRow[] {
   return [...rows, mkRow()];
 }
 
-// Fold the URL's inline query into the params list (deduped by key) and strip it from the URL, so
-// downstream consumers (backend, cURL, snippets) — which all append params onto the URL — apply each
-// query param exactly once regardless of whether the user typed it in the URL or the Params tab.
+// Fold the URL's inline query into the params list and strip it from the URL, so downstream
+// consumers (backend, cURL, snippets) — which all append params onto the URL — apply each query
+// param exactly once regardless of whether the user typed it in the URL or the Params tab.
+//
+// The rows that get folded away are the ones the two-way sync put in both places: same key *and*
+// same value. Deduplicating by key alone silently dropped a deliberate second value — `?tag=a` in
+// the URL with `tag=b` in the table sent only `tag=a` — and repeated keys are the case the sender
+// goes out of its way to preserve, since that is what the APIs signing a query string verbatim
+// depend on.
 export function flattenUrlParams(url: string, params: KVRow[]): { url: string; params: KVRow[] } {
   const { head, query, hash } = splitUrl(url);
   if (!query) return { url, params };
   const urlRows = parseQuery(query).map(p => ({ ...mkRow(), key: p.key, value: p.value, enabled: true }));
-  const urlKeys = new Set(urlRows.map(r => r.key));
-  const extra = params.filter(r => (r.key !== '' || r.value !== '') && !urlKeys.has(r.key));
+  const mirrored = new Set(urlRows.map(r => `${r.key}${r.value}`));
+  const extra = params.filter(r => {
+    if (r.key === '' && r.value === '') return false;
+    // A disabled row is not going out either way, but it is the user's own bookkeeping — keep it
+    // unless the URL already carries the identical pair.
+    return !mirrored.delete(`${r.key}${r.value}`);
+  });
   return { url: `${head}${hash}`, params: [...urlRows, ...extra] };
 }

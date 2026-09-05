@@ -14,8 +14,10 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/relay-client/relay/apps/desktop/internal/api/auth"
@@ -285,21 +287,30 @@ func doRequestWithBodySink(ctx context.Context, req model.HttpRequest, jar http.
 
 	applyQueryParams(u, req)
 
-	bodyReader, contentType, cleanupBody, bodyErr := buildRequestBody(req)
+	body, bodyErr := buildRequestBody(req)
 	if bodyErr != nil {
 		return earlyError(bodyErr.Error())
 	}
-	if cleanupBody != nil {
-		defer cleanupBody()
+	if body.cleanup != nil {
+		defer body.cleanup()
 	}
 
-	httpReq, err := http.NewRequestWithContext(traceCtx, req.Method, u.String(), bodyReader)
+	httpReq, err := http.NewRequestWithContext(traceCtx, req.Method, u.String(), body.reader)
 	if err != nil {
 		return earlyError(fmt.Sprintf("failed to build request: %s", err))
 	}
+	// A body net/http cannot measure is framed chunked, which the upload
+	// endpoints reject; one with no GetBody cannot be replayed through a
+	// 307/308. Both are known here for a file and a multipart stream.
+	if body.length >= 0 {
+		httpReq.ContentLength = body.length
+	}
+	if body.getBody != nil {
+		httpReq.GetBody = body.getBody
+	}
 
-	if contentType != "" {
-		httpReq.Header.Set("Content-Type", contentType)
+	if body.contentType != "" {
+		httpReq.Header.Set("Content-Type", body.contentType)
 	}
 	if browserSecurityActive(req) {
 		httpReq.Header.Set("User-Agent", browserLikeUserAgent)
@@ -312,9 +323,17 @@ func doRequestWithBodySink(ctx context.Context, req model.HttpRequest, jar http.
 	}
 	explicitCookieHeader := httpReq.Header.Get("Cookie") != ""
 
+	// Auth is applied after the header rows, so it replaces one the user typed
+	// by hand — Authorization for bearer/basic/OAuth, whatever name an API key
+	// is configured under. That is the precedence Relay has always had and the
+	// safe one to keep, but doing it silently leaves the user looking at a
+	// header in the table that never went out, with the request failing for a
+	// reason nothing on screen explains.
+	beforeAuth := userHeaderSnapshot(req.Headers, httpReq.Header)
 	if err := auth.Apply(httpReq, req.Auth); err != nil {
 		return earlyError("auth error: " + err.Error())
 	}
+	overriddenHeaders := changedUserHeaders(beforeAuth, httpReq.Header)
 	browserCtx, err := prepareBrowserSecurity(req, httpReq.Header, u, browserKindFetch)
 	if err != nil {
 		return earlyError(err.Error())
@@ -340,6 +359,9 @@ func doRequestWithBodySink(ctx context.Context, req model.HttpRequest, jar http.
 		resp.Connection = timings.connectionInfo()
 		resp.Timeline = timings.timeline()
 		if notice := droppedHeaderNotice(droppedHeaders); notice != "" {
+			resp.Warnings = append(resp.Warnings, notice)
+		}
+		if notice := overriddenHeaderNotice(overriddenHeaders); notice != "" {
 			resp.Warnings = append(resp.Warnings, notice)
 		}
 		return resp
@@ -565,7 +587,35 @@ var rawBodyContentTypes = map[string]string{
 	"graphql":    "application/json",
 }
 
-func buildRequestBody(req model.HttpRequest) (io.Reader, string, func(), error) {
+// preparedBody is everything the transport needs to frame the request body: the
+// reader, the Content-Type the body type implies, and the length.
+//
+// The length is the reason this is a struct. net/http only works ContentLength
+// out for the in-memory reader types, so a file body and a multipart stream
+// went out with Transfer-Encoding: chunked — which S3 presigned PUT, Azure Blob
+// and a fair number of nginx and API-gateway setups reject outright, some with
+// a bare 411. getBody matters for the same bodies: without it net/http cannot
+// replay the payload through a 307/308 redirect and gives up instead.
+type preparedBody struct {
+	reader      io.Reader
+	contentType string
+	// length is the exact body size, or -1 to leave whatever http.NewRequest
+	// worked out for itself — which is right for the in-memory readers and
+	// means "unknown, frame it chunked" for anything else.
+	length  int64
+	getBody func() (io.ReadCloser, error)
+	cleanup func()
+}
+
+func noRequestBody() preparedBody {
+	return preparedBody{length: -1}
+}
+
+func rawRequestBody(reader io.Reader, contentType string) preparedBody {
+	return preparedBody{reader: reader, contentType: contentType, length: -1}
+}
+
+func buildRequestBody(req model.HttpRequest) (preparedBody, error) {
 	// A raw body type carries its Content-Type even when the text is empty, for
 	// the methods that carry a body. Choosing "JSON" and sending nothing is a
 	// deliberate choice — the default body type is "none" — and the servers
@@ -576,11 +626,11 @@ func buildRequestBody(req model.HttpRequest) (io.Reader, string, func(), error) 
 	if contentType, ok := rawBodyContentTypes[req.BodyType]; ok {
 		if req.Body == "" {
 			if methodConventionallyHasNoBody(req.Method) {
-				return nil, "", nil, nil
+				return noRequestBody(), nil
 			}
-			return nil, contentType, nil, nil
+			return rawRequestBody(nil, contentType), nil
 		}
-		return strings.NewReader(req.Body), contentType, nil, nil
+		return rawRequestBody(strings.NewReader(req.Body), contentType), nil
 	}
 	switch req.BodyType {
 	case "urlencoded":
@@ -590,37 +640,81 @@ func buildRequestBody(req model.HttpRequest) (io.Reader, string, func(), error) 
 				form.Add(kv.Key, kv.Value)
 			}
 		}
-		return strings.NewReader(form.Encode()), "application/x-www-form-urlencoded", nil, nil
+		encoded := form.Encode()
+		// Same reasoning as the raw types above: a GET conventionally carries no
+		// payload, so an empty form is no body rather than an empty one.
+		if encoded == "" && methodConventionallyHasNoBody(req.Method) {
+			return noRequestBody(), nil
+		}
+		return rawRequestBody(strings.NewReader(encoded), "application/x-www-form-urlencoded"), nil
 	case "form":
-		body, ct, err := buildMultipartBody(req.FormData)
-		if err != nil {
-			return nil, "", nil, err
+		if !multipartHasParts(req.FormData) && methodConventionallyHasNoBody(req.Method) {
+			return noRequestBody(), nil
 		}
-		var cleanup func()
-		if pr, ok := body.(*io.PipeReader); ok {
-			cleanup = func() { _ = pr.Close() }
-		}
-		return body, ct, cleanup, nil
+		return buildMultipartRequestBody(req.FormData)
 	case "binary":
 		if req.BodyFilePath != "" {
-			fi, err := os.Stat(req.BodyFilePath)
-			if err != nil {
-				return nil, "", nil, fmt.Errorf("failed to access file: %w", err)
-			}
-			if fi.IsDir() {
-				return nil, "", nil, fmt.Errorf("failed to read file: %s is a directory", req.BodyFilePath)
-			}
-			if fi.Size() > maxFileBodySize {
-				return nil, "", nil, fmt.Errorf("file too large (%.0f MB) — binary body limit is 256 MB", float64(fi.Size())/(1024*1024))
-			}
-			file, err := os.Open(req.BodyFilePath)
-			if err != nil {
-				return nil, "", nil, fmt.Errorf("failed to read file: %w", err)
-			}
-			return file, "application/octet-stream", func() { _ = file.Close() }, nil
+			return buildFileRequestBody(req.BodyFilePath)
 		}
 	}
-	return nil, "", nil, nil
+	return noRequestBody(), nil
+}
+
+// buildFileRequestBody opens the binary body and reports its exact size. Every
+// handle it opens — the first one and any a redirect replay asks for — is
+// closed by the single cleanup the caller defers.
+func buildFileRequestBody(path string) (preparedBody, error) {
+	fi, err := os.Stat(path)
+	if err != nil {
+		return noRequestBody(), fmt.Errorf("failed to access file: %w", err)
+	}
+	if fi.IsDir() {
+		return noRequestBody(), fmt.Errorf("failed to read file: %s is a directory", path)
+	}
+	if fi.Size() > maxFileBodySize {
+		return noRequestBody(), fmt.Errorf("file too large (%.0f MB) — binary body limit is 256 MB", float64(fi.Size())/(1024*1024))
+	}
+
+	var (
+		mu     sync.Mutex
+		opened []*os.File
+	)
+	open := func() (io.ReadCloser, error) {
+		file, err := os.Open(path)
+		if err != nil {
+			return nil, err
+		}
+		mu.Lock()
+		opened = append(opened, file)
+		mu.Unlock()
+		return file, nil
+	}
+	first, err := open()
+	if err != nil {
+		return noRequestBody(), fmt.Errorf("failed to read file: %w", err)
+	}
+	// Measure the handle that is actually being sent rather than the earlier
+	// stat, so a file that changed size in between cannot be under-declared.
+	length := fi.Size()
+	if handle, ok := first.(*os.File); ok {
+		if stat, statErr := handle.Stat(); statErr == nil {
+			length = stat.Size()
+		}
+	}
+	return preparedBody{
+		reader:      first,
+		contentType: "application/octet-stream",
+		length:      length,
+		getBody:     open,
+		cleanup: func() {
+			mu.Lock()
+			defer mu.Unlock()
+			for _, file := range opened {
+				_ = file.Close()
+			}
+			opened = nil
+		},
+	}, nil
 }
 
 // methodConventionallyHasNoBody reports the methods for which an empty body
@@ -633,7 +727,62 @@ func methodConventionallyHasNoBody(method string) bool {
 	return false
 }
 
-func buildMultipartBody(fields []model.KeyValue) (io.Reader, string, error) {
+// multipartHasParts reports whether any row would produce a part at all.
+func multipartHasParts(fields []model.KeyValue) bool {
+	for _, kv := range fields {
+		if kv.Enabled && kv.Key != "" {
+			return true
+		}
+	}
+	return false
+}
+
+// buildMultipartRequestBody streams the parts through a pipe, as before, but
+// pins one boundary for the whole send so the body can be measured up front and
+// rebuilt byte-for-byte if a redirect asks for it again.
+func buildMultipartRequestBody(fields []model.KeyValue) (preparedBody, error) {
+	if err := validateMultipartFiles(fields); err != nil {
+		return noRequestBody(), err
+	}
+	// NewWriter picks a random boundary; borrow one and reuse it everywhere.
+	boundary := multipart.NewWriter(io.Discard).Boundary()
+
+	var (
+		mu      sync.Mutex
+		streams []*io.PipeReader
+	)
+	open := func() (io.ReadCloser, error) {
+		reader := streamMultipartBody(fields, boundary)
+		mu.Lock()
+		streams = append(streams, reader)
+		mu.Unlock()
+		return reader, nil
+	}
+	first, _ := open()
+
+	// A file that cannot be measured leaves the length unknown, which frames the
+	// body chunked — the behaviour every multipart send had before.
+	length, ok := multipartBodyLength(fields, boundary)
+	if !ok {
+		length = -1
+	}
+	return preparedBody{
+		reader:      first,
+		contentType: "multipart/form-data; boundary=" + boundary,
+		length:      length,
+		getBody:     open,
+		cleanup: func() {
+			mu.Lock()
+			defer mu.Unlock()
+			for _, reader := range streams {
+				_ = reader.Close()
+			}
+			streams = nil
+		},
+	}, nil
+}
+
+func validateMultipartFiles(fields []model.KeyValue) error {
 	for _, kv := range fields {
 		if !kv.Enabled || kv.Key == "" {
 			continue
@@ -641,19 +790,24 @@ func buildMultipartBody(fields []model.KeyValue) (io.Reader, string, error) {
 		if kv.IsFile && kv.Value != "" {
 			fi, err := os.Stat(kv.Value)
 			if err != nil {
-				return nil, "", fmt.Errorf("failed to read form file: %w", err)
+				return fmt.Errorf("failed to read form file: %w", err)
 			}
 			if fi.IsDir() {
-				return nil, "", fmt.Errorf("failed to read form file: %s is a directory", kv.Value)
+				return fmt.Errorf("failed to read form file: %s is a directory", kv.Value)
 			}
 			if fi.Size() > maxFileBodySize {
-				return nil, "", fmt.Errorf("form file too large (%.0f MB) — multipart file limit is 256 MB", float64(fi.Size())/(1024*1024))
+				return fmt.Errorf("form file too large (%.0f MB) — multipart file limit is 256 MB", float64(fi.Size())/(1024*1024))
 			}
 		}
 	}
+	return nil
+}
 
+func streamMultipartBody(fields []model.KeyValue, boundary string) *io.PipeReader {
 	pr, pw := io.Pipe()
 	mw := multipart.NewWriter(pw)
+	// The boundary came from a multipart.Writer, so it is always acceptable here.
+	_ = mw.SetBoundary(boundary)
 	go func() {
 		var err error
 		defer func() {
@@ -668,31 +822,7 @@ func buildMultipartBody(fields []model.KeyValue) (io.Reader, string, error) {
 			if !kv.Enabled || kv.Key == "" {
 				continue
 			}
-			if kv.IsFile && kv.Value != "" {
-				var file *os.File
-				file, err = os.Open(kv.Value)
-				if err != nil {
-					err = fmt.Errorf("failed to read form file: %w", err)
-					return
-				}
-				var fw io.Writer
-				fw, err = createMultipartFilePart(mw, kv)
-				if err != nil {
-					_ = file.Close()
-					err = fmt.Errorf("failed to create multipart file field: %w", err)
-					return
-				}
-				if _, err = io.Copy(fw, file); err != nil {
-					_ = file.Close()
-					err = fmt.Errorf("failed to write multipart file field: %w", err)
-					return
-				}
-				if closeErr := file.Close(); closeErr != nil {
-					err = fmt.Errorf("failed to close form file: %w", closeErr)
-					return
-				}
-			} else if err = writeMultipartTextField(mw, kv); err != nil {
-				err = fmt.Errorf("failed to write multipart field: %w", err)
+			if err = writeMultipartPart(mw, kv); err != nil {
 				return
 			}
 		}
@@ -700,46 +830,110 @@ func buildMultipartBody(fields []model.KeyValue) (io.Reader, string, error) {
 			err = fmt.Errorf("failed to finalize multipart body: %w", err)
 		}
 	}()
-	return pr, mw.FormDataContentType(), nil
+	return pr
 }
 
-// createMultipartFilePart opens a file part carrying the row's own
-// Content-Type. multipart.CreateFormFile hardcodes application/octet-stream,
-// which the APIs that check what was uploaded ("image/png only") reject.
-func createMultipartFilePart(mw *multipart.Writer, kv model.KeyValue) (io.Writer, error) {
-	fileName := kv.FileName
-	if fileName == "" {
-		fileName = filepath.Base(kv.Value)
-	}
+// multipartPartHeader is the header block Relay writes for one row.
+//
+// Building it here for every part, rather than falling through to
+// CreateFormFile/WriteField when the row names no Content-Type, does two
+// things. It applies Relay's own escaping everywhere — the stdlib helpers
+// escape quotes but leave a CR or LF in a field name intact, which lets that
+// name inject headers of its own — and it gives multipartBodyLength an exact
+// thing to measure. A file part with no Content-Type of its own still declares
+// application/octet-stream, which is what CreateFormFile wrote before, so
+// nothing changes on the wire for an upload that already worked.
+func multipartPartHeader(kv model.KeyValue) textproto.MIMEHeader {
+	disposition := fmt.Sprintf(`form-data; name="%s"`, escapeMultipartValue(kv.Key))
 	contentType := strings.TrimSpace(kv.ContentType)
-	if contentType == "" {
-		return mw.CreateFormFile(kv.Key, fileName)
+	if kv.IsFile && kv.Value != "" {
+		fileName := kv.FileName
+		if fileName == "" {
+			fileName = filepath.Base(kv.Value)
+		}
+		disposition += fmt.Sprintf(`; filename="%s"`, escapeMultipartValue(fileName))
+		if contentType == "" {
+			contentType = "application/octet-stream"
+		}
 	}
 	header := make(textproto.MIMEHeader, 2)
-	header.Set("Content-Disposition", fmt.Sprintf(
-		`form-data; name="%s"; filename="%s"`,
-		escapeMultipartValue(kv.Key), escapeMultipartValue(fileName),
-	))
-	header.Set("Content-Type", contentType)
-	return mw.CreatePart(header)
+	header.Set("Content-Disposition", disposition)
+	if contentType != "" {
+		header.Set("Content-Type", contentType)
+	}
+	return header
 }
 
-// writeMultipartTextField writes a non-file part, with a Content-Type when the
-// row names one — a JSON part inside a multipart body is a common shape.
-func writeMultipartTextField(mw *multipart.Writer, kv model.KeyValue) error {
-	contentType := strings.TrimSpace(kv.ContentType)
-	if contentType == "" {
-		return mw.WriteField(kv.Key, kv.Value)
-	}
-	header := make(textproto.MIMEHeader, 2)
-	header.Set("Content-Disposition", fmt.Sprintf(`form-data; name="%s"`, escapeMultipartValue(kv.Key)))
-	header.Set("Content-Type", contentType)
-	part, err := mw.CreatePart(header)
+func writeMultipartPart(mw *multipart.Writer, kv model.KeyValue) error {
+	part, err := mw.CreatePart(multipartPartHeader(kv))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create multipart field: %w", err)
 	}
-	_, err = io.WriteString(part, kv.Value)
-	return err
+	if kv.IsFile && kv.Value != "" {
+		file, err := os.Open(kv.Value)
+		if err != nil {
+			return fmt.Errorf("failed to read form file: %w", err)
+		}
+		defer file.Close()
+		if _, err := io.Copy(part, file); err != nil {
+			return fmt.Errorf("failed to write multipart file field: %w", err)
+		}
+		return nil
+	}
+	if _, err := io.WriteString(part, kv.Value); err != nil {
+		return fmt.Errorf("failed to write multipart field: %w", err)
+	}
+	return nil
+}
+
+// multipartBodyLength computes, without writing anything, the exact number of
+// bytes streamMultipartBody will produce for the same rows and boundary. It
+// mirrors mime/multipart's framing — "--boundary\r\n" before the first part,
+// "\r\n--boundary\r\n" before each one after it, a sorted header block ending
+// in a blank line, and "\r\n--boundary--\r\n" to close — which is an assumption
+// about the standard library, so TestMultipartBodyLengthMatchesStream measures
+// a real body against it.
+//
+// ok is false when a file cannot be stat'd; the caller then leaves the length
+// unknown rather than declaring a wrong one.
+func multipartBodyLength(fields []model.KeyValue, boundary string) (int64, bool) {
+	var total int64
+	parts := 0
+	for _, kv := range fields {
+		if !kv.Enabled || kv.Key == "" {
+			continue
+		}
+		var content int64
+		if kv.IsFile && kv.Value != "" {
+			fi, err := os.Stat(kv.Value)
+			if err != nil {
+				return 0, false
+			}
+			content = fi.Size()
+		} else {
+			content = int64(len(kv.Value))
+		}
+		if parts == 0 {
+			total += int64(len("--" + boundary + "\r\n"))
+		} else {
+			total += int64(len("\r\n--" + boundary + "\r\n"))
+		}
+		total += multipartHeaderBlockLength(multipartPartHeader(kv))
+		total += content
+		parts++
+	}
+	return total + int64(len("\r\n--"+boundary+"--\r\n")), true
+}
+
+func multipartHeaderBlockLength(header textproto.MIMEHeader) int64 {
+	var total int64
+	for key, values := range header {
+		for _, value := range values {
+			total += int64(len(key) + len(": ") + len(value) + len("\r\n"))
+		}
+	}
+	// The blank line that separates the header block from the part content.
+	return total + int64(len("\r\n"))
 }
 
 // escapeMultipartValue mirrors what mime/multipart does for the names it
@@ -947,6 +1141,57 @@ func droppedHeaderNotice(names []string) string {
 	}
 	return fmt.Sprintf(
 		"Not sent: %s. These headers control how the request is framed on the connection, so Relay sets them itself.",
+		strings.Join(names, ", "),
+	)
+}
+
+// userHeaderSnapshot records the value of every header the user set by hand, so
+// a later stage that overwrites one can be reported by name.
+//
+// A framing header the user asked for was dropped, so it reads as empty here
+// and stays empty — no false positive, and droppedHeaderNotice already explains
+// it. Host is skipped outright: it travels through Request.Host rather than the
+// header map, while SigV4 writes Host *into* the map because it has to sign the
+// name that goes on the wire. Comparing those two would report an override that
+// never happened.
+func userHeaderSnapshot(rows []model.KeyValue, headers http.Header) map[string][]string {
+	snapshot := make(map[string][]string, len(rows))
+	for _, row := range rows {
+		if !row.Enabled || row.Key == "" {
+			continue
+		}
+		key := http.CanonicalHeaderKey(strings.TrimSpace(row.Key))
+		if key == "Host" {
+			continue
+		}
+		if _, seen := snapshot[key]; seen {
+			continue
+		}
+		snapshot[key] = append([]string(nil), headers.Values(key)...)
+	}
+	return snapshot
+}
+
+func changedUserHeaders(before map[string][]string, headers http.Header) []string {
+	var changed []string
+	for key, was := range before {
+		if !slices.Equal(was, headers.Values(key)) {
+			changed = append(changed, key)
+		}
+	}
+	sort.Strings(changed)
+	return changed
+}
+
+// overriddenHeaderNotice explains that the Authorization tab won over a header
+// the user wrote themselves. Silence here reads as "Relay sent my header and
+// the server rejected it", which sends the user debugging the wrong end.
+func overriddenHeaderNotice(names []string) string {
+	if len(names) == 0 {
+		return ""
+	}
+	return fmt.Sprintf(
+		"Replaced by the Auth tab: %s. The value in the Headers tab was not sent — set Auth to \"No Auth\" to send your own.",
 		strings.Join(names, ", "),
 	)
 }

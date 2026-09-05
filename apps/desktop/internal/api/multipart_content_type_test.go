@@ -24,15 +24,18 @@ type sentPart struct {
 // reader, so the assertions are about what a server actually receives.
 func readParts(t *testing.T, rows []model.KeyValue) map[string]sentPart {
 	t.Helper()
-	body, contentType, err := buildMultipartBody(rows)
+	body, err := buildMultipartRequestBody(rows)
 	if err != nil {
-		t.Fatalf("buildMultipartBody: %v", err)
+		t.Fatalf("buildMultipartRequestBody: %v", err)
 	}
-	_, params, err := mime.ParseMediaType(contentType)
+	if body.cleanup != nil {
+		t.Cleanup(body.cleanup)
+	}
+	_, params, err := mime.ParseMediaType(body.contentType)
 	if err != nil {
-		t.Fatalf("parse content type %q: %v", contentType, err)
+		t.Fatalf("parse content type %q: %v", body.contentType, err)
 	}
-	reader := multipart.NewReader(body, params["boundary"])
+	reader := multipart.NewReader(body.reader, params["boundary"])
 	parts := map[string]sentPart{}
 	for {
 		part, err := reader.NextPart()

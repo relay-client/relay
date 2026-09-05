@@ -1,3 +1,5 @@
+import { methodConventionallyHasNoBody, RAW_BODY_CONTENT_TYPES } from './constants';
+
 // splitCurlFormValue peels curl's ";type=<mime>" suffix off a -F value. Only a
 // trailing one counts: a ";" inside the value itself is part of the data.
 function splitCurlFormValue(raw: string): { value: string; contentType: string } {
@@ -94,14 +96,24 @@ export function toCurl(req: CurlRequest): string {
     case 'text':
     case 'xml':
     case 'html':
-    case 'graphql':
-      if (req.body) {
-        if ((req.bodyType === 'json' || req.bodyType === 'graphql') && !req.headers.some(h => h.enabled && h.key.toLowerCase() === 'content-type')) {
-          parts.push(`-H ${shellQuote('Content-Type: application/json')}`);
-        }
-        parts.push(`-d ${shellQuote(req.body)}`);
+    case 'javascript':
+    case 'graphql': {
+      // curl labels -d as application/x-www-form-urlencoded unless told
+      // otherwise, so a body type Relay declares — xml, html, text — reached
+      // the server as a different request than the one that was copied.
+      const rawContentType = RAW_BODY_CONTENT_TYPES[req.bodyType];
+      const hasOwnContentType = req.headers.some(h => h.enabled && h.key.toLowerCase() === 'content-type');
+      // An empty raw body still carries its type, matching the sender: the
+      // servers that check Content-Type before reading the body answer 415
+      // when it goes missing.
+      const carriesBody = Boolean(req.body) || !methodConventionallyHasNoBody(req.method);
+      if (!carriesBody) break;
+      if (rawContentType && !hasOwnContentType) {
+        parts.push(`-H ${shellQuote(`Content-Type: ${rawContentType}`)}`);
       }
+      parts.push(`--data-raw ${shellQuote(req.body)}`);
       break;
+    }
     case 'urlencoded': {
       const fields = req.formData.filter(r => r.enabled && r.key);
       for (const f of fields) {
@@ -143,6 +155,9 @@ export type ParsedCurl = Partial<{
   username: string;
   password: string;
   followRedirects: boolean;
+  insecure: boolean;
+  timeoutMs: number;
+  proxyUrl: string;
 }>;
 
 export function parseCurl(input: string): ParsedCurl {
@@ -170,6 +185,11 @@ export function parseCurl(input: string): ParsedCurl {
     const user = readOptionValue(tokens, i, ['-u', '--user']);
     const userAgent = readOptionValue(tokens, i, ['-A', '--user-agent']);
     const referer = readOptionValue(tokens, i, ['-e', '--referer']);
+    // Flags Relay has a request setting for. They used to be discarded — -m and
+    // -x silently, -k by falling off the end of the chain — leaving a request
+    // that behaves differently from the command it was pasted from.
+    const maxTime = readOptionValue(tokens, i, ['-m', '--max-time']);
+    const proxy = readOptionValue(tokens, i, ['-x', '--proxy']);
     const ignored = readOptionValue(tokens, i, IGNORED_VALUE_FLAGS);
 
     if (request) {
@@ -243,8 +263,18 @@ export function parseCurl(input: string): ParsedCurl {
     } else if (referer) {
       if (referer.value) result.headers!.push({ key: 'Referer', value: referer.value });
       i = referer.index;
+    } else if (maxTime) {
+      // curl takes seconds, and accepts a fractional value.
+      const seconds = Number(maxTime.value);
+      if (Number.isFinite(seconds) && seconds > 0) result.timeoutMs = Math.round(seconds * 1000);
+      i = maxTime.index;
+    } else if (proxy) {
+      if (proxy.value) result.proxyUrl = proxy.value;
+      i = proxy.index;
     } else if (t === '-L' || t === '--location' || t === '--location-trusted') {
       result.followRedirects = true;
+    } else if (t === '-k' || t === '--insecure') {
+      result.insecure = true;
     } else if (t === '-G' || t === '--get') {
       useGet = true;
     } else if (t === '-I' || t === '--head') {
@@ -282,9 +312,7 @@ const IGNORED_VALUE_FLAGS = [
   '-c',
   '-D',
   '-E',
-  '-m',
   '-o',
-  '-x',
   '--cacert',
   '--capath',
   '--cert',
@@ -298,11 +326,9 @@ const IGNORED_VALUE_FLAGS = [
   '--key-type',
   '--limit-rate',
   '--local-port',
-  '--max-time',
   '--output',
   '--output-dir',
   '--pass',
-  '--proxy',
   '--proxy-user',
   '--request-target',
   '--resolve',

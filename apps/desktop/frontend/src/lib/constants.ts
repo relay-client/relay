@@ -6,6 +6,26 @@ export const BROWSER_LIKE_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 1
 export const METHODS: Method[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'SSE'];
 export const RAW_BODY_TYPES: RawBodyType[] = ['text', 'json', 'html', 'xml'];
 
+// The Content-Type the sender puts on each string-payload body type. This
+// mirrors rawBodyContentTypes in internal/api/executor.go, and exists so the
+// generated cURL and code snippets declare what Relay itself would send — an
+// XML body copied as cURL used to arrive as curl's own default,
+// application/x-www-form-urlencoded, which is a different request.
+export const RAW_BODY_CONTENT_TYPES: Record<string, string> = {
+  json: 'application/json',
+  text: 'text/plain',
+  javascript: 'application/javascript',
+  xml: 'application/xml',
+  html: 'text/html',
+  graphql: 'application/json',
+};
+
+/** Whether an empty payload on this method means "no body" rather than "an empty one". */
+export function methodConventionallyHasNoBody(method: string): boolean {
+  const normalized = method.trim().toUpperCase();
+  return normalized === '' || normalized === 'GET' || normalized === 'HEAD';
+}
+
 export const DEFAULT_WORKSPACE = 'My Workspace';
 export const DEFAULT_COLLECTION = 'Requests';
 export const MAX_WORKSPACES = 15;

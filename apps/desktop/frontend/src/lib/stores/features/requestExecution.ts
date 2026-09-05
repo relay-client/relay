@@ -58,7 +58,7 @@ type RequestExecutionHost = {
   persistActiveRequestNow: (forceDisk?: boolean) => Promise<void>;
   promoteActiveRequestToSSE: () => void;
   recordRequestHistory: (httpResponse: HttpResponse, requestSnapshot?: SavedRequest) => Promise<void>;
-  refreshCookieJar: (force?: boolean, silent?: boolean) => Promise<void>;
+  refreshCookieJar: (silent?: boolean, persistAfterRefresh?: boolean) => Promise<void>;
   requestIsActive: (requestId: string) => boolean;
   savedRequestToRunnableHttpRequest: (
     req: SavedRequest,

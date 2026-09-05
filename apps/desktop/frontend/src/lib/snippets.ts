@@ -1,3 +1,4 @@
+import { RAW_BODY_CONTENT_TYPES } from './constants';
 import type { SnippetLanguage } from './stores/ui';
 import type { RenderedSnippetLine } from './types/models';
 import { methodColor, escapeHtml } from './utils';
@@ -37,12 +38,12 @@ function base64(value: string) {
 
 function snippetHeaders(req: SnippetRequest) {
   const headers = req.headers.filter(r => r.enabled && r.key).map(r => ({ key: r.key, value: r.value }));
-  if ((req.bodyType === 'json' || req.bodyType === 'graphql') && !headers.some(h => h.key.toLowerCase() === 'content-type'))
-    headers.push({ key: 'Content-Type', value: 'application/json' });
-  if (req.bodyType === 'text' && !headers.some(h => h.key.toLowerCase() === 'content-type'))
-    headers.push({ key: 'Content-Type', value: 'text/plain' });
-  if (req.bodyType === 'xml' && !headers.some(h => h.key.toLowerCase() === 'content-type'))
-    headers.push({ key: 'Content-Type', value: 'application/xml' });
+  // Every string-payload body type declares what the sender declares. html and
+  // javascript used to fall through this list, so a snippet built from them
+  // carried no Content-Type at all.
+  const rawContentType = RAW_BODY_CONTENT_TYPES[req.bodyType];
+  if (rawContentType && !headers.some(h => h.key.toLowerCase() === 'content-type'))
+    headers.push({ key: 'Content-Type', value: rawContentType });
   // Only bearer and API key used to reach the generated code, so copying a
   // working Basic, Digest, OAuth 2.0, or AWS request produced a snippet that
   // came back 401 with nothing to say it had dropped the credentials.
@@ -90,7 +91,7 @@ function withAuthNotes(language: SnippetLanguage, req: SnippetRequest, code: str
 }
 
 function snippetBody(req: SnippetRequest) {
-  if (['json', 'text', 'xml', 'html', 'graphql'].includes(req.bodyType)) return req.body;
+  if (['json', 'text', 'xml', 'html', 'javascript', 'graphql'].includes(req.bodyType)) return req.body;
   if (req.bodyType === 'urlencoded') {
     const sp = new URLSearchParams();
     for (const row of req.formData) if (row.enabled && row.key) sp.append(row.key, row.value);
