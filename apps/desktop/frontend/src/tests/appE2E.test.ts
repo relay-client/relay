@@ -7,7 +7,7 @@ import { buildPostmanCollection, postmanRequestsFromItems } from '../lib/postman
 import { parseRunnerDataFile } from '../lib/runnerData';
 import { DEFAULT_RUNNER_CONCURRENCY } from '../lib/concurrency';
 import { emptyCollectionDefaults } from '../lib/collectionDefaults';
-import { makeWorkspace } from '../lib/normalizers';
+import { makeWorkspace, normalizeSavedRequest } from '../lib/normalizers';
 import type {
   BodyType,
   Collection,
@@ -38,6 +38,7 @@ import { collectionFeature } from '../lib/stores/features/collections';
 import { collectionRunnerDerivedFeature } from '../lib/stores/features/collectionRunnerDerived';
 import { collectionRunnerFeature } from '../lib/stores/features/collectionRunner';
 import { importExportFeature } from '../lib/stores/features/importExport';
+import { normalizeRequestExample } from '../lib/examples';
 import { environmentFeature } from '../lib/stores/features/environments';
 import { folderFeature } from '../lib/stores/features/folders';
 import { graphqlFeature } from '../lib/stores/features/graphql';
@@ -983,5 +984,109 @@ describe('importing a spec from a URL', () => {
     expect(app.collections).toHaveLength(0);
     expect(backend.state.sentHttpRequests).toHaveLength(0);
     expect(app.alerts).toHaveLength(0);
+  });
+});
+
+describe('opening a saved request', () => {
+  // Clicking a request in the sidebar loads it into the editor. The snapshot
+  // the editor then produces has to be identical to what was stored, or the
+  // request is marked unsaved the moment it is opened — and the indicator that
+  // is supposed to mean "you changed something" stops meaning anything.
+  it('does not mark it dirty', async () => {
+    backend.state.savedStores = [];
+    const app = new TestApp() as TestApp & Record<string, any>;
+
+    app.prompts.push('Dirty check');
+    await app.createCollection();
+    const collection = app.collections[0];
+
+    app.selects.push('http');
+    await app.createNewRequest(collection.id, 'http');
+    await settleMicrotasks();
+    const first = app.activeRequestId;
+    app.setRequestHeaderName('Opened request');
+    app.method = 'POST';
+    app.url = 'https://api.example.test/things?tag=a&tag=b';
+    app.reqHeaders = [row('X-Trace', 'abc'), row('X-Off', 'no', { enabled: false })];
+    app.bodyType = 'json';
+    app.rawBodyType = 'json';
+    app.bodyContent = '{"a":1}';
+    app.requestExamples = [normalizeRequestExample({
+      id: 'ex-1',
+      name: 'Created',
+      source: 'captured',
+      createdAt: 1_700_000_000_000,
+      response: { statusCode: 201, status: '201 Created', headers: [row('Content-Type', 'application/json')], body: '{"id":1}', bodyMediaType: 'application/json', durationMs: 12 },
+      snapshot: { method: 'POST', url: 'https://api.example.test/things', headers: [row('X-Trace', 'abc')] },
+      match: { pathTemplate: '/things' },
+    } as never, first)];
+    await app.saveActiveRequest();
+    expect(app.isRequestDirty(first)).toBe(false);
+
+    app.selects.push('http');
+    await app.createNewRequest(collection.id, 'http');
+    await settleMicrotasks();
+    const second = app.activeRequestId;
+    app.setRequestHeaderName('Somewhere else');
+    app.url = 'https://api.example.test/other';
+    await app.saveActiveRequest();
+
+    await app.switchRequest(first);
+    await settleMicrotasks();
+
+    const stored = app.requests.find((req: SavedRequest) => req.id === first)!;
+    const reopened = app.snapshotActiveRequest();
+    if (app.requestDirtyFingerprint(reopened) !== app.requestDirtyFingerprint(stored)) {
+      const a = JSON.parse(app.requestDirtyFingerprint(stored));
+      const b = JSON.parse(app.requestDirtyFingerprint(reopened));
+      const drifted = Object.keys({ ...a, ...b })
+        .filter(key => JSON.stringify(a[key]) !== JSON.stringify(b[key]))
+        .map(key => `${key}: stored ${JSON.stringify(a[key])} vs reopened ${JSON.stringify(b[key])}`);
+      expect(drifted).toEqual([]);
+    }
+    expect(app.isRequestDirty(first)).toBe(false);
+    expect(app.activeRequestId).toBe(first);
+    expect(second).not.toBe(first);
+  });
+
+  // The editor compares against what came back from disk, and everything on the
+  // way back goes through normalizeSavedRequest. A field that normalization
+  // adds, drops or rewrites — and that the editor's own snapshot does not
+  // produce identically — marks the request unsaved the moment it is opened.
+  it('survives the trip through the store on disk', async () => {
+    backend.state.savedStores = [];
+    const app = new TestApp() as TestApp & Record<string, any>;
+
+    app.prompts.push('Round trip');
+    await app.createCollection();
+    const collection = app.collections[0];
+
+    app.selects.push('http');
+    await app.createNewRequest(collection.id, 'http');
+    await settleMicrotasks();
+    const id = app.activeRequestId;
+    app.setRequestHeaderName('Stored request');
+    app.method = 'POST';
+    app.url = 'https://api.example.test/things?tag=a';
+    app.params = [row('dryRun', 'true')];
+    app.reqHeaders = [row('X-Trace', 'abc'), row('X-Off', 'no', { enabled: false })];
+    app.bodyType = 'json';
+    app.rawBodyType = 'json';
+    app.bodyContent = '{"a":1}';
+    app.selectAuthType('bearer');
+    app.bearerToken = 'tok';
+    await app.saveActiveRequest();
+
+    const persisted = backend.state.savedStores.at(-1)!;
+    const raw = persisted.requests!.find((req: SavedRequest) => req.id === id)!;
+    const loaded = normalizeSavedRequest(raw as never, app.collections, app.activeWorkspaceId);
+    const inMemory = app.requests.find((req: SavedRequest) => req.id === id)!;
+
+    const a = JSON.parse(app.requestDirtyFingerprint(inMemory));
+    const b = JSON.parse(app.requestDirtyFingerprint(loaded));
+    const drifted = Object.keys({ ...a, ...b })
+      .filter(key => JSON.stringify(a[key]) !== JSON.stringify(b[key]))
+      .map(key => `${key}: in memory ${JSON.stringify(a[key])} vs loaded ${JSON.stringify(b[key])}`);
+    expect(drifted).toEqual([]);
   });
 });
