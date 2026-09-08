@@ -2258,7 +2258,7 @@ textarea.url-input {
   padding: 0 10px;
   border: 1px solid var(--border);
   border-radius: 5px;
-  background: var(--input-bg, var(--bg-2));
+  background: var(--elevated);
   color: var(--text);
   font-size: 13px;
   outline: none;

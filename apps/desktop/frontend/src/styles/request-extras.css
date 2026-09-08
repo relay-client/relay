@@ -951,7 +951,7 @@
   padding: 14px 16px;
   border: 1px solid var(--accent);
   border-radius: 8px;
-  background: var(--bg-2);
+  background: var(--elevated);
   text-align: center;
 }
 
@@ -967,7 +967,7 @@
   font-size: 24px;
   font-weight: 600;
   letter-spacing: 0.12em;
-  color: var(--text-1);
+  color: var(--text);
   user-select: all;
 }
 
@@ -1433,7 +1433,7 @@ input::-webkit-calendar-picker-indicator { opacity: 0; }
   background: var(--elevated);
   border: 1px solid color-mix(in srgb, var(--accent) 42%, transparent);
   border-radius: 8px;
-  color: var(--text-1);
+  color: var(--text);
   font-size: 12px;
   font-weight: 650;
   line-height: 1.35;
