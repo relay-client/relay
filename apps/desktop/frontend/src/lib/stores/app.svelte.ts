@@ -226,6 +226,7 @@ class AppVM {
   mockServerLog = $state<MockRequestLog[]>([]);
   mockServerError = $state('');
   mockServerTabOpen = $state(false);
+  mockServerRunningSignature = $state('');
   declare mockServerTargetCollectionId: typeof mockServerFeature.mockServerTargetCollectionId;
   declare mockServerRoutes: typeof mockServerFeature.mockServerRoutes;
   declare mockServerRouteCount: typeof mockServerFeature.mockServerRouteCount;
@@ -241,6 +242,9 @@ class AppVM {
   declare setMockServerPort: typeof mockServerFeature.setMockServerPort;
   declare openMockServerTab: typeof mockServerFeature.openMockServerTab;
   declare closeMockServerTab: typeof mockServerFeature.closeMockServerTab;
+  declare mockServerRoutesChanged: typeof mockServerFeature.mockServerRoutesChanged;
+  declare reloadMockServerRoutes: typeof mockServerFeature.reloadMockServerRoutes;
+  declare openMockRouteExample: typeof mockServerFeature.openMockRouteExample;
   declare removeSioEventRow: typeof socketioFormFeature.removeSioEventRow;
 
   declare currentSSESession: typeof realtimeFeature.currentSSESession;

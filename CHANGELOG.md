@@ -13,6 +13,9 @@ All notable changes to Relay are documented here. This project follows
 - The server binds **loopback only** — a mock made from real recorded responses is not something to put on the network by accident — and answers CORS preflight for any origin, since the first client to hit it is usually a browser app on another port. A request that matches nothing gets a 404 naming the routes that do exist, rather than a bare status.
 - **Requests-served log**, live, showing what a client actually asked for and which example answered. The unmatched rows are the useful ones: they are the difference between "my fetch is wrong" and "no example covers this yet". The log is kept on the Go side too, so reopening the tab shows what happened while it was closed.
 - **Reproduce recorded latency**, off by default: each example knows how long the real response took, which is a cheap way to see a loading state that a local mock otherwise never shows.
+- The mock **reloads itself when you edit an example** it is serving, so the running server never answers with something you already changed. The request log survives the reload, because from a client's point of view the server never went away — and a rename, which changes nothing a client can observe, does not bounce it.
+- **Two examples that would answer the same request are called out**, with the losing rows marked in the list. Only the first match ever replies, so without this the second one looks broken rather than shadowed. Examples separated by a recorded query are not flagged: that is the ordinary way to serve an empty and a full case from one path.
+- Each route copies **its own URL**, not just the base, and clicking a route — or a matched row in the log — opens the example behind it.
 
 ---
 
