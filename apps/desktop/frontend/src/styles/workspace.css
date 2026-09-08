@@ -2988,7 +2988,7 @@
   border-radius: 8px;
   background: color-mix(in srgb, var(--accent) 7%, var(--surface));
   color: var(--text-2);
-  font-family: var(--font);
+  font-family: var(--font-ui);
 }
 
 .git-conflict-markerless strong {
@@ -3058,7 +3058,7 @@
 
 .git-conflict-inline-head strong {
   color: var(--text);
-  font-family: var(--font);
+  font-family: var(--font-ui);
   font-size: 11px;
 }
 
