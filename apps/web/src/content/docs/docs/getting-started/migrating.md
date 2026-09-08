@@ -67,7 +67,8 @@ After import, open the *Scripts* tab on a request and run a smoke request. If a 
 
 ### What doesn't import
 
-- **Postman mocks / monitors** — these are server-side Postman features without a local equivalent.
+- **Postman monitors** — a server-side feature with no direct equivalent; the [CLI runner](/docs/guides/cli-runner/) on a schedule covers the same ground.
+  Postman **mocks** do have an equivalent, and it runs locally: imported saved responses become [examples](/docs/guides/examples/), which the [mock server](/docs/guides/mock-server/) serves over HTTP without an account.
 - **Postman Flows / workflows** — same.
 - **Personal teams / sharing** — Relay is local-only.
 

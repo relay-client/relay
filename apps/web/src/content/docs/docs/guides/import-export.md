@@ -12,10 +12,10 @@ Relay supports both one-off interchange formats and full Relay backups. Imports 
 | Postman Collection v2.1 | Collections, nested folders, requests, auth, bodies, GraphQL, scripts, collection variables, and request documentation. Environment and globals exports import through the same picker. |
 | Insomnia v4 JSON | Workspaces, folders, requests, auth, bodies, and environments. |
 | Bruno/OpenCollection | Collections, explicit empty folders, requests, GraphQL, and supported metadata. |
-| OpenAPI/Swagger | HTTP/SSE requests generated from operations, plus the collection defaults that make them sendable: the server becomes a `{{baseUrl}}` variable, path parameters become collection variables seeded from the spec's examples, and declared security schemes become the request's auth. |
+| OpenAPI/Swagger | From a file or a URL. HTTP/SSE requests generated from operations, plus the collection defaults that make them sendable: the server becomes a `{{baseUrl}}` variable, path parameters become collection variables seeded from the spec's examples, and declared security schemes become the request's auth. |
 | HAR | Captured HTTP requests. |
 | `.http` / `.rest` | JetBrains HTTP Client and VS Code REST Client files: requests, names, headers, bodies, and file variables. |
-| cURL | A single request pasted into the URL bar. |
+| cURL | A single request pasted into the URL bar, including the flags that map onto a request setting — `-k`, `--max-time`, `--proxy` — and a form part's `;type=`. |
 | Relay all-data backup | Workspaces, collections, environments, requests, history, cookies, and selected UI/request preferences. |
 | Relay Git/YAML workspace | Reviewable workspace files with local-only secrets. |
 
@@ -46,7 +46,7 @@ Postman exports environments and globals as separate JSON files. Pick **Postman 
 
 What doesn't carry over:
 
-- Postman cloud Mock Servers / Monitors.
+- Postman cloud Monitors. Cloud **Mock Servers** do not come across as such, but the saved responses they were built from import as [examples](/docs/guides/examples/), which Relay's own [mock server](/docs/guides/mock-server/) serves locally.
 - Visualizer scripts.
 - Variable types beyond string/secret.
 
@@ -61,6 +61,18 @@ The point is a collection you can send straight away, so three things land on th
 - **Security schemes** become auth. A scheme declared for the whole document lands on the collection and each request is set to **Inherit Auth**; an operation with its own `security` carries that instead, and `security: []` means the operation is public. HTTP basic, digest and bearer, API keys (with the name and location the spec gives), and OAuth 2.0 (with its token and authorization URLs and scopes) are mapped. The credentials themselves are not in a spec, so each one points at a collection variable — `{{bearerToken}}`, `{{apiKey}}`, `{{oauth2ClientSecret}}` — giving you one place to fill in.
 
 `openIdConnect` is left as **No Auth**: its endpoints can only be discovered by fetching the provider's configuration, which the importer does not do.
+
+Declared `responses` come across as [examples](/docs/guides/examples/), including a body derived from the response schema when the spec writes none — which means an imported spec can drive the [mock server](/docs/guides/mock-server/) straight away.
+
+### From a URL
+
+Pick **OpenAPI / Swagger from URL** and paste the link. A spec URL is what teams actually pass around, because it is the one that stays current, and Relay builds exactly the collection the file import would.
+
+The document is fetched by Relay itself rather than by the embedded browser, so a spec host that sends no CORS headers still works, redirects are followed, and your [proxy](/docs/guides/proxy/) and TLS settings apply. A link with no scheme is read as `https`, and no cookies are sent.
+
+The collection is named from the spec's `info.title`. When the spec has none, Relay falls back to the host rather than to a path segment like `/v3/api-docs`, which names the format instead of the API.
+
+One mistake is common enough to name: **linking to the Swagger UI page rather than the document it renders**. The page is HTML, and Relay says so and points at where the document usually lives — `/swagger.json`, `/openapi.json` or `/v3/api-docs` — instead of reporting a parse failure.
 
 ## From a `.http` / `.rest` file
 

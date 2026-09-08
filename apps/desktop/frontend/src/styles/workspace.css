@@ -4445,9 +4445,19 @@
   }
 }
 
+.mock-shell {
+  container-type: inline-size;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
 .mock-workspace {
   display: grid;
-  grid-template-columns: clamp(280px, 34%, 440px) minmax(0, 1fr);
+  flex: 1;
+  grid-template-columns: minmax(0, clamp(260px, 32%, 420px)) minmax(0, 1fr);
   min-height: 0;
   flex: 1;
   background: var(--bg);
@@ -4692,14 +4702,16 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  min-width: 0;
 }
 
 .mock-pane-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  padding: 11px 20px;
+  gap: 12px;
+  min-width: 0;
+  padding: 11px 16px;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
 }
@@ -4708,6 +4720,8 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  min-width: 0;
+  overflow: hidden;
   color: var(--text);
   font-size: 12px;
   font-weight: 750;
@@ -4735,7 +4749,8 @@
 }
 
 .mock-filter {
-  width: 190px;
+  flex: 0 1 190px;
+  min-width: 0;
   height: 28px;
   padding: 0 10px;
   border: 1px solid var(--border);
@@ -4756,14 +4771,18 @@
 
 .mock-panes {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
   min-height: 0;
+  min-width: 0;
   flex: 1;
 }
 
 .mock-pane {
   min-height: 0;
-  overflow: auto;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 6px 0;
 }
 
@@ -4773,7 +4792,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 7px 20px;
+  min-width: 0;
+  padding: 7px 16px;
   border-bottom: 1px solid var(--border-subtle);
   font-size: 12px;
 }
@@ -4896,7 +4916,26 @@
   right: 6px;
 }
 
-@media (max-width: 900px) {
-  .mock-workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
-  .mock-config { border-right: none; border-bottom: 1px solid var(--border); }
+@container (max-width: 620px) {
+  .mock-workspace {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    overflow-y: auto;
+  }
+}
+
+@container (max-width: 720px) {
+  .mock-config {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .mock-row-name { display: none; }
+  .mock-filter { flex: 0 1 130px; }
+}
+
+@container (max-width: 520px) {
+  .mock-pane-head { padding: 10px 12px; }
+  .mock-row { padding: 7px 12px; gap: 8px; }
+  .mock-time,
+  .mock-row-copy { display: none; }
 }

@@ -71,6 +71,12 @@ A request set to **Inherit Auth** uses the auth configured in the collection def
 
 Imported Postman/Insomnia/Bruno folders that have their own auth are flattened into request-level or collection-level settings where Relay can represent them. After a large import, spot-check the Auth tab for the most sensitive requests.
 
+## The Auth tab wins over a hand-written header
+
+Auth is applied after your header rows, so a request that has both bearer auth configured **and** an `Authorization` header typed by hand sends the one from the Auth tab. The same goes for whatever header name an API key is configured under.
+
+That precedence has not changed, but Relay now says so: the response panel names the header that was replaced, instead of leaving you looking at a row that never went out. To send your own header, set Auth to **No Auth**.
+
 ## Secrets and storage
 
 Auth fields in Relay's local profile are encrypted at rest with AES-256-GCM. Relay writes the key to the OS credential store when available and keeps a `0600` recovery-key file in its app-data directory. In Git-backed workspaces, shared YAML receives `{{relaySecret:...}}` placeholders while the real values remain in the encrypted local profile.
