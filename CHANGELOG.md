@@ -7,6 +7,9 @@ All notable changes to Relay are documented here. This project follows
 
 ## [Unreleased]
 
+### Fixed
+- **A request that failed to send crashed the response panel**, replacing the message that would have explained the failure with `TypeError: null is not an object (evaluating 'response.headers.find')`. `HttpResponse.Headers` is a Go slice that is nil on every path where no response arrived — a DNS or TLS failure, a refused connection, an unresolved variable, a bad client certificate, a pre-request script that threw — and a nil slice serializes to `null`, while the generated binding types the field as an array and the history recorder read it on every send. The sender now guarantees an array, and the recorder tolerates its absence so an entry stored by an older build cannot crash the panel either. The practical effect is that you can finally see *why* a send failed.
+
 ### Added
 - **A local mock server, built on saved examples.** Point it at a collection and Relay serves every example it holds over HTTP, so a client can be written against an endpoint that does not exist yet — or against the failure cases a real staging environment will not produce on demand. This is what examples were leading to: they already stored the response, the request that produced it, and a path template (`/orders/8123` captured as `/orders/:id`), so the mock is matching rather than a new kind of data. Postman's equivalent lives in the cloud and needs an account; this one is a port on your own machine, serving files that are in your Git history.
 - Routing takes the method and the path template, with a literal segment beating a parameter, so `/pets/featured` wins over `/pets/:id` no matter which example was captured first. An example that recorded query parameters only answers requests carrying them, which is how one endpoint serves its empty, its full and its error case from three examples. OpenAPI-style `{petId}` segments match the same way `:petId` does.

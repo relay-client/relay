@@ -60,8 +60,8 @@ function historyResponseSnapshot(response: HttpResponse): HttpResponse {
   };
 }
 
-function responseContentType(response: HttpResponse): string {
-  return response.headers.find(header => header.key.toLowerCase() === 'content-type')?.value ?? '';
+export function historyContentType(response: HttpResponse): string {
+  return (response.headers ?? []).find(header => header.key.toLowerCase() === 'content-type')?.value ?? '';
 }
 
 export const historyFeature = {
@@ -114,7 +114,7 @@ export const historyFeature = {
       duration: httpResponse.duration,
       createdAt: now,
       responseSize: httpResponse.size,
-      responseContentType: responseContentType(httpResponse),
+      responseContentType: historyContentType(httpResponse),
     };
 
     try {

@@ -44,6 +44,17 @@ func sendRequest(requestCtx context.Context, req model.HttpRequest, sm *state.Ma
 }
 
 func sendRequestWithBodySink(requestCtx context.Context, req model.HttpRequest, sm *state.Manager, jars *cookieJarRegistry, cache *preflightCache, sinkFactory responseBodySinkFactory) model.HttpResponse {
+	return withResponseHeaders(runRequestWithBodySink(requestCtx, req, sm, jars, cache, sinkFactory))
+}
+
+func withResponseHeaders(resp model.HttpResponse) model.HttpResponse {
+	if resp.Headers == nil {
+		resp.Headers = []model.KeyValue{}
+	}
+	return resp
+}
+
+func runRequestWithBodySink(requestCtx context.Context, req model.HttpRequest, sm *state.Manager, jars *cookieJarRegistry, cache *preflightCache, sinkFactory responseBodySinkFactory) model.HttpResponse {
 	var jar http.CookieJar
 	if jars != nil {
 		jar = jars.jar(req.WorkspaceID)
