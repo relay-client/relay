@@ -14,7 +14,7 @@ require (
 	github.com/jhump/protoreflect v1.18.0
 	github.com/klauspost/compress v1.19.1
 	github.com/minio/selfupdate v0.6.0
-	github.com/wailsapp/wails/v2 v2.13.0
+	github.com/wailsapp/wails/v2 v2.12.0
 	golang.org/x/net v0.54.0
 	google.golang.org/grpc v1.82.1
 	gopkg.in/yaml.v3 v3.0.1

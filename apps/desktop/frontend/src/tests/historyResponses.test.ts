@@ -8,8 +8,9 @@ vi.mock('../lib/backend', () => ({
 }));
 
 import { clearHistoryResponses, loadHistoryResponse, pruneHistoryResponses, saveHistoryResponse } from '../lib/backend';
-import { historyFeature } from '../lib/stores/features/history';
+import { historyContentType, historyFeature } from '../lib/stores/features/history';
 import { emptyHttpResponse } from '../lib/wire';
+import type { HttpResponse } from '../lib/backend';
 
 const mockSave = vi.mocked(saveHistoryResponse);
 const mockLoad = vi.mocked(loadHistoryResponse);
@@ -209,5 +210,30 @@ describe('opening an entry', () => {
 
     expect(host.setActiveResponse).not.toHaveBeenCalled();
     expect(host.requestError).toBe('');
+  });
+});
+
+describe('recording a failed send', () => {
+  // A request that never reached a server has no headers. The Go side now
+  // always sends an array, but a history entry stored by an older build — or a
+  // response restored from one — can still arrive without the field, and
+  // reading it crashed the panel with a TypeError that then replaced the
+  // message explaining why the request had failed.
+  it('does not crash when the response carries no headers', () => {
+    const failed = { ...emptyHttpResponse(), error: 'dial tcp: connection refused' } as HttpResponse;
+    delete (failed as Partial<HttpResponse>).headers;
+    expect(() => historyContentType(failed)).not.toThrow();
+    expect(historyContentType(failed)).toBe('');
+
+    const nulled = { ...emptyHttpResponse(), headers: null } as unknown as HttpResponse;
+    expect(historyContentType(nulled)).toBe('');
+  });
+
+  it('still reads the content type when there is one', () => {
+    const ok = {
+      ...emptyHttpResponse(),
+      headers: [{ key: 'Content-Type', value: 'application/json', enabled: true, isFile: false, fileName: '', contentType: '' }],
+    } as HttpResponse;
+    expect(historyContentType(ok)).toBe('application/json');
   });
 });
