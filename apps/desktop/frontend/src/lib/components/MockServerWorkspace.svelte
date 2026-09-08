@@ -106,6 +106,7 @@
   }
 </script>
 
+<div class="mock-shell">
 <section class="mock-workspace" aria-label="Mock server">
   <aside class="mock-config">
     <div class="mock-title">
@@ -314,3 +315,4 @@
     </div>
   </section>
 </section>
+</div>

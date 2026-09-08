@@ -133,6 +133,8 @@ export default defineConfig({
             { label: 'Collection defaults', link: '/docs/guides/collection-defaults/' },
             { label: 'Request types', link: '/docs/guides/request-types/' },
             { label: 'Response viewer', link: '/docs/guides/response-viewer/' },
+            { label: 'Response examples', link: '/docs/guides/examples/' },
+            { label: 'Mock server', link: '/docs/guides/mock-server/' },
             { label: 'Per-request settings', link: '/docs/guides/request-settings/' },
             { label: 'Browser security emulation', link: '/docs/guides/browser-security/' },
             { label: 'Proxy configuration', link: '/docs/guides/proxy/' },

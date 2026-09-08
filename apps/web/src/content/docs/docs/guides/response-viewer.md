@@ -84,6 +84,12 @@ The *Diff* tab appears the second time you send the same request. It compares th
 
 Baselines are per-request and live in memory only; they are never written to the workspace and are dropped when Relay restarts.
 
+You can also diff against a **saved example** instead of the previous response. That is what stops an example from going stale: an endpoint that no longer matches the contract shows up as a diff rather than passing unnoticed. If the example the baseline pointed at is deleted, it falls back to the previous response. See [Response examples](/docs/guides/examples/).
+
+## Saving a response as an example
+
+**Save as example** keeps the response — status, headers and body — next to the request that produced it, as a file in your workspace rather than something only you can see. Secrets are redacted on capture. Examples are what the [mock server](/docs/guides/mock-server/) replays. See [Response examples](/docs/guides/examples/).
+
 ## Scripts view (test results)
 
 The *Scripts* tab is enabled whenever a request had a pre-request or test script attached. It groups results into blocks:
@@ -124,3 +130,5 @@ Images travel to the viewer through a separate lossless channel, because the res
 - [Request types](/docs/guides/request-types/) — GraphQL, SSE, WebSocket, Socket.IO, and gRPC response surfaces
 - [Request history](/docs/guides/history/) — every response is automatically archived for 14 days
 - [Code generation](/docs/guides/code-generation/) — copy the request that produced this response in any supported language
+- [Response examples](/docs/guides/examples/) — keep a response as a reviewable file, and diff against it later
+- [Mock server](/docs/guides/mock-server/) — serve those examples over HTTP
