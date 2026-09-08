@@ -13,7 +13,7 @@ vi.mock('../lib/backend', async () => {
 
 import * as backend from '../lib/backend';
 import { EMPTY_MOCK_SERVER_STATUS } from '../lib/wire';
-import { collectionsWithExamples, mockRouteConflicts, mockRoutesForCollection } from '../lib/mockRoutes';
+import { collectionsWithExamples, mockRouteConflicts, mockRoutesForCollection, mockRoutesSignature } from '../lib/mockRoutes';
 import { mockServerFeature } from '../lib/stores/features/mockServer';
 import { normalizeSavedRequest } from '../lib/normalizers';
 import type { SavedRequest } from '../lib/types/models';
@@ -98,6 +98,26 @@ describe('collectionsWithExamples', () => {
   });
 });
 
+describe('mockRoutesSignature', () => {
+  it('changes when a response body changes', () => {
+    const before = mockRoutesForCollection([requestWithExamples({ collectionId: 'c' }, [okExample])], 'c');
+    const after = mockRoutesForCollection([requestWithExamples({ collectionId: 'c' }, [
+      { ...okExample, response: { ...okExample.response, body: 'different' } },
+    ])], 'c');
+    expect(mockRoutesSignature(before)).not.toBe(mockRoutesSignature(after));
+  });
+
+  // Renaming an example changes nothing a client can observe, so it must not
+  // bounce the server.
+  it('ignores a rename', () => {
+    const before = mockRoutesForCollection([requestWithExamples({ collectionId: 'c' }, [okExample])], 'c');
+    const after = mockRoutesForCollection([requestWithExamples({ collectionId: 'c' }, [
+      { ...okExample, name: 'Renamed' },
+    ])], 'c');
+    expect(mockRoutesSignature(before)).toBe(mockRoutesSignature(after));
+  });
+});
+
 describe('mockRouteConflicts', () => {
   it('reports two examples that would answer the same request', () => {
     const routes = mockRoutesForCollection(
@@ -110,6 +130,14 @@ describe('mockRouteConflicts', () => {
   it('says nothing when the routes are distinct', () => {
     const other = { ...okExample, id: 'ex-2', match: { pathTemplate: '/pets/:id' } };
     const routes = mockRoutesForCollection([requestWithExamples({ collectionId: 'c' }, [okExample, other])], 'c');
+    expect(mockRouteConflicts(routes).size).toBe(0);
+  });
+
+  // Two examples on the same path are the normal way to serve an empty and a
+  // full case, as long as a recorded query tells them apart.
+  it('does not report two examples separated by a query', () => {
+    const narrowed = { ...okExample, id: 'ex-2', match: { pathTemplate: '/pets', query: { status: 'archived' } } };
+    const routes = mockRoutesForCollection([requestWithExamples({ collectionId: 'c' }, [okExample, narrowed])], 'c');
     expect(mockRouteConflicts(routes).size).toBe(0);
   });
 });
@@ -129,6 +157,12 @@ function makeHost(overrides: Record<string, unknown> = {}) {
     mockServerBusy: false,
     mockServerLog: [],
     mockServerError: '',
+    mockServerRunningSignature: '',
+    requestTab: 'params',
+    switchedTo: '',
+    selectedExampleId: '',
+    switchRequest: async (id: string) => { host.switchedTo = id; },
+    selectExample: (id: string) => { host.selectedExampleId = id; },
     closeFloatingMenus: () => {},
     guardWorkspaceWritable: () => true,
     openAlertDialog: async () => {},
@@ -207,6 +241,73 @@ describe('mock server feature', () => {
     }
     expect(host.mockServerLog).toHaveLength(200);
     expect(host.mockServerLog[199].id).toBe('mock-259');
+  });
+
+  // A running mock that still serves the examples you edited five minutes ago
+  // is worse than no mock: it answers, and the answer is stale.
+  it('notices when the examples it is serving have changed', async () => {
+    vi.mocked(backend.startMockServer).mockResolvedValue({
+      running: true, port: 3100, url: 'http://127.0.0.1:3100',
+      collectionId: 'col-1', collectionName: 'Petstore', routeCount: 1,
+    });
+    const host = makeHost();
+    await host.startMockServerForCollection();
+    expect(host.mockServerRoutesChanged()).toBe(false);
+
+    host.requests = [requestWithExamples({ collectionId: 'col-1' }, [
+      { ...okExample, response: { ...okExample.response, body: '[{"id":1},{"id":2}]' } },
+    ])];
+    expect(host.mockServerRoutesChanged()).toBe(true);
+  });
+
+  it('reloading keeps the request log, because the server did not really stop', async () => {
+    vi.mocked(backend.startMockServer).mockResolvedValue({
+      running: true, port: 3100, url: 'http://127.0.0.1:3100',
+      collectionId: 'col-1', collectionName: 'Petstore', routeCount: 1,
+    });
+    const host = makeHost();
+    await host.startMockServerForCollection();
+    host.recordMockRequest({ id: 'm1', method: 'GET', path: '/pets', query: '', matched: true, statusCode: 200, durationMs: 1, timestamp: 1 } as never);
+
+    host.requests = [requestWithExamples({ collectionId: 'col-1' }, [
+      { ...okExample, response: { ...okExample.response, body: 'changed' } },
+    ])];
+    await host.reloadMockServerRoutes();
+
+    expect(host.mockServerLog).toHaveLength(1);
+    expect(host.mockServerRoutesChanged()).toBe(false);
+  });
+
+  it('does not reload when nothing changed', async () => {
+    vi.mocked(backend.startMockServer).mockResolvedValue({
+      running: true, port: 3100, url: 'http://127.0.0.1:3100',
+      collectionId: 'col-1', collectionName: 'Petstore', routeCount: 1,
+    });
+    const host = makeHost();
+    await host.startMockServerForCollection();
+    vi.mocked(backend.startMockServer).mockClear();
+
+    await host.reloadMockServerRoutes();
+    expect(backend.startMockServer).not.toHaveBeenCalled();
+  });
+
+  it('a stopped server reports no drift', () => {
+    const host = makeHost();
+    expect(host.mockServerRoutesChanged()).toBe(false);
+  });
+
+  it('opens the example behind a route', async () => {
+    const host = makeHost();
+    await host.openMockRouteExample('ex-1');
+    expect(host.switchedTo).toBe('req-1');
+    expect(host.requestTab).toBe('examples');
+    expect(host.selectedExampleId).toBe('ex-1');
+  });
+
+  it('ignores a route whose example has since been deleted', async () => {
+    const host = makeHost();
+    await host.openMockRouteExample('gone');
+    expect(host.switchedTo).toBe('');
   });
 
   it('closing the tab returns to a view that exists', () => {

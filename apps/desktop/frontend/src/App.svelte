@@ -654,13 +654,15 @@
         busy={vm.mockServerBusy}
         error={vm.mockServerError}
         log={vm.mockServerLog}
+        routesChanged={vm.mockServerRoutesChanged()}
         onToggle={vm.toggleMockServer}
-        onRestart={vm.restartMockServerWithCurrentExamples}
+        onReload={vm.reloadMockServerRoutes}
         onSelectCollection={vm.selectMockServerCollection}
         onPortChange={vm.setMockServerPort}
         onSimulateLatencyChange={(value: boolean) => (vm.mockServerSimulateLatency = value)}
         onClearLog={vm.clearMockServerLog}
-        onCopyUrl={(url: string) => void clipboardSet(url)}
+        onCopy={(text: string) => void clipboardSet(text)}
+        onOpenExample={(exampleId: string) => void vm.openMockRouteExample(exampleId)}
       />
       {/if}
     {:else if vm.topView === 'runner'}

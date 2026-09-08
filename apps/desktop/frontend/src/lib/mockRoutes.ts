@@ -72,6 +72,19 @@ export function collectionsWithExamples(requests: SavedRequest[]): Set<string> {
   return ids;
 }
 
+export function mockRoutesSignature(routes: MockRoute[]): string {
+  return JSON.stringify(routes.map(route => [
+    route.method,
+    route.pathTemplate,
+    route.statusCode,
+    route.bodyMediaType,
+    route.body,
+    route.delayMs,
+    route.query.map(pair => [pair.key, pair.value]),
+    route.headers.map(pair => [pair.key, pair.value]),
+  ]));
+}
+
 export function mockRouteLabel(route: MockRoute): string {
   return `${route.method.toUpperCase()} ${route.pathTemplate}`;
 }
