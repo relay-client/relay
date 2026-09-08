@@ -4474,10 +4474,12 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 28px 24px;
+  min-width: 0;
+  padding: 26px 20px;
   border-right: 1px solid var(--border);
   background: var(--surface);
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .mock-title {
@@ -4515,7 +4517,8 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 14px;
+  min-width: 0;
+  padding: 12px;
   border: 1px solid color-mix(in srgb, var(--s2xx) 32%, var(--border));
   border-radius: 10px;
   background: color-mix(in srgb, var(--s2xx) 7%, var(--elevated));
@@ -4524,7 +4527,9 @@
 .mock-live-head {
   display: flex;
   align-items: center;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  min-width: 0;
 }
 
 .mock-live-label {
@@ -4558,9 +4563,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
-  padding: 9px 11px;
+  min-width: 0;
+  padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: 7px;
   background: var(--bg);
@@ -4572,6 +4578,9 @@
 .mock-url:hover { border-color: var(--accent); }
 
 .mock-url code {
+  min-width: 0;
+  text-align: left;
+  overflow-wrap: anywhere;
   font-family: var(--font-mono);
   font-size: 12px;
   color: var(--text);
@@ -4826,7 +4835,11 @@
 }
 
 .mock-chip {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   padding: 2px 8px;
   border-radius: 999px;
   border: 1px solid var(--border-subtle);
@@ -4928,6 +4941,7 @@
   .mock-config {
     border-right: none;
     border-bottom: 1px solid var(--border);
+    padding: 20px 16px;
   }
   .mock-row-name { display: none; }
   .mock-filter { flex: 0 1 130px; }
