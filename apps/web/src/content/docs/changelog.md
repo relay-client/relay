@@ -5,6 +5,22 @@ description: Notable Relay changes and links to the exact notes for each publish
 
 This page summarizes the notable-change log maintained in the source repository. For the exact notes and artifacts attached to every published tag, use the [Relay releases page](https://github.com/relay-client/relay/releases).
 
+## 1.7.0
+
+### Added
+
+- **A local mock server.** Point it at a collection and Relay serves every [saved example](/docs/guides/examples/) it holds over HTTP, so a client can be written against an endpoint that does not exist yet — or against the failure cases a staging environment will not produce on demand. No account, no cloud: a port on your own machine, serving files that are already in your Git history. See [Mock server](/docs/guides/mock-server/).
+- Routing is the method plus the example's path template, so a response captured from `/orders/8123` answers `/orders/:id`. A literal segment beats a parameter, and an example that recorded query parameters only answers requests carrying them — which is how one endpoint serves its empty, its full and its error case from three examples.
+- **A live log of what your client asked for**, with the unmatched requests called out. Those are the useful ones: they separate "my client is wrong" from "no example covers this yet", and a request matching nothing gets a 404 that names the routes which do exist.
+- The mock **reloads when you edit an example** it is serving, so it never answers with something you already changed. Two examples that would answer the same request are flagged, since only the first can ever reply.
+- **Response examples and the mock server are now documented**, and the docs no longer claim Relay has no mock server. See [Response examples](/docs/guides/examples/) and [Mock server](/docs/guides/mock-server/).
+
+### Fixed
+
+- **Opening a saved request marked it unsaved.** In manual-save mode, clicking any request lit the unsaved indicator without a single edit — so the indicator stopped meaning anything. The comparison behind it was order-sensitive where it should not have been.
+- **A request that failed to send showed a `TypeError` instead of the reason.** DNS failures, refused connections, TLS problems and unresolved variables all produced a crash in the response panel where the explanation should have been. You can see why a send failed again.
+- **Parts of the interface silently fell back to browser defaults**, most visibly in the response viewer's Diff tab, because they referenced colours that were never defined.
+
 ## 1.6.0
 
 ### Added
