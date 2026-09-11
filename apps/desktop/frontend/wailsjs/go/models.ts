@@ -842,6 +842,132 @@ export namespace model {
 		    return a;
 		}
 	}
+	export class CookieSyncConfig {
+	    enabled: boolean;
+	    port: number;
+	    domains: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new CookieSyncConfig(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.enabled = source["enabled"];
+	        this.port = source["port"];
+	        this.domains = source["domains"];
+	    }
+	}
+	export class CookieSyncLog {
+	    id: string;
+	    timestamp: number;
+	    browser: string;
+	    domain: string;
+	    accepted: number;
+	    skipped: number;
+	    removed: number;
+	    message: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CookieSyncLog(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.timestamp = source["timestamp"];
+	        this.browser = source["browser"];
+	        this.domain = source["domain"];
+	        this.accepted = source["accepted"];
+	        this.skipped = source["skipped"];
+	        this.removed = source["removed"];
+	        this.message = source["message"];
+	    }
+	}
+	export class CookieSyncPairRequest {
+	    id: string;
+	    browser: string;
+	    extensionId: string;
+	    code: string;
+	    requestedAt: number;
+	    expiresAt: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new CookieSyncPairRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.browser = source["browser"];
+	        this.extensionId = source["extensionId"];
+	        this.code = source["code"];
+	        this.requestedAt = source["requestedAt"];
+	        this.expiresAt = source["expiresAt"];
+	    }
+	}
+	export class CookieSyncStatus {
+	    enabled: boolean;
+	    running: boolean;
+	    port: number;
+	    url: string;
+	    pairingCode: string;
+	    domains: string[];
+	    paired: boolean;
+	    connected: boolean;
+	    browser: string;
+	    unreadable: string[];
+	    lastContactAt: number;
+	    lastSyncAt: number;
+	    lastSyncCount: number;
+	    syncedTotal: number;
+	    pending: CookieSyncPairRequest;
+	    log: CookieSyncLog[];
+	    error?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CookieSyncStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.enabled = source["enabled"];
+	        this.running = source["running"];
+	        this.port = source["port"];
+	        this.url = source["url"];
+	        this.pairingCode = source["pairingCode"];
+	        this.domains = source["domains"];
+	        this.paired = source["paired"];
+	        this.connected = source["connected"];
+	        this.browser = source["browser"];
+	        this.unreadable = source["unreadable"];
+	        this.lastContactAt = source["lastContactAt"];
+	        this.lastSyncAt = source["lastSyncAt"];
+	        this.lastSyncCount = source["lastSyncCount"];
+	        this.syncedTotal = source["syncedTotal"];
+	        this.pending = this.convertValues(source["pending"], CookieSyncPairRequest);
+	        this.log = this.convertValues(source["log"], CookieSyncLog);
+	        this.error = source["error"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class GrpcMessage {
 	    index: number;
 	    direction?: string;

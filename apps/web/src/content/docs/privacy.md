@@ -78,6 +78,8 @@ By default Relay maintains a cookie jar across requests, just like a browser. Co
 
 Cookies are never transmitted anywhere except in the request to the domain that set them, following standard browser rules.
 
+**Cookie sync** (Cookies modal -> *Sync Cookies*) is off unless you turn it on. When on, Relay opens a listener bound to `127.0.0.1` that a browser extension can find and ask to connect to; you approve the request in Relay by matching a six-digit code, and only then does Relay hand over a token. The extension then holds a WebSocket to that port and pushes cookies for the domains you allowlist there, and only those. The token and the allowlist are stored in `preferences.json`. Cookies travel browser -> Relay over loopback only, and a snapshot replaces what the jar held for those domains. *Disconnect it* mints a new token and drops the browser immediately.
+
 ## Data export and deletion
 
 - **Export** - *Settings -> General -> Advanced data -> Export all data* writes workspace data, history, cookies, secrets, and selected preferences to a plaintext JSON file you choose. External Git repositories, the global proxy password, and some local UI preferences are not bundled. See [Backup & recovery](/docs/guides/backup-recovery/).

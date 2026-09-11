@@ -377,3 +377,88 @@ func normalizeSameSite(value string) string {
 		return ""
 	}
 }
+
+func cookieDomainAllowed(domain string, allowed []string) bool {
+	domain = strings.Trim(strings.ToLower(strings.TrimSpace(domain)), ".")
+	if domain == "" {
+		return false
+	}
+	for _, candidate := range allowed {
+		if candidate == "" {
+			continue
+		}
+		if domain == candidate || strings.HasSuffix(domain, "."+candidate) {
+			return true
+		}
+	}
+	return false
+}
+
+func (j *trackedCookieJar) ApplySyncedCookie(domains []string, cookie model.Cookie, removed bool) bool {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+
+	if !cookieDomainAllowed(cookie.Domain, domains) {
+		return false
+	}
+	now := time.Now()
+	next, err := normalizeEditableCookie(cookie, now)
+	if err != nil {
+		return false
+	}
+	key := cookieMapKey(next)
+	if removed {
+		if _, ok := j.cookies[key]; !ok {
+			return false
+		}
+		delete(j.cookies, key)
+		j.rebuildLocked()
+		return true
+	}
+	if !next.Session && next.ExpiresAt > 0 && time.UnixMilli(next.ExpiresAt).Before(now) {
+		if _, ok := j.cookies[key]; !ok {
+			return false
+		}
+		delete(j.cookies, key)
+		j.rebuildLocked()
+		return true
+	}
+	if earlier, ok := j.cookies[key]; ok && earlier.CreatedAt > 0 {
+		next.CreatedAt = earlier.CreatedAt
+	}
+	j.cookies[key] = next
+	j.rebuildLocked()
+	return true
+}
+
+func (j *trackedCookieJar) SyncCookies(domains []string, cookies []model.Cookie) (accepted int, removed int) {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+
+	now := time.Now()
+	previous := make(map[string]model.Cookie)
+	for key, existing := range j.cookies {
+		if cookieDomainAllowed(existing.Domain, domains) {
+			previous[key] = existing
+			delete(j.cookies, key)
+		}
+	}
+	for _, cookie := range cookies {
+		next, err := normalizeEditableCookie(cookie, now)
+		if err != nil || !cookieDomainAllowed(next.Domain, domains) {
+			continue
+		}
+		if !next.Session && next.ExpiresAt > 0 && time.UnixMilli(next.ExpiresAt).Before(now) {
+			continue
+		}
+		key := cookieMapKey(next)
+		if earlier, ok := previous[key]; ok && earlier.CreatedAt > 0 {
+			next.CreatedAt = earlier.CreatedAt
+			delete(previous, key)
+		}
+		j.cookies[key] = next
+		accepted++
+	}
+	j.rebuildLocked()
+	return accepted, len(previous)
+}

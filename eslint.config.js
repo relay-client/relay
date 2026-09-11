@@ -41,6 +41,13 @@ export default [
   },
 
   {
+    files: ['apps/desktop/frontend/e2e/cookie-sync-extension.mjs'],
+    languageOptions: {
+      globals: { chrome: 'readonly', connect: 'readonly' },
+    },
+  },
+
+  {
     files: ['apps/desktop/frontend/src/lib/stores/**'],
     rules: {
       '@typescript-eslint/no-unused-expressions': 'off',

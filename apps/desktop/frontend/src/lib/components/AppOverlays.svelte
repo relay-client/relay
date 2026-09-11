@@ -116,6 +116,19 @@
       onDelete={vm.removeCookie}
       onClear={vm.clearCookieJar}
       onClose={vm.closeCookieJar}
+      sync={vm.cookieSync}
+      syncUnreadable={vm.cookieSyncUnreadableDomains()}
+      syncBusy={vm.cookieSyncBusy}
+      syncError={vm.cookieSyncError}
+      syncCodeCopied={vm.cookieSyncCodeCopied}
+      onToggleSync={vm.toggleCookieSync}
+      onAddSyncDomain={vm.addCookieSyncDomain}
+      onRemoveSyncDomain={vm.removeCookieSyncDomain}
+      onRevokeSync={vm.revokeCookieSyncBrowser}
+      onApproveSync={vm.approveCookieSyncBrowser}
+      onDenySync={vm.denyCookieSyncBrowser}
+      onCopySyncCode={vm.copyCookieSyncPairingCode}
+      onSyncPortChange={(port: number) => (vm.cookieSyncPort = port)}
     />
   {/if}
 {/if}

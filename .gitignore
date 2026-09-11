@@ -33,6 +33,7 @@ update-signing-key.pub
 .env
 .env.*
 *.pem
+*.crx
 *.p12
 *.pfx
 

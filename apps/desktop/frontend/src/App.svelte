@@ -219,6 +219,7 @@
     const offMockRequest = window.runtime?.EventsOn?.<MockRequestLog>('mock:request', entry => {
       vm.recordMockRequest(entry);
     });
+    vm.initCookieSyncListeners();
     void vm.refreshMockServerStatus();
     const beforeUnload = (event: BeforeUnloadEvent) => {
       vm.flushPendingPersist();
@@ -287,6 +288,7 @@
       } finally {
         hideBootScreen();
       }
+      void vm.loadCookieSyncStatus();
       const info = await getAppInfo();
       vm.appRuntime = info.runtime;
       vm.appVersion = info.version;

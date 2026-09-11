@@ -7,6 +7,8 @@ export function AppInfo():Promise<model.AppInfo>;
 
 export function ApplyUpdate(arg1:model.UpdateInfo):Promise<string>;
 
+export function ApproveCookieSyncPairing(arg1:string):Promise<model.CookieSyncStatus>;
+
 export function AuthorizeOAuth2(arg1:model.AuthConfig):Promise<model.OAuth2TokenResponse>;
 
 export function AuthorizeOAuth2Device(arg1:model.AuthConfig):Promise<model.OAuth2TokenResponse>;
@@ -29,6 +31,8 @@ export function ClipboardSet(arg1:string):Promise<void>;
 
 export function ConfirmQuit():Promise<void>;
 
+export function CookieSyncStatus():Promise<model.CookieSyncStatus>;
+
 export function CreateLocalWorkspaceRoot(arg1:string,arg2:string,arg3:string):Promise<api.WorkspaceOpenResult>;
 
 export function DefaultWorkspaceLocation():Promise<api.DefaultWorkspaceLocationResult>;
@@ -36,6 +40,8 @@ export function DefaultWorkspaceLocation():Promise<api.DefaultWorkspaceLocationR
 export function DeleteCookie(arg1:string,arg2:model.Cookie):Promise<model.CookieJarResult>;
 
 export function DeleteVariable(arg1:string):Promise<void>;
+
+export function DenyCookieSyncPairing(arg1:string):Promise<model.CookieSyncStatus>;
 
 export function DiagnosticsReport():Promise<string>;
 
@@ -175,6 +181,8 @@ export function RefreshOAuth2Token(arg1:model.AuthConfig):Promise<model.OAuth2To
 
 export function RestartApp():Promise<void>;
 
+export function RevokeCookieSyncPairing():Promise<model.CookieSyncStatus>;
+
 export function SSEConnect(arg1:string,arg2:model.HttpRequest):Promise<void>;
 
 export function SSEDisconnect(arg1:string):Promise<void>;
@@ -197,6 +205,10 @@ export function SendRequestToFile(arg1:model.HttpRequest,arg2:string):Promise<ap
 
 export function SetAppThemeBackground(arg1:string,arg2:string):Promise<void>;
 
+export function SetCookieSyncDomains(arg1:Array<string>):Promise<model.CookieSyncStatus>;
+
+export function SetCookieSyncWorkspace(arg1:string):Promise<model.CookieSyncStatus>;
+
 export function SetDefaultWorkspaceLocation(arg1:string):Promise<api.DefaultWorkspaceLocationResult>;
 
 export function SetEnvironment(arg1:Record<string, string>):Promise<void>;
@@ -215,7 +227,11 @@ export function SocketIODisconnect(arg1:string):Promise<void>;
 
 export function SocketIOEmit(arg1:string,arg2:model.SocketIOEmitMessage):Promise<model.SocketIOEmitResult>;
 
+export function StartCookieSync(arg1:model.CookieSyncConfig,arg2:string):Promise<model.CookieSyncStatus>;
+
 export function StartMockServer(arg1:model.MockServerConfig):Promise<model.MockServerStatus>;
+
+export function StopCookieSync():Promise<model.CookieSyncStatus>;
 
 export function StopMockServer():Promise<model.MockServerStatus>;
 

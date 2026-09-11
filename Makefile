@@ -46,7 +46,7 @@ GITHUB_REPO := $(shell git remote get-url origin 2>/dev/null | sed 's|.*github.c
 
 .PHONY: help version dev dev-go dev-run frontend install tidy check test \
         build build-desktop build-macos build-windows build-windows-msix build-linux build-all build-frontend \
-        open clean wails-install bindings screenshots \
+        open clean wails-install bindings screenshots test-extension \
         release release-patch release-minor release-major _do-release _guard-clean \
         update-keygen update-sign \
         release-mac-local _do-release-mac-local release-mac-publish
@@ -57,6 +57,7 @@ help:
 	@printf '  %-24s %s\n' 'make frontend' 'Run only Svelte/Vite frontend'
 	@printf '  %-24s %s\n' 'make install' 'Install npm deps and tidy Go deps'
 	@printf '  %-24s %s\n' 'make check' 'Run frontend typecheck and Go tests'
+	@printf '  %-24s %s\n' 'make test-extension' 'Drive the cookie sync extension in a real browser'
 	@printf '  %-24s %s\n' 'make build' 'Build desktop app for the current platform'
 	@printf '  %-24s %s\n' 'make build-windows' 'Build Windows NSIS installer and MSIX package'
 	@printf '%s\n' ''
@@ -360,6 +361,9 @@ check:
 
 test:
 	cd $(ROOT_DIR) && $(GO_ENV) go test ./apps/desktop/...
+
+test-extension:
+	cd $(ROOT_DIR) && $(GO_ENV) RELAY_BROWSER_EXTENSION_TEST=1 go test ./apps/desktop/internal/api/ -run TestCookieSyncWithARealBrowserExtension -count=1 -v
 
 build: build-desktop
 

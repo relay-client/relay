@@ -1,6 +1,6 @@
 <script lang="ts">
   import { tabListKeyboard, trapFocus } from '../a11y';
-  import type { CookieJarEntry } from '../backend';
+  import type { CookieJarEntry, CookieSyncStatus } from '../backend';
   import {
     buildCookieDomainGroups,
     cookieKey,
@@ -17,24 +17,54 @@
     saving,
     error,
     defaultDomain,
+    sync,
+    syncUnreadable,
+    syncBusy,
+    syncError,
+    syncCodeCopied,
     onRefresh,
     onSave,
     onDelete,
     onClear,
     onClose,
+    onToggleSync,
+    onAddSyncDomain,
+    onRemoveSyncDomain,
+    onRevokeSync,
+    onApproveSync,
+    onDenySync,
+    onCopySyncCode,
+    onSyncPortChange,
   }: {
     cookies: CookieJarEntry[];
     loading: boolean;
     saving: boolean;
     error: string;
     defaultDomain: string;
+    sync: CookieSyncStatus;
+    syncUnreadable: string[];
+    syncBusy: boolean;
+    syncError: string;
+    syncCodeCopied: boolean;
     onRefresh: () => void;
     onSave: (cookie: CookieJarEntry) => Promise<void>;
     onDelete: (cookie: CookieJarEntry) => Promise<void>;
     onClear: () => Promise<void>;
     onClose: () => void;
+    onToggleSync: () => Promise<void> | void;
+    onAddSyncDomain: (domain: string) => Promise<void> | void;
+    onRemoveSyncDomain: (domain: string) => Promise<void> | void;
+    onRevokeSync: () => Promise<void> | void;
+    onApproveSync: () => Promise<void> | void;
+    onDenySync: () => Promise<void> | void;
+    onCopySyncCode: () => Promise<void> | void;
+    onSyncPortChange: (port: number) => void;
   } = $props();
 
+  const COOKIE_SYNC_GUIDE_URL = 'https://relay-client.github.io/docs/guides/cookies/';
+
+  let tab = $state<'manage' | 'sync'>('manage');
+  let syncDomainInput = $state('');
   let domainInput = $state('');
   let manualDomains = $state<string[]>([]);
   let activeDomain = $state('');
@@ -58,6 +88,68 @@
   let editorDomain = $derived(editingDomain || activeDomain);
   let editorOpen = $derived(Boolean(editingDomain));
   let canSave = $derived(Boolean(editorDomain && rawCookieText.trim() && !saving));
+  let syncDomains = $derived(sync.domains ?? []);
+  let syncLog = $derived([...(sync.log ?? [])].reverse().slice(0, 6));
+  let openRequestDomain = $derived(normalizeCookieDomain(defaultDomain));
+  let openRequestDomainListed = $derived(
+    !openRequestDomain
+    || syncDomains.some(listed => openRequestDomain === listed || openRequestDomain.endsWith(`.${listed}`)),
+  );
+  let syncPending = $derived(sync.pending?.id ? sync.pending : null);
+  let syncHeadline = $derived(syncHeadlineFor(sync));
+  let syncDetail = $derived(syncDetailFor(sync));
+
+  function syncHeadlineFor(status: CookieSyncStatus): string {
+    if (!status.running) return 'Cookie sync is off';
+    if (status.pending?.id) return `${status.pending.browser} wants to connect`;
+    if (status.connected) return `${status.browser || 'A browser'} is connected`;
+    if (status.paired) return `${status.browser || 'A browser'} is paired but offline`;
+    return 'Waiting for a browser';
+  }
+
+  function syncDetailFor(status: CookieSyncStatus): string {
+    if (!status.running) {
+      return 'Turn it on to let a browser extension push its cookies into this workspace.';
+    }
+    if (status.pending?.id) {
+      return 'Check the code below matches the one in the extension, then let it in.';
+    }
+    if (status.connected) {
+      if (status.lastSyncAt) {
+        const count = status.lastSyncCount === 1 ? '1 cookie' : `${status.lastSyncCount} cookies`;
+        return `${count} synced ${relativeTime(status.lastSyncAt)}.`;
+      }
+      return 'Live — cookie changes arrive as they happen.';
+    }
+    if (status.paired) {
+      return 'The browser will reconnect on its own when it is open again.';
+    }
+    return `Listening on ${status.url} — install the extension and press Connect in it.`;
+  }
+
+  function relativeTime(timestamp: number): string {
+    if (!timestamp) return '';
+    const seconds = Math.max(0, Math.round((Date.now() - timestamp) / 1000));
+    if (seconds < 5) return 'just now';
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.round(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.round(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return new Date(timestamp).toLocaleDateString();
+  }
+
+  async function addSyncDomain() {
+    const value = syncDomainInput.trim();
+    if (!value) return;
+    await onAddSyncDomain(value);
+    syncDomainInput = '';
+  }
+
+  function openSyncGuide() {
+    if (window.runtime?.BrowserOpenURL) window.runtime.BrowserOpenURL(COOKIE_SYNC_GUIDE_URL);
+    else window.open(COOKIE_SYNC_GUIDE_URL, '_blank');
+  }
 
   $effect(() => {
     domainGroups.length;
@@ -216,10 +308,170 @@
     </div>
 
     <div class="cookie-tabs" role="tablist" aria-label="Cookie jar sections" use:tabListKeyboard>
-      <button class="cookie-tab active" type="button" role="tab" aria-selected="true" aria-controls="cookie-manage-panel" tabindex="0">Manage Cookies</button>
-      <button class="cookie-tab" type="button" role="tab" aria-selected="false" disabled aria-disabled="true">Sync Cookies</button>
+      <button
+        class="cookie-tab"
+        class:active={tab === 'manage'}
+        type="button"
+        role="tab"
+        aria-selected={tab === 'manage'}
+        aria-controls="cookie-manage-panel"
+        tabindex={tab === 'manage' ? 0 : -1}
+        onclick={() => (tab = 'manage')}
+      >Manage Cookies</button>
+      <button
+        class="cookie-tab"
+        class:active={tab === 'sync'}
+        type="button"
+        role="tab"
+        aria-selected={tab === 'sync'}
+        aria-controls="cookie-sync-panel"
+        tabindex={tab === 'sync' ? 0 : -1}
+        onclick={() => (tab = 'sync')}
+      >
+        Sync Cookies
+        {#if sync.running}
+          <span class="cookie-sync-dot" class:live={sync.paired} aria-hidden="true"></span>
+        {/if}
+      </button>
     </div>
 
+    {#if tab === 'sync'}
+      <div class="cookie-sync-panel" id="cookie-sync-panel" role="tabpanel" tabindex="-1">
+        {#if syncError}
+          <div class="cookie-error">{syncError}</div>
+        {/if}
+
+        <div class="cookie-sync-status" class:live={sync.connected} class:running={sync.running}>
+          <span class="cookie-sync-indicator" aria-hidden="true"></span>
+          <div class="cookie-sync-status-copy">
+            <strong>{syncHeadline}</strong>
+            <span>{syncDetail}</span>
+          </div>
+          <button class="btn-primary" type="button" onclick={onToggleSync} disabled={syncBusy}>
+            {sync.running ? 'Turn off' : 'Turn on'}
+          </button>
+        </div>
+
+        {#if syncPending}
+          <section class="cookie-sync-approval">
+            <div class="cookie-sync-approval-copy">
+              <strong>{syncPending.browser} asks to sync cookies</strong>
+              <span>
+                The extension shows this code — let it in only if the numbers match.
+                {#if syncPending.extensionId}
+                  <span class="cookie-sync-extension-id">Extension {syncPending.extensionId}</span>
+                {/if}
+              </span>
+            </div>
+            <span class="cookie-sync-approval-code">{syncPending.code}</span>
+            <div class="cookie-sync-approval-actions">
+              <button class="btn-secondary" type="button" onclick={onDenySync} disabled={syncBusy}>Deny</button>
+              <button class="btn-primary" type="button" onclick={onApproveSync} disabled={syncBusy}>Allow</button>
+            </div>
+          </section>
+        {/if}
+
+        {#if sync.running}
+          {#if sync.paired}
+            <section class="cookie-sync-block">
+              <h3>Paired browser</h3>
+              <div class="cookie-sync-row">
+                <span class="cookie-sync-hint">
+                  {sync.browser || 'A browser'} holds a key to this jar.
+                </span>
+                <button class="btn-secondary" type="button" onclick={onRevokeSync} disabled={syncBusy}>Disconnect it</button>
+              </div>
+            </section>
+          {/if}
+
+          <details class="cookie-sync-manual">
+            <summary>Pair manually</summary>
+            <div class="cookie-sync-row">
+              <code class="cookie-sync-code">{sync.pairingCode}</code>
+              <button class="btn-secondary" type="button" onclick={onCopySyncCode}>{syncCodeCopied ? 'Copied' : 'Copy'}</button>
+            </div>
+            <p class="cookie-sync-hint">
+              Only needed when the extension cannot find Relay by itself — a non-default port, say. The code carries
+              the port and a secret, so treat it like a password.
+            </p>
+          </details>
+        {:else}
+          <section class="cookie-sync-block">
+            <h3>Port</h3>
+            <div class="cookie-sync-row">
+              <input
+                class="cookie-sync-port"
+                type="number"
+                min="1024"
+                max="65535"
+                value={sync.port || 3199}
+                oninput={(event) => onSyncPortChange(Number((event.currentTarget as HTMLInputElement).value))}
+                aria-label="Cookie sync port"
+              />
+              <span class="cookie-sync-hint">The bridge only ever listens on 127.0.0.1.</span>
+            </div>
+          </section>
+        {/if}
+
+        <section class="cookie-sync-block">
+          <h3>Domains the browser may share</h3>
+          <div class="cookie-sync-row">
+            <input
+              bind:value={syncDomainInput}
+              placeholder="example.com"
+              spellcheck="false"
+              onkeydown={(event) => event.key === 'Enter' && addSyncDomain()}
+            />
+            <button class="btn-primary" type="button" onclick={addSyncDomain} disabled={syncBusy}>Add domain</button>
+          </div>
+          {#if syncDomains.length}
+            <div class="cookie-sync-chips">
+              {#each syncDomains as domain (domain)}
+                <span class="cookie-sync-chip" class:unreadable={syncUnreadable.includes(domain)}>
+                  {domain}
+                  <button type="button" aria-label="Stop syncing {domain}" onclick={() => onRemoveSyncDomain(domain)} disabled={syncBusy}>×</button>
+                </span>
+              {/each}
+            </div>
+            {#if syncUnreadable.length}
+              <p class="cookie-sync-hint cookie-sync-warning">
+                {sync.browser || 'The browser'} is not allowed to read {syncUnreadable.join(', ')} — open the extension
+                and press <em>Grant domain access</em>.
+              </p>
+            {/if}
+          {:else}
+            <p class="cookie-sync-hint">Nothing is shared yet — the extension can only read the domains listed here.</p>
+          {/if}
+          {#if openRequestDomain && !openRequestDomainListed}
+            <button class="cookie-add-chip" type="button" onclick={() => onAddSyncDomain(openRequestDomain)} disabled={syncBusy}>
+              <span>＋</span> Add {openRequestDomain} from the open request
+            </button>
+          {/if}
+        </section>
+
+        {#if syncLog.length}
+          <section class="cookie-sync-block">
+            <h3>Recent activity</h3>
+            <ul class="cookie-sync-log">
+              {#each syncLog as entry (entry.id)}
+                <li>
+                  <span class="cookie-sync-log-when">{relativeTime(entry.timestamp)}</span>
+                  <span class="cookie-sync-log-what">
+                    {entry.browser || 'Browser'} — {entry.message}{entry.domain ? ` · ${entry.domain}` : ''}
+                  </span>
+                </li>
+              {/each}
+            </ul>
+          </section>
+        {/if}
+
+        <p class="cookie-sync-hint cookie-sync-footnote">
+          A sync replaces whatever this jar held for those domains, so signing out in the browser clears the cookie
+          here too.
+          <button class="cookie-sync-link" type="button" onclick={openSyncGuide}>How to install the extension</button>
+        </p>
+      </div>
+    {:else}
     <div class="cookie-toolbar postman-cookie-toolbar">
       <input bind:value={domainInput} placeholder="Type a domain name" spellcheck="false" onkeydown={(event) => event.key === 'Enter' && addDomain()} data-autofocus />
       <button class="btn-primary" type="button" onclick={addDomain}>Add domain</button>
@@ -304,5 +556,6 @@
       </button>
       <button class="btn-secondary" type="button" onclick={() => onRefresh()} disabled={loading}>Refresh</button>
     </div>
+    {/if}
   </div>
 </div>
