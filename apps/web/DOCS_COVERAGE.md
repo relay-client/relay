@@ -2,7 +2,7 @@
 
 This matrix keeps documentation work honest. Update it whenever a feature ships or a guide changes.
 
-Last factual audit: **2026-09-09**, against desktop tag **v1.7.0**.
+Last factual audit: **2026-09-11**, against desktop tag **v1.8.0**.
 
 | Area | User docs | Reference / source of truth | Screenshot status | Notes |
 |------|-----------|-----------------------------|-------------------|-------|
