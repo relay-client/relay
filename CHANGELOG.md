@@ -9,6 +9,27 @@ All notable changes to Relay are documented here. This project follows
 
 ---
 
+## [1.8.0] - 2026-09-11
+
+### Added
+- **Sync Cookies is a real feature, not a disabled tab.** The cookie jar had a *Sync Cookies* tab that was hard-disabled since it was drawn — Postman's layout with nothing behind it. It now pairs Relay with a browser extension so the session you already have in Chrome, Edge, Brave or Firefox is the session Relay sends with, instead of copying a `Cookie:` header out of DevTools after every login.
+- **Pairing is a click, not a copy-paste.** The extension finds Relay by itself (it scans ports 3199–3203) and asks to connect; Relay shows the request with a six-digit code, the extension shows the same code, and approving it hands over a token. Matching codes is what stops anything else on the machine from being approved in the browser's place, and after the first approval the browser reconnects on its own. *Pair manually* with a copyable code stays as the fallback for a non-default port.
+- **The transport is a WebSocket, so cookies arrive as they change.** Every cookie the browser sets, updates or clears for an allowlisted domain is pushed within a second; a full snapshot on connect and every five minutes reconciles anything missed while the browser was closed. The allowlist travels the same socket, so adding a domain in Relay takes effect at once and removing one stops it being read immediately.
+- Cookies flow one way, browser into Relay, through three separate gates: a loopback-only listener that is off until you turn it on, an approval you give in Relay before any token exists, and a domain allowlist enforced twice — Relay refuses cookies for domains you did not list, and the browser only lets the extension read the domains you grant in its popup. A public suffix like `co.uk` is refused with an explanation rather than accepted and quietly ignored. Only extension origins are answered at all; a web page probing the port gets a `403`.
+- A snapshot is authoritative for the domains it covers: Relay replaces whatever the jar held for them, so signing out in the browser clears the cookie in Relay too. Domains outside it are untouched, and a domain the extension could not read is left out rather than reported as empty — which would otherwise read as "the browser has none" and clear it.
+- Synced cookies land in the workspace jar you have open and follow you when you switch workspaces. The bridge closes on quit and reopens on the next start if you left it on, keeping the token so a paired browser never needs approving twice. **Disconnect it** mints a new token and drops the browser immediately.
+- The extension ships in the repository under `apps/extension` (Chromium manifest plus a Firefox event-page manifest), loaded unpacked.
+
+### Fixed
+- **Disconnecting a browser left its extension retrying forever.** Relay closed the socket without a close frame, so the browser saw a generic "connection lost" and kept reconnecting with a token that would never be accepted again — the extension sat on *Reconnecting* until someone pressed Forget by hand. Relay now closes with `1008` when it disconnects a browser on purpose and `1001` when it is merely shutting down, and the extension treats a socket that never opens while Relay still answers as the same signal: it drops the dead token and asks to connect again.
+- **A burst of cookies re-read the whole jar once per cookie.** A login that sets a dozen cookies produced a dozen full jar reads and as many store writes queued behind them; the refresh is now debounced, so a burst costs one.
+- **A snapshot too large for Relay looped instead of explaining itself.** The extension now checks the count and the payload size before sending, and says which way to narrow the allowlist rather than retrying the same oversized push every five minutes. It deliberately sends nothing in that case: a truncated snapshot is authoritative, and would have cleared the cookies that did not fit.
+- **A domain the browser was never granted looked like it was syncing.** Relay now names those domains in the Sync Cookies tab and marks their chips, instead of showing a healthy connection that silently covers fewer domains than the list suggests.
+- **A pairing request could be approved after it expired.** Expiry now wins over a late approval.
+- **The Open log folder button in Settings had stopped doing anything.** Wails 2.13 added a URL validator to `BrowserOpenURL` that rejects the `file:` scheme outright — and, for good measure, any path containing a space, which every macOS `Application Support` path has. The call was refused with a line in the frontend log and no error anywhere the user could see it, so the button looked dead. Relay now hands the folder to the platform file manager directly (`open`, `explorer`, `xdg-open`), and a failure is reported in the row instead of being swallowed.
+
+---
+
 ## [1.7.0] - 2026-09-09
 
 ### Added
@@ -242,6 +263,7 @@ this repository.
 - Configurable keyboard shortcuts throughout, global search (`⌘K`), quick send (`⌘Enter`), and tab switching (`⌘1`–`⌘9`).
 - Settings search and full keyboard navigation, theme previews, and onboarding empty states.
 
-[Unreleased]: https://github.com/relay-client/relay/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/relay-client/relay/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/relay-client/relay/compare/v1.7.0...v1.8.0
 [1.3.0]: https://github.com/relay-client/relay/compare/v1.2.0...v1.3.0
 [1.0.0]: https://github.com/relay-client/relay/releases/tag/v1.0.0
