@@ -80,10 +80,9 @@ func (a *App) OpenLogFolder() string {
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return "Could not open the log folder: " + err.Error()
 	}
-	if a.ctx == nil {
-		return ""
+	if err := revealInFileManager(dir); err != nil {
+		return "Could not open the log folder: " + err.Error()
 	}
-	runtime.BrowserOpenURL(a.ctx, "file://"+filepath.ToSlash(dir))
 	return ""
 }
 
