@@ -4,8 +4,8 @@ import {
   gitStatus, gitCommitLogPage, gitListBranches,
   useLocalWorkspaceStore, createLocalWorkspaceRoot, saveWorkspaceSecrets,
 } from '../backend';
-import type { CookieJarEntry, GitBranchListResult, GitConflictFileResult, GitDiffResult, GitLogResult, GitWorkspaceStatus, HttpResponse, MockRequestLog, MockServerStatus, OAuth2DevicePrompt, WorkspaceDiagnostic, WorkspaceOpenResult, WorkspaceSecretRef } from '../backend';
-import { EMPTY_MOCK_SERVER_STATUS } from '../wire';
+import type { CookieJarEntry, CookieSyncStatus, GitBranchListResult, GitConflictFileResult, GitDiffResult, GitLogResult, GitWorkspaceStatus, HttpResponse, MockRequestLog, MockServerStatus, OAuth2DevicePrompt, WorkspaceDiagnostic, WorkspaceOpenResult, WorkspaceSecretRef } from '../backend';
+import { EMPTY_COOKIE_SYNC_STATUS, EMPTY_MOCK_SERVER_STATUS } from '../wire';
 import { DEFAULT_MOCK_PORT } from '../mockRoutes';
 import type { SSEEventEntry, SSESession, WebSocketMessageEntry, WebSocketSession, SocketIOMessageEntry, SocketIOSession, SocketIOClientVersion } from '../types/models';
 import { initialThemeState, type AppTheme, type ResolvedAppTheme } from '../theme';
@@ -42,6 +42,7 @@ import type { SettingsTab, SnippetLanguage, TopView } from './ui';
 import type { AppDialogState } from '../types/dialog';
 import { authFeature } from './features/auth';
 import { cookieFeature } from './features/cookies';
+import { cookieSyncFeature, DEFAULT_COOKIE_SYNC_PORT } from './features/cookieSync';
 import { collectionDefaultsFeature } from './features/collectionDefaults';
 import { collectionFeature } from './features/collections';
 import { collectionRunnerFeature } from './features/collectionRunner';
@@ -154,6 +155,24 @@ class AppVM {
   declare saveCookie: typeof cookieFeature.saveCookie;
   declare removeCookie: typeof cookieFeature.removeCookie;
   declare clearCookieJar: typeof cookieFeature.clearCookieJar;
+  declare cookieSyncDomains: typeof cookieSyncFeature.cookieSyncDomains;
+  declare cookieSyncActiveDomainIsListed: typeof cookieSyncFeature.cookieSyncActiveDomainIsListed;
+  declare loadCookieSyncStatus: typeof cookieSyncFeature.loadCookieSyncStatus;
+  declare startCookieSyncBridge: typeof cookieSyncFeature.startCookieSyncBridge;
+  declare stopCookieSyncBridge: typeof cookieSyncFeature.stopCookieSyncBridge;
+  declare toggleCookieSync: typeof cookieSyncFeature.toggleCookieSync;
+  declare addCookieSyncDomain: typeof cookieSyncFeature.addCookieSyncDomain;
+  declare addActiveRequestDomainToCookieSync: typeof cookieSyncFeature.addActiveRequestDomainToCookieSync;
+  declare removeCookieSyncDomain: typeof cookieSyncFeature.removeCookieSyncDomain;
+  declare revokeCookieSyncBrowser: typeof cookieSyncFeature.revokeCookieSyncBrowser;
+  declare approveCookieSyncBrowser: typeof cookieSyncFeature.approveCookieSyncBrowser;
+  declare denyCookieSyncBrowser: typeof cookieSyncFeature.denyCookieSyncBrowser;
+  declare cookieSyncAwaitingApproval: typeof cookieSyncFeature.cookieSyncAwaitingApproval;
+  declare cookieSyncUnreadableDomains: typeof cookieSyncFeature.cookieSyncUnreadableDomains;
+  declare scheduleCookieSyncJarRefresh: typeof cookieSyncFeature.scheduleCookieSyncJarRefresh;
+  declare copyCookieSyncPairingCode: typeof cookieSyncFeature.copyCookieSyncPairingCode;
+  declare pointCookieSyncAtActiveWorkspace: typeof cookieSyncFeature.pointCookieSyncAtActiveWorkspace;
+  declare initCookieSyncListeners: typeof cookieSyncFeature.initCookieSyncListeners;
 
   declare forgetSSESession: typeof sseFeature.forgetSSESession;
   declare sseSessionIsActive: typeof sseFeature.sseSessionIsActive;
@@ -1134,6 +1153,13 @@ class AppVM {
   cookieJarError = $state('');
   cookies = $state<CookieJarEntry[]>([]);
   workspaceCookies = $state<Record<string, CookieJarEntry[]>>({});
+  cookieSync = $state<CookieSyncStatus>(EMPTY_COOKIE_SYNC_STATUS);
+  cookieSyncBusy = $state(false);
+  cookieSyncError = $state('');
+  cookieSyncDomainInput = $state('');
+  cookieSyncPort = $state(DEFAULT_COOKIE_SYNC_PORT);
+  cookieSyncCodeCopied = $state(false);
+  cookieSyncRefreshTimer: ReturnType<typeof setTimeout> | null = null;
   appTheme = $state<AppTheme>(initialThemeState.appTheme);
   resolvedAppTheme = $state<ResolvedAppTheme>(initialThemeState.resolvedAppTheme);
   headerValueSuggestions = $state<string[]>([]);
@@ -1667,6 +1693,7 @@ function applyFeatures(target: object, ...features: object[]) {
 applyFeatures(
   AppVM.prototype,
   cookieFeature,
+  cookieSyncFeature,
   sseFeature,
   websocketFeature,
   socketioFeature,

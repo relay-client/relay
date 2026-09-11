@@ -1,5 +1,6 @@
 import type {
   AppInfo, AuthConfig, CollectionTextFile, CollectionTextFilesResult, CookieJarEntry, CookieJarResult,
+  CookieSyncConfig, CookieSyncStatus,
   DefaultWorkspaceLocationResult, DownloadResult, GitAuthConfigResult, GitBranchListResult,
   GitConflictFileResult, GitDiffResult, GitLogResult, GitOperationResult, GitTokenInfoResult,
   GitWorkspaceStatus, GrpcRequest, GrpcResponse, GrpcServiceDefinition, HttpRequest, HttpResponse,
@@ -10,6 +11,7 @@ import type {
 import {
   EMPTY_GIT_BRANCH_LIST, EMPTY_GIT_CONFLICT_FILE, EMPTY_GIT_LOG,
   EMPTY_GIT_OPERATION_RESULT, EMPTY_GIT_STATUS, EMPTY_WORKSPACE_OPEN_RESULT, EMPTY_MOCK_SERVER_STATUS,
+  EMPTY_COOKIE_SYNC_STATUS,
 } from './wire';
 
 export * from './wire';
@@ -92,6 +94,59 @@ export async function deleteCookie(workspaceId: string, cookie: CookieJarEntry):
   const app = window.go?.api?.App;
   if (!app?.DeleteCookie) return { cookies: [], error: 'Wails bridge not available' };
   return app.DeleteCookie(workspaceId, cookie);
+}
+
+const COOKIE_SYNC_UNAVAILABLE: CookieSyncStatus = {
+  ...EMPTY_COOKIE_SYNC_STATUS,
+  error: 'Cookie sync is only available in the desktop app.',
+};
+
+export async function cookieSyncStatus(): Promise<CookieSyncStatus> {
+  const app = window.go?.api?.App;
+  if (!app?.CookieSyncStatus) return COOKIE_SYNC_UNAVAILABLE;
+  return app.CookieSyncStatus();
+}
+
+export async function startCookieSync(config: CookieSyncConfig, workspaceId: string): Promise<CookieSyncStatus> {
+  const app = window.go?.api?.App;
+  if (!app?.StartCookieSync) return COOKIE_SYNC_UNAVAILABLE;
+  return app.StartCookieSync(config, workspaceId);
+}
+
+export async function stopCookieSync(): Promise<CookieSyncStatus> {
+  const app = window.go?.api?.App;
+  if (!app?.StopCookieSync) return EMPTY_COOKIE_SYNC_STATUS;
+  return app.StopCookieSync();
+}
+
+export async function setCookieSyncDomains(domains: string[]): Promise<CookieSyncStatus> {
+  const app = window.go?.api?.App;
+  if (!app?.SetCookieSyncDomains) return COOKIE_SYNC_UNAVAILABLE;
+  return app.SetCookieSyncDomains(domains);
+}
+
+export async function setCookieSyncWorkspace(workspaceId: string): Promise<CookieSyncStatus> {
+  const app = window.go?.api?.App;
+  if (!app?.SetCookieSyncWorkspace) return EMPTY_COOKIE_SYNC_STATUS;
+  return app.SetCookieSyncWorkspace(workspaceId);
+}
+
+export async function revokeCookieSyncPairing(): Promise<CookieSyncStatus> {
+  const app = window.go?.api?.App;
+  if (!app?.RevokeCookieSyncPairing) return COOKIE_SYNC_UNAVAILABLE;
+  return app.RevokeCookieSyncPairing();
+}
+
+export async function approveCookieSyncPairing(requestId: string): Promise<CookieSyncStatus> {
+  const app = window.go?.api?.App;
+  if (!app?.ApproveCookieSyncPairing) return COOKIE_SYNC_UNAVAILABLE;
+  return app.ApproveCookieSyncPairing(requestId);
+}
+
+export async function denyCookieSyncPairing(requestId: string): Promise<CookieSyncStatus> {
+  const app = window.go?.api?.App;
+  if (!app?.DenyCookieSyncPairing) return COOKIE_SYNC_UNAVAILABLE;
+  return app.DenyCookieSyncPairing(requestId);
 }
 
 export async function clearCookies(workspaceId: string): Promise<CookieJarEntry[]> {

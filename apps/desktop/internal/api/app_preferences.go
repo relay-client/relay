@@ -11,7 +11,15 @@ import (
 const appPreferencesFileName = "preferences.json"
 
 type appPreferences struct {
-	DefaultWorkspaceLocation string `json:"defaultWorkspaceLocation,omitempty"`
+	DefaultWorkspaceLocation string                 `json:"defaultWorkspaceLocation,omitempty"`
+	CookieSync               *cookieSyncPreferences `json:"cookieSync,omitempty"`
+}
+
+type cookieSyncPreferences struct {
+	Enabled bool     `json:"enabled"`
+	Port    int      `json:"port,omitempty"`
+	Domains []string `json:"domains,omitempty"`
+	Token   string   `json:"token,omitempty"`
 }
 
 type DefaultWorkspaceLocationResult struct {

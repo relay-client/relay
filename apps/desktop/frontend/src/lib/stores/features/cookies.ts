@@ -21,6 +21,7 @@ type CookieHost = {
   cookiesForWorkspace: (workspaceId: string) => CookieJarEntry[];
   restoreCookieJar: (cookies: CookieJarEntry[]) => Promise<void>;
   refreshCookieJar: (silent?: boolean, persistAfterRefresh?: boolean) => Promise<void>;
+  pointCookieSyncAtActiveWorkspace: () => Promise<void>;
 };
 
 function cloneCookies(cookies: CookieJarEntry[]) {
@@ -89,6 +90,7 @@ export const cookieFeature = {
   },
   async restoreWorkspaceCookieJar(this: CookieHost, workspaceId = this.activeWorkspaceId) {
     await this.restoreCookieJar(this.cookiesForWorkspace(workspaceId));
+    await this.pointCookieSyncAtActiveWorkspace();
   },
   async restoreCookieJar(this: CookieHost, cookies: CookieJarEntry[]) {
     try {

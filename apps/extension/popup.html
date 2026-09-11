@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Relay Cookie Sync</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --accent: #5865f2;
+        --surface: #ffffff;
+        --text: #1f2024;
+        --text-2: #5c5f66;
+        --border: #dcdde3;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --surface: #222224;
+          --text: #d6d6d6;
+          --text-2: #9a9a9a;
+          --border: #3a3a3d;
+        }
+      }
+      body {
+        width: 320px;
+        margin: 0;
+        padding: 14px;
+        background: var(--surface);
+        color: var(--text);
+        font: 13px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      h1 {
+        margin: 0 0 2px;
+        font-size: 14px;
+      }
+      p {
+        margin: 0 0 10px;
+        color: var(--text-2);
+        font-size: 12px;
+      }
+      label {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--text-2);
+      }
+      input {
+        width: 100%;
+        box-sizing: border-box;
+        height: 30px;
+        padding: 0 8px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: transparent;
+        color: var(--text);
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+        font-size: 12px;
+      }
+      .row {
+        display: flex;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      button {
+        flex: 1;
+        height: 30px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: transparent;
+        color: var(--text);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button.primary {
+        border-color: transparent;
+        background: var(--accent);
+        color: #fff;
+      }
+      button:disabled {
+        opacity: 0.55;
+        cursor: default;
+      }
+      .status {
+        margin-top: 12px;
+        padding-top: 10px;
+        border-top: 1px solid var(--border);
+        font-size: 12px;
+      }
+      .status strong {
+        display: block;
+        margin-bottom: 3px;
+      }
+      .domains {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 6px;
+      }
+      .chip {
+        padding: 2px 7px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-size: 11px;
+        color: var(--text-2);
+      }
+      .chip.granted {
+        border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+        color: var(--text);
+      }
+      .approval {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 10px;
+        padding: 8px 10px;
+        border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
+        border-radius: 7px;
+        background: color-mix(in srgb, var(--accent) 8%, transparent);
+      }
+      .approval-label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--text-2);
+      }
+      .approval-code {
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+      }
+      details {
+        margin-top: 12px;
+        padding-top: 10px;
+        border-top: 1px solid var(--border);
+      }
+      details > summary {
+        color: var(--text-2);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      details > label {
+        margin-top: 8px;
+      }
+      .error {
+        margin-top: 8px;
+        color: #d9534f;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Relay Cookie Sync</h1>
+    <p>Turn on Sync Cookies in Relay, then press Connect — Relay will ask you to allow this browser.</p>
+
+    <div class="approval" id="approval" hidden>
+      <span class="approval-label">Code to match in Relay</span>
+      <span class="approval-code" id="approval-code">000000</span>
+    </div>
+
+    <div class="row">
+      <button id="connect" class="primary" type="button">Connect</button>
+      <button id="grant" type="button">Grant domain access</button>
+    </div>
+    <div class="row">
+      <button id="sync" type="button">Sync now</button>
+      <button id="forget" type="button">Forget</button>
+    </div>
+
+    <div class="status">
+      <strong id="headline">Not connected</strong>
+      <span id="detail"></span>
+      <div class="domains" id="domains"></div>
+      <div class="error" id="error" hidden></div>
+    </div>
+
+    <details id="manual">
+      <summary>Pair manually</summary>
+      <label for="code">Pairing code</label>
+      <input id="code" placeholder="relay-3199-..." spellcheck="false" autocomplete="off" />
+      <div class="row">
+        <button id="pair" type="button">Use this code</button>
+      </div>
+    </details>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

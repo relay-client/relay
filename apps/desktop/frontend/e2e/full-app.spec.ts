@@ -148,6 +148,26 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
       historyResponses: {},
       gitStatusOverride: null,
       gitBranchesOverride: null,
+      cookieSync: {
+        enabled: false,
+        running: false,
+        port: 3199,
+        url: '',
+        pairingCode: '',
+        domains: [],
+        paired: false,
+        connected: false,
+        browser: '',
+        unreadable: [],
+        lastContactAt: 0,
+        lastSyncAt: 0,
+        lastSyncCount: 0,
+        syncedTotal: 0,
+        pending: { id: '', browser: '', extensionId: '', code: '', requestedAt: 0, expiresAt: 0 },
+        log: [],
+        error: '',
+      },
+      cookieSyncWorkspace: '',
     };
     const eventHandlers = {};
     const grpcInventoryMethod = {
@@ -560,12 +580,82 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
         state.cookies[workspaceId] = next;
         return { cookies: next, error: '' };
       },
+      CookieSyncStatus: async () => clone(state.cookieSync),
+      StartCookieSync: async (config, workspaceId) => {
+        state.cookieSyncWorkspace = workspaceId;
+        state.cookieSync = {
+          ...state.cookieSync,
+          enabled: true,
+          running: true,
+          port: config.port || 3199,
+          url: `http://127.0.0.1:${config.port || 3199}`,
+          pairingCode: `relay-${config.port || 3199}-e2epairingtoken0000`,
+          domains: config.domains ?? [],
+          error: '',
+        };
+        return clone(state.cookieSync);
+      },
+      StopCookieSync: async () => {
+        state.cookieSync = {
+          ...state.cookieSync,
+          enabled: false,
+          running: false,
+          url: '',
+          pairingCode: '',
+          paired: false,
+          connected: false,
+          browser: '',
+          log: [],
+        };
+        return clone(state.cookieSync);
+      },
+      SetCookieSyncDomains: async (domains) => {
+        state.cookieSync = { ...state.cookieSync, domains: [...domains].sort(), error: '' };
+        return clone(state.cookieSync);
+      },
+      SetCookieSyncWorkspace: async (workspaceId) => {
+        state.cookieSyncWorkspace = workspaceId;
+        return clone(state.cookieSync);
+      },
+      RevokeCookieSyncPairing: async () => {
+        state.cookieSync = {
+          ...state.cookieSync,
+          pairingCode: `relay-${state.cookieSync.port}-e2erotatedtoken00000`,
+          paired: false,
+          connected: false,
+          browser: '',
+        };
+        return clone(state.cookieSync);
+      },
+      ApproveCookieSyncPairing: async (requestId) => {
+        state.calls.push(`ApproveCookieSyncPairing:${requestId}`);
+        const browser = state.cookieSync.pending.browser;
+        state.cookieSync = {
+          ...state.cookieSync,
+          paired: true,
+          connected: true,
+          browser,
+          pending: { id: '', browser: '', extensionId: '', code: '', requestedAt: 0, expiresAt: 0 },
+        };
+        return clone(state.cookieSync);
+      },
+      DenyCookieSyncPairing: async (requestId) => {
+        state.calls.push(`DenyCookieSyncPairing:${requestId}`);
+        state.cookieSync = {
+          ...state.cookieSync,
+          paired: false,
+          connected: false,
+          pending: { id: '', browser: '', extensionId: '', code: '', requestedAt: 0, expiresAt: 0 },
+        };
+        return clone(state.cookieSync);
+      },
       ClipboardSet: async (text) => {
         state.calls.push(`clipboard:${text.length}`);
       },
       CheckForUpdate: async () => ({ info: null, error: '' }),
     };
 
+    state.emit = emit;
     window.__relayE2E = state;
     window.go = { api: { App: app } };
     window.runtime = {
@@ -1858,5 +1948,131 @@ test.describe('Relay desktop browser E2E', () => {
         statusCode: saved?.examples?.[0]?.response.statusCode ?? 0,
       };
     }).toEqual({ examples: 1, name: '200 OK', statusCode: 200 });
+  });
+
+  test('pairs a browser from the Sync Cookies tab and syncs into the open workspace', async ({ page }) => {
+    await installRelayBridge(page);
+    await page.goto('/');
+
+    await page.getByLabel('New unsaved request').click();
+    await chooseRequestType(page, 'HTTP Request');
+    await page.getByLabel('Request URL').fill('https://api.relay.test/orders');
+    await page.getByRole('button', { name: 'Cookies', exact: true }).click();
+
+    const modal = page.getByRole('dialog', { name: 'Cookies' });
+    await modal.getByRole('tab', { name: /Sync Cookies/ }).click();
+    await expect(modal.getByText('Cookie sync is off')).toBeVisible();
+
+    await modal.getByRole('button', { name: 'Turn on' }).click();
+    await expect(modal.getByText('Waiting for a browser')).toBeVisible();
+    await expect(modal.getByText(/install the extension and press Connect/)).toBeVisible();
+    await captureDocsScreenshot(page, 'cookie-jar-sync');
+
+    const manualDisclosure = modal.locator('.cookie-sync-manual > summary');
+    await manualDisclosure.click();
+    await expect(modal.locator('.cookie-sync-code')).toHaveText(/^relay-3199-/);
+    await modal.getByRole('button', { name: 'Copy' }).click();
+    await expect(modal.getByRole('button', { name: 'Copied' })).toBeVisible();
+    await manualDisclosure.click();
+
+    await modal.getByRole('button', { name: /Add api\.relay\.test from the open request/ }).click();
+    await expect(modal.locator('.cookie-sync-chip')).toHaveText([/api\.relay\.test/]);
+
+    await modal.getByPlaceholder('example.com').fill('https://Shop.Relay.test/cart?page=2');
+    await modal.getByRole('button', { name: 'Add domain' }).click();
+    await expect(modal.locator('.cookie-sync-chip')).toHaveText([/api\.relay\.test/, /shop\.relay\.test/]);
+
+    await modal.getByPlaceholder('example.com').fill('nope');
+    await modal.getByRole('button', { name: 'Add domain' }).click();
+    await expect(modal.getByText(/does not look like a domain/)).toBeVisible();
+    await expect(modal.locator('.cookie-sync-chip')).toHaveCount(2);
+
+    // The extension asks to connect; Relay shows the code it must match.
+    await page.evaluate(() => {
+      const state = window.__relayE2E;
+      state.cookieSync = {
+        ...state.cookieSync,
+        pending: {
+          id: 'pair-1',
+          browser: 'Chrome',
+          extensionId: 'relaycookiesyncextension',
+          code: '482913',
+          requestedAt: Date.now(),
+          expiresAt: Date.now() + 120000,
+        },
+      };
+      state.emit('cookies:synced', state.cookieSync);
+    });
+
+    await expect(modal.getByText('Chrome wants to connect')).toBeVisible();
+    await expect(modal.locator('.cookie-sync-approval-code')).toHaveText('482913');
+    await expect(modal.getByText(/relaycookiesyncextension/)).toBeVisible();
+    await captureDocsScreenshot(page, 'cookie-jar-sync-approval');
+
+    await modal.getByRole('button', { name: 'Allow' }).click();
+    await expect(modal.getByText('Chrome is connected')).toBeVisible();
+    await expect(modal.locator('.cookie-sync-approval')).toHaveCount(0);
+    expect(await page.evaluate(() => window.__relayE2E.calls.filter((entry: string) => entry.startsWith('ApproveCookieSyncPairing')))).toEqual(['ApproveCookieSyncPairing:pair-1']);
+
+    await page.evaluate(async () => {
+      const app = window.go.api.App;
+      await app.UpsertCookie('workspace-e2e', {
+        name: 'session',
+        value: 'from-browser',
+        domain: 'api.relay.test',
+        path: '/',
+        expiresAt: 0,
+        session: true,
+        secure: true,
+        httpOnly: true,
+        sameSite: 'lax',
+        hostOnly: false,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+      window.__relayE2E.emit('cookies:synced', {
+        ...(await app.CookieSyncStatus()),
+        paired: true,
+        connected: true,
+        browser: 'Chrome',
+        lastSyncAt: Date.now(),
+        lastSyncCount: 1,
+        log: [{
+          id: 'cookie-sync-1',
+          timestamp: Date.now(),
+          browser: 'Chrome',
+          domain: 'api.relay.test',
+          accepted: 1,
+          skipped: 0,
+          removed: 0,
+          message: '1 cookie synced',
+        }],
+      });
+    });
+
+    await expect(modal.getByText('Chrome is connected')).toBeVisible();
+    await expect(modal.locator('.cookie-sync-log')).toContainText('1 cookie synced');
+
+    // A domain the browser was never granted is called out rather than looking synced.
+    await page.evaluate(async () => {
+      const state = window.__relayE2E;
+      state.cookieSync = { ...state.cookieSync, connected: true, browser: 'Chrome', unreadable: ['shop.relay.test'] };
+      state.emit('cookies:synced', state.cookieSync);
+    });
+    await expect(modal.getByText(/not allowed to read shop\.relay\.test/)).toBeVisible();
+    await expect(modal.locator('.cookie-sync-chip.unreadable')).toHaveCount(1);
+    await captureDocsScreenshot(page, 'cookie-jar-sync-paired');
+
+    await modal.getByRole('tab', { name: 'Manage Cookies' }).click();
+    await expect(modal.locator('.cookie-domain-card')).toContainText('api.relay.test');
+    await expect(modal.locator('.cookie-domain-card')).toContainText('session');
+
+    await modal.getByRole('tab', { name: /Sync Cookies/ }).click();
+    await modal.getByRole('button', { name: 'Disconnect it' }).click();
+    await expect(modal.getByText('Waiting for a browser')).toBeVisible();
+
+    await modal.getByRole('button', { name: 'Turn off' }).click();
+    await expect(modal.getByText('Cookie sync is off')).toBeVisible();
+    await expect(modal.locator('.cookie-sync-code')).toHaveCount(0);
   });
 });

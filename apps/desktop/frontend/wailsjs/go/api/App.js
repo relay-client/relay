@@ -10,6 +10,10 @@ export function ApplyUpdate(arg1) {
   return window['go']['api']['App']['ApplyUpdate'](arg1);
 }
 
+export function ApproveCookieSyncPairing(arg1) {
+  return window['go']['api']['App']['ApproveCookieSyncPairing'](arg1);
+}
+
 export function AuthorizeOAuth2(arg1) {
   return window['go']['api']['App']['AuthorizeOAuth2'](arg1);
 }
@@ -54,6 +58,10 @@ export function ConfirmQuit() {
   return window['go']['api']['App']['ConfirmQuit']();
 }
 
+export function CookieSyncStatus() {
+  return window['go']['api']['App']['CookieSyncStatus']();
+}
+
 export function CreateLocalWorkspaceRoot(arg1, arg2, arg3) {
   return window['go']['api']['App']['CreateLocalWorkspaceRoot'](arg1, arg2, arg3);
 }
@@ -68,6 +76,10 @@ export function DeleteCookie(arg1, arg2) {
 
 export function DeleteVariable(arg1) {
   return window['go']['api']['App']['DeleteVariable'](arg1);
+}
+
+export function DenyCookieSyncPairing(arg1) {
+  return window['go']['api']['App']['DenyCookieSyncPairing'](arg1);
 }
 
 export function DiagnosticsReport() {
@@ -346,6 +358,10 @@ export function RestartApp() {
   return window['go']['api']['App']['RestartApp']();
 }
 
+export function RevokeCookieSyncPairing() {
+  return window['go']['api']['App']['RevokeCookieSyncPairing']();
+}
+
 export function SSEConnect(arg1, arg2) {
   return window['go']['api']['App']['SSEConnect'](arg1, arg2);
 }
@@ -390,6 +406,14 @@ export function SetAppThemeBackground(arg1, arg2) {
   return window['go']['api']['App']['SetAppThemeBackground'](arg1, arg2);
 }
 
+export function SetCookieSyncDomains(arg1) {
+  return window['go']['api']['App']['SetCookieSyncDomains'](arg1);
+}
+
+export function SetCookieSyncWorkspace(arg1) {
+  return window['go']['api']['App']['SetCookieSyncWorkspace'](arg1);
+}
+
 export function SetDefaultWorkspaceLocation(arg1) {
   return window['go']['api']['App']['SetDefaultWorkspaceLocation'](arg1);
 }
@@ -426,8 +450,16 @@ export function SocketIOEmit(arg1, arg2) {
   return window['go']['api']['App']['SocketIOEmit'](arg1, arg2);
 }
 
+export function StartCookieSync(arg1, arg2) {
+  return window['go']['api']['App']['StartCookieSync'](arg1, arg2);
+}
+
 export function StartMockServer(arg1) {
   return window['go']['api']['App']['StartMockServer'](arg1);
+}
+
+export function StopCookieSync() {
+  return window['go']['api']['App']['StopCookieSync']();
 }
 
 export function StopMockServer() {

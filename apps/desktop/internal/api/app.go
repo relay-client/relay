@@ -37,6 +37,7 @@ type App struct {
 	ws             *websocketManager
 	sio            *socketIOManager
 	mock           *mockServer
+	cookieSync     *cookieSyncServer
 }
 
 type SaveRequestStoreResult struct {
@@ -60,6 +61,7 @@ func NewApp() *App {
 		ws:             newWebSocketManager(jars),
 		sio:            newSocketIOManager(jars),
 		mock:           newMockServer(),
+		cookieSync:     newCookieSyncServer(jars),
 	}
 }
 
@@ -99,6 +101,9 @@ func (a *App) Shutdown(_ context.Context) {
 	}
 	if a.mock != nil {
 		a.mock.stop()
+	}
+	if a.cookieSync != nil {
+		a.cookieSync.stopServer()
 	}
 	httpTransports.closeAll()
 }

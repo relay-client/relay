@@ -10,6 +10,10 @@ export type AppInfo = Wire<model.AppInfo>;
 export type AuthConfig = Wire<model.AuthConfig>;
 export type ConnectionInfo = Wire<model.ConnectionInfo>;
 export type CookieJarResult = Wire<model.CookieJarResult>;
+export type CookieSyncConfig = Wire<model.CookieSyncConfig>;
+export type CookieSyncLog = Wire<model.CookieSyncLog>;
+export type CookieSyncPairRequest = Wire<model.CookieSyncPairRequest>;
+export type CookieSyncStatus = Wire<model.CookieSyncStatus>;
 export type GrpcMessage = Wire<model.GrpcMessage>;
 export type GrpcMethodInfo = Wire<model.GrpcMethodInfo>;
 export type GrpcRequest = Wire<model.GrpcRequest>;
@@ -212,6 +216,34 @@ export function emptyAuthConfig(): AuthConfig {
     awsService: '',
   };
 }
+
+export const EMPTY_COOKIE_SYNC_PAIR_REQUEST: CookieSyncPairRequest = {
+  id: '',
+  browser: '',
+  extensionId: '',
+  code: '',
+  requestedAt: 0,
+  expiresAt: 0,
+};
+
+export const EMPTY_COOKIE_SYNC_STATUS: CookieSyncStatus = {
+  enabled: false,
+  running: false,
+  port: 0,
+  url: '',
+  pairingCode: '',
+  domains: [],
+  paired: false,
+  connected: false,
+  browser: '',
+  unreadable: [],
+  lastContactAt: 0,
+  lastSyncAt: 0,
+  lastSyncCount: 0,
+  syncedTotal: 0,
+  pending: EMPTY_COOKIE_SYNC_PAIR_REQUEST,
+  log: [],
+};
 
 export const EMPTY_MOCK_SERVER_STATUS: MockServerStatus = {
   running: false,
