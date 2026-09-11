@@ -5,6 +5,21 @@ description: Notable Relay changes and links to the exact notes for each publish
 
 This page summarizes the notable-change log maintained in the source repository. For the exact notes and artifacts attached to every published tag, use the [Relay releases page](https://github.com/relay-client/relay/releases).
 
+## 1.8.0
+
+### Added
+
+- **Sync cookies from your browser.** The cookie jar's *Sync Cookies* tab used to be a disabled placeholder; it now pairs Relay with a browser extension, so the session you already have in Chrome, Edge, Brave or Arc is the session Relay sends with — no more copying a `Cookie:` header out of DevTools after every login. See [Cookies](/docs/guides/cookies/).
+- **Pairing is a click.** The extension finds Relay on its own and asks to connect; Relay shows the request with a six-digit code that the extension shows too, and approving it hands over a token. Matching the codes is what stops anything else on the machine from being approved in the browser's place. After the first approval the browser reconnects by itself.
+- **Cookies arrive as they change**, over a WebSocket, within a second of the browser setting them — with a full reconciliation on connect and every five minutes, so a cookie cleared while the browser was closed disappears in Relay too. Signing out of a site clears the cookie here as well.
+- **Three gates stand in front of every cookie**: the bridge is loopback-only and off until you turn it on, no token exists until you approve the browser, and a domain is read only if it is on Relay's allowlist *and* granted to the extension in the browser. Relay names the domains the browser was never allowed to read instead of quietly covering fewer than the list suggests.
+- The extension ships in the repository under `apps/extension` for Chromium browsers, with a Firefox manifest alongside it.
+
+### Fixed
+
+- **Open log folder in Settings did nothing.** A dependency update started rejecting `file:` URLs outright, so the button was refused with no error anywhere you could see it. Relay now hands the folder to the platform file manager directly and reports a failure in the row.
+- **Disconnecting a browser left its extension retrying forever**, because the socket closed without saying why. Relay now distinguishes "disconnected on purpose" from "shutting down", and the extension drops a dead token and asks to connect again instead of reconnecting with a key that will never be accepted.
+
 ## 1.7.0
 
 ### Added
