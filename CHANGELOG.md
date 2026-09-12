@@ -7,6 +7,10 @@ All notable changes to Relay are documented here. This project follows
 
 ## [Unreleased]
 
+---
+
+## [1.8.1] - 2026-09-12
+
 ### Changed
 
 - **One icon, everywhere.** Relay had five drawings of its own mark — the app icon, a redrawn SVG in the docs, a second copy as the favicon, a third inlined in the sidebar over a CSS gradient of its own, and a fourth in the browser extension — in three gradients and four corner radii. Every mark is now generated from the icon that ships in the Dock and the installer, so the sidebar, the docs, the favicon and the extension show the same artwork. The launcher icon itself is unchanged.
@@ -280,7 +284,8 @@ this repository.
 - Configurable keyboard shortcuts throughout, global search (`⌘K`), quick send (`⌘Enter`), and tab switching (`⌘1`–`⌘9`).
 - Settings search and full keyboard navigation, theme previews, and onboarding empty states.
 
-[Unreleased]: https://github.com/relay-client/relay/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/relay-client/relay/compare/v1.8.1...HEAD
+[1.8.1]: https://github.com/relay-client/relay/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/relay-client/relay/compare/v1.7.0...v1.8.0
 [1.3.0]: https://github.com/relay-client/relay/compare/v1.2.0...v1.3.0
 [1.0.0]: https://github.com/relay-client/relay/releases/tag/v1.0.0
