@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -28,12 +28,64 @@ const stepPauseMs = Number.parseInt(process.env.RELAY_E2E_STEP_PAUSE_MS ?? '0', 
 const responseScreenshotPath = process.env.RELAY_E2E_RESPONSE_SCREENSHOT ?? '';
 const docsScreenshotDir = process.env.RELAY_DOCS_SCREENSHOT_DIR ?? '';
 
-async function captureDocsScreenshot(page: Page, name: string) {
+const DOCS_VIEWPORT = { width: 1200, height: 780 };
+const DOCS_CROP_PADDING = 26;
+
+async function docsDialogClip(page: Page) {
+  const dialog = page.locator('[role="dialog"][aria-modal="true"]').first();
+  if (!(await dialog.isVisible().catch(() => false))) return undefined;
+  const box = await dialog.boundingBox();
+  if (!box) return undefined;
+  const viewport = page.viewportSize() ?? DOCS_VIEWPORT;
+  const x = Math.max(0, Math.round(box.x) - DOCS_CROP_PADDING);
+  const y = Math.max(0, Math.round(box.y) - DOCS_CROP_PADDING);
+  return {
+    x,
+    y,
+    width: Math.min(viewport.width - x, Math.round(box.width) + DOCS_CROP_PADDING * 2),
+    height: Math.min(viewport.height - y, Math.round(box.height) + DOCS_CROP_PADDING * 2),
+  };
+}
+
+async function docsElementClip(page: Page, target: Locator) {
+  const box = await target.boundingBox();
+  if (!box) return undefined;
+  const viewport = page.viewportSize() ?? DOCS_VIEWPORT;
+  const x = Math.max(0, Math.round(box.x) - DOCS_CROP_PADDING);
+  const y = Math.max(0, Math.round(box.y) - DOCS_CROP_PADDING);
+  return {
+    x,
+    y,
+    width: Math.min(viewport.width - x, Math.round(box.width) + DOCS_CROP_PADDING * 2),
+    height: Math.min(viewport.height - y, Math.round(box.height) + DOCS_CROP_PADDING * 2),
+  };
+}
+
+async function captureDocsScreenshot(page: Page, name: string, cropTo?: Locator) {
   if (!docsScreenshotDir) return;
   await waitForTransientToasts(page);
+  // An earlier scrollIntoView can leave an ancestor scrolled. html, body and #app are
+  // overflow:hidden, which browsers still scroll programmatically, so the app ends up
+  // shifted out of frame with the page background filling the rest of the shot.
+  await page.evaluate(() => {
+    window.scrollTo(0, 0);
+    const frame = [
+      document.documentElement,
+      document.body,
+      document.getElementById('app'),
+      document.querySelector('main.shell'),
+    ];
+    for (const element of frame) {
+      if (!(element instanceof HTMLElement)) continue;
+      element.scrollTop = 0;
+      element.scrollLeft = 0;
+    }
+  });
+  const clip = (await docsDialogClip(page)) ?? (cropTo ? await docsElementClip(page, cropTo) : undefined);
   await page.screenshot({
     path: join(docsScreenshotDir, `${name}.png`),
     animations: 'disabled',
+    ...(clip ? { clip } : {}),
   });
 }
 
@@ -1153,7 +1205,7 @@ test.describe('Relay desktop browser E2E', () => {
   test('full click-through flow: environment, collection, requests, send, history, runner, report', async ({ page }) => {
     if (docsScreenshotDir) {
       await mkdir(docsScreenshotDir, { recursive: true });
-      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.setViewportSize(DOCS_VIEWPORT);
     }
     await installRelayBridge(page);
     await page.goto('/');
@@ -1279,8 +1331,10 @@ test.describe('Relay desktop browser E2E', () => {
     await tourPause(page, 'HTTP request configured');
 
     const panelDivider = page.getByLabel('Resize panels');
-    for (let i = 0; i < 24; i += 1) await panelDivider.press('ArrowDown');
+    const dividerSteps = docsScreenshotDir ? 8 : 24;
+    for (let i = 0; i < dividerSteps; i += 1) await panelDivider.press('ArrowDown');
     await chooseRequestSection(page, 'Settings');
+    await captureDocsScreenshot(page, 'request-settings');
     const browserEmulationSetting = page.locator('label.postman-setting').filter({ hasText: 'Browser request emulation' });
     await browserEmulationSetting.locator('.switch-control').click();
     await page.getByPlaceholder('http://localhost:5173').fill('https://app.relay.test');
@@ -1289,11 +1343,9 @@ test.describe('Relay desktop browser E2E', () => {
     const cspSetting = page.locator('label.postman-setting').filter({ hasText: 'Enforce CSP connect-src' });
     await cspSetting.locator('.switch-control').click();
     await page.locator('label.postman-setting-tall textarea').fill("default-src 'self'; connect-src https://api.relay.test");
-    await cspSetting.scrollIntoViewIfNeeded();
-    await captureDocsScreenshot(page, 'request-settings');
-    await captureDocsScreenshot(page, 'browser-security');
+    await captureDocsScreenshot(page, 'browser-security', page.locator('.settings-list'));
     await page.locator('.settings-actions').getByRole('button', { name: 'Reset' }).click();
-    for (let i = 0; i < 24; i += 1) await panelDivider.press('ArrowUp');
+    for (let i = 0; i < dividerSteps; i += 1) await panelDivider.press('ArrowUp');
 
     await page.getByRole('button', { name: 'Send', exact: true }).click();
     await expect(page.getByText('200 OK')).toBeVisible();
@@ -1603,6 +1655,7 @@ test.describe('Relay desktop browser E2E', () => {
   });
 
   test('virtualizes a large JSON response while scrolling', async ({ page }) => {
+    if (docsScreenshotDir) await page.setViewportSize(DOCS_VIEWPORT);
     const realResponsePath = process.env.RELAY_E2E_REAL_RESPONSE_PATH;
     const realResponseBody = realResponsePath ? await readFile(realResponsePath, 'utf8') : '';
     await installRelayBridge(page, realResponseBody);
@@ -1951,6 +2004,7 @@ test.describe('Relay desktop browser E2E', () => {
   });
 
   test('pairs a browser from the Sync Cookies tab and syncs into the open workspace', async ({ page }) => {
+    if (docsScreenshotDir) await page.setViewportSize(DOCS_VIEWPORT);
     await installRelayBridge(page);
     await page.goto('/');
 
