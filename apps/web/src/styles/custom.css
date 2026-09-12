@@ -468,6 +468,9 @@ site-search kbd {
 }
 
 site-search dialog {
+  /* One surface. Anything inside painting its own background shows up as a square
+     panel inset in a rounded dialog. */
+  background: var(--sl-color-bg);
   border: 1px solid var(--relay-hairline);
   border-radius: 16px;
   box-shadow: 0 32px 70px -24px rgba(10, 12, 30, 0.45);
@@ -494,6 +497,10 @@ site-search dialog::backdrop {
   opacity: 0.55;
 }
 #starlight__search input.pagefind-ui__search-input {
+  /* The query row is a flex item now, and a flex item is allowed to shrink past its own
+     height — which leaves the magnifier and the clear button, both positioned for a full
+     row, floating away from the text. */
+  flex: 0 0 auto;
   height: 3.25rem;
   padding-block: 0;
   border: 0;
@@ -593,21 +600,28 @@ site-search dialog::backdrop {
   }
 }
 
-/* Keep the query and the legend in place while the results scroll under them. */
+/* Keep the query and the legend in place while the results scroll under them.
+   `.pagefind-ui__form` wraps the query row *and* the results, so the scrolling element
+   has to be the drawer inside it — which means every box between the dialog's bounded
+   height and that drawer is a flex column that is allowed to shrink. */
 site-search .dialog-frame {
   overflow: hidden;
 }
-site-search .search-container {
+site-search .search-container,
+#starlight__search,
+#starlight__search .pagefind-ui,
+#starlight__search .pagefind-ui__form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  background: none;
+}
+#starlight__search .pagefind-ui__drawer {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-}
-#starlight__search .pagefind-ui__form {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: var(--sl-color-bg);
 }
 
 /* ---------------------------------------------------------------------------
@@ -708,8 +722,25 @@ site-search .search-container {
   background: color-mix(in srgb, var(--sl-color-accent) 5%, transparent);
   transform: translateY(-1px);
 }
-.pagination-links a span {
-  font-size: 0.95rem;
+/* The row is "Previous" over the page name; giving both the same size flattens it into
+   one large block. */
+.pagination-links a > span {
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sl-color-gray-3);
+  line-height: 1.5;
+}
+.pagination-links a .link-title {
+  font-size: 0.98rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--sl-color-white);
+}
+.pagination-links a {
+  padding: 0.75rem 0.95rem;
 }
 
 /* Link cards, used across the splash page and the guides index. */
