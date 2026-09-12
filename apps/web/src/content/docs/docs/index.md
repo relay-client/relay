@@ -8,7 +8,7 @@ Welcome to the Relay docs. If you're new, start with **[Installation](/docs/gett
 ## What's in here
 
 - **Getting started** — install, send a request, save it to a collection.
-- **Guides** — task-oriented walkthroughs for app settings, collection defaults, request types, auth, environments, browser security, proxies, backups, scripting, runner workflows, Git workspaces, imports/exports, responses, history, and code generation.
+- **Guides** — task-oriented walkthroughs for app settings, workspaces and collection defaults, request types, auth, environments, cookies and cookie sync, browser security, proxies, backups, scripting, runner workflows, Git workspaces, imports/exports, responses, saved examples, the local mock server, history, and code generation.
 - **Reference** — the full `pm.*` scripting API, Git/YAML workspace contract, performance fixtures, and keyboard shortcuts.
 - **FAQ** — quick answers to the most common questions.
 

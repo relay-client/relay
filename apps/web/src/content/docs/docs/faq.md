@@ -60,7 +60,7 @@ See [Import & export](/docs/guides/import-export/). Short version: common `pm.*`
 
 ## Roadmap?
 
-Tracked as GitHub issues with the `roadmap` label. Current gaps include SOAP/XML-specific auth, deeper runner automation, a plugin API, and more interoperability formats.
+There is no published roadmap document. What ships lands in the [changelog](/changelog/), and feature requests are tracked as [GitHub issues](https://github.com/relay-client/relay/issues) — open one if something you need is missing. Known gaps today: folder-level auth/headers/scripts (collections have them, folders do not), OAuth 1.0, NTLM and Hawk, MQTT, response visualizers (`pm.visualizer.set`), and `setTimeout`/`async` in the script sandbox.
 
 ## How do I report a bug?
 

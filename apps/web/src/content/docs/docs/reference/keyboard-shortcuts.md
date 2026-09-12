@@ -24,12 +24,14 @@ Every shortcut is rebindable from **Settings → Shortcuts**. Click any shortcut
 | Shortcut | Action |
 |----------|--------|
 | `Cmd/Ctrl N` | New request / collection / environment dialog |
+| `Cmd/Ctrl L` | Focus the request URL |
 | `Cmd/Ctrl W` | Close current tab |
 | `Alt Cmd/Ctrl W` | Force close current tab |
 | `Shift Cmd/Ctrl T` | Reopen last closed tab |
 | `Cmd/Ctrl Enter` | Send request |
 | `Cmd/Ctrl S` | Save request |
-| `Cmd/Ctrl 1` … `Cmd/Ctrl 9` | Switch to tab 1–9 |
+| `Cmd/Ctrl 1` … `Cmd/Ctrl 8` | Switch to tab 1–8 |
+| `Cmd/Ctrl 9` | Switch to the last tab, whichever number it is |
 | `Shift Cmd/Ctrl [` / `Shift Cmd/Ctrl ]` | Previous / next tab |
 
 ## Sidebar

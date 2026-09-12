@@ -39,6 +39,7 @@ Guides, the scripting reference, and the YAML workspace format live in the **[do
 - All HTTP methods: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS
 - Query params, headers, body (JSON, form-data, x-www-form-urlencoded, raw text/XML/HTML, binary file)
 - cURL import — paste a curl command into the URL field, it parses automatically
+- Bulk edit for params, headers and form fields — switch the table to a `key: value` text area and back
 - GraphQL, Server-Sent Events, WebSocket, Socket.IO, and gRPC request types
 - Postman, Insomnia, Bruno/OpenCollection, OpenAPI/Swagger, HAR, cURL, and all-data backup import paths
 - OpenAPI/Swagger imports from a link as well as a file — paste the spec URL and Relay fetches it and builds the collection
@@ -47,7 +48,7 @@ Guides, the scripting reference, and the YAML workspace format live in the **[do
 **Authentication**
 - Bearer Token
 - Basic Auth
-- Digest Auth (full MD5 challenge-response)
+- Digest Auth — MD5, SHA-256 and SHA-512-256 plus their `-sess` variants, with `qop=auth` and `auth-int`
 - API Key — in header or query string
 - OAuth 2.0 — Client Credentials, Authorization Code (with PKCE), Password, and Device Code grants; loopback browser sign-in, refresh tokens, and automatic token refresh before each send
 - AWS Signature v4
@@ -67,7 +68,7 @@ pm.test("status is 200", () => pm.response.to.have.status(200))
 pm.test("has an id", () => pm.response.to.have.jsonSchema({ type: "object", required: ["id"] }))
 ```
 
-`require` resolves bundled stand-ins for `lodash`, `ajv`, `tv4`, `uuid`, `crypto-js`, and `chai`, so imported Postman scripts keep working.
+`require` resolves bundled stand-ins for `lodash`, `ajv`, `tv4`, `uuid`, `crypto-js`, and `chai`, so imported Postman scripts keep working. `pm.sendRequest` makes an HTTP call from a script, and `pm.execution.skipRequest()` skips the send.
 
 **Environments & Variables**
 - Multiple environments per workspace, switch with one click
@@ -83,6 +84,11 @@ pm.test("has an id", () => pm.response.to.have.jsonSchema({ type: "object", requ
 - Git-backed YAML workspaces with diagnostics, conflict helpers, and local-only secrets
 - **CLI runner** — `relay run ./workspace --env CI` executes requests and their test scripts for CI, with data-driven iterations (`--data`), pretty/JSON/JUnit reporters, variable export, and a non-zero exit code on failure
 
+**Response examples** — save any response as a named example on its request: the status, headers and body it came back with, alongside the request that produced it. Secrets are redacted on capture, a clean body is stored byte for byte, and examples ride along through Postman, OpenCollection, HAR and OpenAPI imports and exports. A response can be diffed against an example instead of against the previous send.
+
+**Cookies** — a per-workspace cookie jar with a per-domain editor, disableable per request.
+- **Cookie sync**: pair Relay with the in-repo browser extension (`apps/extension`, Chromium + Firefox) and the session you already have in the browser is the session Relay sends with. A loopback-only bridge that stays off until you turn it on, an approval you give in Relay by matching a six-digit code, and a per-domain allowlist enforced on both sides. Cookies travel one way: browser into Relay.
+
 **Mock server** — serve a collection's saved examples over HTTP on a local port, so a client can be built against an endpoint that does not exist yet. Routing is by method and the example's path template (`/orders/:id`), a recorded query narrows which example answers, and a live log shows what the client asked for and which example replied. Loopback only; CORS preflight is answered for any origin.
 
 **Response viewer**
@@ -91,18 +97,18 @@ pm.test("has an id", () => pm.response.to.have.jsonSchema({ type: "object", requ
 - Full-text search with match navigation
 - Save response to file, copy to clipboard
 - Headers table, test results, script logs — all in one panel
+- Preview tab for HTML, images and PDFs; binary bodies are detected rather than rendered as mojibake
+- Diff against the previous response or a saved example
+- Timeline with connection details and the request as it went on the wire, secrets masked, one block per redirect hop
 - Realtime panels for SSE, WebSocket, Socket.IO, and gRPC responses
 
-**Code generation** — copy the current request as:
-- cURL
-- Python `requests`
-- JavaScript `fetch`
-- Go `net/http`
-- More in the side panel
+**Code generation** — copy the current request as a runnable snippet in one of 14 targets: cURL, HTTPie, JavaScript `fetch`, Node.js `fetch`, Axios, Python `requests`, Go `net/http`, Java OkHttp, C# `HttpClient`, PHP cURL, Ruby `Net::HTTP`, Swift `URLSession`, Kotlin OkHttp, and Rust `reqwest`. Secret variables stay as `{{name}}` placeholders.
+
+**Browser request emulation** — send with a browser's rules instead of a client's: an `Origin` header, CORS preflight and response checks, and Content Security Policy enforcement, so a request can reproduce what the browser will do before the frontend is written.
 
 **Settings per request**: HTTP version (auto / 1.1 / 2), SSL verification, redirect policy (follow, preserve method, preserve auth), cookie jar, timeout, proxy, URL encoding.
 
-**Keyboard-first**: all actions have configurable shortcuts. Global search (`⌘K`), quick send (`⌘Enter`), tab switching (`⌘1`–`⌘9`).
+**Keyboard-first**: all actions have configurable shortcuts. Global search (`⌘K`), quick send (`⌘Enter`), focus the URL (`⌘L`), tab switching (`⌘1`–`⌘8`, with `⌘9` for the last tab).
 
 **Dark and light themes**, with multiple built-in variations.
 
@@ -164,6 +170,7 @@ apps/desktop/frontend/src/
   lib/stores/features/      Feature slices for requests, collections, Git, import/export, etc.
   lib/components/           UI components
   lib/backend.ts            Wails bridge type definitions
+apps/extension/             Cookie Sync browser extension (MV3 + Firefox event page)
 apps/web/                   Astro Starlight documentation site
 schemas/                    Public Git/YAML workspace JSON Schema
 perf/                       Generated performance fixtures (ignored by Git)
@@ -175,48 +182,26 @@ perf/                       Generated performance fixtures (ignored by Git)
 
 Scripts run in a sandboxed JavaScript environment by default, or in the legacy [Tengo](https://github.com/d5/tengo) engine for existing requests. Imports, filesystem, process, and network access are disabled. Execution timeout: 2 seconds by default, configurable per request up to 60.
 
-**`pm.request`**
+The full surface — every method, the variable-scope precedence rules, and the Chai-style assertion aliases — is in the [scripting API reference](https://relay-client.github.io/relay/docs/reference/scripting-api/). The short version:
 
-| Method | Description |
-|--------|-------------|
-| `pm.request.url` | Current request URL (string) |
-| `pm.request.method` | HTTP method |
-| `pm.request.headers.get(name)` | Get request header |
-| `pm.request.headers.set(name, value)` | Set / override header |
-| `pm.request.headers.unset(name)` | Remove header |
-| `pm.request.params.get(name)` | Get query param |
-| `pm.request.params.set(name, value)` | Set query param |
-| `pm.request.set_url(url)` | Override URL before sending |
+| Surface | What it covers |
+|---------|----------------|
+| `pm.request` | `url`, `method`, `set_url()`, `headers.get/set/unset`, `params.get/set` |
+| `pm.request.body` | `raw`, `mode`, `json()`, `update()`, plus `urlencoded` / `formdata` field lists |
+| `pm.response` | `code`, `status`, `responseTime`, `size`, `body()`, `json()`, `headers.get()` — test scripts only |
+| `pm.variables` · `pm.globals` · `pm.environment` · `pm.collectionVariables` | `get` / `set` / `unset` / `clear`, differing only in which scope they read and write |
+| `pm.iterationData.get(key)` | The current data-row value in a data-driven run (read-only) |
+| `pm.info` | `requestName`, `eventName`, `iteration`, `iterationCount` |
+| `pm.cookies` | `get` / `has` / `names` for the cookies this request's jar would send |
+| `pm.crypto` · `CryptoJS` | MD5/SHA digests, HMAC, base64, `randomHex()`, `uuid()` |
+| `pm.sendRequest(req, cb)` | A synchronous HTTP call through the regular request engine |
+| `pm.execution.skipRequest()` | From a pre-request script, skips the send — reported as skipped, not failed |
+| `pm.test(name, fnOrResult)` | Register a named assertion |
+| `pm.expect(value)` | `.equal` · `.contains` · `.exists` · `.has_key` · … plus `.to.equal(v)`, `.to.include(v)`, `.to.have.property(k)` |
+| `pm.response.to.have.*` | `status(code)`, `header(name)`, `jsonBody(path?, value?)`, `jsonSchema(schema)` (draft-07) |
+| `pm.log(...values)` | Output to the Scripts panel |
 
-**`pm.response`** (test scripts only)
-
-| Method | Description |
-|--------|-------------|
-| `pm.response.code` | HTTP status code (int) |
-| `pm.response.status` | Status string, e.g. `"200 OK"` |
-| `pm.response.time` | Duration in milliseconds |
-| `pm.response.size` | Body size in bytes |
-| `pm.response.body()` | Raw body as string |
-| `pm.response.json()` | Body parsed as JSON (map/array) |
-| `pm.response.headers.get(name)` | Get response header (case-insensitive) |
-
-**`pm.variables` / `pm.environment`**
-
-| Method | Description |
-|--------|-------------|
-| `.get(key)` | Read a variable |
-| `.set(key, value)` | Write a variable |
-| `.unset(key)` | Delete a variable |
-| `.clear()` | Clear all variables |
-
-**`pm.iterationData.get(key)`** — read the current data-row value during a data-driven run (read-only).
-
-**`pm.test(name, fnOrResult)`** — register a named test assertion. JavaScript accepts a callback or boolean; Tengo accepts a boolean expression.
-
-**`pm.expect(value)`** — chainable assertion builder:
-`.equal(v)` · `.not_equal(v)` · `.contains(s)` · `.exists()` · `.is_null()` · `.greater_than(n)` · `.less_than(n)` · `.has_key(k)` · `.type_of()` plus JavaScript Chai-style aliases such as `.to.equal(v)`, `.to.include(v)`, and `.to.have.property(k)`.
-
-**`pm.log(...values)`** — output to the Scripts panel.
+`require` resolves bundled stand-ins for `lodash`, `ajv`, `tv4`, `uuid`, `crypto-js`, and `chai`. There is no event loop: `setTimeout`, `async` and `await` are not available, and `pm.sendRequest`'s callback runs immediately.
 
 ---
 

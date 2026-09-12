@@ -59,9 +59,14 @@ The full pipeline in [`ci.yml`](.github/workflows/ci.yml) runs:
 | Docs consistency | `npm run web:check-docs` |
 | Go formatting | `gofmt -l apps/desktop/` must be empty |
 | Go vet | `go vet ./apps/desktop/...` |
-| Go tests | `go test -race ./apps/desktop/...` |
+| Go tests | `go test -race ./apps/desktop/...` on Linux, repeated on macOS (with `-race`) and Windows (without) |
+| Generated bindings | `make bindings` must produce no diff |
 | Dead code | `golang.org/x/tools/cmd/deadcode` must report nothing |
 | End-to-end | `npm run frontend:e2e` (Playwright) |
+
+`make test-extension` is not in that list: it drives the real Cookie Sync extension in a
+headless Chromium against a Go-hosted bridge, and it is run locally when `apps/extension`
+or `internal/api/cookie_sync.go` changes. See [`apps/extension/README.md`](apps/extension/README.md).
 
 Two of these surprise people:
 
@@ -70,7 +75,9 @@ Two of these surprise people:
 - **Docs consistency.** `scripts/check-web-docs.mjs` cross-checks the YAML workspace
   reference in `apps/web` against the Go source and the JSON Schema. Adding a persisted
   auth field means updating `schemas/relay-workspace-yaml-v1.schema.json` and
-  `apps/web/src/content/docs/docs/reference/relay-yaml-format.md` too.
+  `apps/web/src/content/docs/docs/reference/relay-yaml-format.md` too. It also checks the
+  documents that nothing else reads: a new `SHORTCUT_DEFINITIONS` entry has to appear in the
+  keyboard-shortcuts reference, and a new snippet target in the code-generation guide.
 
 ## Code style
 
