@@ -108,7 +108,7 @@ pm.test("has an id", () => pm.response.to.have.jsonSchema({ type: "object", requ
 
 **Settings per request**: HTTP version (auto / 1.1 / 2), SSL verification, redirect policy (follow, preserve method, preserve auth), cookie jar, timeout, proxy, URL encoding.
 
-**Keyboard-first**: all actions have configurable shortcuts. Global search (`⌘K`), quick send (`⌘Enter`), focus the URL (`⌘L`), tab switching (`⌘1`–`⌘8`, with `⌘9` for the last tab).
+**Keyboard-first**: all actions have configurable shortcuts. Global search (`Cmd/Ctrl K`), quick send (`Cmd/Ctrl Enter`), focus the URL (`Cmd/Ctrl L`), tab switching (`Cmd/Ctrl 1`–`8`, with `9` for the last tab). Relay shows `Cmd` on macOS and `Ctrl` on Windows and Linux.
 
 **Dark and light themes**, with multiple built-in variations.
 

@@ -45,7 +45,13 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        // Docs screenshots are shown at roughly two thirds of their capture width, on
+        // displays that mostly have two device pixels per CSS pixel. Capturing at 1x
+        // leaves the app's own text soft; capturing at 2x is what makes it legible.
+        deviceScaleFactor: process.env.RELAY_DOCS_SCREENSHOT_DIR ? 2 : 1,
+      },
     },
   ],
 });

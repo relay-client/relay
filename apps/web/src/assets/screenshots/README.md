@@ -15,9 +15,13 @@ modify documentation assets.
 
 Three rules keep the set consistent, and all three live in `captureDocsScreenshot`:
 
-- **A 1200×780 light-theme viewport.** The docs column is 800px wide, so a wider capture is
-  downscaled until its UI text stops being readable. 1200 is the narrowest width the app
-  still lays out normally — its only breakpoint is at 700px.
+- **A 1200×780 light-theme viewport, captured at 2× device pixels** (so the files are
+  2400×1560). The docs column is 800px wide, so a wider *layout* is downscaled until its UI
+  text stops being readable — 1200 is the narrowest width the app still lays out normally,
+  its only breakpoint being 700px. The pixel density is separate: most displays showing
+  these pages have two device pixels per CSS pixel, and a 1× capture has nothing to give
+  the second one. `playwright.config.ts` switches `deviceScaleFactor` to 2 only when
+  `RELAY_DOCS_SCREENSHOT_DIR` is set, so ordinary E2E runs are unaffected.
 - **A modal is cropped to itself**, plus 26px of the app behind it. A settings dialog inside
   a full-window shot is unreadable at page scale; on its own it renders close to 1:1. Any
   `[role="dialog"][aria-modal="true"]` is detected and cropped automatically, and a capture
