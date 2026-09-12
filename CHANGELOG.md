@@ -7,6 +7,23 @@ All notable changes to Relay are documented here. This project follows
 
 ## [Unreleased]
 
+### Changed
+
+- **One icon, everywhere.** Relay had five drawings of its own mark — the app icon, a redrawn SVG in the docs, a second copy as the favicon, a third inlined in the sidebar over a CSS gradient of its own, and a fourth in the browser extension — in three gradients and four corner radii. Every mark is now generated from the icon that ships in the Dock and the installer, so the sidebar, the docs, the favicon and the extension show the same artwork. The launcher icon itself is unchanged.
+- **The documentation site was rebuilt around reading.** Starlight's stock type scale set h1 at 42px and h2 at 35px against a 16px body, which reads as a landing page on a page of key bindings; the scale, the rhythm, tables, code, callouts, navigation and the previous/next row are now one system. The landing page is a full-bleed hero the header sits on rather than a dark card floating under a white strip, and search — Pagefind's widget, which Starlight passes through nearly unstyled — matches the rest and keeps the query row in place while results scroll.
+- **Documentation screenshots are captured at 2×**, so the app's own text stays legible when a shot is scaled into the docs column, and every one of them was retaken at a single viewport. Dialogs are cropped to themselves rather than shown as a smudge inside a full window.
+
+### Fixed
+
+- **The README and the landing page had drifted behind four releases.** Saved examples, the cookie jar and cookie sync, the response diff and timeline, browser emulation and bulk edit were missing entirely; Digest was described as MD5-only; the landing page named two of the four OAuth grants. Both spelled the keyboard defaults with `⌘`, which is wrong on two of the three platforms Relay ships on.
+- **`browser-security.png` and `request-settings.png` were the same broken image** — an earlier `scrollIntoView` had pushed the app out of frame, leaving a third of the shot empty — and `request-editor.png` was a duplicate of the response viewer. The FAQ pointed at a `roadmap` issue label that does not exist.
+- The privacy page described the cookie-sync bridge but neither of the other two local listeners Relay can open, including the mock server, which serves recorded responses to anything on the machine that can reach its port.
+
+### Documentation
+
+- Response examples, the mock server and the Diff tab's example baseline have screenshots for the first time. The mock server panel gained its first end-to-end test along the way.
+- `web:check-docs` now guards the two lists most likely to drift unnoticed: every default shortcut must appear in the keyboard reference, and every snippet target in the code-generation guide.
+
 ---
 
 ## [1.8.0] - 2026-09-11
