@@ -5,6 +5,21 @@ description: Notable Relay changes and links to the exact notes for each publish
 
 This page summarizes the notable-change log maintained in the source repository. For the exact notes and artifacts attached to every published tag, use the [Relay releases page](https://github.com/relay-client/relay/releases).
 
+## 1.8.1
+
+### Changed
+
+- **One icon everywhere.** Relay was drawing its own mark five different ways — the app icon, a redrawn copy in these docs, another as the favicon, a third in the app's sidebar, and a fourth in the browser extension — in three gradients and four corner radii. Every one of them is now generated from the icon that ships in the Dock and the installer. The icon you launch is unchanged; everything else caught up to it.
+- **This documentation site was rebuilt around reading.** A smaller type scale, tables and code that match it, a landing page the header sits on rather than floating above, and a search dialog that keeps the query in place while results scroll. Screenshots are captured at twice the pixel density, so the app's own text stays legible.
+- **Every guide that shows a Relay window now has a screenshot**, including [response examples](/docs/guides/examples/) and the [mock server](/docs/guides/mock-server/), which shipped without one.
+
+### Fixed
+
+- The README and the landing page had fallen four releases behind: saved examples, cookie sync, the response diff and browser emulation were missing, Digest was described as MD5-only, and the keyboard defaults were spelled with `⌘` — wrong on two of the three platforms Relay runs on. See [Keyboard shortcuts](/docs/reference/keyboard-shortcuts/).
+- Two guides illustrated their feature with the same broken screenshot, and the [privacy page](/privacy/) described only one of the three local listeners Relay can open. See [Mock server](/docs/guides/mock-server/#scope-and-safety).
+
+---
+
 ## 1.8.0
 
 ### Added
