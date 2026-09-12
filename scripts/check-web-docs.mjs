@@ -210,6 +210,9 @@ function checkScreenshotInventory() {
   const expected = [
     'auth-oauth2-token-fetch.png',
     'cookie-jar-populated.png',
+    'examples-panel.png',
+    'mock-server.png',
+    'response-diff-example.png',
     'git-workspace.png',
     'headers-tab.png',
     'import-postman.png',

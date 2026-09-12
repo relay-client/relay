@@ -15,6 +15,10 @@ You can also save one from [request history](/docs/guides/history/): open a row'
 
 The request's **Examples** tab lists everything saved against it. From there you can rename, reorder, edit the status and body by hand, or delete.
 
+![The Examples tab of a request, showing a saved 200 OK with the request that produced it and its path template](../../../../assets/screenshots/examples-panel.png)
+
+Each example records the request it came from and the **match** template Relay derived from that URL — `/orders/8123` captured as `/orders/:id`. That template is what the [mock server](/docs/guides/mock-server/) routes on.
+
 ## Secrets are redacted on capture
 
 A response body is the single most likely place for a token to end up in a commit, so capture redacts in three passes:

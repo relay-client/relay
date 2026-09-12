@@ -220,6 +220,8 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
         error: '',
       },
       cookieSyncWorkspace: '',
+      mockServer: { running: false, port: 0, url: '', collectionId: '', collectionName: '', routeCount: 0, error: '' },
+      mockServerLog: [],
     };
     const eventHandlers = {};
     const grpcInventoryMethod = {
@@ -701,6 +703,26 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
         };
         return clone(state.cookieSync);
       },
+      StartMockServer: async (config) => {
+        state.calls.push(`StartMockServer:${config.collectionName}:${config.routes.length}`);
+        state.mockServer = {
+          running: true,
+          port: config.port,
+          url: `http://127.0.0.1:${config.port}`,
+          collectionId: config.collectionId,
+          collectionName: config.collectionName,
+          routeCount: config.routes.length,
+          error: '',
+        };
+        return clone(state.mockServer);
+      },
+      StopMockServer: async () => {
+        state.calls.push('StopMockServer');
+        state.mockServer = { running: false, port: 0, url: '', collectionId: '', collectionName: '', routeCount: 0, error: '' };
+        return clone(state.mockServer);
+      },
+      MockServerStatus: async () => clone(state.mockServer),
+      MockServerLog: async () => clone(state.mockServerLog),
       ClipboardSet: async (text) => {
         state.calls.push(`clipboard:${text.length}`);
       },
@@ -1931,6 +1953,7 @@ test.describe('Relay desktop browser E2E', () => {
   });
 
   test('compares a fresh response against a saved example', async ({ page }) => {
+    if (docsScreenshotDir) await page.setViewportSize(DOCS_VIEWPORT);
     await installRelayBridge(page);
     await page.goto('/');
     await page.getByLabel('New unsaved request').click();
@@ -1957,12 +1980,14 @@ test.describe('Relay desktop browser E2E', () => {
     await expect(page.locator('.diff-side-before')).toContainText('200 OK');
     await expect(page.locator('.diff-count-add')).toBeVisible();
     await expect(page.locator('.diff-line.diff-removed').first()).toContainText('/orders');
+    await captureDocsScreenshot(page, 'response-diff-example');
 
     await page.getByRole('button', { name: 'Clear baseline' }).click();
     await expect(page.locator('.diff-side-before')).toContainText('previous');
   });
 
   test('saves a response as an example, and keeps it in the store', async ({ page }) => {
+    if (docsScreenshotDir) await page.setViewportSize(DOCS_VIEWPORT);
     await installRelayBridge(page);
     await page.goto('/');
 
@@ -1985,6 +2010,7 @@ test.describe('Relay desktop browser E2E', () => {
 
     await expect(page.locator('.examples-meta')).toContainText('/orders/:id');
     await expect(page.locator('.examples-status-input')).toHaveValue('200');
+    await captureDocsScreenshot(page, 'examples-panel');
 
     await page.locator('.response-mini-tabs').getByRole('tab', { name: 'Body' }).click();
     await page.getByRole('button', { name: 'Save as example', exact: true }).click();
@@ -2013,6 +2039,78 @@ test.describe('Relay desktop browser E2E', () => {
         statusCode: saved?.examples?.[0]?.response.statusCode ?? 0,
       };
     }).toEqual({ examples: 1, name: '200 OK', statusCode: 200 });
+  });
+
+  test('serves a collection from the mock server panel, and logs what a client asked for', async ({ page }) => {
+    if (docsScreenshotDir) await page.setViewportSize(DOCS_VIEWPORT);
+    await installRelayBridge(page);
+    await page.goto('/');
+
+    await page.getByLabel('New collection').click();
+    await fillPrompt(page, 'New collection', 'Orders API');
+    await collectionRow(page, 'Orders API').getByLabel('Collection menu').click();
+    await collectionRow(page, 'Orders API').locator('.collection-menu').getByRole('button', { name: 'Add request' }).click();
+    await chooseRequestType(page, 'HTTP Request');
+    await page.getByLabel('Request name').fill('Get order');
+    await page.getByLabel('Request name').press('Enter');
+    await page.getByLabel('Request URL').fill('https://api.relay.test/orders/8123');
+    await page.getByRole('button', { name: 'Send', exact: true }).click();
+    await expect(page.getByText('200 OK')).toBeVisible();
+    await page.getByRole('button', { name: 'Save as example', exact: true }).click();
+    await expect(page.locator('.examples-row')).toHaveCount(1);
+    // The panel counts examples from the saved store, not from the open editor.
+    await page.locator('.save-btn').first().click();
+    await expect(page.locator('.save-btn').first()).toBeDisabled();
+
+    await page.getByLabel('Mock server', { exact: true }).click();
+    const panel = page.locator('section[aria-label="Mock server"]');
+    await expect(panel).toBeVisible();
+
+    await panel.locator('.mock-select').getByRole('button').first().click();
+    await page.getByRole('option', { name: 'Orders API — 1 example' }).click();
+    await expect(panel.locator('.mock-pane-title').first()).toContainText('1');
+
+    await panel.getByRole('button', { name: 'Start server' }).click();
+    await expect(panel.locator('.mock-live-label')).toHaveText('Running');
+    await expect(panel.locator('.mock-url')).toContainText('http://127.0.0.1:3100');
+
+    await page.evaluate(() => {
+      const base = { timestamp: Date.now(), durationMs: 12 };
+      window.__relayE2E.emit('mock:request', {
+        ...base,
+        id: 'mock-1',
+        method: 'GET',
+        path: '/orders/8123',
+        query: '',
+        matched: true,
+        exampleId: '',
+        exampleName: '200 OK',
+        requestName: 'Get order',
+        statusCode: 200,
+      });
+      window.__relayE2E.emit('mock:request', {
+        ...base,
+        id: 'mock-2',
+        method: 'POST',
+        path: '/orders',
+        query: '',
+        matched: false,
+        statusCode: 404,
+      });
+    });
+
+    // Newest first: the unmatched request is the one worth seeing at the top.
+    const log = panel.locator('.mock-log-row');
+    await expect(log).toHaveCount(2);
+    await expect(log.first()).toContainText('no example matched');
+    await expect(log.last()).toContainText('/orders/8123');
+    await captureDocsScreenshot(page, 'mock-server');
+
+    await panel.getByRole('button', { name: 'Stop', exact: true }).click();
+    await expect(panel.locator('.mock-live-label')).toHaveCount(0);
+    expect(await page.evaluate(() => window.__relayE2E.calls.filter(call => call.startsWith('StartMockServer')))).toEqual([
+      'StartMockServer:Orders API:1',
+    ]);
   });
 
   test('pairs a browser from the Sync Cookies tab and syncs into the open workspace', async ({ page }) => {
