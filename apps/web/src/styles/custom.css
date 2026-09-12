@@ -494,6 +494,7 @@ site-search dialog::backdrop {
 }
 
 #starlight__search {
+  --relay-search-row: 3rem;
   --pagefind-ui-primary: var(--sl-color-accent);
   --pagefind-ui-border: transparent;
   --pagefind-ui-border-width: 1px;
@@ -501,8 +502,12 @@ site-search dialog::backdrop {
   --pagefind-ui-font: var(--sl-font);
 }
 
-/* The query row reads as one field with the dialog, not a box inside a box. */
-.pagefind-ui__form::before {
+/* The query row reads as one field with the dialog, not a box inside a box. The magnifier
+   is a pseudo-element on the form, positioned for Pagefind's own row height. */
+#starlight__search .pagefind-ui__form::before {
+  top: calc(var(--relay-search-row, 3rem) / 2);
+  margin-top: 0;
+  transform: translateY(-50%);
   opacity: 0.55;
 }
 #starlight__search input.pagefind-ui__search-input {
@@ -510,7 +515,7 @@ site-search dialog::backdrop {
      height — which leaves the magnifier and the clear button, both positioned for a full
      row, floating away from the text. */
   flex: 0 0 auto;
-  height: 3rem;
+  height: var(--relay-search-row);
   padding-block: 0;
   border: 1px solid var(--relay-hairline);
   border-radius: 12px;
@@ -526,14 +531,35 @@ site-search dialog::backdrop {
   border-color: color-mix(in srgb, var(--sl-color-accent) 55%, transparent);
   background: var(--sl-color-bg);
 }
+/* Pagefind sizes the clear button to the full height of the field and pins it flush to the
+   right edge, so any background it takes on paints over the field's own border and rounded
+   corner. Sized and inset to sit inside the field instead.
+
+   Its containing block is the form, which is now a full-height flex column — a percentage
+   `top` would put it halfway down the results. It is offset from the top by half the query
+   row instead, which is the one measurement that stays true. */
 #starlight__search .pagefind-ui__search-clear {
+  top: calc(var(--relay-search-row, 3rem) / 2);
+  /* Starlight narrows the field by `--sl-search-cancel-space` to make room for the mobile
+     Cancel button and offsets this button by the same amount; overriding the offset with a
+     flat value drops the clear button on top of Cancel. */
+  inset-inline-end: calc(var(--sl-search-cancel-space, 0px) + 0.45rem);
+  transform: translateY(-50%);
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border-radius: 999px;
   background: transparent;
   color: var(--sl-color-gray-3);
-  border-radius: 8px;
+  transition: background 0.12s ease, color 0.12s ease;
 }
 #starlight__search .pagefind-ui__search-clear:hover {
   color: var(--sl-color-white);
-  background: var(--relay-surface);
+  background: color-mix(in srgb, var(--sl-color-gray-5) 45%, transparent);
+}
+#starlight__search .pagefind-ui__search-clear:focus-visible {
+  outline: 2px solid var(--sl-color-accent);
+  outline-offset: 1px;
 }
 
 #starlight__search .pagefind-ui__message {
@@ -578,6 +604,32 @@ site-search dialog::backdrop {
 #starlight__search .pagefind-ui__result-nested:focus-within {
   background: color-mix(in srgb, var(--sl-color-accent) 9%, transparent);
   border-inline-start-color: var(--sl-color-accent);
+  /* Pagefind also outlines the row on hover; the tint and the rail already say it. */
+  outline: none;
+}
+
+/* Keyboard focus gets a ring of its own, rounded and in the accent, rather than the
+   browser's square default around the text — and no page-wide band behind the title. */
+#starlight__search .pagefind-ui__result-link:focus-visible {
+  outline: 2px solid var(--sl-color-accent);
+  outline-offset: 3px;
+  border-radius: 5px;
+}
+#starlight__search :is(.pagefind-ui__result, .pagefind-ui__result-title):focus-within {
+  background: none;
+  outline: none;
+}
+
+/* Before anything is typed the dialog still holds its 240px minimum, so it does not jump on
+   the first keystroke. Say what the box is for rather than showing an empty pane. Pagefind
+   hides the results drawer outright in that state, so the hint hangs off the form; if that
+   class is ever renamed the hint simply stops appearing. */
+#starlight__search .pagefind-ui__form:has(.pagefind-ui__drawer.pagefind-ui__hidden)::after {
+  content: "Search the guides, the reference and the changelog.";
+  display: block;
+  padding: 1.4rem 0.75rem;
+  color: var(--sl-color-gray-3);
+  font-size: 0.9rem;
 }
 #starlight__search .pagefind-ui__result-nested .pagefind-ui__result-link {
   font-size: 0.9rem;
