@@ -152,6 +152,60 @@ function checkCodeBackedDocs() {
   }
 }
 
+function checkFrontDoorDocs() {
+  const ui = read(join(root, 'apps/desktop/frontend/src/lib/stores/ui.ts'));
+  const constants = read(join(root, 'apps/desktop/frontend/src/lib/constants.ts'));
+  const codegenDoc = read(join(contentRoot, 'docs/guides/code-generation.md'));
+  const shortcutDoc = read(join(contentRoot, 'docs/reference/keyboard-shortcuts.md'));
+  const readme = read(join(root, 'README.md'));
+
+  const languages = [...ui.matchAll(/^\s*'([a-z]+)',$/gm)].map(match => match[1]);
+  const labels = [...ui.matchAll(/^\s*([a-z]+): '([^']+)',$/gm)].map(match => match[2]);
+  if (languages.length) {
+    for (const text of [codegenDoc, readme]) {
+      if (!text.includes(`${languages.length} `)) {
+        fail(`Code-generation target count is stale: SNIPPET_LANGUAGES has ${languages.length}`);
+      }
+    }
+  }
+  for (const label of labels) {
+    const bare = label.replace(/`/g, '');
+    const family = bare.split(' ')[0];
+    if (!codegenDoc.includes(family)) fail(`Code-generation guide does not mention the ${label} target`);
+  }
+
+  const combos = [...constants.matchAll(/defaultCombo: '([^']+)'/g)].map(match => match[1].replace(/\\\\/g, '\\'));
+  const docKeys = expandShortcutRanges(shortcutDoc);
+  for (const combo of combos) {
+    const rendered = combo
+      .split('+')
+      .map(part => {
+        if (part === 'Meta') return 'Cmd/Ctrl';
+        if (part === '\\') return 'Backslash';
+        if (part === 'ArrowUp') return '\u2191';
+        if (part === 'ArrowDown') return '\u2193';
+        if (part === 'ArrowLeft') return '\u2190';
+        if (part === 'ArrowRight') return '\u2192';
+        return part;
+      })
+      .join(' ');
+    if (!docKeys.includes(rendered)) {
+      fail(`Keyboard-shortcuts reference does not document the default binding ${combo} (expected "${rendered}")`);
+    }
+  }
+}
+
+function expandShortcutRanges(text) {
+  const rangeRe = /`Cmd\/Ctrl (\d)` \u2026 `Cmd\/Ctrl (\d)`/g;
+  let expanded = text;
+  for (const match of text.matchAll(rangeRe)) {
+    const from = Number(match[1]);
+    const to = Number(match[2]);
+    for (let key = from; key <= to; key += 1) expanded += ` \`Cmd/Ctrl ${key}\``;
+  }
+  return expanded;
+}
+
 function checkScreenshotInventory() {
   const expected = [
     'auth-oauth2-token-fetch.png',
@@ -186,6 +240,7 @@ if (!existsSync(distRoot)) {
   checkBasePrefixedLinks();
   checkPagefind();
   checkCodeBackedDocs();
+  checkFrontDoorDocs();
   checkScreenshotInventory();
 }
 

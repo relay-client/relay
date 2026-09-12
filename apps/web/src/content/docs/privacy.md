@@ -57,8 +57,19 @@ A few bounded categories of network calls happen on your behalf:
 3. **OAuth 2.0 authorization and token calls.** Relay can open the provider's authorization page and call the authorization/token endpoints you configured.
 4. **GraphQL schema introspection.** When you load a GraphQL schema URL in the Schema tab, Relay sends a standard introspection query to that URL.
 5. **Git remotes.** Clone, fetch, pull, push, remote tests, and remote branch actions contact the Git server you configured.
+6. **An OpenAPI spec you import from a URL.** *Import collection -> OpenAPI / Swagger from URL* fetches the link you paste, through the same sender your requests use, so it honours your proxy settings and the response cap. Cookies are not attached to it.
 
 Proxy settings can route these requests through your selected system or custom proxy. There is no separate telemetry channel or first-launch ping.
+
+## Ports Relay opens on your machine
+
+Three features bind a local listener. All three are loopback-only (`127.0.0.1`), so nothing on your network can reach them, and none of them is open unless you start it.
+
+| Listener | When it exists | What it serves |
+|----------|----------------|----------------|
+| OAuth 2.0 redirect | Only while an Authorization Code sign-in is in flight, on an ephemeral port | The single `/callback` that receives the authorization code, then closes |
+| [Cookie sync](/docs/guides/cookies/#sync-cookies-from-your-browser) bridge | While *Sync Cookies* is on (ports 3199-3203) | Pairing and the WebSocket a paired browser pushes cookies over. Extension origins only; a web page probing the port gets a `403` |
+| [Mock server](/docs/guides/mock-server/) | While you have it running, on the port you choose | The saved examples of the collection you pointed it at — status, headers and body as recorded. Anything on your machine that can reach the port can read them, so treat a mock made from real responses accordingly |
 
 ## Scripting safety
 

@@ -2,7 +2,7 @@
 
 This matrix keeps documentation work honest. Update it whenever a feature ships or a guide changes.
 
-Last factual audit: **2026-09-11**, against desktop tag **v1.8.0**.
+Last factual audit: **2026-09-12**, against desktop tag **v1.8.0**.
 
 | Area | User docs | Reference / source of truth | Screenshot status | Notes |
 |------|-----------|-----------------------------|-------------------|-------|
@@ -29,10 +29,21 @@ Last factual audit: **2026-09-11**, against desktop tag **v1.8.0**.
 | App settings | `docs/guides/settings`, `docs/reference/keyboard-shortcuts` | `SettingsModal.svelte`, `preferences.ts` | Good | General, theme, shortcuts, search, updates, and About surfaces have coverage. |
 | Global proxy | `docs/guides/proxy`, `docs/troubleshooting` | `proxy.ts`, `proxy.go`, `SettingsModal.svelte` | Good | Configured custom proxy is captured; precedence, bypass, password persistence, and direct behavior are documented. |
 | Browser security / CORS / CSP | `docs/guides/browser-security`, `docs/guides/request-settings` | `browser_security.go`, `preflight_cache.go` | Good | Request controls are captured in the per-request Settings tab. Focused guide covers credentials, preflight, response checks, CSP scope, HTTP/SSE, and realtime handshakes. |
+| Project front door | `README.md`, `index.mdx` (landing), `docs/index` | `constants.ts`, `ui.ts`, `digest.go`, `apps/extension/README` | N/A | Audited 2026-09-12 after drifting behind 1.5.0-1.8.0: saved examples, cookies and cookie sync, the response diff and timeline, browser emulation and bulk edit were missing from the README; Digest was described as MD5-only; the landing page named two OAuth grants of four and had no card for examples, the mock server or cookie sync; both claimed `Cmd 1`-`Cmd 9` switch to tabs 1-9, when `Cmd 9` is *last tab*. The README's scripting table is now a summary that points at the reference, rather than a second copy of it that can drift on its own. `web:check-docs` now guards the two lists that drifted here: every default shortcut combo must appear in the reference, and every snippet target in the code-generation guide. |
 | Performance fixtures | `docs/reference/performance-fixtures` | script `perf:fixtures` | Not needed | Keep counts/options in sync with `scripts/generate-perf-fixtures.mjs`. |
 
 ## Priority queue
 
-1. Split troubleshooting into install/network/data/git sections if it gets longer than one screen of sidebar navigation.
-2. Keep CI checks for internal links, Pagefind output, changelog drift, and code-backed constants green as docs evolve.
-3. Refresh deterministic screenshots whenever the desktop UI changes.
+1. Screenshots for the three areas that have none: response examples, the mock server, and the Sync Cookies tab. All three shipped since 1.5.0 and all three are guide-only so far.
+2. Split troubleshooting into install/network/data/git sections if it gets longer than one screen of sidebar navigation.
+3. Keep CI checks for internal links, Pagefind output, changelog drift, and code-backed constants green as docs evolve.
+4. Refresh deterministic screenshots whenever the desktop UI changes.
+
+## What a factual audit checks
+
+`web:check-docs` proves links, screenshots and the YAML contract. It cannot prove prose. The
+2026-09-12 pass re-derived these from source, and they held: 14 code-generation targets
+(`SNIPPET_LANGUAGES`), folder depth 4 and 50 requests per folder (`constants.ts`), the
+10 MB / 512 KiB / 100 MB response thresholds, the 2 MB history-response cap, the 32 MB
+`auth-int` body cap, and the 3199-3203 cookie-sync port scan. The claims that had drifted
+were all in the front-door documents, which nothing in CI reads.

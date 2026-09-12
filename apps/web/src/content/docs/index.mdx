@@ -35,7 +35,7 @@ import appLogoUrl from '../../assets/logo.svg?url';
     Your local profile and secrets are protected with AES-256-GCM. Git workspace YAML stays reviewable, with sensitive values replaced by local placeholders.
   </Card>
   <Card title="All the auth flows" icon="seti:lock">
-    Bearer, Basic, Digest (RFC 2617), API Key, OAuth 2.0 (Client Credentials + Authorization Code with PKCE), AWS Signature v4. One-click token fetch where it makes sense.
+    Bearer, Basic, Digest (MD5 through SHA-512-256), API Key, AWS Signature v4, and client certificates. OAuth 2.0 covers Client Credentials, Authorization Code with PKCE, Password and Device Code, with refresh handled before each send.
   </Card>
   <Card title="Scriptable requests" icon="seti:javascript">
     Pre-request and test scripts in sandboxed JavaScript, with legacy Tengo support. Inject headers, assert responses, parse JSON, set variables.
@@ -46,11 +46,17 @@ import appLogoUrl from '../../assets/logo.svg?url';
   <Card title="Git-backed workspaces" icon="seti:git">
     Store workspaces as reviewable YAML, keep secrets local, and use diagnostics/conflict helpers when a repo changes underneath you.
   </Card>
+  <Card title="Examples and a local mock" icon="seti:json">
+    Save a response as a named example, secrets redacted, then serve a whole collection of them over HTTP on your own machine. No account, no cloud — just a port and files that are already in your Git history.
+  </Card>
+  <Card title="Cookies from your browser" icon="seti:firefox">
+    Pair Relay with its browser extension and the session you already have in Chrome, Edge, Brave or Firefox is the session Relay sends with. Loopback only, approved by matching a code, allowlisted per domain.
+  </Card>
   <Card title="Code generation" icon="seti:code-search">
-    Copy any request as cURL, Python `requests`, JavaScript `fetch`, or Go `net/http`. More languages in the side panel.
+    Copy any request as a runnable snippet in one of 14 targets — cURL, HTTPie, `fetch`, Axios, Python `requests`, Go `net/http`, OkHttp, `HttpClient`, and more. Secrets stay as placeholders.
   </Card>
   <Card title="Keyboard-first" icon="seti:config">
-    Global search (⌘K), quick send (⌘↵), tab switching (⌘1–⌘9). All shortcuts configurable.
+    Global search (⌘K), quick send (⌘↵), focus the URL (⌘L), tab switching (⌘1–⌘8 and ⌘9 for the last tab). All shortcuts configurable.
   </Card>
 </CardGrid>
 
@@ -97,6 +103,11 @@ Imports, `require`, process, filesystem, and network access are disabled. Execut
     title="Request types"
     description="HTTP, GraphQL, SSE, WebSocket, Socket.IO, and gRPC in one place."
     href="/docs/guides/request-types/"
+  />
+  <LinkCard
+    title="Mock server"
+    description="Serve a collection's saved examples over HTTP, locally, before the endpoint exists."
+    href="/docs/guides/mock-server/"
   />
   <LinkCard
     title="Collection Runner"
