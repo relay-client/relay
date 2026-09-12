@@ -1356,6 +1356,9 @@ test.describe('Relay desktop browser E2E', () => {
     await captureDocsScreenshot(page, 'response-viewer-tests');
     await page.locator('.response-mini-tabs').getByRole('tab', { name: 'Body' }).click();
     await captureDocsScreenshot(page, 'response-viewer-json');
+    // The first-request guide wants the request half of the window, not a second copy of
+    // the response viewer, so move off the Settings tab before this one.
+    await chooseRequestSection(page, 'Body');
     await captureDocsScreenshot(page, 'request-editor');
     if (docsScreenshotDir) {
       try {
@@ -1559,7 +1562,16 @@ test.describe('Relay desktop browser E2E', () => {
       try {
         await page.getByLabel('Workspace switcher').click({ timeout: 4000 });
         await page.getByRole('button', { name: 'View all workspaces' }).click({ timeout: 4000 });
+        const workspaceNotes = page.getByPlaceholder('Write workspace notes');
+        await workspaceNotes.fill(
+          [
+            'Staging base URL: https://api.relay.test',
+            'Auth: run Login user first — it writes {{token}} into the environment.',
+            'Run the Smoke API collection before tagging a release.',
+          ].join('\n'),
+        );
         await captureDocsScreenshot(page, 'workspace-overview');
+        await workspaceNotes.fill('');
         await page.getByRole('button', { name: 'Open Git sync' }).click({ timeout: 4000 });
         await expect(page.locator('.git-workspace')).toContainText('feature/docs-refresh');
         await page.locator('.git-file-open').first().click();
