@@ -2,7 +2,7 @@
 
 This matrix keeps documentation work honest. Update it whenever a feature ships or a guide changes.
 
-Last factual audit: **2026-09-12**, against desktop tag **v1.8.0**.
+Last factual audit: **2026-09-12**, against desktop tag **v1.8.1**.
 Last design and screenshot pass: **2026-09-12**. Every guide that shows a Relay window now has one; `cli-runner` is terminal-only, and the reference pages carry code rather than pictures.
 
 | Area | User docs | Reference / source of truth | Screenshot status | Notes |
