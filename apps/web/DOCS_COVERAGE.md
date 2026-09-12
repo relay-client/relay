@@ -3,7 +3,7 @@
 This matrix keeps documentation work honest. Update it whenever a feature ships or a guide changes.
 
 Last factual audit: **2026-09-12**, against desktop tag **v1.8.0**.
-Last design and screenshot pass: **2026-09-12**.
+Last design and screenshot pass: **2026-09-12**. Every guide that shows a Relay window now has one; `cli-runner` is terminal-only, and the reference pages carry code rather than pictures.
 
 | Area | User docs | Reference / source of truth | Screenshot status | Notes |
 |------|-----------|-----------------------------|-------------------|-------|
@@ -17,8 +17,8 @@ Last design and screenshot pass: **2026-09-12**.
 | Response viewer | `docs/guides/response-viewer` | `response.ts`, `executor.go` | Good | JSON body, search, large-body virtualization, metadata, script output, and passing tests are captured. The 10 MB paging threshold, 512 KiB render pages, and 100 MB read cap are verified. Binary detection and the Preview tab are documented; no screenshot yet. The Diff tab compares against the previous response or a saved example, covered by frontend tests; no screenshot of the example baseline yet. |
 | Scripting | `docs/guides/scripting` | `docs/reference/scripting-api`, `internal/script` | Good | JavaScript and legacy Tengo script surfaces are captured. `pm.request.body` (including the urlencoded/formdata field lists and Postman's mode names), the draft-07 schema assertions, and the `require()` stand-ins are documented and covered by Go tests. Tengo keeps Relay's own body-type names and has no form-field API. |
 | Import/export | `docs/guides/import-export`, `docs/getting-started/migrating` | `docs/reference/relay-yaml-format`, `postman.ts` | Good | Import-source selection is captured; backup/restore is split into its own guide. Postman scripts, request docs, collection-level variables/auth/scripts, full OAuth 2.0 configuration, and environment/globals files are covered by importer tests. Folder scripts are flattened into each request, as Relay has no folder layer. Saved examples round-trip through Postman `item.response[]` and OpenCollection, and are read from HAR responses and OpenAPI `responses`; Postman `protocolProfileBehavior` and path-variable values are read too. All covered by importer tests; the examples guide has no screenshot yet. An OpenAPI/Swagger spec can also be imported from a URL — fetched through the Go sender, not the WebView, so a spec host that sends no CORS headers still works; covered by unit tests for the parse and diagnosis, and an end-to-end test for the dialog, fetch and collection write. No screenshot yet. |
-| Response examples | `docs/guides/examples` | `examples.ts`, `file_workspace_store_examples.go`, `docs/reference/relay-yaml-format` | None | Capture, redaction (exact values, key sweep, warning), storage layout, import sources, and diff-against-example are documented. A clean body is stored byte for byte — covered by tests. No screenshot yet. |
-| Mock server | `docs/guides/mock-server` | `mock.go`, `mockRoutes.ts`, `mockServer.ts` | None | Routing (method + path template, literal beats parameter, query narrowing), the 404 that lists available routes, the request log, live reload on example edits, conflict reporting, recorded latency, and the loopback-only/CORS behaviour are documented, with the deliberate gaps (no proxy fallthrough, no templating, no HTTPS, no body matching) named. Covered by Go and frontend tests. No screenshot yet. |
+| Response examples | `docs/guides/examples` | `examples.ts`, `file_workspace_store_examples.go`, `docs/reference/relay-yaml-format` | Good | Capture, redaction (exact values, key sweep, warning), storage layout, import sources, and diff-against-example are documented. A clean body is stored byte for byte — covered by tests. The Examples tab with a captured response and its derived path template is captured, and so is the Diff tab with an example chosen as the baseline. |
+| Mock server | `docs/guides/mock-server` | `mock.go`, `mockRoutes.ts`, `mockServer.ts` | Good | Routing (method + path template, literal beats parameter, query narrowing), the 404 that lists available routes, the request log, live reload on example edits, conflict reporting, recorded latency, and the loopback-only/CORS behaviour are documented, with the deliberate gaps (no proxy fallthrough, no templating, no HTTPS, no body matching) named. Covered by Go and frontend tests. The running panel — base URL, one route from a saved example, and a log holding a matched and an unmatched call — is captured, and an end-to-end test drives that whole path against a stubbed bridge. |
 | Backup and restore | `docs/guides/backup-recovery`, `docs/faq`, `privacy` | `dataBackup.ts`, `secure_store.go` | Good | Export warning is captured. Plaintext secret-bearing export, exclusions, recovery-key behavior, and destructive restore are documented. |
 | Request history | `docs/guides/history` | `history.ts`, `internal/api/history_store.go` | Good | Populated Today group with a stored-response marker is captured. Responses are kept in encrypted per-entry files, capped at 2 MB, with binary bodies excluded and files pruned with their entry — covered by Go and frontend tests. An entry's menu can keep its stored response as an example on the open request. |
 | Collection Runner | `docs/guides/collection-runner` | `docs/reference/performance-fixtures` | Good | Completed run with per-request pass status and summary is captured. Parallel runs are capped by the Max concurrent requests setting. |
@@ -36,10 +36,9 @@ Last design and screenshot pass: **2026-09-12**.
 
 ## Priority queue
 
-1. Screenshots for the three areas that have none: response examples, the mock server, and the Sync Cookies tab. All three shipped since 1.5.0 and all three are guide-only so far.
-2. Split troubleshooting into install/network/data/git sections if it gets longer than one screen of sidebar navigation.
-3. Keep CI checks for internal links, Pagefind output, changelog drift, and code-backed constants green as docs evolve.
-4. Refresh deterministic screenshots whenever the desktop UI changes.
+1. Split troubleshooting into install/network/data/git sections if it gets longer than one screen of sidebar navigation.
+2. Keep CI checks for internal links, Pagefind output, changelog drift, and code-backed constants green as docs evolve.
+3. Refresh deterministic screenshots whenever the desktop UI changes.
 
 ## What a factual audit checks
 
