@@ -60,10 +60,10 @@ export default defineConfig({
       title: 'Relay',
       description: 'A fast, local-first desktop API client. No accounts, no cloud sync, no telemetry.',
       logo: {
-        src: './src/assets/logo.svg',
+        src: './src/assets/logo.png',
         replacesTitle: false,
       },
-      favicon: '/favicon.svg',
+      favicon: '/favicon-32.png',
       customCss: ['./src/styles/custom.css'],
       social: [{ icon: 'github', label: 'GitHub', href: GITHUB_SOURCE }],
       head: [
@@ -90,7 +90,24 @@ export default defineConfig({
 
         {
           tag: 'link',
-          attrs: { rel: 'apple-touch-icon', href: `${BASE_NORMALIZED}/favicon.svg` },
+          attrs: { rel: 'apple-touch-icon', href: `${BASE_NORMALIZED}/apple-touch-icon.png` },
+        },
+        {
+          // The splash header is transparent while it sits on the hero and takes on the page
+          // surface once you scroll past it.
+          tag: 'script',
+          content: `(() => {
+  const mark = () => {
+    document.documentElement.dataset.heroScrolled = String(window.scrollY > 24);
+  };
+  const start = () => {
+    if (!document.querySelector('.relay-hero')) return;
+    mark();
+    addEventListener('scroll', mark, { passive: true });
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
+})();`,
         },
 
 

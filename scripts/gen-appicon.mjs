@@ -1,14 +1,45 @@
 import sharp from 'sharp';
-import { copyFileSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
+// One master, every mark. The master is the icon Wails ships — the one in the Dock, the
+// taskbar and the installer — and every other mark is a resize of it. Hand-redrawn SVG
+// copies in the docs, the sidebar and the extension are how the app ended up with five
+// slightly different icons.
+//
+// `appicon_backup.png` is the original full-bleed artwork this was drawn from. It is
+// deliberately NOT the master: the shipped icon insets the tile to leave macOS its safe
+// area, and overwriting the shipped file from the backup changes the icon people see.
+//
+// The derived marks are trimmed to the tile, because that transparent inset is only useful
+// to a platform icon. Trimming changes the padding, never the artwork.
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const appIconSourcePath = join(root, 'apps', 'desktop', 'build', 'appicon_backup.png');
-const appIconPath = join(root, 'apps', 'desktop', 'build', 'appicon.png');
+const master = join(root, 'apps', 'desktop', 'build', 'appicon.png');
+
 const ogPath = join(root, 'apps', 'web', 'public', 'og.png');
 
-copyFileSync(appIconSourcePath, appIconPath);
+const tile = await sharp(master).trim({ threshold: 1 }).png().toBuffer();
+
+const derived = [
+  // The mark in the desktop app's own sidebar.
+  { path: join(root, 'apps', 'desktop', 'frontend', 'src', 'lib', 'assets', 'relay-mark.png'), size: 144 },
+  // Docs site: header logo, hero badge, tab icon, iOS home screen.
+  { path: join(root, 'apps', 'web', 'src', 'assets', 'logo.png'), size: 128 },
+  { path: join(root, 'apps', 'web', 'public', 'favicon-32.png'), size: 32 },
+  { path: join(root, 'apps', 'web', 'public', 'apple-touch-icon.png'), size: 180 },
+  // Browser extension.
+  { path: join(root, 'apps', 'extension', 'icons', 'icon-16.png'), size: 16 },
+  { path: join(root, 'apps', 'extension', 'icons', 'icon-32.png'), size: 32 },
+  { path: join(root, 'apps', 'extension', 'icons', 'icon-48.png'), size: 48 },
+  { path: join(root, 'apps', 'extension', 'icons', 'icon-128.png'), size: 128 },
+];
+
+for (const { path, size } of derived) {
+  mkdirSync(dirname(path), { recursive: true });
+  await sharp(tile).resize(size, size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toFile(path);
+  console.log('wrote', path);
+}
 
 const ogSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <defs>
@@ -33,15 +64,8 @@ const ogSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630"
 </svg>`;
 
 await sharp(Buffer.from(ogSvg))
-  .composite([
-    {
-      input: await sharp(appIconSourcePath).resize(320, 320).png().toBuffer(),
-      left: 110,
-      top: 155,
-    },
-  ])
+  .composite([{ input: await sharp(tile).resize(320, 320).png().toBuffer(), left: 110, top: 155 }])
   .png()
   .toFile(ogPath);
 
-console.log('wrote', appIconPath);
 console.log('wrote', ogPath);

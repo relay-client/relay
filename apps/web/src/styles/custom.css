@@ -55,8 +55,10 @@ header.header {
   letter-spacing: -0.01em;
   gap: 0.55rem;
 }
+/* The artwork carries its own rounded shape, so clipping it again in CSS is what made the
+   header icon, the hero badge and the app's own sidebar three different silhouettes. */
 .site-title img {
-  border-radius: 9px;
+  border-radius: 0;
 }
 
 :root:has(.relay-hero) .content-panel:has(h1#_top) {
@@ -65,33 +67,57 @@ header.header {
 
 .relay-hero {
   position: relative;
-  overflow: hidden;
-  margin-block: 1rem 3.5rem;
-  padding: clamp(2rem, 4vw, 4rem);
-  border-radius: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  isolation: isolate;
+  /* Full bleed: the splash page's container is centred inside the pane, so pulling half the
+     difference out on each side reaches the window edge. */
+  width: 100vw;
+  max-width: none;
+  margin-inline: calc(50% - 50vw);
+  margin-block: 0 clamp(3rem, 6vw, 5rem);
+  padding: calc(var(--sl-nav-height) + clamp(2.25rem, 5vw, 4rem)) clamp(1.25rem, 5vw, 4rem) clamp(3rem, 5vw, 4.5rem);
+  border: 0;
+  border-radius: 0;
   color: #fff;
   background:
-    radial-gradient(125% 120% at 12% 0%, rgba(109, 92, 245, 0.40), transparent 55%),
-    radial-gradient(120% 140% at 100% 105%, rgba(67, 160, 241, 0.30), transparent 52%),
-    linear-gradient(155deg, #181a30 0%, #101120 58%, #0d0e1a 100%);
-  box-shadow: 0 40px 90px -40px rgba(40, 40, 100, 0.65);
+    radial-gradient(120% 100% at 8% -10%, rgba(109, 92, 245, 0.42), transparent 58%),
+    radial-gradient(110% 120% at 96% 108%, rgba(67, 160, 241, 0.32), transparent 55%),
+    linear-gradient(168deg, #171a33 0%, #0f1124 55%, #0b0c18 100%);
+  overflow: hidden;
 }
+
+/* A faint grid, so the band reads as a surface rather than a coloured rectangle. */
 .relay-hero::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 30%);
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(85% 75% at 30% 20%, #000 20%, transparent 78%);
+  pointer-events: none;
+}
+
+/* A hairline of light where the band ends, instead of fading it into the page — a
+   gradient to white over a dark ground only ever reads as a grey smear. */
+.relay-hero::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
   pointer-events: none;
 }
 
 .relay-hero-inner {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
-  gap: clamp(2rem, 4vw, 3.5rem);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr);
+  gap: clamp(2rem, 5vw, 4.5rem);
   align-items: center;
-  max-width: 70rem;
+  max-width: 76rem;
   margin-inline: auto;
 }
 
@@ -100,104 +126,165 @@ header.header {
 .relay-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0.34rem 0.85rem 0.34rem 0.4rem;
+  gap: 0.5rem;
+  padding: 0.3rem 0.85rem 0.3rem 0.35rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  font-size: 0.82rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   color: #d7daff;
 }
-.relay-badge img { width: 26px; height: 26px; border-radius: 7px; display: block; }
+.relay-badge img { width: 24px; height: 24px; display: block; }
 
 .relay-hero h1 {
-  margin: 1.15rem 0 0;
-  font-size: clamp(2.05rem, 3.4vw, 3rem);
-  line-height: 1.07;
-  letter-spacing: -0.025em;
-  font-weight: 800;
+  margin: 1.25rem 0 0;
+  font-size: clamp(2.2rem, 4vw, 3.4rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-weight: 700;
   color: #fff;
 }
 .relay-hero-grad {
-  background: linear-gradient(90deg, #c3c8ff, #8ec8ff);
+  background: linear-gradient(92deg, #b9bfff, #7fc7ff 60%, #62e8e0);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
 .relay-hero-sub {
-  margin: 1.05rem 0 0;
-  max-width: 34rem;
-  font-size: 1.08rem;
-  line-height: 1.55;
-  color: #aab0d4;
+  margin: 1.15rem 0 0;
+  max-width: 33rem;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: #a6accd;
 }
 
 .relay-hero-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: 1.85rem;
+  align-items: center;
+  gap: 0.7rem;
+  margin-top: 2rem;
 }
 .relay-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  padding: 0.7rem 1.3rem;
-  border-radius: 12px;
+  padding: 0.62rem 1.2rem;
+  border-radius: 10px;
   font-weight: 600;
-  font-size: 0.97rem;
+  font-size: 0.95rem;
   text-decoration: none;
   transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
 }
 .relay-btn-primary {
   background: var(--relay-brand);
   color: #fff;
-  box-shadow: 0 14px 34px -12px rgba(88, 101, 242, 0.85);
+  box-shadow: 0 12px 30px -12px rgba(88, 101, 242, 0.9);
 }
 .relay-btn-primary:hover {
   background: var(--relay-brand-strong);
   transform: translateY(-1px);
-  box-shadow: 0 18px 40px -12px rgba(88, 101, 242, 0.95);
+  box-shadow: 0 16px 36px -12px rgba(88, 101, 242, 1);
 }
 .relay-btn-ghost {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.07);
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.14);
 }
-.relay-btn-ghost:hover { background: rgba(255, 255, 255, 0.15); }
+.relay-btn-ghost:hover { background: rgba(255, 255, 255, 0.13); }
 .relay-btn-link {
-  color: #c2c7ee;
-  padding-inline: 0.6rem;
+  color: #b9bfe6;
+  padding-inline: 0.5rem;
 }
 .relay-btn-link:hover { color: #fff; }
 
 .relay-hero-meta {
-  margin-top: 1.3rem;
-  font-size: 0.8rem;
-  letter-spacing: 0.04em;
-  color: #757b9e;
+  margin-top: 1.4rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6f7598;
 }
 
 .relay-hero-visual { position: relative; min-width: 0; }
 .relay-hero-visual::before {
   content: "";
   position: absolute;
-  inset: -14% -10% -10% -10%;
-  z-index: 0;
-  background: radial-gradient(58% 58% at 62% 38%, rgba(88, 101, 242, 0.55), transparent 70%);
-  filter: blur(26px);
+  inset: -16% -12% -12% -12%;
+  z-index: -1;
+  background: radial-gradient(56% 56% at 55% 40%, rgba(88, 101, 242, 0.5), transparent 70%);
+  filter: blur(30px);
 }
 .relay-hero-shot {
   position: relative;
-  z-index: 1;
   width: 100%;
   height: auto;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 34px 70px -24px rgba(0, 0, 0, 0.7);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 2px 0 rgba(255, 255, 255, 0.06) inset,
+    0 40px 80px -28px rgba(0, 0, 0, 0.75);
+}
+
+/* The splash header sits on the hero until the page scrolls away from it. */
+:root:has(.relay-hero) .main-frame { padding-top: 0; }
+/* The splash page's content panel keeps its 1.5rem of top padding even with the title
+   panel hidden, which leaves a strip of page background above the hero. */
+:root:has(.relay-hero) .content-panel {
+  padding-top: 0;
+  border-top: 0;
+}
+:root:has(.relay-hero) .main-pane { overflow-x: clip; }
+:root:has(.relay-hero) header.header {
+  background: transparent;
+  backdrop-filter: none;
+  border-bottom-color: transparent;
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+:root:has(.relay-hero) header.header :is(.site-title, a, button, select) {
+  color: #fff;
+}
+:root:has(.relay-hero) header.header site-search button[data-open-modal] {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #c3c9ec;
+}
+:root:has(.relay-hero) header.header site-search button[data-open-modal]:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+:root:has(.relay-hero) header.header site-search kbd {
+  background: rgba(255, 255, 255, 0.13);
+  color: #e7e9ff;
+  border-color: transparent;
+}
+:root[data-hero-scrolled='true']:has(.relay-hero) header.header {
+  background: color-mix(in srgb, var(--sl-color-bg) 86%, transparent);
+  backdrop-filter: saturate(1.2) blur(8px);
+  border-bottom-color: var(--relay-hairline);
+}
+:root[data-hero-scrolled='true']:has(.relay-hero) header.header :is(.site-title, a, button, select) {
+  color: inherit;
+}
+:root[data-hero-scrolled='true']:has(.relay-hero) header.header site-search button[data-open-modal] {
+  background: var(--relay-surface);
+  border-color: var(--relay-hairline);
+  color: var(--sl-color-gray-2);
+}
+:root[data-hero-scrolled='true']:has(.relay-hero) header.header site-search kbd {
+  background: var(--sl-color-gray-6);
+  color: var(--sl-color-gray-2);
+}
+
+/* Hero art is chrome, not article content — the markdown image frame must not touch it. */
+.relay-hero img:not(.relay-hero-shot) {
+  border: 0;
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
 }
 
 @media (max-width: 50rem) {
@@ -355,4 +442,284 @@ header.header {
 }
 :root:has(.relay-hero) .sl-markdown-content h2 + * {
   margin-top: 1.25rem;
+}
+
+/* ---------------------------------------------------------------------------
+   Search
+
+   Pagefind ships a working but unstyled widget, and Starlight passes it through
+   almost untouched. Search is the second thing anyone touches on a docs site, so
+   it gets the same treatment as the rest: one surface, one radius, one accent.
+   --------------------------------------------------------------------------- */
+
+site-search button[data-open-modal] {
+  border-radius: 9px;
+  background: var(--relay-surface);
+  border-color: var(--relay-hairline);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+site-search button[data-open-modal]:hover {
+  border-color: color-mix(in srgb, var(--sl-color-accent) 45%, var(--relay-hairline));
+}
+site-search kbd {
+  border-radius: 5px;
+  padding-inline: 0.32rem;
+  font-size: 0.72rem;
+}
+
+site-search dialog {
+  border: 1px solid var(--relay-hairline);
+  border-radius: 16px;
+  box-shadow: 0 32px 70px -24px rgba(10, 12, 30, 0.45);
+  max-width: 40rem;
+}
+:root[data-theme='dark'] site-search dialog {
+  box-shadow: 0 32px 80px -20px rgba(0, 0, 0, 0.8);
+}
+site-search dialog::backdrop {
+  background: color-mix(in srgb, #0b0d1a 55%, transparent);
+  backdrop-filter: blur(3px);
+}
+
+#starlight__search {
+  --pagefind-ui-primary: var(--sl-color-accent);
+  --pagefind-ui-border: transparent;
+  --pagefind-ui-border-width: 1px;
+  --pagefind-ui-border-radius: 10px;
+  --pagefind-ui-font: var(--sl-font);
+}
+
+/* The query row reads as one field with the dialog, not a box inside a box. */
+.pagefind-ui__form::before {
+  opacity: 0.55;
+}
+#starlight__search input.pagefind-ui__search-input {
+  height: 3.25rem;
+  padding-block: 0;
+  border: 0;
+  border-bottom: 1px solid var(--relay-hairline);
+  border-radius: 0;
+  background: transparent;
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+#starlight__search input.pagefind-ui__search-input:focus,
+#starlight__search input.pagefind-ui__search-input:focus-visible {
+  outline: none;
+  box-shadow: none;
+  border-bottom-color: color-mix(in srgb, var(--sl-color-accent) 60%, transparent);
+}
+#starlight__search .pagefind-ui__search-clear {
+  background: transparent;
+  color: var(--sl-color-gray-3);
+  border-radius: 8px;
+}
+#starlight__search .pagefind-ui__search-clear:hover {
+  color: var(--sl-color-white);
+  background: var(--relay-surface);
+}
+
+#starlight__search .pagefind-ui__message {
+  padding-block: 0.9rem 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sl-color-gray-3);
+}
+
+#starlight__search .pagefind-ui__result {
+  padding: 0.35rem 0;
+  border: 0;
+  border-top: 1px solid var(--relay-hairline);
+}
+#starlight__search .pagefind-ui__result:first-of-type {
+  border-top: 0;
+}
+#starlight__search .pagefind-ui__result-title {
+  margin-block: 0.25rem;
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+#starlight__search .pagefind-ui__result-link {
+  color: var(--sl-color-white);
+  text-decoration: none;
+}
+/* Pagefind draws a grey connector rail behind every sub-result; the rounded hover row
+   below replaces it, and left in place it reads as a stray vertical line. */
+#starlight__search .pagefind-ui__result-nested::before {
+  display: none;
+}
+#starlight__search .pagefind-ui__result-nested {
+  padding: 0.5rem 0.7rem;
+  border-radius: 10px;
+  border-inline-start: 2px solid transparent;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+#starlight__search .pagefind-ui__result-nested:hover,
+#starlight__search .pagefind-ui__result-nested:focus-within {
+  background: color-mix(in srgb, var(--sl-color-accent) 9%, transparent);
+  border-inline-start-color: var(--sl-color-accent);
+}
+#starlight__search .pagefind-ui__result-nested .pagefind-ui__result-link {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+#starlight__search .pagefind-ui__result-excerpt {
+  margin-top: 0.15rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--sl-color-gray-2);
+}
+#starlight__search mark {
+  padding: 0 0.15em;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--sl-color-accent) 22%, transparent);
+  color: inherit;
+  font-weight: 650;
+}
+
+/* A keyboard legend, because this dialog is opened from the keyboard far more often than
+   it is clicked. */
+@media (min-width: 50rem) {
+  site-search .dialog-frame::after {
+    content: "↑↓ to move · ↵ to open · esc to close";
+    margin-top: 0.5rem;
+    padding-top: 0.7rem;
+    border-top: 1px solid var(--relay-hairline);
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-3);
+    text-align: end;
+  }
+}
+
+/* Keep the query and the legend in place while the results scroll under them. */
+site-search .dialog-frame {
+  overflow: hidden;
+}
+site-search .search-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+#starlight__search .pagefind-ui__form {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--sl-color-bg);
+}
+
+/* ---------------------------------------------------------------------------
+   Navigation, callouts, code and page furniture
+   --------------------------------------------------------------------------- */
+
+/* The active sidebar row was a solid brand-blue pill — the loudest thing on the
+   page, competing with the heading. A tint and a rail say the same thing quietly. */
+.sidebar-content a[aria-current='page'],
+.sidebar-content a[aria-current='page']:hover,
+.sidebar-content a[aria-current='page']:focus {
+  position: relative;
+  background: color-mix(in srgb, var(--sl-color-accent) 12%, transparent);
+  color: var(--sl-color-accent-high);
+  font-weight: 650;
+}
+.sidebar-content a[aria-current='page']::before {
+  content: "";
+  position: absolute;
+  inset-block: 0.15rem;
+  inset-inline-start: -0.55rem;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--sl-color-accent);
+}
+.sidebar-content a:hover {
+  background: var(--relay-surface);
+}
+.sidebar-content a {
+  border-radius: 7px;
+  padding-inline: 0.55rem;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.right-sidebar a {
+  border-inline-start: 2px solid transparent;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+.right-sidebar a[aria-current='true'] {
+  border-inline-start-color: var(--sl-color-accent);
+  font-weight: 650;
+}
+
+/* Callouts: a tinted rail and a calmer body, so a note reads as an annotation
+   rather than a second article. */
+.sl-markdown-content .starlight-aside {
+  border-inline-start-width: 3px;
+  border-radius: 0 12px 12px 0;
+  padding: 1rem 1.15rem;
+  background: color-mix(in srgb, var(--starlight-aside-color, var(--sl-color-accent)) 7%, var(--sl-color-bg));
+}
+.sl-markdown-content .starlight-aside__title {
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.sl-markdown-content .starlight-aside__content {
+  font-size: 0.94rem;
+  line-height: 1.65;
+}
+.sl-markdown-content .starlight-aside__content > :first-child {
+  margin-top: 0.4rem;
+}
+
+/* Code blocks */
+.sl-markdown-content .expressive-code .frame {
+  border-radius: 12px;
+}
+.sl-markdown-content .expressive-code .frame pre {
+  border-radius: 12px;
+  border-color: var(--relay-hairline);
+}
+.sl-markdown-content .expressive-code .frame.has-title .header {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* Prose links carry a lot of the navigation in these guides. */
+.sl-markdown-content a:not(:where(.starlight-aside a, .card a, .sl-link-card a)) {
+  text-underline-offset: 0.22em;
+  text-decoration-thickness: 1px;
+  text-decoration-color: color-mix(in srgb, var(--sl-color-accent) 45%, transparent);
+  transition: text-decoration-color 0.12s ease, color 0.12s ease;
+}
+.sl-markdown-content a:hover {
+  text-decoration-color: var(--sl-color-accent);
+}
+
+/* Previous / next */
+.pagination-links a {
+  border-radius: 12px;
+  border-color: var(--relay-hairline);
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+.pagination-links a:hover {
+  border-color: color-mix(in srgb, var(--sl-color-accent) 55%, transparent);
+  background: color-mix(in srgb, var(--sl-color-accent) 5%, transparent);
+  transform: translateY(-1px);
+}
+.pagination-links a span {
+  font-size: 0.95rem;
+}
+
+/* Link cards, used across the splash page and the guides index. */
+.sl-markdown-content .sl-link-card {
+  border-radius: 12px;
+  border-color: var(--relay-hairline);
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+.sl-markdown-content .sl-link-card:hover {
+  border-color: color-mix(in srgb, var(--sl-color-accent) 55%, transparent);
+  background: color-mix(in srgb, var(--sl-color-accent) 5%, transparent);
+  transform: translateY(-1px);
 }
