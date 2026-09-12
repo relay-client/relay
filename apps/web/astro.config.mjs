@@ -66,9 +66,6 @@ export default defineConfig({
       favicon: '/favicon.svg',
       customCss: ['./src/styles/custom.css'],
       social: [{ icon: 'github', label: 'GitHub', href: GITHUB_SOURCE }],
-      editLink: {
-        baseUrl: `${GITHUB_SOURCE}/edit/main/apps/web/`,
-      },
       head: [
         {
           tag: 'meta',

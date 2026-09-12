@@ -7,11 +7,25 @@ Screenshots in this directory are referenced by the guide pages and optimized by
 The desktop frontend's full Playwright flow can populate the core guide screenshots with deterministic mock data:
 
 ```bash
-RELAY_DOCS_SCREENSHOT_DIR="$PWD/apps/web/src/assets/screenshots" \
-  npm --workspace @relay/desktop-frontend run e2e -- --project=chromium
+make screenshots
 ```
 
-The capture mode uses a 1440×900 light-theme viewport and writes only when `RELAY_DOCS_SCREENSHOT_DIR` is set. A normal E2E run does not modify documentation assets.
+Capture mode writes only when `RELAY_DOCS_SCREENSHOT_DIR` is set; a normal E2E run does not
+modify documentation assets.
+
+Three rules keep the set consistent, and all three live in `captureDocsScreenshot`:
+
+- **A 1200×780 light-theme viewport.** The docs column is 800px wide, so a wider capture is
+  downscaled until its UI text stops being readable. 1200 is the narrowest width the app
+  still lays out normally — its only breakpoint is at 700px.
+- **A modal is cropped to itself**, plus 26px of the app behind it. A settings dialog inside
+  a full-window shot is unreadable at page scale; on its own it renders close to 1:1. Any
+  `[role="dialog"][aria-modal="true"]` is detected and cropped automatically, and a capture
+  can name another element to crop to.
+- **The app frame is scrolled back to the top first.** `html`, `body` and `#app` are
+  `overflow: hidden`, which browsers still scroll programmatically, so an earlier
+  `scrollIntoView` would otherwise push the app out of frame and fill the rest of the shot
+  with page background.
 
 ## Suggested set
 
@@ -19,7 +33,6 @@ Each guide page benefits from at least one screenshot. To take the doc site from
 
 | Filename                       | Where shown                                  | What to capture                                              |
 | ------------------------------ | -------------------------------------------- | ------------------------------------------------------------ |
-| `hero-light.png`               | Landing page hero                            | A wide screenshot of the request editor with response data   |
 | `request-editor.png`           | First request guide                          | Filled URL + Send button + bottom response                   |
 | `headers-tab.png`              | First request guide                          | Headers tab with 2–3 rows                                    |
 | `auth-bearer.png`              | Authentication guide                         | Auth tab with Bearer selected and a masked environment token |
@@ -51,7 +64,9 @@ Each guide page benefits from at least one screenshot. To take the doc site from
 
 - Prefer the automated capture flow for screens it covers.
 - Use a 1× DPI window — Retina captures bloat the page weight.
-- Resize manual captures to ~1440×900 so the layout stays consistent. Small targeted crops are OK for narrow UI fragments such as `sidebar-collections.png` and `status-bar.png`.
+- Match the automated set: 1200×780 for a whole window, cropped tight for a dialog or a
+  single panel. Narrow fragments such as `sidebar-collections.png` and `status-bar.png` are
+  captured from their own element.
 - Use one theme consistently within a guide. The automated set uses the light theme.
 - Redact tokens / personal data in image editor before committing.
 - Save as PNG. Filenames lowercase-kebab-case.

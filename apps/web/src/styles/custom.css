@@ -6,6 +6,22 @@
 
   --sl-font: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --sl-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Starlight's default scale runs h1 42px / h2 35px against 16px body, which reads as a
+     poster rather than a document. This is a tighter scale with the same body size. */
+  --sl-text-h1: 2rem;
+  --sl-text-h2: 1.4rem;
+  --sl-text-h3: 1.15rem;
+  --sl-text-h4: 1rem;
+  --sl-text-h5: 0.9rem;
+  --sl-text-code: 0.875rem;
+  --sl-text-code-sm: 0.8125rem;
+
+  --sl-content-width: 50rem;
+  --sl-sidebar-width: 16.5rem;
+
+  --relay-hairline: color-mix(in srgb, var(--sl-color-gray-5) 55%, transparent);
+  --relay-surface: color-mix(in srgb, var(--sl-color-bg) 92%, var(--sl-color-gray-6) 8%);
 }
 
 :root[data-theme='dark'] {
@@ -201,4 +217,142 @@ header.header {
   transform: translateY(-2px);
   border-color: color-mix(in srgb, var(--sl-color-accent) 55%, transparent);
   box-shadow: 0 18px 40px -26px color-mix(in srgb, var(--sl-color-accent) 80%, black);
+}
+
+/* ---------------------------------------------------------------------------
+   Document surfaces
+
+   Everything below this line is the reading experience: headings, prose,
+   screenshots, tables and code. Starlight's defaults are deliberately large so
+   they suit a landing page; a reference manual wants smaller type, tighter
+   rhythm, and screenshots that read as objects rather than as page background.
+   --------------------------------------------------------------------------- */
+
+.sl-markdown-content {
+  line-height: 1.7;
+}
+
+.content-panel h1#_top {
+  letter-spacing: -0.022em;
+  font-weight: 650;
+}
+
+.sl-markdown-content :is(h2, h3, h4) {
+  letter-spacing: -0.012em;
+  font-weight: 650;
+}
+.sl-markdown-content :is(h2, h3, h4, h5, h6) + * {
+  margin-top: 0.6rem;
+}
+.sl-markdown-content h2:not(:first-child) {
+  margin-top: 2.9rem;
+}
+.sl-markdown-content h3:not(:first-child) {
+  margin-top: 2.1rem;
+}
+.sl-markdown-content h4:not(:first-child) {
+  margin-top: 1.6rem;
+}
+
+/* A screenshot is a picture of a window, so it gets a window's edge. Without a
+   frame the app's own white chrome runs into the page and the shot reads as a
+   hole in the layout. */
+.sl-markdown-content img {
+  display: block;
+  margin-inline: auto;
+  border-radius: 12px;
+  border: 1px solid var(--relay-hairline);
+  background: var(--relay-surface);
+  box-shadow: 0 20px 42px -32px rgba(8, 10, 30, 0.55);
+}
+:root[data-theme='dark'] .sl-markdown-content img {
+  box-shadow: 0 22px 46px -30px rgba(0, 0, 0, 0.8);
+}
+
+/* Inline code carries key names and field names all over these docs, so it has
+   to be legible without shouting. */
+.sl-markdown-content :not(pre) > code {
+  border: 1px solid var(--relay-hairline);
+  border-radius: 6px;
+  padding: 0.1em 0.38em;
+  background: var(--relay-surface);
+  font-size: var(--sl-text-code-sm);
+}
+
+.sl-markdown-content table {
+  font-size: 0.9375rem;
+  border-collapse: collapse;
+}
+.sl-markdown-content :is(th, td) {
+  padding: 0.55rem 0.85rem;
+  border-bottom: 1px solid var(--relay-hairline);
+  vertical-align: top;
+}
+.sl-markdown-content th {
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sl-color-gray-2);
+  border-bottom-color: var(--sl-color-gray-4);
+}
+.sl-markdown-content tr:last-child td {
+  border-bottom: none;
+}
+
+.sl-markdown-content .expressive-code {
+  margin-block: 1.25rem;
+}
+
+/* Navigation: the sidebar is a map, not a menu of primary actions. */
+.sidebar-content a {
+  font-size: 0.875rem;
+  padding-block: 0.34rem;
+}
+.sidebar-content summary {
+  padding-block: 0.4rem;
+}
+.sidebar-content .large {
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--sl-color-gray-3);
+}
+.right-sidebar a {
+  font-size: 0.8125rem;
+}
+
+/* Buttons: the download call to action was reading two sizes larger than
+   anything around it. */
+.sl-link-button {
+  border-radius: 9px;
+  padding: 0.52rem 1.05rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.sl-markdown-content .card {
+  padding: 1.15rem 1.25rem;
+}
+.sl-markdown-content .card .title {
+  font-size: 1rem;
+  font-weight: 650;
+}
+.sl-markdown-content .card .icon {
+  font-size: 1.15rem;
+}
+.sl-markdown-content .card p {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+/* The splash page carries the marketing weight, so its section headings sit a
+   step above the reference scale the guides use. */
+:root:has(.relay-hero) .sl-markdown-content h2 {
+  font-size: 1.75rem;
+  margin-top: 3.5rem;
+}
+:root:has(.relay-hero) .sl-markdown-content h2 + * {
+  margin-top: 1.25rem;
 }
