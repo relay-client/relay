@@ -1,5 +1,6 @@
 <script lang="ts">
   import { SvelteMap } from 'svelte/reactivity';
+  import relayMark from '../assets/relay-mark.png';
   import RequestTypeBadge from './RequestTypeBadge.svelte';
   import SidebarRequestRow from './SidebarRequestRow.svelte';
   import { virtualizeRows } from '../sidebarVirtual';
@@ -443,12 +444,7 @@
 
 <aside class="sidebar" class:workspace-blocked={workspaceBlocked}>
   <div class="brand titlebar-drag-region">
-    <div class="brand-mark">
-      <svg width="22" height="22" viewBox="0 0 64 64" fill="none" aria-hidden="true">
-        <path fill="#fff" d="M11.9 21.2h32.6v-6.1L53 23.7l-8.5 8.6v-6.1H11.9a2.5 2.5 0 0 1 0-5Z"/>
-        <path fill="#fff" d="M52.1 37.8H19.5v-6.1L11 40.3l8.5 8.6v-6.1h32.6a2.5 2.5 0 0 0 0-5Z"/>
-      </svg>
-    </div>
+    <img class="brand-mark" src={relayMark} width="36" height="36" alt="" />
     <div class="brand-text">
       <span class="brand-name">Relay</span>
     </div>

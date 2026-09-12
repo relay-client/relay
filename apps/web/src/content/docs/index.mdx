@@ -7,12 +7,12 @@ template: splash
 import { Card, CardGrid, Code, LinkCard } from '@astrojs/starlight/components';
 import { Image } from 'astro:assets';
 import heroShot from '../../assets/screenshots/request-editor.png';
-import appLogoUrl from '../../assets/logo.svg?url';
+import appLogo from '../../assets/logo.png';
 
 <div class="relay-hero">
   <div class="relay-hero-inner">
     <div class="relay-hero-copy">
-      <span class="relay-badge"><img src={appLogoUrl} alt="" width="26" height="26" /> Relay</span>
+      <span class="relay-badge"><img src={appLogo.src} alt="" width="24" height="24" /> Relay</span>
       <h1>A fast, <span class="relay-hero-grad">local-first</span><br />desktop API client</h1>
       <p class="relay-hero-sub">No accounts, no cloud sync, no telemetry — just you and your APIs. HTTP, GraphQL, gRPC, WebSocket, and SSE, all on your machine.</p>
       <div class="relay-hero-actions">
