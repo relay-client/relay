@@ -1,0 +1,44 @@
+---
+title: Download Relay for Windows
+description: Free .exe installer and .msix package of the Relay API client for Windows 10 and 11, x64. No account, no telemetry.
+---
+
+import DownloadPanel from '../../../components/DownloadPanel.astro';
+import DownloadSchema from '../../../components/DownloadSchema.astro';
+
+<DownloadSchema platform="windows" />
+
+The `.exe` installer is the one most people want. The `.msix` package exists for managed
+installs, and whether it installs depends on the publisher certificate that release was
+signed with.
+
+<DownloadPanel platform="windows" />
+
+## Install
+
+1. Run the downloaded `relay-*-windows-amd64-installer.exe`.
+2. Follow the installer — it creates a Start menu entry and an optional desktop shortcut.
+
+Builds are not currently Authenticode-signed, so SmartScreen shows a blue
+**Windows protected your PC** dialog. Choose **More info → Run anyway** to continue. The
+portable `.exe` behaves the same way on first run.
+
+## Verify your download
+
+Every release publishes `SHA256SUMS.txt`. Check the installer against it in PowerShell:
+
+```powershell
+Get-FileHash -Algorithm SHA256 .\relay-*-windows-amd64-installer.exe
+```
+
+The hash should match the line for that filename in `SHA256SUMS.txt` on the release page.
+
+## Updates
+
+Relay checks for updates itself and verifies the checksum and minisign signature of the new
+build before replacing anything. You can turn the check off in **Settings → Updates**.
+
+## Something not working?
+
+See [troubleshooting](/docs/troubleshooting/), or open an issue on
+[GitHub](https://github.com/relay-client/relay/issues).

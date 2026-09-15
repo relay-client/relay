@@ -29,7 +29,7 @@ Grab the latest build from the [releases page](https://github.com/relay-client/r
 
 Every release ships SHA256 checksums and minisign signatures, and the in-app updater refuses any binary that fails either check.
 
-Guides, the scripting reference, and the YAML workspace format live in the **[documentation site](https://relay-client.github.io/relay/)**.
+Guides, the scripting reference, and the YAML workspace format live in the **[documentation site](https://relayclient.io/)**.
 
 ---
 
@@ -182,7 +182,7 @@ perf/                       Generated performance fixtures (ignored by Git)
 
 Scripts run in a sandboxed JavaScript environment by default, or in the legacy [Tengo](https://github.com/d5/tengo) engine for existing requests. Imports, filesystem, process, and network access are disabled. Execution timeout: 2 seconds by default, configurable per request up to 60.
 
-The full surface — every method, the variable-scope precedence rules, and the Chai-style assertion aliases — is in the [scripting API reference](https://relay-client.github.io/relay/docs/reference/scripting-api/). The short version:
+The full surface — every method, the variable-scope precedence rules, and the Chai-style assertion aliases — is in the [scripting API reference](https://relayclient.io/docs/reference/scripting-api/). The short version:
 
 | Surface | What it covers |
 |---------|----------------|

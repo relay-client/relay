@@ -1,0 +1,30 @@
+---
+import {
+  GITHUB_LATEST_RELEASE,
+  GITHUB_RELEASES,
+  GITHUB_SOURCE,
+  SITE_NAME,
+  SITE_TAGLINE,
+  absolute,
+} from '../../site.config.mjs';
+
+// The site-wide SoftwareApplication entity. It lives on the landing page only — the
+// per-platform download pages carry their own, and repeating a second entity on the same
+// page just makes both harder to attribute.
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: SITE_NAME,
+  description: SITE_TAGLINE,
+  applicationCategory: 'DeveloperApplication',
+  operatingSystem: 'macOS, Windows, Linux',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  url: absolute('/'),
+  downloadUrl: GITHUB_LATEST_RELEASE,
+  license: `${GITHUB_SOURCE}/blob/main/LICENSE`,
+  isAccessibleForFree: true,
+  sameAs: [GITHUB_SOURCE, GITHUB_RELEASES],
+};
+---
+
+<script type="application/ld+json" is:inline set:html={JSON.stringify(schema)} />

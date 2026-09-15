@@ -1,0 +1,111 @@
+---
+import { GITHUB_LATEST_API, GITHUB_LATEST_RELEASE, PLATFORMS } from '../../site.config.mjs';
+
+interface Props {
+  platform: 'macos' | 'windows' | 'linux';
+}
+
+const { platform } = Astro.props;
+const target = PLATFORMS[platform];
+---
+
+<div
+  class="relay-downloads"
+  data-relay-downloads
+  data-api={GITHUB_LATEST_API}
+  data-fallback={GITHUB_LATEST_RELEASE}
+>
+  <ul class="relay-download-list">
+    {
+      target.assets.map(asset => (
+        <li class:list={['relay-download-item', asset.primary && 'is-primary']}>
+          <a
+            class:list={['relay-download-link', asset.primary && 'is-primary']}
+            href={GITHUB_LATEST_RELEASE}
+            data-asset-suffix={asset.suffix}
+            data-asset-exact={asset.exact}
+          >
+            <span class="relay-download-label">{asset.label}</span>
+            <span class="relay-download-size" data-asset-size></span>
+          </a>
+          <p class="relay-download-note">{asset.note}</p>
+        </li>
+      ))
+    }
+  </ul>
+
+  <p class="relay-download-meta">
+    <span data-release-meta>
+      Links open the latest release on GitHub — every build is published there with its
+      SHA-256 checksum.
+    </span>
+  </p>
+
+  <p class="relay-download-requirements">{target.requirements}</p>
+</div>
+
+<script>
+  // Progressive enhancement: without JavaScript every button already points at the
+  // "latest release" page, which is a permanent URL. With it, the buttons become
+  // direct links to the exact asset for the newest version.
+  //
+  // The releases API is public and CORS-enabled, and its rate limit is charged to the
+  // visitor's IP rather than to the site, so a busy download page cannot exhaust it.
+  const panels = document.querySelectorAll<HTMLElement>('[data-relay-downloads]');
+  if (panels.length) {
+    const api = panels[0].dataset.api;
+
+    const formatSize = (bytes: number) => {
+      if (!Number.isFinite(bytes) || bytes <= 0) return '';
+      const mb = bytes / 1024 / 1024;
+      return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${Math.round(mb)} MB`;
+    };
+
+    const apply = (release: {
+      tag_name?: string;
+      published_at?: string;
+      assets?: { name: string; browser_download_url: string; size: number }[];
+    }) => {
+      const assets = release.assets ?? [];
+      if (!assets.length) return;
+
+      for (const panel of panels) {
+        for (const link of panel.querySelectorAll<HTMLAnchorElement>('[data-asset-suffix], [data-asset-exact]')) {
+          const { assetSuffix, assetExact } = link.dataset;
+          const match = assets.find(asset =>
+            assetExact ? asset.name === assetExact : assetSuffix && asset.name.endsWith(assetSuffix),
+          );
+          if (!match) continue;
+
+          link.href = match.browser_download_url;
+          const size = link.querySelector<HTMLElement>('[data-asset-size]');
+          if (size) size.textContent = formatSize(match.size);
+        }
+
+        const meta = panel.querySelector<HTMLElement>('[data-release-meta]');
+        if (meta && release.tag_name) {
+          const published = release.published_at
+            ? new Date(release.published_at).toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+              })
+            : '';
+          meta.textContent = published
+            ? `Latest release ${release.tag_name}, published ${published}. Checksums are in SHA256SUMS.txt on the release page.`
+            : `Latest release ${release.tag_name}. Checksums are in SHA256SUMS.txt on the release page.`;
+        }
+      }
+    };
+
+    if (api) {
+      fetch(api, { headers: { Accept: 'application/vnd.github+json' } })
+        .then(response => (response.ok ? response.json() : null))
+        .then(release => {
+          // A rate-limited or failed lookup just leaves the static links in place.
+          if (release) apply(release);
+        })
+        .catch(() => {});
+    }
+  }
+</script>

@@ -7,6 +7,19 @@ All notable changes to Relay are documented here. This project follows
 
 ## [Unreleased]
 
+### Changed
+
+- **The site moves to its own domain, `relayclient.io`.** `relay-client.github.io` was never going to rank: it carries no brand of its own, and the two URLs already in the README and the app pointed at different bases — one with `/relay/`, one without — so half the documentation links resolved to nothing. Everything that names a host now reads from `apps/web/site.config.mjs`, which `astro.config.mjs`, the download pages and the structured data all share. Attaching the domain in the repository's Pages settings is what makes GitHub redirect the old host permanently; the existing site keeps working until then, and afterwards.
+- **`/download` is four pages instead of one.** A single page could only ever answer "download Relay", never "download Relay for Windows" — and the one page it did have linked to the releases list three times over, leaving the visitor to pick the right file out of nine artifacts. macOS, Windows and Linux now each have their own page with the installer for that platform, its actual requirements, the first-launch warning that platform shows, and the checksum command that works in that platform's shell. Each carries structured data naming the operating system it is for.
+- **Download buttons resolve the newest build by themselves.** Release assets are version-stamped, so a static link can only point at the releases page. The buttons now look the latest release up at page load and become direct links to the exact file, labelled with its size; without JavaScript, or if the lookup is rate-limited, they stay pointed at the permanent latest-release URL. No mirror and no second host — GitHub Releases remains the only place builds are served from.
+
+### Fixed
+
+- **The "Releases" link in the documentation sidebar went to the repository, not the releases.** `GITHUB_RELEASES` was set to the repository root, so both that link and the `downloadUrl` in the site's structured data pointed at the wrong page.
+- **An unset `RELAY_SITE_URL` repository variable built the site with no canonical host at all.** GitHub Actions passes an unconfigured variable through as an empty string, which is not nullish, so the `??` fallback never fired and `site` became `''`. Empty values are now treated as missing.
+- **`robots.txt` advertised a sitemap at a hard-coded address** and would have kept pointing at the old host after the move. It is generated from the build's own `site` and base.
+- Every page carried the same site-wide `SoftwareApplication` block, including the documentation pages, which put two competing descriptions of the application on the download pages. The site-wide entity now appears on the landing page only.
+
 ---
 
 ## [1.8.1] - 2026-09-12

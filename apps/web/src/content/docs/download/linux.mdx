@@ -1,0 +1,48 @@
+---
+title: Download Relay for Linux
+description: Free .AppImage of the Relay API client for Linux x64 — portable, nothing to install. No account, no telemetry.
+---
+
+import DownloadPanel from '../../../components/DownloadPanel.astro';
+import DownloadSchema from '../../../components/DownloadSchema.astro';
+
+<DownloadSchema platform="linux" />
+
+The AppImage is self-contained and portable — there is no package to install and nothing is
+written outside your home directory.
+
+<DownloadPanel platform="linux" />
+
+## Run it
+
+```sh
+chmod +x relay-*-linux-amd64.AppImage
+./relay-*-linux-amd64.AppImage
+```
+
+You need `libgtk-3` and `libwebkit2gtk-4.0` from your distribution, and glibc 2.31 or later
+(Ubuntu 20.04, Debian 11, Fedora 34 and newer all qualify). On Debian and Ubuntu:
+
+```sh
+sudo apt install libgtk-3-0 libwebkit2gtk-4.0-37
+```
+
+## Verify your download
+
+Every release publishes `SHA256SUMS.txt`:
+
+```sh
+sha256sum relay-*-linux-amd64.AppImage
+```
+
+The value should match the line for that filename in `SHA256SUMS.txt` on the release page.
+
+## Updates
+
+Relay checks for updates itself and verifies the checksum and minisign signature of the new
+build before replacing anything. You can turn the check off in **Settings → Updates**.
+
+## Something not working?
+
+See [troubleshooting](/docs/troubleshooting/), or open an issue on
+[GitHub](https://github.com/relay-client/relay/issues).
