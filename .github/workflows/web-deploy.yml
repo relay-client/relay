@@ -53,6 +53,27 @@ jobs:
       - name: Check docs
         run: npm run web:check-docs
 
+      - name: Pin the custom domain
+        env:
+          RELAY_SITE_URL: ${{ vars.RELAY_SITE_URL }}
+        run: |
+          set -euo pipefail
+          # apps/web/public/CNAME carries the production host. A RELAY_SITE_URL repository
+          # variable overrides it, so a staging deploy cannot claim the real domain — and a
+          # *.github.io value drops the file altogether.
+          if [ -n "${RELAY_SITE_URL}" ]; then
+            host="$(printf '%s' "${RELAY_SITE_URL}" | sed -E 's#^[a-z]+://##; s#/.*$##')"
+            case "$host" in
+              *.github.io) rm -f apps/web/dist/CNAME ;;
+              *) printf '%s\n' "$host" > apps/web/dist/CNAME ;;
+            esac
+          fi
+          if [ -f apps/web/dist/CNAME ]; then
+            echo "Deploying to custom domain: $(cat apps/web/dist/CNAME)"
+          else
+            echo "Deploying without a custom domain"
+          fi
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

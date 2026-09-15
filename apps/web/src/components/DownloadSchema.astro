@@ -1,0 +1,37 @@
+---
+import {
+  GITHUB_LATEST_RELEASE,
+  GITHUB_SOURCE,
+  PLATFORMS,
+  SITE_NAME,
+  SITE_TAGLINE,
+  absolute,
+} from '../../site.config.mjs';
+
+interface Props {
+  platform: 'macos' | 'windows' | 'linux';
+}
+
+const { platform } = Astro.props;
+const target = PLATFORMS[platform];
+
+// Per-platform SoftwareApplication data, so a "download relay for windows" query can
+// match a page that says which OS it is for instead of the generic site-wide entry.
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: `${SITE_NAME} for ${target.name}`,
+  description: SITE_TAGLINE,
+  applicationCategory: 'DeveloperApplication',
+  operatingSystem: target.schemaOs,
+  softwareRequirements: target.requirements,
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  url: absolute(`/download/${target.slug}/`),
+  downloadUrl: GITHUB_LATEST_RELEASE,
+  license: `${GITHUB_SOURCE}/blob/main/LICENSE`,
+  isAccessibleForFree: true,
+  sameAs: [GITHUB_SOURCE],
+};
+---
+
+<script type="application/ld+json" is:inline set:html={JSON.stringify(schema)} />

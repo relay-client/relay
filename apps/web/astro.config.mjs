@@ -4,18 +4,19 @@ import starlight from '@astrojs/starlight';
 import sitemap from '@astrojs/sitemap';
 import { unified } from '@astrojs/markdown-remark';
 
+import {
+  GITHUB_RELEASES,
+  GITHUB_SOURCE,
+  SITE_BASE,
+  SITE_BASE_PATH,
+  SITE_NAME,
+  SITE_TAGLINE,
+  SITE_URL,
+} from './site.config.mjs';
 
-
-
-
-
-
-const SITE = process.env.RELAY_SITE_URL ?? 'https://relay-client.github.io';
-const BASE = process.env.RELAY_SITE_BASE ?? '/';
-const BASE_NORMALIZED = BASE.endsWith('/') ? BASE.slice(0, -1) : BASE;
-
-const GITHUB_SOURCE = 'https://github.com/relay-client/relay';
-const GITHUB_RELEASES = 'https://github.com/relay-client/relay';
+const SITE = SITE_URL;
+const BASE = SITE_BASE;
+const BASE_NORMALIZED = SITE_BASE_PATH;
 
 function rehypeBasePaths() {
   if (!BASE_NORMALIZED) return () => tree => tree;
@@ -57,8 +58,8 @@ export default defineConfig({
   },
   integrations: [
     starlight({
-      title: 'Relay',
-      description: 'A fast, local-first desktop API client. No accounts, no cloud sync, no telemetry.',
+      title: SITE_NAME,
+      description: SITE_TAGLINE,
       logo: {
         src: './src/assets/logo.png',
         replacesTitle: false,
@@ -67,6 +68,14 @@ export default defineConfig({
       customCss: ['./src/styles/custom.css'],
       social: [{ icon: 'github', label: 'GitHub', href: GITHUB_SOURCE }],
       head: [
+        {
+          tag: 'meta',
+          attrs: { property: 'og:site_name', content: SITE_NAME },
+        },
+        {
+          tag: 'meta',
+          attrs: { property: 'og:type', content: 'website' },
+        },
         {
           tag: 'meta',
           attrs: { property: 'og:image', content: `${SITE}${BASE_NORMALIZED}/og.png` },
@@ -110,25 +119,17 @@ export default defineConfig({
 })();`,
         },
 
-
-        {
-          tag: 'script',
-          attrs: { type: 'application/ld+json' },
-          content: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'SoftwareApplication',
-            name: 'Relay',
-            description: 'A fast, local-first desktop API client. No accounts, no cloud sync, no telemetry.',
-            applicationCategory: 'DeveloperApplication',
-            operatingSystem: 'macOS, Windows, Linux',
-            offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-            url: `${SITE}${BASE_NORMALIZED}/`,
-            downloadUrl: GITHUB_RELEASES,
-            sameAs: [GITHUB_SOURCE, GITHUB_RELEASES],
-          }),
-        },
       ],
       sidebar: [
+        {
+          label: 'Download',
+          items: [
+            { label: 'All platforms', link: '/download/' },
+            { label: 'Relay for macOS', link: '/download/macos/' },
+            { label: 'Relay for Windows', link: '/download/windows/' },
+            { label: 'Relay for Linux', link: '/download/linux/' },
+          ],
+        },
         {
           label: 'Getting started',
           items: [
