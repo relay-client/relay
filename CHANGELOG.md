@@ -7,7 +7,7 @@ All notable changes to Relay are documented here. This project follows
 
 ## [Unreleased]
 
-## [2.0.0] - 2026-09-30
+## [2.0.0] - 2026-10-01
 
 Relay 2.0 is a new look — the Graphite design, from the window chrome to every screen, menu and dialog — plus MCP requests, a command palette, a page for each history entry, the last run of each collection, and environments side by side. It needs macOS 12 or later.
 
