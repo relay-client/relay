@@ -191,6 +191,7 @@
 .response-body-viewer.virtualized {
   padding: 0 0 16px;
   line-height: 20px;
+  scrollbar-gutter: stable;
 }
 
 .response-body-viewer:focus-visible {
