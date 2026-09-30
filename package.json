@@ -15,6 +15,7 @@
     "frontend:build": "npm --workspace @relay/desktop-frontend run build",
     "frontend:check": "npm --workspace @relay/desktop-frontend run check",
     "frontend:e2e": "npm --workspace @relay/desktop-frontend run e2e",
+    "frontend:e2e:webkit": "npm --workspace @relay/desktop-frontend run e2e:webkit",
     "frontend:e2e:headed": "npm --workspace @relay/desktop-frontend run e2e:headed",
     "frontend:e2e:headed:slow": "npm --workspace @relay/desktop-frontend run e2e:headed:slow",
     "perf:fixtures": "node scripts/generate-perf-fixtures.mjs",

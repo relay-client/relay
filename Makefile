@@ -46,7 +46,7 @@ GITHUB_REPO := $(shell git remote get-url origin 2>/dev/null | sed 's|.*github.c
 
 .PHONY: help version dev dev-go dev-run frontend install tidy check test \
         build build-desktop build-macos build-windows build-windows-msix build-linux build-all build-frontend \
-        open clean wails-install bindings screenshots test-extension \
+        open clean wails-install bindings screenshots readme-screenshot test-extension \
         release release-patch release-minor release-major _do-release _guard-clean \
         update-keygen update-sign \
         release-mac-local _do-release-mac-local release-mac-publish
@@ -418,5 +418,9 @@ bindings:
 	@printf '\n\033[32m✓\033[0m Bindings regenerated in apps/desktop/frontend/wailsjs.\n'
 
 screenshots:
-	cd $(DESKTOP_DIR)/frontend && RELAY_DOCS_SCREENSHOT_DIR=$(CURDIR)/apps/web/src/assets/screenshots npx playwright test e2e/full-app.spec.ts
+	cd $(DESKTOP_DIR)/frontend && RELAY_DOCS_SCREENSHOT_DIR=$(CURDIR)/apps/web/src/assets/screenshots npx playwright test e2e/full-app.spec.ts --project=chromium
 	@printf '\n\033[32m✓\033[0m Documentation screenshots retaken in apps/web/src/assets/screenshots.\n'
+
+readme-screenshot:
+	cd $(DESKTOP_DIR)/frontend && RELAY_README_SCREENSHOT=$(CURDIR)/.github/assets/screenshot.png npx playwright test e2e/full-app.spec.ts --project=chromium -g "README screenshot"
+	@printf '\n\033[32m✓\033[0m README screenshot retaken in .github/assets/screenshot.png.\n'
