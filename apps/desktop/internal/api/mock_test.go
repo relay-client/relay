@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -330,5 +331,199 @@ func TestMockServerBindsLoopbackOnly(t *testing.T) {
 	addr := server.listener.Addr().String()
 	if !strings.HasPrefix(addr, "127.0.0.1:") {
 		t.Errorf("the mock must not be reachable from the network, bound %s", addr)
+	}
+}
+
+func freeMockPort(t *testing.T) int {
+	t.Helper()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("reserve a port: %v", err)
+	}
+	port := listener.Addr().(*net.TCPAddr).Port
+	_ = listener.Close()
+	return port
+}
+
+func TestMockServerRefusesAnOriginFromAnotherHost(t *testing.T) {
+	_, base, logs := startTestMock(t, model.MockServerConfig{
+		Routes: []model.MockRoute{mockRoute("GET", "/pets", 200, "list")},
+	})
+
+	req, _ := http.NewRequest(http.MethodGet, base+"/pets", nil)
+	req.Header.Set("Origin", "https://evil.example.com")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode != http.StatusForbidden {
+		t.Errorf("status = %d, want 403", resp.StatusCode)
+	}
+	if got := resp.Header.Get("Access-Control-Allow-Origin"); got != "" {
+		t.Errorf("a refused origin must not be allowed back, got %q", got)
+	}
+	if strings.Contains(string(body), "list") {
+		t.Error("the recorded response leaked to a site on another host")
+	}
+
+	select {
+	case entry := <-logs:
+		if entry.StatusCode != http.StatusForbidden || entry.Note == "" {
+			t.Errorf("the refusal must be logged with a reason, got %+v", entry)
+		}
+	case <-time.After(2 * time.Second):
+		t.Error("the refusal was not logged")
+	}
+}
+
+func TestMockServerAllowsAnyLoopbackOrigin(t *testing.T) {
+	_, base, _ := startTestMock(t, model.MockServerConfig{
+		Routes: []model.MockRoute{mockRoute("GET", "/pets", 200, "list")},
+	})
+
+	for _, origin := range []string{"http://localhost:5173", "http://127.0.0.1:3000", "http://app.localhost:8080", "http://[::1]:4200"} {
+		req, _ := http.NewRequest(http.MethodGet, base+"/pets", nil)
+		req.Header.Set("Origin", origin)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatalf("get %s: %v", origin, err)
+		}
+		resp.Body.Close()
+		if resp.StatusCode != 200 {
+			t.Errorf("%s: status = %d, want 200", origin, resp.StatusCode)
+		}
+		if got := resp.Header.Get("Access-Control-Allow-Origin"); got != origin {
+			t.Errorf("%s: Allow-Origin = %q", origin, got)
+		}
+	}
+}
+
+func TestMockServerNamesTheHeadersItExposes(t *testing.T) {
+	route := mockRoute("GET", "/pets", 200, "list")
+	route.Headers = []model.KeyValue{{Key: "X-Total-Count", Value: "1"}}
+	_, base, _ := startTestMock(t, model.MockServerConfig{Routes: []model.MockRoute{route}})
+
+	req, _ := http.NewRequest(http.MethodGet, base+"/pets", nil)
+	req.Header.Set("Origin", "http://localhost:5173")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	defer resp.Body.Close()
+
+	exposed := resp.Header.Get("Access-Control-Expose-Headers")
+	for _, want := range []string{"X-Total-Count", "X-Relay-Mock-Example"} {
+		if !strings.Contains(exposed, want) {
+			t.Errorf("Expose-Headers = %q, must name %s so a credentialed client can read it", exposed, want)
+		}
+	}
+	if strings.Contains(exposed, "*") {
+		t.Error("a wildcard is ignored on a credentialed response, so it must not be used")
+	}
+}
+
+func TestMockServerReloadKeepsThePortAndTheLog(t *testing.T) {
+	port := freeMockPort(t)
+	config := model.MockServerConfig{
+		Port:         port,
+		CollectionID: "c_1",
+		Routes:       []model.MockRoute{mockRoute("GET", "/pets", 200, "old")},
+	}
+	server, base, _ := startTestMock(t, config)
+
+	resp, err := http.Get(base + "/pets")
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	resp.Body.Close()
+	if len(server.recentLog()) != 1 {
+		t.Fatalf("the first request was not logged: %d entries", len(server.recentLog()))
+	}
+
+	config.Routes = []model.MockRoute{mockRoute("GET", "/pets", 200, "new")}
+	status := server.start(config, nil)
+	if status.Error != "" {
+		t.Fatalf("reload: %s", status.Error)
+	}
+	if status.Port != port {
+		t.Errorf("a reload moved the server from %d to %d", port, status.Port)
+	}
+	if len(server.recentLog()) != 1 {
+		t.Errorf("a reload threw the request log away: %d entries", len(server.recentLog()))
+	}
+
+	resp, err = http.Get(base + "/pets")
+	if err != nil {
+		t.Fatalf("get after reload: %v", err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if string(body) != "new" {
+		t.Errorf("body = %q, want the edited example", body)
+	}
+}
+
+func TestMockServerKeepsServingWhenAMoveToAnotherPortFails(t *testing.T) {
+	routes := []model.MockRoute{mockRoute("GET", "/pets", 200, "list")}
+	server, base, _ := startTestMock(t, model.MockServerConfig{
+		Port:         freeMockPort(t),
+		CollectionID: "c_1",
+		Routes:       routes,
+	})
+
+	taken, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("occupy a port: %v", err)
+	}
+	defer taken.Close()
+
+	status := server.start(model.MockServerConfig{
+		Port:         taken.Addr().(*net.TCPAddr).Port,
+		CollectionID: "c_1",
+		Routes:       routes,
+	}, nil)
+	if status.Error == "" {
+		t.Fatal("moving onto a taken port must fail")
+	}
+
+	if !server.status().Running {
+		t.Error("a failed move must leave the running server alone")
+	}
+	resp, err := http.Get(base + "/pets")
+	if err != nil {
+		t.Fatalf("the original server stopped answering: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Errorf("status = %d, want 200", resp.StatusCode)
+	}
+}
+
+func TestMockServerLogsARequestTheClientGaveUpOn(t *testing.T) {
+	route := mockRoute("GET", "/slow", 200, "slow")
+	route.DelayMs = 5000
+	_, base, logs := startTestMock(t, model.MockServerConfig{
+		Routes:          []model.MockRoute{route},
+		SimulateLatency: true,
+	})
+
+	client := http.Client{Timeout: 150 * time.Millisecond}
+	if _, err := client.Get(base + "/slow"); err == nil {
+		t.Fatal("the request was meant to time out")
+	}
+
+	select {
+	case entry := <-logs:
+		if entry.StatusCode != mockClientClosedStatus || entry.Note == "" {
+			t.Errorf("an abandoned request must be logged with a reason, got %+v", entry)
+		}
+		if entry.ExampleName == "" {
+			t.Error("the log must still name the example that would have answered")
+		}
+	case <-time.After(3 * time.Second):
+		t.Error("the abandoned request was not logged")
 	}
 }

@@ -229,6 +229,12 @@ func stripRealtimeFieldsForType(request map[string]any, requestType string) {
 		delete(request, "grpcProtoFileName")
 		delete(request, "grpcProtoImportPaths")
 	}
+	if requestType != "mcp" {
+		delete(request, "mcpMethod")
+		delete(request, "mcpName")
+		delete(request, "mcpArguments")
+		delete(request, "mcpProtocolVersion")
+	}
 	if requestType != "graphql" {
 		delete(request, "graphqlSchema")
 	}
@@ -237,7 +243,7 @@ func stripRealtimeFieldsForType(request map[string]any, requestType string) {
 func stripMethodForType(request map[string]any, requestType string) {
 	method := stringValue(request, "method")
 	switch requestType {
-	case "ws", "socketio", "grpc":
+	case "ws", "socketio", "grpc", "mcp":
 		delete(request, "method")
 	case "graphql":
 		if method == "POST" {
@@ -254,7 +260,7 @@ func stripRequestTabForType(request map[string]any, requestType string) {
 	tab := stringValue(request, "requestTab")
 	defaultTab := "params"
 	switch requestType {
-	case "ws", "socketio", "grpc":
+	case "ws", "socketio", "grpc", "mcp":
 		defaultTab = "body"
 	case "graphql":
 		defaultTab = "query"
@@ -303,7 +309,7 @@ func stripRequestSettingsForType(request map[string]any, requestType string) {
 
 func requestSettingFieldsForType(requestType string) map[string]bool {
 	switch requestType {
-	case "", "http", "graphql":
+	case "", "http", "graphql", "mcp":
 		return httpRequestSettingFieldSet
 	case "ws":
 		return webSocketRequestSettingFieldSet

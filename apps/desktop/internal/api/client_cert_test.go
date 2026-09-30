@@ -147,7 +147,7 @@ func TestClientCertificateEncryptedKeyNeedsPassword(t *testing.T) {
 	certPEM, keyPEM, _ := issueCert(t, "enc-client")
 
 	block, _ := pem.Decode(keyPEM)
-	//nolint:staticcheck // legacy format is intentional here
+	//nolint:staticcheck
 	encBlock, err := x509.EncryptPEMBlock(rand.Reader, block.Type, block.Bytes, []byte("s3cret"), x509.PEMCipherAES256)
 	if err != nil {
 		t.Fatalf("encrypt key: %v", err)

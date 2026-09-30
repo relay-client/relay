@@ -148,6 +148,16 @@ type HttpRequest struct {
 	SocketIOListenEvents         []string          `json:"sioListenEvents"`
 	SSEDisableReconnect          bool              `json:"sseDisableReconnect"`
 	SSEReconnectIntervalMs       int               `json:"sseReconnectIntervalMs"`
+
+	McpProtocolVersion string `json:"mcpProtocolVersion"`
+	McpMethod          string `json:"mcpMethod"`
+	McpName            string `json:"mcpName"`
+	McpArguments       string `json:"mcpArguments"`
+	McpCursor          string `json:"mcpCursor"`
+	McpInputResponses  string `json:"mcpInputResponses"`
+	McpRequestState    string `json:"mcpRequestState"`
+	McpInputSchema     string `json:"mcpInputSchema"`
+	McpOutputSchema    string `json:"mcpOutputSchema"`
 }
 
 type HttpResponse struct {

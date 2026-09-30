@@ -43,6 +43,7 @@ type MockRequestLog struct {
 	ExampleID   string `json:"exampleId,omitempty"`
 	ExampleName string `json:"exampleName,omitempty"`
 	RequestName string `json:"requestName,omitempty"`
+	Note        string `json:"note,omitempty"`
 	StatusCode  int    `json:"statusCode"`
 	DurationMs  int64  `json:"durationMs"`
 	Timestamp   int64  `json:"timestamp"`

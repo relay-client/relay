@@ -24,6 +24,8 @@ const (
 	mockDefaultPort     = 3100
 )
 
+const mockClientClosedStatus = 499
+
 type mockCompiledRoute struct {
 	route       model.MockRoute
 	method      string
@@ -33,6 +35,7 @@ type mockCompiledRoute struct {
 }
 
 type mockServer struct {
+	startMu  sync.Mutex
 	mu       sync.RWMutex
 	server   *http.Server
 	listener net.Listener
@@ -152,9 +155,7 @@ func selectMockRoute(routes []mockCompiledRoute, method, path string, query url.
 	return mockCompiledRoute{}, false
 }
 
-func (m *mockServer) status() model.MockServerStatus {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
+func (m *mockServer) statusLocked() model.MockServerStatus {
 	if !m.running {
 		return model.MockServerStatus{}
 	}
@@ -168,9 +169,28 @@ func (m *mockServer) status() model.MockServerStatus {
 	}
 }
 
-func (m *mockServer) start(config model.MockServerConfig, emit func(model.MockRequestLog)) model.MockServerStatus {
-	m.stop()
+func (m *mockServer) status() model.MockServerStatus {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.statusLocked()
+}
 
+func (m *mockServer) swapRoutes(config model.MockServerConfig, emit func(model.MockRequestLog), port int) (model.MockServerStatus, bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if !m.running || m.port != port {
+		return model.MockServerStatus{}, false
+	}
+	if m.config.CollectionID != config.CollectionID {
+		m.log = nil
+	}
+	m.config = config
+	m.routes = compileMockRoutes(config.Routes)
+	m.emit = emit
+	return m.statusLocked(), true
+}
+
+func (m *mockServer) start(config model.MockServerConfig, emit func(model.MockRequestLog)) model.MockServerStatus {
 	port := config.Port
 	if port <= 0 {
 		port = mockDefaultPort
@@ -182,10 +202,18 @@ func (m *mockServer) start(config model.MockServerConfig, emit func(model.MockRe
 		return model.MockServerStatus{Error: "this collection has no saved examples yet — capture one from a response first"}
 	}
 
+	m.startMu.Lock()
+	defer m.startMu.Unlock()
+
+	if status, swapped := m.swapRoutes(config, emit, port); swapped {
+		return status
+	}
+
 	listener, err := net.Listen("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(port)))
 	if err != nil {
 		return model.MockServerStatus{Error: mockListenError(err, port)}
 	}
+	m.teardown()
 
 	m.mu.Lock()
 	m.config = config
@@ -199,17 +227,20 @@ func (m *mockServer) start(config model.MockServerConfig, emit func(model.MockRe
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	server := m.server
+	status := m.statusLocked()
 	m.mu.Unlock()
 
 	go func() {
 		if serveErr := server.Serve(listener); serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
 			m.mu.Lock()
-			m.running = false
+			if m.server == server {
+				m.running = false
+			}
 			m.mu.Unlock()
 		}
 	}()
 
-	return m.status()
+	return status
 }
 
 func mockListenError(err error, port int) string {
@@ -226,6 +257,13 @@ func mockListenError(err error, port int) string {
 }
 
 func (m *mockServer) stop() model.MockServerStatus {
+	m.startMu.Lock()
+	defer m.startMu.Unlock()
+	m.teardown()
+	return model.MockServerStatus{}
+}
+
+func (m *mockServer) teardown() {
 	m.mu.Lock()
 	server := m.server
 	listener := m.listener
@@ -249,19 +287,71 @@ func (m *mockServer) stop() model.MockServerStatus {
 	if listener != nil {
 		_ = listener.Close()
 	}
-	return model.MockServerStatus{}
 }
 
-func mockApplyCORS(header http.Header, origin string) {
-	if origin == "" {
-		origin = "*"
+func mockLoopbackHostname(host string) bool {
+	host = strings.ToLower(strings.TrimSuffix(host, "."))
+	if host == "localhost" || strings.HasSuffix(host, ".localhost") {
+		return true
 	}
+	if ip := net.ParseIP(host); ip != nil {
+		return ip.IsLoopback()
+	}
+	return false
+}
+
+func mockOriginAllowed(origin string) bool {
+	parsed, err := url.Parse(origin)
+	if err != nil || parsed.Host == "" {
+		return false
+	}
+	switch strings.ToLower(parsed.Scheme) {
+	case "http", "https":
+	default:
+		return false
+	}
+	return mockLoopbackHostname(parsed.Hostname())
+}
+
+func mockApplyCORS(header http.Header, r *http.Request, origin string) {
 	header.Set("Access-Control-Allow-Origin", origin)
 	header.Set("Access-Control-Allow-Credentials", "true")
 	header.Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS")
-	header.Set("Access-Control-Allow-Headers", "*")
-	header.Set("Access-Control-Expose-Headers", "*")
-	header.Set("Vary", "Origin")
+	if requested := r.Header.Get("Access-Control-Request-Headers"); requested != "" {
+		header.Set("Access-Control-Allow-Headers", requested)
+		header.Add("Vary", "Access-Control-Request-Headers")
+	} else {
+		header.Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	}
+}
+
+func mockExposeHeaders(header http.Header) {
+	names := make([]string, 0, len(header))
+	for name := range header {
+		if strings.HasPrefix(strings.ToLower(name), "access-control-") || strings.EqualFold(name, "Vary") {
+			continue
+		}
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	if len(names) > 0 {
+		header.Set("Access-Control-Expose-Headers", strings.Join(names, ", "))
+	}
+}
+
+func writeMockForbiddenOrigin(w http.ResponseWriter, origin string) {
+	payload := map[string]any{
+		"error":  "This mock server only answers pages served from this machine.",
+		"origin": origin,
+		"detail": "It replays responses recorded from real APIs, so it does not hand them to a site on another host.",
+	}
+	body, err := json.MarshalIndent(payload, "", "  ")
+	if err != nil {
+		body = []byte(`{"error":"This mock server only answers pages served from this machine."}`)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusForbidden)
+	_, _ = w.Write(body)
 }
 
 func (m *mockServer) snapshot() ([]mockCompiledRoute, model.MockServerConfig, func(model.MockRequestLog)) {
@@ -291,13 +381,6 @@ func (m *mockServer) handle(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	routes, config, emit := m.snapshot()
 
-	mockApplyCORS(w.Header(), r.Header.Get("Origin"))
-	if r.Method == http.MethodOptions {
-		w.Header().Set("Access-Control-Max-Age", "600")
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
-
 	entry := model.MockRequestLog{
 		ID:        fmt.Sprintf("mock-%d", m.seq.Add(1)),
 		Method:    r.Method,
@@ -305,18 +388,44 @@ func (m *mockServer) handle(w http.ResponseWriter, r *http.Request) {
 		Query:     r.URL.RawQuery,
 		Timestamp: start.UnixMilli(),
 	}
-
-	matched, ok := selectMockRoute(routes, r.Method, r.URL.Path, r.URL.Query())
-	if !ok {
-		entry.StatusCode = http.StatusNotFound
+	finish := func() {
 		entry.DurationMs = time.Since(start).Milliseconds()
-		writeMockNotFound(w, r, routes)
 		m.record(entry)
 		if emit != nil {
 			emit(entry)
 		}
+	}
+
+	w.Header().Add("Vary", "Origin")
+	if origin := r.Header.Get("Origin"); origin != "" {
+		if !mockOriginAllowed(origin) {
+			entry.StatusCode = http.StatusForbidden
+			entry.Note = "refused — served from " + origin
+			writeMockForbiddenOrigin(w, origin)
+			finish()
+			return
+		}
+		mockApplyCORS(w.Header(), r, origin)
+	}
+
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Max-Age", "600")
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
+
+	matched, ok := selectMockRoute(routes, r.Method, r.URL.Path, r.URL.Query())
+	if !ok {
+		entry.StatusCode = http.StatusNotFound
+		writeMockNotFound(w, r, routes)
+		finish()
+		return
+	}
+
+	entry.Matched = true
+	entry.ExampleID = matched.route.ExampleID
+	entry.ExampleName = matched.route.ExampleName
+	entry.RequestName = matched.route.RequestName
 
 	if config.SimulateLatency && matched.route.DelayMs > 0 {
 		delay := time.Duration(matched.route.DelayMs) * time.Millisecond
@@ -326,6 +435,9 @@ func (m *mockServer) handle(w http.ResponseWriter, r *http.Request) {
 		select {
 		case <-time.After(delay):
 		case <-r.Context().Done():
+			entry.StatusCode = mockClientClosedStatus
+			entry.Note = "the client gave up before the recorded delay was over"
+			finish()
 			return
 		}
 	}
@@ -345,22 +457,15 @@ func (m *mockServer) handle(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", matched.route.BodyMediaType)
 	}
 	w.Header().Set("X-Relay-Mock-Example", matched.route.ExampleName)
+	mockExposeHeaders(w.Header())
 
 	w.WriteHeader(status)
 	if r.Method != http.MethodHead {
 		_, _ = w.Write([]byte(matched.route.Body))
 	}
 
-	entry.Matched = true
-	entry.ExampleID = matched.route.ExampleID
-	entry.ExampleName = matched.route.ExampleName
-	entry.RequestName = matched.route.RequestName
 	entry.StatusCode = status
-	entry.DurationMs = time.Since(start).Milliseconds()
-	m.record(entry)
-	if emit != nil {
-		emit(entry)
-	}
+	finish()
 }
 
 func mockHeaderIsForwardable(name string) bool {
