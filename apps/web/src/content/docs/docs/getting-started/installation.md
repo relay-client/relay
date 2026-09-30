@@ -7,7 +7,7 @@ Relay publishes release artifacts for each supported platform on the [releases p
 
 ## macOS
 
-**Requirements:** macOS 11 (Big Sur) or later. Apple Silicon and Intel are both supported.
+**Requirements:** macOS 12 (Monterey) or later, with system updates installed — Relay draws its window with the system WebKit and needs the version that ships with Safari 16.2 or newer. Apple Silicon and Intel are both supported.
 
 1. Download `relay-<version>-darwin-universal.dmg`.
 2. Open the DMG, drag **Relay.app** to `/Applications`.
