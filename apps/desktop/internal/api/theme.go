@@ -29,9 +29,9 @@ func normalizeResolvedTheme(theme string) string {
 
 func windowBackgroundForTheme(theme string) (uint8, uint8, uint8, uint8) {
 	if normalizeResolvedTheme(theme) == resolvedThemeLight {
-		return 246, 248, 252, 255
+		return 255, 255, 255, 255
 	}
-	return 15, 15, 26, 255
+	return 17, 17, 19, 255
 }
 
 func parseHexWindowBackground(value string) (uint8, uint8, uint8, bool) {

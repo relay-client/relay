@@ -114,7 +114,7 @@ func decryptPEMPrivateKey(keyPEM []byte, password string) ([]byte, error) {
 	if block == nil {
 		return nil, fmt.Errorf("client key is not valid PEM")
 	}
-	//nolint:staticcheck // x509.IsEncryptedPEMBlock/DecryptPEMBlock are deprecated
+	//nolint:staticcheck
 	if !x509.IsEncryptedPEMBlock(block) {
 		if pemLooksPKCS8Encrypted(block) {
 			return nil, fmt.Errorf("this key uses PKCS#8 encryption, which Relay cannot decrypt — convert it with: openssl pkcs8 -in key.pem -out key.dec.pem")

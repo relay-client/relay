@@ -34,7 +34,7 @@ func TestInitialWindowBackgroundFallsBackToResolvedTheme(t *testing.T) {
 	}
 
 	r, g, b, a := InitialWindowBackgroundRGBA()
-	if r != 246 || g != 248 || b != 252 || a != 255 {
+	if r != 255 || g != 255 || b != 255 || a != 255 {
 		t.Fatalf("background = rgba(%d,%d,%d,%d), want light fallback", r, g, b, a)
 	}
 }

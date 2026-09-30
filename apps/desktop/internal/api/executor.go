@@ -414,7 +414,7 @@ func doRequestWithBodySink(ctx context.Context, req model.HttpRequest, jar http.
 		}
 	}
 
-	if isEventStreamResponse(httpResp.Header) {
+	if isEventStreamResponse(httpResp.Header) && !requestReadsEventStream(req) {
 		finish := time.Now()
 		return withTrace(model.HttpResponse{
 			StatusCode: httpResp.StatusCode,

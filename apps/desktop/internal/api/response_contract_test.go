@@ -25,11 +25,6 @@ func decodeResponseField(t *testing.T, resp model.HttpResponse, field string) an
 	return value
 }
 
-// The generated binding types headers as KeyValue[], not KeyValue[] | null, and
-// the frontend reads it on every send to record history. A nil slice marshals
-// to null, so a request that fails before any response arrives used to crash
-// the panel with a TypeError — which then replaced the message explaining why
-// the request had failed.
 func TestFailedRequestStillCarriesHeadersArray(t *testing.T) {
 	cases := []struct {
 		name string
