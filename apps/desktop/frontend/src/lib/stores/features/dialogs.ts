@@ -43,7 +43,7 @@ export const dialogFeature = {
       this.appDialog = { mode: 'alert', title, message, confirmLabel: 'OK', cancelLabel: '', danger: false, resolve: () => resolve() };
     });
   },
-  openSelectDialog(this: DialogHost, title: string, message: string, options: DialogOption[], confirmLabel = 'Save', cancelLabel = 'Discard') {
+  openSelectDialog(this: DialogHost, title: string, message: string, options: DialogOption[], confirmLabel = 'Save', cancelLabel = 'Cancel') {
     this.closeFloatingMenus();
     this.dialogSelectOpen = false;
     this.dialogInputValue = firstEnabledOption(options)?.value ?? '';

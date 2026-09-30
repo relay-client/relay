@@ -26,6 +26,12 @@ export type MockRoute = Wire<model.MockRoute>;
 export type MockServerConfig = Wire<model.MockServerConfig>;
 export type MockServerStatus = Wire<model.MockServerStatus>;
 export type MockRequestLog = Wire<model.MockRequestLog>;
+export type McpResponse = Wire<model.McpResponse>;
+export type McpTool = Wire<model.McpTool>;
+export type McpResource = Wire<model.McpResource>;
+export type McpPrompt = Wire<model.McpPrompt>;
+export type McpContent = Wire<model.McpContent>;
+export type McpNotification = Wire<model.McpNotification>;
 export type OAuth2TokenResponse = Wire<model.OAuth2TokenResponse>;
 export type ScriptResult = Wire<model.ScriptResult>;
 export type SentRequest = Wire<model.SentRequest>;
@@ -169,6 +175,9 @@ export function emptyHttpRequest(): HttpRequest {
     wsMaxMessageSizeMb: 0, wsKeepAliveIntervalMs: 0,
     sioClientVersion: '', sioPath: '', sioNamespace: '', sioListenEvents: [],
     sseDisableReconnect: false, sseReconnectIntervalMs: 0,
+    mcpProtocolVersion: '', mcpMethod: '', mcpName: '', mcpArguments: '',
+    mcpCursor: '', mcpInputResponses: '', mcpRequestState: '',
+    mcpInputSchema: '', mcpOutputSchema: '',
   };
 }
 

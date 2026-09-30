@@ -93,7 +93,7 @@
             </button>
             {#if typeMenuOpenId === currentArg.id}
               <div class="raw-type-list sio-type-options" role="listbox">
-                {#each RAW_BODY_TYPES as type}
+                {#each RAW_BODY_TYPES as type, eachIndex (eachIndex)}
                   <button
                     class:active={currentArg.bodyType === type}
                     role="option"
@@ -125,7 +125,7 @@
               </button>
               {#if encodingMenuOpen}
                 <div class="raw-type-list sio-type-options" role="listbox">
-                  {#each ENCODINGS as enc}
+                  {#each ENCODINGS as enc, eachIndex (eachIndex)}
                     <button
                       class:active={currentArg.encoding === enc}
                       role="option"

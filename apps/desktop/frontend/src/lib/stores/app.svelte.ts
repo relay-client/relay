@@ -4,7 +4,7 @@ import {
   gitStatus, gitCommitLogPage, gitListBranches,
   useLocalWorkspaceStore, createLocalWorkspaceRoot, saveWorkspaceSecrets,
 } from '../backend';
-import type { CookieJarEntry, CookieSyncStatus, GitBranchListResult, GitConflictFileResult, GitDiffResult, GitLogResult, GitWorkspaceStatus, HttpResponse, MockRequestLog, MockServerStatus, OAuth2DevicePrompt, WorkspaceDiagnostic, WorkspaceOpenResult, WorkspaceSecretRef } from '../backend';
+import type { CookieJarEntry, CookieSyncStatus, GitBranchListResult, GitConflictFileResult, GitDiffResult, GitLogResult, GitWorkspaceStatus, HttpResponse, McpResponse, MockRequestLog, MockServerStatus, OAuth2DevicePrompt, WorkspaceDiagnostic, WorkspaceOpenResult, WorkspaceSecretRef } from '../backend';
 import { EMPTY_COOKIE_SYNC_STATUS, EMPTY_MOCK_SERVER_STATUS } from '../wire';
 import { DEFAULT_MOCK_PORT } from '../mockRoutes';
 import type { SSEEventEntry, SSESession, WebSocketMessageEntry, WebSocketSession, SocketIOMessageEntry, SocketIOSession, SocketIOClientVersion } from '../types/models';
@@ -26,7 +26,7 @@ import {
   DEFAULT_PROXY_CONFIG,
 } from '../constants';
 import {
-  safeFileName, downloadTextFile, clipboardCopy, restoreRows,
+  safeFileName, downloadTextFile, clipboardCopy, restoreRows, requestSupportsCurl,
 } from '../utils';
 import type {
   Method, BodyType, RawBodyType, HttpVersion, RequestTab, ScriptTab, ResponseTab, GrpcResponseTab,
@@ -53,6 +53,7 @@ import type { GitAuthChoice, GitAuthRequest } from './features/git';
 import { folderFeature } from './features/folders';
 import { graphqlFeature } from './features/graphql';
 import { grpcFeature } from './features/grpc';
+import { mcpFeature } from './features/mcp';
 import { importExportFeature } from './features/importExport';
 import { examplesFeature } from './features/examples';
 import { requestBodyFeature } from './features/requestBody';
@@ -73,12 +74,13 @@ import { socketioFeature } from './features/socketio';
 import { mkSioEventRow, socketioFormFeature } from './features/socketioForm';
 import { mockServerFeature } from './features/mockServer';
 import { dialogFeature } from './features/dialogs';
-import { environmentFeature } from './features/environments';
+import { environmentFeature, readEnvironmentView, type EnvironmentView } from './features/environments';
 import { globalsFeature, withTrailingRow as withTrailingGlobalRow } from './features/globals';
 import { historyFeature } from './features/history';
+import { normalizeCollectionRuns, type CollectionRunRecord } from '../collectionRuns';
 import { menuFeature } from './features/menus';
 import { preferencesFeature } from './features/preferences';
-import { uiShellFeature } from './features/uiShell';
+import { readResponseLayout, uiShellFeature, type ResponseLayout } from './features/uiShell';
 import { workspaceFeature } from './features/workspace';
 import { workspaceDiagnosticsFeature } from './features/workspaceDiagnostics';
 
@@ -246,15 +248,17 @@ class AppVM {
   mockServerError = $state('');
   mockServerTabOpen = $state(false);
   mockServerRunningSignature = $state('');
+  mockServerReloadTimer: ReturnType<typeof setTimeout> | null = null;
   declare mockServerTargetCollectionId: typeof mockServerFeature.mockServerTargetCollectionId;
   declare mockServerRoutes: typeof mockServerFeature.mockServerRoutes;
+  declare mockServerRunningRoutes: typeof mockServerFeature.mockServerRunningRoutes;
+  declare scheduleMockServerReload: typeof mockServerFeature.scheduleMockServerReload;
   declare mockServerRouteCount: typeof mockServerFeature.mockServerRouteCount;
   declare mockServerCollectionOptions: typeof mockServerFeature.mockServerCollectionOptions;
   declare refreshMockServerStatus: typeof mockServerFeature.refreshMockServerStatus;
   declare startMockServerForCollection: typeof mockServerFeature.startMockServerForCollection;
   declare stopMockServerNow: typeof mockServerFeature.stopMockServerNow;
   declare toggleMockServer: typeof mockServerFeature.toggleMockServer;
-  declare restartMockServerWithCurrentExamples: typeof mockServerFeature.restartMockServerWithCurrentExamples;
   declare recordMockRequest: typeof mockServerFeature.recordMockRequest;
   declare clearMockServerLog: typeof mockServerFeature.clearMockServerLog;
   declare selectMockServerCollection: typeof mockServerFeature.selectMockServerCollection;
@@ -300,6 +304,7 @@ class AppVM {
   declare openCollectionRunner: typeof collectionRunnerFeature.openCollectionRunner;
   declare closeCollectionRunnerTab: typeof collectionRunnerFeature.closeCollectionRunnerTab;
   declare setCollectionRunnerCollection: typeof collectionRunnerFeature.setCollectionRunnerCollection;
+  declare showCollectionLastRun: typeof collectionRunnerFeature.showCollectionLastRun;
   declare setCollectionRunnerDelayMs: typeof collectionRunnerFeature.setCollectionRunnerDelayMs;
   declare setCollectionRunnerIterations: typeof collectionRunnerFeature.setCollectionRunnerIterations;
   declare selectCollectionRunnerDataFile: typeof collectionRunnerFeature.selectCollectionRunnerDataFile;
@@ -416,6 +421,15 @@ class AppVM {
   declare discoverGrpcServices: typeof grpcFeature.discoverGrpcServices;
   declare invokeGrpc: typeof grpcFeature.invokeGrpc;
   declare initGrpcListeners: typeof grpcFeature.initGrpcListeners;
+  declare setActiveMcpResponse: typeof mcpFeature.setActiveMcpResponse;
+  declare mcpSelectableTools: typeof mcpFeature.mcpSelectableTools;
+  declare mcpSelectedTool: typeof mcpFeature.mcpSelectedTool;
+  declare mcpSelectedToolRejection: typeof mcpFeature.mcpSelectedToolRejection;
+  declare selectMcpTool: typeof mcpFeature.selectMcpTool;
+  declare selectMcpMethod: typeof mcpFeature.selectMcpMethod;
+  declare mcpArgumentsError: typeof mcpFeature.mcpArgumentsError;
+  declare discoverMcpServer: typeof mcpFeature.discoverMcpServer;
+  declare sendMcpCall: typeof mcpFeature.sendMcpCall;
 
   declare activePreRequestScript: typeof scriptsFeature.activePreRequestScript;
   declare activeTestScript: typeof scriptsFeature.activeTestScript;
@@ -530,6 +544,7 @@ class AppVM {
   declare savedRequestToHttpRequest: typeof requestSerializationFeature.savedRequestToHttpRequest;
   declare savedRequestToRunnableHttpRequest: typeof requestSerializationFeature.savedRequestToRunnableHttpRequest;
   declare savedRequestToRunnableGrpcRequest: typeof requestSerializationFeature.savedRequestToRunnableGrpcRequest;
+  declare savedRequestToRunnableMcpRequest: typeof requestSerializationFeature.savedRequestToRunnableMcpRequest;
   declare normalizeRequestUrlForSend: typeof requestSerializationFeature.normalizeRequestUrlForSend;
   declare normalizeWebSocketUrlForSend: typeof requestSerializationFeature.normalizeWebSocketUrlForSend;
 
@@ -785,6 +800,9 @@ class AppVM {
   declare openHistoryEntry: typeof historyFeature.openHistoryEntry;
   declare deleteHistoryEntry: typeof historyFeature.deleteHistoryEntry;
   declare clearRequestHistory: typeof historyFeature.clearRequestHistory;
+  declare historyDetailEntry: typeof historyFeature.historyDetailEntry;
+  declare openHistoryDetail: typeof historyFeature.openHistoryDetail;
+  declare closeHistoryDetail: typeof historyFeature.closeHistoryDetail;
 
   declare environmentLabel: typeof environmentFeature.environmentLabel;
   declare environmentValuesFor: typeof environmentFeature.environmentValuesFor;
@@ -818,6 +836,14 @@ class AppVM {
   declare syncGlobalsFromBackend: typeof globalsFeature.syncGlobalsFromBackend;
   declare saveEnvironment: typeof environmentFeature.saveEnvironment;
   declare updateEnvironmentRow: typeof environmentFeature.updateEnvironmentRow;
+  declare setEnvironmentView: typeof environmentFeature.setEnvironmentView;
+  declare updateWorkspaceEnvironments: typeof environmentFeature.updateWorkspaceEnvironments;
+  declare setEnvironmentMatrixValue: typeof environmentFeature.setEnvironmentMatrixValue;
+  declare unsetEnvironmentMatrixValue: typeof environmentFeature.unsetEnvironmentMatrixValue;
+  declare setEnvironmentVariableSecret: typeof environmentFeature.setEnvironmentVariableSecret;
+  declare renameEnvironmentVariable: typeof environmentFeature.renameEnvironmentVariable;
+  declare addEnvironmentVariable: typeof environmentFeature.addEnvironmentVariable;
+  declare removeEnvironmentVariable: typeof environmentFeature.removeEnvironmentVariable;
   declare removeEnvironmentRow: typeof environmentFeature.removeEnvironmentRow;
   declare importEnvFromFile: typeof environmentFeature.importEnvFromFile;
   declare syncBackendEnvironment: typeof environmentFeature.syncBackendEnvironment;
@@ -833,6 +859,9 @@ class AppVM {
   declare closeSettings: typeof uiShellFeature.closeSettings;
   declare startSidebarResize: typeof uiShellFeature.startSidebarResize;
   declare startPanelResize: typeof uiShellFeature.startPanelResize;
+  declare startSplitResize: typeof uiShellFeature.startSplitResize;
+  declare onSplitDividerKeydown: typeof uiShellFeature.onSplitDividerKeydown;
+  declare setResponseLayout: typeof uiShellFeature.setResponseLayout;
   declare startCodePanelResize: typeof uiShellFeature.startCodePanelResize;
   declare startColResize: typeof uiShellFeature.startColResize;
   declare onWindowMouseMove: typeof uiShellFeature.onWindowMouseMove;
@@ -1021,6 +1050,12 @@ class AppVM {
   grpcServiceOperationToken = 0;
   grpcServiceStatus = $state('');
   grpcServiceError = $state('');
+  mcpResponse = $state<McpResponse | null>(null);
+  mcpResponses = $state<Map<string, McpResponse>>(new Map());
+  mcpCatalog = $state<McpResponse | null>(null);
+  mcpCatalogLoading = $state(false);
+  mcpCatalogError = $state('');
+  mcpCatalogOperationToken = 0;
   _responseSearchCountToken = 0;
   _responseSearchCountTimer: number | undefined = undefined;
   _responseSearchCountKey = '';
@@ -1059,6 +1094,10 @@ class AppVM {
   sioSelectedArgId = $state('1');
   sioAck = $state(false);
   grpcMethod = $state('');
+  mcpMethod = $state('tools/list');
+  mcpName = $state('');
+  mcpArguments = $state('');
+  mcpProtocolVersion = $state('');
   grpcMetadata = $state<KVRow[]>([mkRow()]);
   grpcUseReflection = $state(true);
   grpcProtoFilePath = $state('');
@@ -1113,6 +1152,10 @@ class AppVM {
   requestHistory = $state<RequestHistoryEntry[]>([]);
   historyHeaderMenuOpen = $state(false);
   openHistoryMenuId = $state('');
+  historyDetailId = $state('');
+  historyDetailResponse = $state<HttpResponse | null>(null);
+  historyDetailLoading = $state(false);
+  historyDetailError = $state('');
   historyDayCollapseState = $state<Record<string, boolean>>({});
   appDialog = $state<AppDialogState | null>(null);
   dialogInputValue = $state('');
@@ -1145,6 +1188,8 @@ class AppVM {
   collectionRunnerTitle = $state('');
   collectionRunnerRunning = $state(false);
   collectionRunnerResults = $state<CollectionRunnerResult[]>([]);
+  collectionLastRuns = $state<Record<string, CollectionRunRecord>>({});
+  collectionRunnerShowingLastRun = $state(false);
   collectionRunnerStartedAt = $state(0);
   collectionRunnerFinishedAt = $state(0);
   cookieJarOpen = $state(false);
@@ -1209,6 +1254,7 @@ class AppVM {
   missingSecretsSaving = $state(false);
   missingSecretsError = $state('');
   environmentSaveState = $state<'idle' | 'dirty' | 'saving' | 'saved'>('idle');
+  environmentView = $state<EnvironmentView>(readEnvironmentView());
   globalVariables = $state<KVRow[]>([{ id: 1, enabled: true, key: '', value: '', description: '' }]);
   globalsSaveState = $state<'idle' | 'dirty' | 'saving' | 'saved'>('idle');
   globalsPersistTimer: ReturnType<typeof setTimeout> | null = null;
@@ -1226,6 +1272,12 @@ class AppVM {
 
   sidebarWidth = $state(SIDEBAR_DEFAULT_WIDTH);
   requestPanelHeight = $state(280);
+  responseLayout = $state<ResponseLayout>(readResponseLayout());
+  requestSplitRatio = $state(0.5);
+  splitResizing = $state(false);
+  splitResizeStartX = 0;
+  splitResizeStartRatio = 0.5;
+  splitResizeWidth = 0;
   kvKeyW = $state(180);
   kvValW = $state(180);
   kvTypeW = $state(110);
@@ -1319,13 +1371,19 @@ class AppVM {
         description: row.description || `Collection: ${collection?.name ?? ''}`.trim(),
         secret: row.secret ?? false,
       }));
-    const seen = new Set<string>();
-    return [...this.environmentVariableSuggestions(), ...collectionSuggestions].filter(row => {
-      if (seen.has(row.key)) return false;
-      seen.add(row.key);
-      return true;
-    });
+    const rows = [...this.environmentVariableSuggestions(), ...collectionSuggestions];
+    return rows.filter((row, index) => rows.findIndex(candidate => candidate.key === row.key) === index);
   }
+  async copyHistoryEntryCurl(historyId: string) {
+    const entry = this.requestHistory.find(candidate => candidate.id === historyId);
+    if (!entry || !requestSupportsCurl(entry.request)) return;
+    const { toCurl } = await import('../curl');
+    const values = this.environmentValuesForRequest(entry.request, this.redactedActiveEnvironmentValues());
+    clipboardCopy(toCurl(this.savedRequestToRunnableHttpRequest(entry.request, values, [], [])));
+    this.collectionImportToast = 'Copied as cURL';
+    setTimeout(() => { if (this.collectionImportToast === 'Copied as cURL') this.collectionImportToast = ''; }, 1800);
+  }
+
   async copyRequestCurl(id: string) {
     const req = this.requests.find(r => r.id === id); if (!req) return;
     if (this.savedRequestIsRealtime(req)) { this.openRequestMenuId = ''; return; }
@@ -1337,6 +1395,7 @@ class AppVM {
   async loadRequestWorkspace(rawOverride?: string, diagnosticsOverride?: WorkspaceDiagnostic[]) {
     let lReqs: SavedRequest[] = [], lWs: Workspace[] = [], lCols: Collection[] = [], lEnvs: Environment[] = [];
     let lActiveId = '', lWsId = '', lEnvId = '', lOpenIds: string[] = [], lFolderCollapsed: Record<string, boolean> = {}, lHistory: RequestHistoryEntry[] = [];
+    let lCollectionRuns: Record<string, CollectionRunRecord> = {};
     let lWorkspaceCookies: Record<string, CookieJarEntry[]> = {};
     let lGlobals: KVRow[] = withTrailingGlobalRow([]);
     let requestStoreRaw = '';
@@ -1375,6 +1434,7 @@ class AppVM {
         lReqs = (parsed.requests ?? []).map(r => normalizeSavedRequest(r, lCols, lWsId));
         lHistory = (parsed.history ?? []).map(e => normalizeHistoryEntry(e, lCols, lWsId)).filter((e): e is RequestHistoryEntry => Boolean(e));
         lWorkspaceCookies = this.normalizeWorkspaceCookieStore(parsed.workspaceCookies);
+        lCollectionRuns = normalizeCollectionRuns(parsed.collectionRuns, new Set(lCols.map(collection => collection.id)));
         lGlobals = withTrailingGlobalRow(restoreRows(parsed.globals ?? []));
       }
     } catch (e) {
@@ -1389,6 +1449,7 @@ class AppVM {
       lOpenIds = [draft.id];
     }
     this.requests = lReqs; this.requestHistory = this.pruneHistory(lHistory);
+    this.collectionLastRuns = lCollectionRuns;
     this.draftRequestIds = new Set(lReqs.filter(r => r.isDraft).map(r => r.id));
     this.savedRequestSnapshots = new Map(lReqs.filter(r => !r.isDraft).map(r => [r.id, this.savedRequestSnapshot(r)]));
     this.syncDirtyRequestIds(new Set());
@@ -1708,6 +1769,7 @@ applyFeatures(
   folderFeature,
   graphqlFeature,
   grpcFeature,
+  mcpFeature,
   scriptsFeature,
   examplesFeature,
   requestBodyFeature,

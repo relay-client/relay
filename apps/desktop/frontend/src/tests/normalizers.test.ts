@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { emptyCollectionDefaults } from '../lib/collectionDefaults';
 import { parseGraphQLPayload } from '../lib/graphql';
-import { filesystemNameFromName, normalizeCollection, normalizeEnvironment, normalizeSavedRequest, normalizeSioArgs, normalizeWorkspace } from '../lib/normalizers';
+import { filesystemNameFromName, normalizeCollection, normalizeEnvironment, normalizeHistoryEntry, normalizeSavedRequest, normalizeSioArgs, normalizeWorkspace } from '../lib/normalizers';
 import { REQUEST_BODY_DEFAULTS } from '../lib/requestBodyDefaults';
 import type { Collection } from '../lib/types/models';
 
@@ -192,5 +192,21 @@ describe('normalizeSavedRequest', () => {
       { id: '1', content: '{"ok":true}', bodyType: 'json', encoding: 'base64' },
       { id: '1-2', content: 'hello', bodyType: 'json', encoding: 'hex' },
     ]);
+  });
+});
+
+describe('normalizeHistoryEntry', () => {
+  const request = { id: 'snapshot-1', name: 'Login', method: 'POST' as const, url: 'https://api.test/login', collectionId: 'collection-1' };
+
+  it('keeps the id of the request a run came from', () => {
+    const entry = normalizeHistoryEntry({ id: 'history-1', request, sourceRequestId: 'request-7', statusCode: 200, createdAt: 1 }, [collection], 'workspace-1');
+    expect(entry?.sourceRequestId).toBe('request-7');
+    expect(entry?.request.id).toBe('snapshot-1');
+  });
+
+  it('leaves entries written before the link existed without one', () => {
+    const entry = normalizeHistoryEntry({ id: 'history-2', request, statusCode: 200, createdAt: 1 }, [collection], 'workspace-1');
+    expect(entry).not.toBeNull();
+    expect(entry && 'sourceRequestId' in entry).toBe(false);
   });
 });

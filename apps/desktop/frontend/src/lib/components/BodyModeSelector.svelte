@@ -31,11 +31,11 @@
   let bodyModeMenuOpen = $state(false);
 
   const bodyModes: { mode: BodyMode; label: string }[] = [
-    { mode: 'none', label: 'none' },
-    { mode: 'form', label: 'form-data' },
-    { mode: 'urlencoded', label: 'x-www-form-urlencoded' },
-    { mode: 'raw', label: 'raw' },
-    { mode: 'binary', label: 'binary' },
+    { mode: 'none', label: 'None' },
+    { mode: 'form', label: 'Form data' },
+    { mode: 'urlencoded', label: 'URL-encoded' },
+    { mode: 'raw', label: 'Raw' },
+    { mode: 'binary', label: 'Binary' },
   ];
 
   let activeBodyMode = $derived(bodyModes.find(({ mode }) => bodyModeIs(mode)) ?? bodyModes[0]);
@@ -80,7 +80,7 @@
     </button>
     {#if bodyModeMenuOpen}
       <div class="body-mode-compact-list" role="listbox" aria-label="Body types">
-        {#each bodyModes as item}
+        {#each bodyModes as item, eachIndex (eachIndex)}
           <button
             class:active={bodyModeIs(item.mode)}
             role="option"
@@ -95,31 +95,33 @@
       </div>
     {/if}
   </div>
-  <label class="body-mode-label" class:active={bodyModeIs('none')}>
-    <input type="radio" name="bodyMode" value="none" checked={bodyModeIs('none')} onchange={() => setBodyMode('none')} />
-    <span class="body-radio-mark"></span>
-    none
-  </label>
-  <label class="body-mode-label" class:active={bodyModeIs('form')}>
-    <input type="radio" name="bodyMode" value="form" checked={bodyModeIs('form')} onchange={() => setBodyMode('form')} />
-    <span class="body-radio-mark"></span>
-    form-data
-  </label>
-  <label class="body-mode-label" class:active={bodyModeIs('urlencoded')}>
-    <input type="radio" name="bodyMode" value="urlencoded" checked={bodyModeIs('urlencoded')} onchange={() => setBodyMode('urlencoded')} />
-    <span class="body-radio-mark"></span>
-    x-www-form-urlencoded
-  </label>
-  <label class="body-mode-label" class:active={bodyModeIs('raw')}>
-    <input type="radio" name="bodyMode" value="raw" checked={bodyModeIs('raw')} onchange={() => setBodyMode('raw')} />
-    <span class="body-radio-mark"></span>
-    raw
-  </label>
-  <label class="body-mode-label" class:active={bodyModeIs('binary')}>
-    <input type="radio" name="bodyMode" value="binary" checked={bodyModeIs('binary')} onchange={() => setBodyMode('binary')} />
-    <span class="body-radio-mark"></span>
-    binary
-  </label>
+  <div class="body-mode-segments" role="radiogroup" aria-label="Body type">
+    <label class="body-mode-label" class:active={bodyModeIs('none')}>
+      <input type="radio" name="bodyMode" value="none" checked={bodyModeIs('none')} onchange={() => setBodyMode('none')} />
+      <span class="body-radio-mark"></span>
+      None
+    </label>
+    <label class="body-mode-label" class:active={bodyModeIs('form')}>
+      <input type="radio" name="bodyMode" value="form" checked={bodyModeIs('form')} onchange={() => setBodyMode('form')} />
+      <span class="body-radio-mark"></span>
+      Form data
+    </label>
+    <label class="body-mode-label" class:active={bodyModeIs('urlencoded')}>
+      <input type="radio" name="bodyMode" value="urlencoded" checked={bodyModeIs('urlencoded')} onchange={() => setBodyMode('urlencoded')} />
+      <span class="body-radio-mark"></span>
+      URL-encoded
+    </label>
+    <label class="body-mode-label" class:active={bodyModeIs('raw')}>
+      <input type="radio" name="bodyMode" value="raw" checked={bodyModeIs('raw')} onchange={() => setBodyMode('raw')} />
+      <span class="body-radio-mark"></span>
+      Raw
+    </label>
+    <label class="body-mode-label" class:active={bodyModeIs('binary')}>
+      <input type="radio" name="bodyMode" value="binary" checked={bodyModeIs('binary')} onchange={() => setBodyMode('binary')} />
+      <span class="body-radio-mark"></span>
+      Binary
+    </label>
+  </div>
   {#if bodyModeIs('raw')}
     <div
       class="raw-type-menu"
@@ -140,7 +142,7 @@
       </button>
       {#if rawTypeMenuOpen}
         <div class="raw-type-list" role="listbox">
-          {#each rawBodyTypes as type}
+          {#each rawBodyTypes as type, eachIndex (eachIndex)}
             <button
               class:active={rawBodyType === type}
               role="option"

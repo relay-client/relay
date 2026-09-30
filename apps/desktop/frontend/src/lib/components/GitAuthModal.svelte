@@ -138,7 +138,7 @@
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 42%, transparent);
   }
   .gitauth-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
-  .gitauth-field > span { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-3); }
+  .gitauth-field > span { font-size: 12px; font-weight: 500; color: var(--text-2); }
   .gitauth-field input {
     height: 34px; padding: 0 11px; border: 1px solid var(--border); border-radius: 8px;
     background: var(--surface); color: var(--text); outline: none; font-size: 13px;

@@ -35,6 +35,8 @@ class AppLazyComponents {
   GrpcMessageTabComponent = $state<LazyComponent | null>(null);
   GrpcMetadataTabComponent = $state<LazyComponent | null>(null);
   GrpcResponsePanelComponent = $state<LazyComponent | null>(null);
+  McpCallTabComponent = $state<LazyComponent | null>(null);
+  McpResponsePanelComponent = $state<LazyComponent | null>(null);
   GrpcServiceDefinitionTabComponent = $state<LazyComponent | null>(null);
   GrpcSettingsTabComponent = $state<LazyComponent | null>(null);
   HeadersTabComponent = $state<LazyComponent | null>(null);
@@ -114,6 +116,14 @@ class AppLazyComponents {
 
   async loadGrpcResponsePanel() {
     if (!this.GrpcResponsePanelComponent) this.GrpcResponsePanelComponent = (await import('../components/GrpcResponsePanel.svelte')).default as LazyComponent;
+  }
+
+  async loadMcpCallTab() {
+    if (!this.McpCallTabComponent) this.McpCallTabComponent = (await import('../components/McpCallTab.svelte')).default as LazyComponent;
+  }
+
+  async loadMcpResponsePanel() {
+    if (!this.McpResponsePanelComponent) this.McpResponsePanelComponent = (await import('../components/McpResponsePanel.svelte')).default as LazyComponent;
   }
 
   async loadGrpcServiceDefinitionTab() {
@@ -216,6 +226,10 @@ class AppLazyComponents {
       if (state.requestTab === 'events') void this.loadSocketIOEventsTab();
       if (state.requestTab === 'settings') void this.loadSocketIOSettingsTab();
     }
+    if (state.requestType === 'mcp') {
+      void this.loadMcpResponsePanel();
+      if (state.requestTab === 'body') void this.loadMcpCallTab();
+    }
     if (state.requestType === 'grpc') {
       void this.loadGrpcResponsePanel();
       if (state.requestTab === 'body') void this.loadGrpcMessageTab();
@@ -223,7 +237,7 @@ class AppLazyComponents {
       if (state.requestTab === 'service') void this.loadGrpcServiceDefinitionTab();
       if (state.requestTab === 'settings') void this.loadGrpcSettingsTab();
     }
-    if (state.requestType !== 'ws' && state.requestType !== 'socketio' && state.requestType !== 'grpc' && !(state.requestType === 'http' && (state.method === 'SSE' || state.sseSessionVisible))) {
+    if (state.requestType !== 'ws' && state.requestType !== 'socketio' && state.requestType !== 'grpc' && state.requestType !== 'mcp' && !(state.requestType === 'http' && (state.method === 'SSE' || state.sseSessionVisible))) {
       void this.loadResponsePanel();
     }
   }

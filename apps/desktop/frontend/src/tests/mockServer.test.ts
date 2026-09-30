@@ -107,8 +107,6 @@ describe('mockRoutesSignature', () => {
     expect(mockRoutesSignature(before)).not.toBe(mockRoutesSignature(after));
   });
 
-  // Renaming an example changes nothing a client can observe, so it must not
-  // bounce the server.
   it('ignores a rename', () => {
     const before = mockRoutesForCollection([requestWithExamples({ collectionId: 'c' }, [okExample])], 'c');
     const after = mockRoutesForCollection([requestWithExamples({ collectionId: 'c' }, [
@@ -133,8 +131,6 @@ describe('mockRouteConflicts', () => {
     expect(mockRouteConflicts(routes).size).toBe(0);
   });
 
-  // Two examples on the same path are the normal way to serve an empty and a
-  // full case, as long as a recorded query tells them apart.
   it('does not report two examples separated by a query', () => {
     const narrowed = { ...okExample, id: 'ex-2', match: { pathTemplate: '/pets', query: { status: 'archived' } } };
     const routes = mockRoutesForCollection([requestWithExamples({ collectionId: 'c' }, [okExample, narrowed])], 'c');
@@ -158,6 +154,7 @@ function makeHost(overrides: Record<string, unknown> = {}) {
     mockServerLog: [],
     mockServerError: '',
     mockServerRunningSignature: '',
+    mockServerReloadTimer: null,
     requestTab: 'params',
     switchedTo: '',
     selectedExampleId: '',
@@ -243,8 +240,6 @@ describe('mock server feature', () => {
     expect(host.mockServerLog[199].id).toBe('mock-259');
   });
 
-  // A running mock that still serves the examples you edited five minutes ago
-  // is worse than no mock: it answers, and the answer is stale.
   it('notices when the examples it is serving have changed', async () => {
     vi.mocked(backend.startMockServer).mockResolvedValue({
       running: true, port: 3100, url: 'http://127.0.0.1:3100',
@@ -294,6 +289,128 @@ describe('mock server feature', () => {
   it('a stopped server reports no drift', () => {
     const host = makeHost();
     expect(host.mockServerRoutesChanged()).toBe(false);
+  });
+
+  it('notices drift in the collection it is serving while the panel shows another', async () => {
+    vi.mocked(backend.startMockServer).mockResolvedValue({
+      running: true, port: 3100, url: 'http://127.0.0.1:3100',
+      collectionId: 'col-1', collectionName: 'Petstore', routeCount: 1,
+    });
+    const host = makeHost({
+      collections: [{ id: 'col-1', name: 'Petstore' }, { id: 'col-2', name: 'Orders' }],
+    });
+    await host.startMockServerForCollection();
+
+    host.selectMockServerCollection('col-2');
+    host.requests = [requestWithExamples({ collectionId: 'col-1' }, [
+      { ...okExample, response: { ...okExample.response, body: 'changed' } },
+    ])];
+
+    expect(host.mockServerRoutesChanged()).toBe(true);
+  });
+
+  it('reloads the collection it is serving, not the one the panel has selected', async () => {
+    vi.mocked(backend.startMockServer).mockResolvedValue({
+      running: true, port: 3100, url: 'http://127.0.0.1:3100',
+      collectionId: 'col-1', collectionName: 'Petstore', routeCount: 1,
+    });
+    const host = makeHost({
+      collections: [{ id: 'col-1', name: 'Petstore' }, { id: 'col-2', name: 'Orders' }],
+    });
+    await host.startMockServerForCollection();
+
+    host.selectMockServerCollection('col-2');
+    host.requests = [requestWithExamples({ collectionId: 'col-1' }, [
+      { ...okExample, response: { ...okExample.response, body: 'changed' } },
+    ])];
+    vi.mocked(backend.startMockServer).mockClear();
+    await host.reloadMockServerRoutes();
+
+    expect(backend.startMockServer).toHaveBeenCalledWith(expect.objectContaining({ collectionId: 'col-1' }));
+    expect(host.mockServerCollectionId).toBe('col-2');
+    expect(host.mockServerRoutesChanged()).toBe(false);
+  });
+
+  it('debounces a burst of edits into one reload', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.mocked(backend.startMockServer).mockResolvedValue({
+        running: true, port: 3100, url: 'http://127.0.0.1:3100',
+        collectionId: 'col-1', collectionName: 'Petstore', routeCount: 1,
+      });
+      const host = makeHost();
+      await host.startMockServerForCollection();
+      vi.mocked(backend.startMockServer).mockClear();
+
+      for (const body of ['one', 'two', 'three']) {
+        host.requests = [requestWithExamples({ collectionId: 'col-1' }, [
+          { ...okExample, response: { ...okExample.response, body } },
+        ])];
+        host.scheduleMockServerReload();
+      }
+      expect(backend.startMockServer).not.toHaveBeenCalled();
+
+      await vi.runAllTimersAsync();
+      expect(backend.startMockServer).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('schedules nothing when the running examples are untouched', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.mocked(backend.startMockServer).mockResolvedValue({
+        running: true, port: 3100, url: 'http://127.0.0.1:3100',
+        collectionId: 'col-1', collectionName: 'Petstore', routeCount: 1,
+      });
+      const host = makeHost();
+      await host.startMockServerForCollection();
+      vi.mocked(backend.startMockServer).mockClear();
+
+      host.scheduleMockServerReload();
+      expect(host.mockServerReloadTimer).toBeNull();
+      await vi.runAllTimersAsync();
+      expect(backend.startMockServer).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('drops a pending reload when the server is stopped', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.mocked(backend.startMockServer).mockResolvedValue({
+        running: true, port: 3100, url: 'http://127.0.0.1:3100',
+        collectionId: 'col-1', collectionName: 'Petstore', routeCount: 1,
+      });
+      vi.mocked(backend.stopMockServer).mockResolvedValue({ ...EMPTY_MOCK_SERVER_STATUS });
+      const host = makeHost();
+      await host.startMockServerForCollection();
+      host.requests = [requestWithExamples({ collectionId: 'col-1' }, [
+        { ...okExample, response: { ...okExample.response, body: 'changed' } },
+      ])];
+      host.scheduleMockServerReload();
+      vi.mocked(backend.startMockServer).mockClear();
+
+      await host.stopMockServerNow();
+      await vi.runAllTimersAsync();
+
+      expect(backend.startMockServer).not.toHaveBeenCalled();
+      expect(host.mockServerReloadTimer).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('shows the reason a request did not get an example', () => {
+    const host = makeHost();
+    host.recordMockRequest({
+      id: 'm1', method: 'GET', path: '/pets', query: '', matched: false,
+      note: 'refused — served from https://evil.example.com',
+      statusCode: 403, durationMs: 1, timestamp: 1,
+    } as never);
+    expect(host.mockServerLog[0].note).toContain('refused');
   });
 
   it('opens the example behind a route', async () => {

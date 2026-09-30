@@ -78,11 +78,6 @@ describe('requestDirtyFeature', () => {
 });
 
 describe('requestDirtyFingerprint', () => {
-  // The fingerprint is a serialized comparison, and JSON.stringify preserves
-  // insertion order. Two builders that produce the same auth object with its
-  // keys in a different order — which is exactly what the normalizer and the
-  // editor did for oauth2Audience — then disagreed, and every request looked
-  // unsaved the moment it was opened.
   it('ignores the order object keys were built in', () => {
     const base = request();
     const reordered = request({
@@ -99,8 +94,6 @@ describe('requestDirtyFingerprint', () => {
       .not.toBe(requestDirtyFeature.requestDirtyFingerprint.call(null as never, before));
   });
 
-  // Row order is meaningful — ?a=1&a=2 is not ?a=2&a=1 — so arrays must not be
-  // sorted along with the keys.
   it('still notices reordered rows', () => {
     const before = request({ params: [{ id: 1, enabled: true, key: 'a', value: '1', description: '' }, { id: 2, enabled: true, key: 'a', value: '2', description: '' }] });
     const after = request({ params: [{ id: 3, enabled: true, key: 'a', value: '2', description: '' }, { id: 4, enabled: true, key: 'a', value: '1', description: '' }] });

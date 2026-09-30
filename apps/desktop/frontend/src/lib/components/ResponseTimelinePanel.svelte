@@ -45,7 +45,7 @@
       <section class="timeline-section">
         <h4>Timeline</h4>
         <ol class="timeline-events">
-          {#each timeline as event}
+          {#each timeline as event, eachIndex (eachIndex)}
             <li>
               <span class="timeline-at">{formatMs(event.atMs)}</span>
               <span class="timeline-bar-track">
@@ -63,7 +63,7 @@
       <section class="timeline-section">
         <h4>Connection</h4>
         <div class="timeline-facts">
-          {#each connectionRows as [label, value]}
+          {#each connectionRows as [label, value], eachIndex (eachIndex)}
             <div class="timeline-fact">
               <span class="timeline-fact-key">{label}</span>
               <span class="timeline-fact-val">{value}</span>
@@ -73,11 +73,11 @@
       </section>
     {/if}
 
-    {#each sentRequests as sent, index}
+    {#each sentRequests as sent, index (index)}
       <section class="timeline-section">
         <h4>{hopLabel(index, sentRequests.length)}</h4>
         <pre class="timeline-raw">{sent.method} {sent.url} {sent.proto}
-{#each sent.headers as header}{header.key}: {header.value}
+{#each sent.headers as header, eachIndex (eachIndex)}{header.key}: {header.value}
 {/each}</pre>
       </section>
     {/each}

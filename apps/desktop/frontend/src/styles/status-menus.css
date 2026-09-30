@@ -54,7 +54,7 @@
   background: var(--bg);
   position: relative;
   z-index: 45;
-  grid-column: 3;
+  grid-column: 4;
   grid-row: 2;
 }
 
@@ -294,3 +294,139 @@
 .workspace-menu-item:hover .workspace-delete-btn { opacity: 1; }
 
 .workspace-delete-btn:hover { background: rgba(248,113,113,0.15); color: var(--delete); }
+
+.status-bar {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  padding: 0 10px 0 8px;
+  background: var(--surface);
+  color: var(--text-3);
+  font-size: 11.5px;
+}
+
+.storage-status-btn {
+  height: 22px;
+  gap: 6px;
+  padding: 0 6px;
+  border: none;
+  color: var(--text-3);
+}
+
+.storage-status-btn.git {
+  color: var(--text-3);
+}
+
+.storage-status-btn:hover {
+  border: none;
+  background: var(--hover);
+  color: var(--text-2);
+}
+
+.storage-status-btn.active,
+.storage-status-btn.git.active {
+  border: none;
+  background: transparent;
+  color: var(--text);
+}
+
+.storage-status-btn.active .storage-status-main {
+  color: var(--text);
+}
+
+:root[data-platform="darwin"] .status-bar {
+  padding-inline: 12px;
+}
+
+.storage-status-main {
+  color: inherit;
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.storage-status-mode {
+  display: none;
+}
+
+.storage-change-count {
+  display: inline;
+  height: auto;
+  min-width: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-3);
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  font-weight: 400;
+}
+
+.version-pill {
+  height: 22px;
+  padding: 0 6px;
+  border: none;
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  letter-spacing: 0;
+}
+
+.version-pill:hover {
+  border: none;
+}
+
+.layout-btn.active {
+  background: transparent;
+  color: var(--text-2);
+}
+
+.workspace-menu {
+  width: min(380px, calc(100vw - 40px));
+  min-height: 0;
+  border-radius: 9px;
+  background: var(--modal-bg);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28), 0 2px 6px rgba(0, 0, 0, 0.16);
+}
+
+.workspace-menu-top {
+  gap: 6px;
+  padding: 8px;
+}
+
+.workspace-menu-top input {
+  height: 30px;
+  font-size: 13px;
+}
+
+.workspace-menu-top button {
+  height: 30px;
+  padding: 0 12px;
+  background: transparent;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.workspace-menu-limit {
+  min-height: 0;
+  padding: 6px 12px 0;
+  border-bottom: none;
+  font-size: 11.5px;
+  font-weight: 400;
+}
+
+.workspace-menu-list {
+  padding: 4px 5px 6px;
+}
+
+.workspace-menu-item.active {
+  background: var(--elevated);
+}
+
+.workspace-menu-item.active .workspace-lock {
+  color: var(--text);
+}
+
+.workspace-menu-footer {
+  height: 38px;
+  padding: 0 14px;
+  background: transparent;
+  font-size: 13px;
+}

@@ -142,10 +142,9 @@
   }
 
   function toggleRow(key: string) {
-    const next = new Set(expandedIds);
-    if (next.has(key)) next.delete(key);
-    else next.add(key);
-    expandedIds = next;
+    expandedIds = expandedIds.has(key)
+      ? new Set([...expandedIds].filter(item => item !== key))
+      : new Set([...expandedIds, key]);
   }
 
   function renderGrpcBodyHtml(body: string) {
@@ -197,25 +196,6 @@
         {/if}
       </div>
       <div class="status-right">
-        <div class="response-mini-tabs" role="tablist" use:tabListKeyboard>
-          <button role="tab" class:active={vm.grpcResponseTab === 'messages'} aria-selected={vm.grpcResponseTab === 'messages'} aria-controls="grpc-response-messages" tabindex={vm.grpcResponseTab === 'messages' ? 0 : -1} onclick={() => vm.setActiveGrpcResponseTab('messages')} type="button">
-            Messages{#if response.messages?.length}<span class="badge">{response.messages.length}</span>{/if}
-          </button>
-          <button role="tab" class:active={vm.grpcResponseTab === 'metadata'} aria-selected={vm.grpcResponseTab === 'metadata'} aria-controls="grpc-response-metadata" tabindex={vm.grpcResponseTab === 'metadata' ? 0 : -1} onclick={() => vm.setActiveGrpcResponseTab('metadata')} type="button">
-            Metadata{#if response.headers?.length}<span class="badge">{response.headers.length}</span>{/if}
-          </button>
-          <button role="tab" class:active={vm.grpcResponseTab === 'trailers'} aria-selected={vm.grpcResponseTab === 'trailers'} aria-controls="grpc-response-trailers" tabindex={vm.grpcResponseTab === 'trailers' ? 0 : -1} onclick={() => vm.setActiveGrpcResponseTab('trailers')} type="button">
-            Trailers{#if response.trailers?.length}<span class="badge">{response.trailers.length}</span>{/if}
-          </button>
-          {#if hasScripts}
-            <button role="tab" class:active={vm.grpcResponseTab === 'scripts'} class="tab-script" aria-selected={vm.grpcResponseTab === 'scripts'} aria-controls="grpc-response-scripts" tabindex={vm.grpcResponseTab === 'scripts' ? 0 : -1} onclick={() => vm.setActiveGrpcResponseTab('scripts')} type="button">
-              Test results
-              {#if responseTestSummary}
-                <span class="badge" class:badge-pass={responseTestSummary.allPassed} class:badge-fail={!responseTestSummary.allPassed}>{responseTestSummary.passed}/{responseTestSummary.total}</span>
-              {/if}
-            </button>
-          {/if}
-        </div>
         {#if vm.grpcResponseTab === 'messages' && vm.responseSearchOpen}
           <div class="response-search-box">
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
@@ -240,7 +220,7 @@
         {/if}
         <div class="resp-actions">
           {#if vm.grpcResponseTab === 'messages'}
-            <button class="btn-icon" title="Search response" aria-label="Search response" onclick={() => (vm.responseSearchOpen = !vm.responseSearchOpen)} type="button">
+            <button class="btn-icon" title="Search response" aria-label="Search response" aria-pressed={vm.responseSearchOpen} onclick={() => (vm.responseSearchOpen = !vm.responseSearchOpen)} type="button">
               <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
                 <circle cx="5.8" cy="5.8" r="3.8" stroke="currentColor" stroke-width="1.3"/>
                 <path d="M8.7 8.7l2.7 2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
@@ -262,6 +242,25 @@
             {/if}
           </button>
         </div>
+      </div>
+      <div class="response-mini-tabs" role="tablist" use:tabListKeyboard>
+        <button role="tab" class:active={vm.grpcResponseTab === 'messages'} aria-selected={vm.grpcResponseTab === 'messages'} aria-controls="grpc-response-messages" tabindex={vm.grpcResponseTab === 'messages' ? 0 : -1} onclick={() => vm.setActiveGrpcResponseTab('messages')} type="button">
+          Messages{#if response.messages?.length}<span class="badge">{response.messages.length}</span>{/if}
+        </button>
+        <button role="tab" class:active={vm.grpcResponseTab === 'metadata'} aria-selected={vm.grpcResponseTab === 'metadata'} aria-controls="grpc-response-metadata" tabindex={vm.grpcResponseTab === 'metadata' ? 0 : -1} onclick={() => vm.setActiveGrpcResponseTab('metadata')} type="button">
+          Metadata{#if response.headers?.length}<span class="badge">{response.headers.length}</span>{/if}
+        </button>
+        <button role="tab" class:active={vm.grpcResponseTab === 'trailers'} aria-selected={vm.grpcResponseTab === 'trailers'} aria-controls="grpc-response-trailers" tabindex={vm.grpcResponseTab === 'trailers' ? 0 : -1} onclick={() => vm.setActiveGrpcResponseTab('trailers')} type="button">
+          Trailers{#if response.trailers?.length}<span class="badge">{response.trailers.length}</span>{/if}
+        </button>
+        {#if hasScripts}
+          <button role="tab" class:active={vm.grpcResponseTab === 'scripts'} class="tab-script" aria-selected={vm.grpcResponseTab === 'scripts'} aria-controls="grpc-response-scripts" tabindex={vm.grpcResponseTab === 'scripts' ? 0 : -1} onclick={() => vm.setActiveGrpcResponseTab('scripts')} type="button">
+            Test results
+            {#if responseTestSummary}
+              <span class="badge" class:badge-pass={responseTestSummary.allPassed} class:badge-fail={!responseTestSummary.allPassed}>{responseTestSummary.passed}/{responseTestSummary.total}</span>
+            {/if}
+          </button>
+        {/if}
       </div>
     </div>
 
@@ -354,7 +353,7 @@
     {:else if vm.grpcResponseTab === 'metadata'}
       <div class="response-headers-table" id="grpc-response-metadata" role="tabpanel">
         {#if response.headers?.length}
-          {#each response.headers as h}
+          {#each response.headers as h, eachIndex (eachIndex)}
             <div class="resp-header-row">
               <span class="resp-header-key">{h.key}</span>
               <span class="resp-header-val">{h.value}</span>
@@ -370,7 +369,7 @@
     {:else if vm.grpcResponseTab === 'trailers'}
       <div class="response-headers-table" id="grpc-response-trailers" role="tabpanel">
         {#if response.trailers?.length}
-          {#each response.trailers as h}
+          {#each response.trailers as h, eachIndex (eachIndex)}
             <div class="resp-header-row">
               <span class="resp-header-key">{h.key}</span>
               <span class="resp-header-val">{h.value}</span>
@@ -398,7 +397,7 @@
             {#if response.preRequestResult.error}
               <div class="script-error-msg">{response.preRequestResult.error}</div>
             {/if}
-            {#each (response.preRequestResult.logs ?? []) as log}
+            {#each (response.preRequestResult.logs ?? []) as log, eachIndex (eachIndex)}
               <div class="script-log-row"><span class="log-icon">›</span><span class="log-msg">{log}</span></div>
             {/each}
           </div>
@@ -415,7 +414,7 @@
             {#if response.testResult.error}
               <div class="script-error-msg">{response.testResult.error}</div>
             {/if}
-            {#each (response.testResult.tests ?? []) as t}
+            {#each (response.testResult.tests ?? []) as t, eachIndex (eachIndex)}
               <div class="test-row" class:pass={t.passed} class:fail={!t.passed}>
                 <span class="test-icon">
                   {#if t.passed}
@@ -428,7 +427,7 @@
                 {#if t.error}<span class="test-err">{t.error}</span>{/if}
               </div>
             {/each}
-            {#each (response.testResult.logs ?? []) as log}
+            {#each (response.testResult.logs ?? []) as log, eachIndex (eachIndex)}
               <div class="script-log-row"><span class="log-icon">›</span><span class="log-msg">{log}</span></div>
             {/each}
           </div>

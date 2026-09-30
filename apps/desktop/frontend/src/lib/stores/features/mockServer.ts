@@ -5,6 +5,7 @@ import { DEFAULT_MOCK_PORT, mockRoutesForCollection, mockRoutesSignature } from 
 import type { Collection, SavedRequest } from '../../types/models';
 
 const MOCK_MAX_LOG_ENTRIES = 200;
+const MOCK_RELOAD_DEBOUNCE_MS = 400;
 
 type MockServerHost = {
   collections: Collection[];
@@ -18,6 +19,7 @@ type MockServerHost = {
   mockServerLog: MockRequestLog[];
   mockServerError: string;
   mockServerRunningSignature: string;
+  mockServerReloadTimer: ReturnType<typeof setTimeout> | null;
   topView: string;
   activeRequestId: string;
   mockServerTabOpen: boolean;
@@ -28,9 +30,12 @@ type MockServerHost = {
   guardWorkspaceWritable: (action?: string) => boolean;
   openAlertDialog: (title: string, message: string) => Promise<void>;
   mockServerRoutes: () => ReturnType<typeof mockRoutesForCollection>;
+  mockServerRunningRoutes: () => ReturnType<typeof mockRoutesForCollection>;
   mockServerTargetCollectionId: () => string;
   mockServerRoutesChanged: () => boolean;
-  startMockServerForCollection: (options?: { keepLog?: boolean }) => Promise<void>;
+  startMockServerForCollection: (options?: { keepLog?: boolean; collectionId?: string }) => Promise<void>;
+  reloadMockServerRoutes: () => Promise<void>;
+  scheduleMockServerReload: () => void;
   refreshMockServerStatus: () => Promise<void>;
   stopMockServerNow: () => Promise<void>;
 };
@@ -61,6 +66,10 @@ export const mockServerFeature = {
     return mockRoutesForCollection(this.requests, this.mockServerTargetCollectionId());
   },
 
+  mockServerRunningRoutes(this: MockServerHost) {
+    return mockRoutesForCollection(this.requests, this.mockServer.collectionId);
+  },
+
   mockServerRouteCount(this: MockServerHost) {
     return this.mockServerRoutes().length;
   },
@@ -88,37 +97,44 @@ export const mockServerFeature = {
     }
   },
 
-  async startMockServerForCollection(this: MockServerHost, options: { keepLog?: boolean } = {}) {
+  async startMockServerForCollection(this: MockServerHost, options: { keepLog?: boolean; collectionId?: string } = {}) {
     if (this.mockServerBusy) return;
     if (!this.guardWorkspaceWritable('The mock server')) return;
-    const collectionId = this.mockServerTargetCollectionId();
+    const collectionId = options.collectionId || this.mockServerTargetCollectionId();
     if (!collectionId) {
       this.mockServerError = 'Create a collection and capture an example first.';
       return;
     }
+    const reloading = Boolean(options.collectionId);
     const routes = mockRoutesForCollection(this.requests, collectionId);
     const collection = this.collections.find(candidate => candidate.id === collectionId);
     this.mockServerBusy = true;
     this.mockServerError = '';
     try {
       const status = await startMockServer({
-        port: this.mockServerPort || DEFAULT_MOCK_PORT,
+        port: (reloading ? this.mockServer.port : this.mockServerPort) || DEFAULT_MOCK_PORT,
         collectionId,
         collectionName: collection?.name ?? '',
         routes,
         simulateLatency: this.mockServerSimulateLatency,
       });
+      if (reloading && !status.running) {
+        this.mockServerError = status.error ?? '';
+        await this.refreshMockServerStatus();
+        return;
+      }
       this.mockServer = status;
       this.mockServerError = status.error ?? '';
       if (status.running) {
         if (!options.keepLog) this.mockServerLog = [];
-        this.mockServerCollectionId = collectionId;
+        if (!options.collectionId) this.mockServerCollectionId = collectionId;
         this.mockServerPort = status.port;
         this.mockServerRunningSignature = mockRoutesSignature(routes);
       }
     } catch (error) {
-      this.mockServer = EMPTY_MOCK_SERVER_STATUS;
       this.mockServerError = error instanceof Error ? error.message : String(error);
+      if (reloading) await this.refreshMockServerStatus();
+      else this.mockServer = EMPTY_MOCK_SERVER_STATUS;
     } finally {
       this.mockServerBusy = false;
     }
@@ -126,6 +142,10 @@ export const mockServerFeature = {
 
   async stopMockServerNow(this: MockServerHost) {
     if (this.mockServerBusy) return;
+    if (this.mockServerReloadTimer) {
+      clearTimeout(this.mockServerReloadTimer);
+      this.mockServerReloadTimer = null;
+    }
     this.mockServerBusy = true;
     try {
       this.mockServer = await stopMockServer();
@@ -147,20 +167,30 @@ export const mockServerFeature = {
   },
 
   mockServerRoutesChanged(this: MockServerHost) {
-    if (!this.mockServer.running) return false;
-    if (this.mockServer.collectionId !== this.mockServerTargetCollectionId()) return false;
-    return mockRoutesSignature(this.mockServerRoutes()) !== this.mockServerRunningSignature;
+    if (!this.mockServer.running || !this.mockServer.collectionId) return false;
+    return mockRoutesSignature(this.mockServerRunningRoutes()) !== this.mockServerRunningSignature;
   },
 
   async reloadMockServerRoutes(this: MockServerHost) {
-    if (!this.mockServer.running || this.mockServerBusy) return;
+    if (!this.mockServer.running) return;
+    if (this.mockServerBusy) {
+      this.scheduleMockServerReload();
+      return;
+    }
     if (!this.mockServerRoutesChanged()) return;
-    await this.startMockServerForCollection({ keepLog: true });
+    await this.startMockServerForCollection({ keepLog: true, collectionId: this.mockServer.collectionId });
   },
 
-  async restartMockServerWithCurrentExamples(this: MockServerHost) {
-    if (!this.mockServer.running) return;
-    await this.startMockServerForCollection({ keepLog: true });
+  scheduleMockServerReload(this: MockServerHost) {
+    if (this.mockServerReloadTimer) {
+      clearTimeout(this.mockServerReloadTimer);
+      this.mockServerReloadTimer = null;
+    }
+    if (!this.mockServerRoutesChanged()) return;
+    this.mockServerReloadTimer = setTimeout(() => {
+      this.mockServerReloadTimer = null;
+      void this.reloadMockServerRoutes();
+    }, MOCK_RELOAD_DEBOUNCE_MS);
   },
 
   recordMockRequest(this: MockServerHost, entry: MockRequestLog) {

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import MenuIcon from './MenuIcon.svelte';
+  import EnvironmentMatrix from './EnvironmentMatrix.svelte';
   import type { Environment, KVRow } from '../types/models';
 
   let {
@@ -14,6 +16,17 @@
     updateEnvironmentRow,
     removeEnvironmentRow,
     importEnvFromFile,
+    exportEnvironment,
+    environments = [],
+    environmentView = 'single',
+    setEnvironmentView = () => {},
+    openEnvironment = () => {},
+    setMatrixValue = () => {},
+    unsetMatrixValue = () => {},
+    setVariableSecret = () => {},
+    renameVariable = () => '',
+    addVariable = () => {},
+    removeVariable = () => {},
   }: {
     activeEnvironment: Environment | undefined;
     activeEnvironmentId: string;
@@ -27,7 +40,37 @@
     updateEnvironmentRow: (environmentId: string, index: number, patch: Partial<KVRow>) => void;
     removeEnvironmentRow: (environmentId: string, index: number) => void;
     importEnvFromFile: (environmentId: string) => void;
+    exportEnvironment: (environmentId: string) => void;
+    environments?: Environment[];
+    environmentView?: 'single' | 'matrix';
+    setEnvironmentView?: (view: 'single' | 'matrix') => void;
+    openEnvironment?: (environmentId: string) => void;
+    setMatrixValue?: (environmentId: string, key: string, value: string) => void;
+    unsetMatrixValue?: (environmentId: string, key: string) => void;
+    setVariableSecret?: (key: string, secret: boolean) => void;
+    renameVariable?: (from: string, to: string) => string;
+    addVariable?: () => void;
+    removeVariable?: (key: string) => void;
   } = $props();
+
+  let showMatrix = $derived(environmentView === 'matrix' && environments.length > 1);
+  let activeName = $derived(environments.find(environment => environment.id === activeEnvironmentId)?.name ?? '');
+  let workspaceVariableCount = $derived(new Set(environments.flatMap(environment => environment.values.map(row => row.key.trim()).filter(Boolean))).size);
+
+  let moreMenuOpen = $state(false);
+  let variableCount = $derived((activeEnvironment?.values ?? []).filter(row => row.key.trim()).length);
+
+  function closeMoreMenuOnFocusOut(event: FocusEvent) {
+    const current = event.currentTarget;
+    const next = event.relatedTarget;
+    if (!(current instanceof HTMLElement)) return;
+    if (!(next instanceof Node) || !current.contains(next)) moreMenuOpen = false;
+  }
+
+  function runMenuAction(action: () => void) {
+    moreMenuOpen = false;
+    action();
+  }
 
   const ENVIRONMENT_ROW_PAGE_SIZE = 100;
   let valuePage = $state(0);
@@ -71,27 +114,77 @@
 </script>
 
 <section class="environment-workspace">
-  {#if activeEnvironment}
+  {#snippet viewSwitch()}
+    {#if environments.length > 1}
+      <div class="env-view-switch" role="radiogroup" aria-label="Environment view">
+        <button type="button" role="radio" aria-checked={showMatrix} class:active={showMatrix} onclick={() => setEnvironmentView('matrix')}>Matrix</button>
+        <button type="button" role="radio" aria-checked={!showMatrix} class:active={!showMatrix} onclick={() => setEnvironmentView('single')}>Single</button>
+      </div>
+    {/if}
+  {/snippet}
+  {#if showMatrix}
     <div class="environment-workspace-head">
-      <div>
-        <span class="overview-eyebrow">Environment</span>
-        <h1>{activeEnvironment.name}</h1>
-        <p>Use these variables in requests as {'{{variableName}}'}.</p>
+      <div class="environment-title">
+        <h1>Variables</h1>
+        <p>
+          {workspaceVariableCount} {workspaceVariableCount === 1 ? 'variable' : 'variables'} across {environments.length} environments{activeName ? ` · ${activeName} is in use` : ''}
+          {#if environmentSaveState !== 'idle'}
+            <span class="env-save-indicator" class:saved={environmentSaveState === 'saved'} class:dirty={environmentSaveState === 'dirty'}> · {environmentSaveState === 'saving' ? 'Saving…' : environmentSaveState === 'dirty' ? 'Unsaved changes' : 'Saved'}</span>
+          {/if}
+        </p>
       </div>
       <div class="overview-actions">
-        {#if environmentSaveState !== 'idle'}
-          <span class="env-save-indicator" class:saved={environmentSaveState === 'saved'} class:dirty={environmentSaveState === 'dirty'}>{environmentSaveState === 'saving' ? 'Saving changes...' : environmentSaveState === 'dirty' ? 'Unsaved changes' : 'Saved'}</span>
-        {/if}
+        {@render viewSwitch()}
         {#if !autosave}
-          <button class="btn-primary btn-sm" type="button" onclick={saveEnvironment} disabled={environmentSaveState !== 'dirty'}>Save</button>
+          <button class="btn-secondary btn-sm" type="button" onclick={saveEnvironment} disabled={environmentSaveState !== 'dirty'}>Save</button>
         {/if}
-        <button class="btn-secondary btn-sm" type="button" onclick={() => renameEnvironment(activeEnvironment.id)}>Rename</button>
-        <button class="btn-secondary btn-sm" type="button" onclick={() => importEnvFromFile(activeEnvironment.id)} title="Import variables from a .env file">Import .env</button>
-        <button class="btn-secondary btn-sm" type="button" onclick={createEnvironment}>New environment</button>
-        <button class="btn-primary btn-sm" class:feedback-ok={activeEnvironmentId === activeEnvironment.id} type="button" onclick={() => useEnvironment(activeEnvironment.id)}>
-          {activeEnvironmentId === activeEnvironment.id ? 'In use' : 'Use environment'}
-        </button>
-        <button class="btn-secondary btn-sm danger" type="button" onclick={() => deleteEnvironment(activeEnvironment.id)}>Delete</button>
+        <button class="btn-primary btn-sm" type="button" onclick={addVariable}>+ Variable</button>
+      </div>
+    </div>
+    <EnvironmentMatrix
+      {environments}
+      {activeEnvironmentId}
+      onSetValue={setMatrixValue}
+      onUnsetValue={unsetMatrixValue}
+      onSetSecret={setVariableSecret}
+      onRename={renameVariable}
+      onRemove={removeVariable}
+      onOpenEnvironment={(id) => { openEnvironment(id); setEnvironmentView('single'); }}
+    />
+  {:else if activeEnvironment}
+    <div class="environment-workspace-head">
+      <div class="environment-title">
+        <h1>{activeEnvironment.name}</h1>
+        <p>
+          {variableCount} {variableCount === 1 ? 'variable' : 'variables'} · use them in requests as {'{{variableName}}'}
+          {#if environmentSaveState !== 'idle'}
+            <span class="env-save-indicator" class:saved={environmentSaveState === 'saved'} class:dirty={environmentSaveState === 'dirty'}> · {environmentSaveState === 'saving' ? 'Saving…' : environmentSaveState === 'dirty' ? 'Unsaved changes' : 'Saved'}</span>
+          {/if}
+        </p>
+      </div>
+      <div class="overview-actions">
+        {@render viewSwitch()}
+        {#if !autosave}
+          <button class="btn-secondary btn-sm" type="button" onclick={saveEnvironment} disabled={environmentSaveState !== 'dirty'}>Save</button>
+        {/if}
+        {#if activeEnvironmentId === activeEnvironment.id}
+          <button class="env-in-use" type="button" onclick={() => useEnvironment(activeEnvironment.id)} title="This environment's values are applied to requests">In use</button>
+        {:else}
+          <button class="btn-primary btn-sm" type="button" onclick={() => useEnvironment(activeEnvironment.id)}>Use environment</button>
+        {/if}
+        <div class="env-more" onfocusout={closeMoreMenuOnFocusOut}>
+          <button class="env-more-btn" type="button" aria-label="More environment actions" aria-haspopup="menu" aria-expanded={moreMenuOpen} onclick={() => (moreMenuOpen = !moreMenuOpen)}>•••</button>
+          {#if moreMenuOpen}
+            <div class="request-menu env-more-menu" role="menu">
+              <button type="button" role="menuitem" onclick={() => runMenuAction(() => renameEnvironment(activeEnvironment.id))}><MenuIcon name="rename" />Rename</button>
+              <div class="menu-sep" role="separator"></div>
+              <button type="button" role="menuitem" title="Import variables from a .env file" onclick={() => runMenuAction(() => importEnvFromFile(activeEnvironment.id))}><MenuIcon name="import" />Import .env</button>
+              <button type="button" role="menuitem" onclick={() => runMenuAction(() => exportEnvironment(activeEnvironment.id))}><MenuIcon name="export" />Export…</button>
+              <div class="menu-sep" role="separator"></div>
+              <button class="danger" type="button" role="menuitem" onclick={() => runMenuAction(() => deleteEnvironment(activeEnvironment.id))}><MenuIcon name="trash" />Delete</button>
+            </div>
+          {/if}
+        </div>
       </div>
     </div>
     <div class="environment-editor-card">
@@ -108,7 +201,7 @@
         {@const i = item.index}
         <div class="kv-row env-kv-row" data-testid="environment-variable-row" class:inactive-row={!row.enabled && (row.key || row.value || row.description)} title={!row.enabled && (row.key || row.value || row.description) ? 'Disabled variables are not applied to requests' : ''}>
           <input type="checkbox" class="kv-check" checked={row.enabled} onchange={(event) => updateEnvironmentRow(activeEnvironment.id, i, { enabled: inputChecked(event) })} aria-label="Enable variable" disabled={!row.key && !row.value} />
-          <input class="kv-input" value={row.key} placeholder="baseUrl" aria-label="Environment variable key" oninput={(event) => updateEnvironmentRow(activeEnvironment.id, i, { key: inputValue(event) })} spellcheck="false" />
+          <input class="kv-input" value={row.key} placeholder="Add variable" aria-label="Environment variable key" oninput={(event) => updateEnvironmentRow(activeEnvironment.id, i, { key: inputValue(event) })} spellcheck="false" />
           <button
             class="env-type-toggle"
             class:secret={row.secret}
@@ -119,7 +212,7 @@
           >
             {row.secret ? 'Secret' : 'Default'}
           </button>
-          <input class="kv-input" type={row.secret ? 'password' : 'text'} value={row.value} placeholder="https://api.example.com" aria-label="Environment variable value" oninput={(event) => updateEnvironmentRow(activeEnvironment.id, i, { value: inputValue(event) })} spellcheck="false" autocomplete="off" />
+          <input class="kv-input" type={row.secret ? 'password' : 'text'} value={row.value} placeholder="Value" aria-label="Environment variable value" oninput={(event) => updateEnvironmentRow(activeEnvironment.id, i, { value: inputValue(event) })} spellcheck="false" autocomplete="off" />
           <input class="kv-input kv-desc" value={row.description} placeholder="Description" aria-label="Environment variable description" oninput={(event) => updateEnvironmentRow(activeEnvironment.id, i, { description: inputValue(event) })} />
           <button class="kv-del" type="button" onclick={() => removeEnvironmentRow(activeEnvironment.id, i)} aria-label="Remove variable">✕</button>
         </div>

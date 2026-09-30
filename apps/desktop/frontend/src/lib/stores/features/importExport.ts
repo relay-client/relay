@@ -16,9 +16,6 @@ type ImportSource = 'bruno' | 'postman' | 'insomnia' | 'openapi' | 'har' | 'http
 
 type DialogOptionInput = { value: string; label: string; icon?: string; description?: string };
 
-// A spec URL is nearly always https, and pasting one without the scheme is
-// ordinary. The sender would default a bare host to http, which for a public
-// spec is the wrong guess and usually just redirects.
 export function normalizeSpecUrl(raw: string): string {
   const trimmed = raw.trim();
   if (!trimmed) return '';
@@ -30,13 +27,6 @@ function headerValue(headers: Array<{ key: string; value: string }> | undefined,
   return headers?.find(header => header.key.toLowerCase() === name.toLowerCase())?.value ?? '';
 }
 
-/**
- * Fetch a document through the Go sender rather than the WebView. A spec host
- * has no reason to send CORS headers, so `fetch` from the app origin would be
- * blocked for most of them; the sender also brings redirect following, which
- * spec URLs lean on heavily, and the proxy and TLS settings a corporate network
- * needs. Redirects are capped and the response size is bounded by the executor.
- */
 async function fetchImportDocument(url: string): Promise<{ body: string; contentType: string }> {
   const response = await sendHttpRequest({
     ...emptyHttpRequest(),
@@ -58,8 +48,6 @@ async function fetchImportDocument(url: string): Promise<{ body: string; content
     timeoutMs: 30000,
     enableSSLVerification: true,
     encodeUrlAutomatically: true,
-    // A spec is public data; sending the workspace's cookies with it would be
-    // the wrong default for a URL the user only pasted to read once.
     disableCookieJar: true,
   });
   if (response.error && !response.statusCode) throw new Error(response.error);
@@ -176,9 +164,6 @@ export const importExportFeature = {
       this.collectionImportSummary = '';
     } catch (err) {
       this.collectionImportToast = '';
-      // The failures here are things the user can fix — a wrong link, a page
-      // instead of a document, a 404 — so they get a dialog that stays put
-      // rather than a toast that has gone by the time it is read.
       await this.openAlertDialog('Import from URL failed', err instanceof Error ? err.message : String(err));
       return;
     } finally {

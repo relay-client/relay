@@ -10,9 +10,9 @@
   const REALTIME_PAGE_SIZE = 200;
 
   const messageFilterOptions: { value: WSMessageFilter; label: string; icon: string }[] = [
-    { value: 'all', label: 'All Messages', icon: '' },
-    { value: 'sent', label: 'Sent Messages', icon: '↑' },
-    { value: 'received', label: 'Received Messages', icon: '↓' },
+    { value: 'all', label: 'All messages', icon: '' },
+    { value: 'sent', label: 'Sent messages', icon: '↑' },
+    { value: 'received', label: 'Received messages', icon: '↓' },
   ];
 
   let {
@@ -131,10 +131,9 @@
   }
 
   function toggleExpand(id: string) {
-    const next = new Set(expandedIds);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    expandedIds = next;
+    expandedIds = expandedIds.has(id)
+      ? new Set([...expandedIds].filter(item => item !== id))
+      : new Set([...expandedIds, id]);
   }
 
   function closeFilterMenuOnFocusOut(event: FocusEvent) {
@@ -150,7 +149,7 @@
   }
 
   function filterLabel(): string {
-    return messageFilterOptions.find((option) => option.value === messageFilter)?.label ?? 'All Messages';
+    return messageFilterOptions.find((option) => option.value === messageFilter)?.label ?? 'All messages';
   }
 
   function filterEmptyLabel(): string {
@@ -322,7 +321,7 @@
       {#if status === 'connected'}<span class="sse-summary-dot"></span><span>{elapsed}</span>{/if}
       {#if status === 'reconnecting'}<span class="sse-summary-dot"></span><span class="sse-spinner-sm"></span><span>Reconnecting</span>{/if}
       {#if status === 'error' && error}<span class="sse-summary-dot"></span><span class="sse-status-error" title={error}>{friendlyWebSocketError(error)}</span>{/if}
-      {#if status !== 'idle'}<span class="sse-summary-dot"></span>{/if}<span>{messages.length} messages</span>
+      {#if status !== 'idle'}<span class="sse-summary-dot"></span>{/if}<span>{messages.length} {messages.length === 1 ? 'message' : 'messages'}</span>
       <span class="sse-summary-dot"></span><span>{formatSize(streamSize)}</span>
     </div>
     <div class="response-tabs sse-tabs" role="tablist" use:tabListKeyboard>
@@ -372,7 +371,7 @@
         </button>
         {#if filterMenuOpen}
           <div class="ws-filter-list" role="listbox" aria-label="Message filter">
-            {#each messageFilterOptions as option}
+            {#each messageFilterOptions as option, eachIndex (eachIndex)}
               <button
                 class:active={messageFilter === option.value}
                 role="option"
@@ -391,7 +390,7 @@
 
     <div class="resp-actions">
       {#if responseTab === 'messages'}
-        <button class="btn-icon" title="Search response" aria-label="Search response" onclick={() => (searchOpen = !searchOpen)} type="button">
+        <button class="btn-icon" title="Search response" aria-label="Search response" aria-pressed={searchOpen} onclick={() => (searchOpen = !searchOpen)} type="button">
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
             <circle cx="5.8" cy="5.8" r="3.8" stroke="currentColor" stroke-width="1.3"/>
             <path d="M8.7 8.7l2.7 2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
@@ -538,7 +537,7 @@
 
                     {#if message.handshake?.requestHeaders && message.handshake.requestHeaders.length > 0}
                       <div class="rt-detail-section-title">Request Headers</div>
-                      {#each message.handshake.requestHeaders as h}
+                      {#each message.handshake.requestHeaders as h, eachIndex (eachIndex)}
                         <div class="rt-detail-header-row">
                           <span class="rt-detail-hkey">{h.key}</span>
                           <span class="rt-detail-hval">{h.value}</span>
@@ -548,7 +547,7 @@
 
                     {#if message.handshake?.responseHeaders && message.handshake.responseHeaders.length > 0}
                       <div class="rt-detail-section-title">Response Headers</div>
-                      {#each message.handshake.responseHeaders as h}
+                      {#each message.handshake.responseHeaders as h, eachIndex (eachIndex)}
                         <div class="rt-detail-header-row">
                           <span class="rt-detail-hkey">{h.key}</span>
                           <span class="rt-detail-hval">{h.value}</span>
@@ -577,7 +576,7 @@
   {:else}
     <div class="response-headers-table sse-headers-table">
       {#if headers.length}
-        {#each headers as h}
+        {#each headers as h, eachIndex (eachIndex)}
           <div class="resp-header-row">
             <span class="resp-header-key">{h.key}</span>
             <span class="resp-header-val">{h.value}</span>

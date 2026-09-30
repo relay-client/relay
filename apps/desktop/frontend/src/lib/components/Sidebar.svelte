@@ -1,8 +1,8 @@
 <script lang="ts">
   import { SvelteMap } from 'svelte/reactivity';
-  import relayMark from '../assets/relay-mark.png';
   import RequestTypeBadge from './RequestTypeBadge.svelte';
   import SidebarRequestRow from './SidebarRequestRow.svelte';
+  import MenuIcon from './MenuIcon.svelte';
   import { virtualizeRows } from '../sidebarVirtual';
   import { MAX_FOLDER_DEPTH, MAX_FOLDER_REQUESTS } from '../constants';
   import type {
@@ -42,8 +42,8 @@
   const EMPTY_ROW_HEIGHT = 58;
   const FOLDER_EMPTY_ROW_HEIGHT = 124;
   const ONBOARDING_ROW_HEIGHT = 210;
-  const ENVIRONMENT_ROW_HEIGHT = 78;
-  const ENVIRONMENT_NONE_ROW_HEIGHT = 58;
+  const ENVIRONMENT_ROW_HEIGHT = 46;
+  const ENVIRONMENT_NONE_ROW_HEIGHT = 46;
   const PINNED_REQUEST_DEPTH = -1;
   const COLLECTION_CHILD_DEPTH = 0;
   const VIRTUAL_OVERSCAN = 8 * ROW_HEIGHT;
@@ -94,7 +94,8 @@
     clearRequestHistory,
     toggleHistoryDay,
     openHistoryEntry,
-    showHistoryResponse,
+    openHistoryDetail,
+    activeHistoryId = '',
     saveHistoryEntryAsExample,
     historyTitle,
     statusClass,
@@ -109,9 +110,6 @@
     selectEnvironment,
     openEnvironment,
     environmentValueCount,
-    renameEnvironment,
-    deleteEnvironment,
-    exportEnvironmentToPostman,
     openWorkspaceDiagnostic,
     workspaceBlocked = false,
   }: {
@@ -160,7 +158,8 @@
     clearRequestHistory: () => void;
     toggleHistoryDay: (key: string) => void;
     openHistoryEntry: (id: string) => void;
-    showHistoryResponse: (id: string) => void;
+    openHistoryDetail: (id: string) => void;
+    activeHistoryId?: string;
     saveHistoryEntryAsExample: (id: string) => void;
     historyTitle: (entry: RequestHistoryEntry) => string;
     statusClass: (statusCode: number) => string;
@@ -175,9 +174,6 @@
     selectEnvironment: (environmentId: string) => void;
     openEnvironment: (environmentId: string) => void;
     environmentValueCount: (environment: Environment) => number;
-    renameEnvironment: (environmentId: string) => void;
-    deleteEnvironment: (environmentId: string) => void;
-    exportEnvironmentToPostman: (environmentId: string) => void;
     openWorkspaceDiagnostic: (diagnostics: WorkspaceDiagnostic[]) => void;
     workspaceBlocked?: boolean;
   } = $props();
@@ -328,12 +324,48 @@
     return rows;
   }
 
+  type HistoryStatusFilter = 'all' | '2xx' | '3xx' | '4xx' | '5xx';
+  const HISTORY_STATUS_FILTERS: HistoryStatusFilter[] = ['all', '2xx', '3xx', '4xx', '5xx'];
+  let historyQuery = $state('');
+  let historyStatusFilter = $state<HistoryStatusFilter>('all');
+
+  function historyEntryMatches(entry: RequestHistoryEntry): boolean {
+    if (historyStatusFilter !== 'all') {
+      const code = entry.statusCode;
+      if (historyStatusFilter === '2xx' && !(code >= 100 && code < 300)) return false;
+      if (historyStatusFilter === '3xx' && !(code >= 300 && code < 400)) return false;
+      if (historyStatusFilter === '4xx' && !(code >= 400 && code < 500)) return false;
+      if (historyStatusFilter === '5xx' && !(code >= 500)) return false;
+    }
+    const query = historyQuery.trim().toLowerCase();
+    if (!query) return true;
+    return `${entry.request.method} ${entry.request.url} ${entry.request.name}`.toLowerCase().includes(query);
+  }
+
+  function historyPath(entry: RequestHistoryEntry): string {
+    const url = entry.request.url.trim();
+    const withoutVariableHost = url.replace(/^\{\{[^}]+\}\}/, '');
+    if (withoutVariableHost !== url) return withoutVariableHost || url;
+    try {
+      const parsed = new URL(url);
+      return `${parsed.pathname}${parsed.search}` || url;
+    } catch {
+      return url || historyTitle(entry);
+    }
+  }
+
+  function historyTime(entry: RequestHistoryEntry): string {
+    return new Date(entry.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  }
+
   function buildHistoryRows(): HistorySidebarRow[] {
     const rows: HistorySidebarRow[] = [];
     for (const group of historyGroups) {
+      const entries = group.entries.filter(historyEntryMatches);
+      if (!entries.length) continue;
       rows.push({ type: 'day', key: `day:${group.key}`, height: ROW_HEIGHT, group });
       if (!group.collapsed) {
-        for (const entry of group.entries) rows.push({ type: 'entry', key: `history:${entry.id}`, height: ROW_HEIGHT, entry });
+        for (const entry of entries) rows.push({ type: 'entry', key: `history:${entry.id}`, height: ROW_HEIGHT, entry });
       }
     }
     return rows;
@@ -443,30 +475,17 @@
 </script>
 
 <aside class="sidebar" class:workspace-blocked={workspaceBlocked}>
-  <div class="brand titlebar-drag-region">
-    <img class="brand-mark" src={relayMark} width="36" height="36" alt="" />
-    <div class="brand-text">
-      <span class="brand-name">Relay</span>
-    </div>
-  </div>
-
-  <div class="sidebar-nav">
-    <button class="sidebar-nav-item" class:active={sidebarView === 'collections'} type="button" onclick={() => (sidebarView = 'collections')} disabled={workspaceBlocked}>
-      <span class="nav-icon">HTTP</span>
-      Collections
-    </button>
-    <button class="sidebar-nav-item" class:active={sidebarView === 'environments'} type="button" onclick={() => (sidebarView = 'environments')} disabled={workspaceBlocked}>
-      <span class="nav-icon">ENV</span>
-      Environments
-    </button>
-    <button class="sidebar-nav-item" class:active={sidebarView === 'history'} type="button" onclick={() => (sidebarView = 'history')} disabled={workspaceBlocked}>
-      <span class="nav-icon">HIS</span>
-      History
-    </button>
-  </div>
+  <div class="sidebar-titlebar titlebar-drag-region"></div>
 
   {#if sidebarView === 'collections'}
     <div class="collections-panel">
+      <div class="sidebar-search">
+        <svg width="12" height="12" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+          <circle cx="5.8" cy="5.8" r="3.8" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M8.7 8.7l2.7 2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        <input bind:this={sidebarSearchInput} bind:value={sidebarSearch} placeholder="Filter requests" aria-label="Filter requests" spellcheck="false" disabled={workspaceBlocked} />
+      </div>
       <div class="collections-head">
         <span>Collections</span>
         <div class="collections-head-actions">
@@ -475,13 +494,6 @@
           </button>
           <button class="collection-add" type="button" onclick={createCollection} aria-label="New collection" disabled={workspaceBlocked}>+</button>
         </div>
-      </div>
-      <div class="sidebar-search">
-        <svg width="12" height="12" viewBox="0 0 13 13" fill="none" aria-hidden="true">
-          <circle cx="5.8" cy="5.8" r="3.8" stroke="currentColor" stroke-width="1.3"/>
-          <path d="M8.7 8.7l2.7 2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-        </svg>
-        <input bind:this={sidebarSearchInput} bind:value={sidebarSearch} placeholder="Search requests" spellcheck="false" disabled={workspaceBlocked} />
       </div>
       <div class="collection-list" role="list" bind:this={collectionListEl} onscroll={onCollectionScroll}>
         <div class="sidebar-virtual-spacer" style={`height: ${visibleCollectionRows.before}px`}></div>
@@ -547,7 +559,7 @@
               ondrop={(event) => onCollectionDrop(row.group.collection.id, event)}
               ondragend={clearCollectionDragState}
             >
-              <div class="collection-folder">
+              <div class="collection-folder" role="presentation" oncontextmenu={(event) => { if (workspaceBlocked || row.group.collection.isInvalid || event.target instanceof HTMLInputElement) return; event.preventDefault(); toggleCollectionMenu(row.group.collection.id, event); }}>
                 <span class="collection-drag-handle" aria-hidden="true">
                   <svg width="10" height="14" viewBox="0 0 10 14" fill="none">
                     <circle cx="3" cy="3" r="1" fill="currentColor"/>
@@ -603,12 +615,14 @@
                 {/if}
                 {#if !row.group.collection.isInvalid && openCollectionMenuId === row.group.collection.id}
                   <div class="request-menu collection-menu">
-                    <button type="button" onclick={() => createNewRequest(row.group.collection.id)} disabled={workspaceBlocked}>Add request</button>
-                    <button type="button" onclick={() => createFolderInCollection(row.group.collection.id)} disabled={workspaceBlocked}>Add folder</button>
-                    <button type="button" onclick={() => openCollectionSettings(row.group.collection.id)} disabled={workspaceBlocked}>Settings</button>
-                    <button type="button" onclick={() => renameCollection(row.group.collection.id)} disabled={workspaceBlocked}>Rename</button>
-                    <button type="button" onclick={() => exportCollection(row.group.collection.id)} disabled={workspaceBlocked}>Export collection</button>
-                    <button class="danger" type="button" onclick={() => deleteCollection(row.group.collection.id)} disabled={workspaceBlocked}>Delete</button>
+                    <button type="button" onclick={() => createNewRequest(row.group.collection.id)} disabled={workspaceBlocked}><MenuIcon name="request" />Add request</button>
+                    <button type="button" onclick={() => createFolderInCollection(row.group.collection.id)} disabled={workspaceBlocked}><MenuIcon name="folder" />Add folder</button>
+                    <div class="menu-sep" role="separator"></div>
+                    <button type="button" onclick={() => openCollectionSettings(row.group.collection.id)} disabled={workspaceBlocked}><MenuIcon name="settings" />Settings</button>
+                    <button type="button" onclick={() => renameCollection(row.group.collection.id)} disabled={workspaceBlocked}><MenuIcon name="rename" />Rename</button>
+                    <button type="button" onclick={() => exportCollection(row.group.collection.id)} disabled={workspaceBlocked}><MenuIcon name="export" />Export…</button>
+                    <div class="menu-sep" role="separator"></div>
+                    <button class="danger" type="button" onclick={() => deleteCollection(row.group.collection.id)} disabled={workspaceBlocked}><MenuIcon name="trash" />Delete collection</button>
                   </div>
                 {/if}
               </div>
@@ -626,7 +640,7 @@
             </div>
           {:else if row.type === 'folder'}
             <div class="collection-tree-node" style={`--tree-depth: ${row.depth}`}>
-              <div class="collection-subfolder">
+              <div class="collection-subfolder" role="presentation" oncontextmenu={(event) => { if (workspaceBlocked) return; event.preventDefault(); toggleFolderMenu(row.folder.key, event); }}>
                 <button class="subfolder-collapse" type="button" onclick={() => toggleFolderCollapsed(row.collectionId, row.folder.path)} aria-label={row.folder.collapsed ? 'Expand folder' : 'Collapse folder'} disabled={workspaceBlocked}>
                   <svg class:collapsed={row.folder.collapsed} width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
                     <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -643,16 +657,18 @@
                       disabled={workspaceBlocked || !folderCanAcceptRequest(row.folder)}
                       title={folderCanAcceptRequest(row.folder) ? 'Add request' : `Limit: ${MAX_FOLDER_REQUESTS} requests in one folder`}
                       onclick={() => createRequestInFolder(row.collectionId, row.folder.path)}
-                    >Add request</button>
-                    <button type="button" onclick={() => runFolder(row.collectionId, row.folder.path)} disabled={workspaceBlocked}>Run folder</button>
+                    ><MenuIcon name="request" />Add request</button>
                     <button
                       type="button"
                       disabled={workspaceBlocked || !folderCanAcceptSubfolder(row.folder)}
                       title={folderCanAcceptSubfolder(row.folder) ? 'Add subfolder' : `Limit: ${MAX_FOLDER_DEPTH} folder levels`}
                       onclick={() => createSubfolder(row.collectionId, row.folder.path)}
-                    >Add subfolder</button>
-                    <button type="button" onclick={() => renameFolder(row.collectionId, row.folder.path)} disabled={workspaceBlocked}>Rename</button>
-                    <button class="danger" type="button" onclick={() => deleteFolder(row.collectionId, row.folder.path)} disabled={workspaceBlocked}>Delete folder</button>
+                    ><MenuIcon name="folder" />Add subfolder</button>
+                    <div class="menu-sep" role="separator"></div>
+                    <button type="button" onclick={() => runFolder(row.collectionId, row.folder.path)} disabled={workspaceBlocked}><MenuIcon name="play" />Run folder</button>
+                    <button type="button" onclick={() => renameFolder(row.collectionId, row.folder.path)} disabled={workspaceBlocked}><MenuIcon name="rename" />Rename</button>
+                    <div class="menu-sep" role="separator"></div>
+                    <button class="danger" type="button" onclick={() => deleteFolder(row.collectionId, row.folder.path)} disabled={workspaceBlocked}><MenuIcon name="trash" />Delete folder</button>
                   </div>
                 {/if}
               </div>
@@ -681,14 +697,28 @@
   {:else if sidebarView === 'history'}
     <div class="history-panel">
       <div class="history-head">
-        <span>Request History</span>
+        <span>History</span>
         <button class="history-menu-btn" type="button" onclick={toggleHistoryHeaderMenu} aria-label="History menu" disabled={workspaceBlocked}>•••</button>
         {#if historyHeaderMenuOpen}
           <div class="request-menu history-header-menu">
-            <button class="danger" type="button" onclick={clearRequestHistory} disabled={workspaceBlocked}>Clear all</button>
+            <button class="danger" type="button" onclick={clearRequestHistory} disabled={workspaceBlocked}><MenuIcon name="trash" />Clear all</button>
           </div>
         {/if}
       </div>
+      {#if historyGroups.length}
+        <div class="sidebar-search">
+          <svg width="12" height="12" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+            <circle cx="5.8" cy="5.8" r="3.8" stroke="currentColor" stroke-width="1.3"/>
+            <path d="M8.7 8.7l2.7 2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+          <input bind:value={historyQuery} placeholder="Filter by URL or name" aria-label="Filter history" spellcheck="false" />
+        </div>
+        <div class="history-status-filter" role="radiogroup" aria-label="Status">
+          {#each HISTORY_STATUS_FILTERS as filter, eachIndex (eachIndex)}
+            <button type="button" role="radio" aria-checked={historyStatusFilter === filter} class:active={historyStatusFilter === filter} onclick={() => (historyStatusFilter = filter)}>{filter === 'all' ? 'All' : filter}</button>
+          {/each}
+        </div>
+      {/if}
       {#if historyRows.length}
         <div class="history-list" bind:this={historyListEl} onscroll={onHistoryScroll}>
           <div class="sidebar-virtual-spacer" style={`height: ${visibleHistoryRows.before}px`}></div>
@@ -701,13 +731,14 @@
                 <span>{row.group.label}</span>
               </button>
             {:else if row.type === 'entry'}
-              <div class="history-entry">
-                <button class="history-entry-main" type="button" onclick={() => openHistoryEntry(row.entry.id)} title={historyTitle(row.entry)} disabled={workspaceBlocked}>
+              <div class="history-entry" class:active={row.entry.id === activeHistoryId}>
+                <button class="history-entry-main" type="button" onclick={() => openHistoryDetail(row.entry.id)} title={historyTitle(row.entry)} aria-current={row.entry.id === activeHistoryId ? 'page' : undefined} disabled={workspaceBlocked}>
                   <RequestTypeBadge request={row.entry.request} />
-                  <span class="history-url">{historyTitle(row.entry)}</span>
+                  <span class="history-url">{historyPath(row.entry)}</span>
                   {#if row.entry.statusCode}
                     <span class="history-meta {statusClass(row.entry.statusCode)}">{row.entry.statusCode}</span>
                   {/if}
+                  <span class="history-time">{historyTime(row.entry)}</span>
                   {#if row.entry.responseStored}
                     <span class="history-stored" title="Response saved — open the row menu to view it" aria-label="Response saved">&#9673;</span>
                   {/if}
@@ -715,18 +746,17 @@
                 <button class="history-entry-menu-btn" type="button" onclick={(event) => toggleHistoryEntryMenu(row.entry.id, event)} aria-label="History request menu" disabled={workspaceBlocked}>•••</button>
                 {#if openHistoryMenuId === row.entry.id}
                   <div class="request-menu history-entry-menu">
-                    <button type="button" onclick={() => openHistoryEntry(row.entry.id)} disabled={workspaceBlocked}>Open request</button>
-                    {#if row.entry.responseStored}
-                      <button type="button" onclick={() => showHistoryResponse(row.entry.id)}>View response</button>
-                      {#if activeRequestId}
-                        <button type="button" onclick={() => saveHistoryEntryAsExample(row.entry.id)} disabled={workspaceBlocked}>Save as example</button>
-                      {/if}
+                    <button type="button" onclick={() => openHistoryEntry(row.entry.id)} disabled={workspaceBlocked}><MenuIcon name="open" />Open in editor</button>
+                    {#if row.entry.responseStored && activeRequestId}
+                      <button type="button" onclick={() => saveHistoryEntryAsExample(row.entry.id)} disabled={workspaceBlocked}><MenuIcon name="example" />Save as example</button>
                     {/if}
-                    {#each activeWorkspaceCollections() as collection}
-                      <button type="button" onclick={() => saveHistoryEntryToCollection(row.entry.id, collection.id)} disabled={workspaceBlocked}>Save to {collection.name}</button>
+                    <div class="menu-sep" role="separator"></div>
+                    {#each activeWorkspaceCollections() as collection, eachIndex (eachIndex)}
+                      <button type="button" onclick={() => saveHistoryEntryToCollection(row.entry.id, collection.id)} disabled={workspaceBlocked}><MenuIcon name="collection" />Save to {collection.name}</button>
                     {/each}
-                    <button type="button" onclick={() => saveHistoryEntryToNewCollection(row.entry.id)} disabled={workspaceBlocked}>New collection...</button>
-                    <button class="danger" type="button" onclick={() => deleteHistoryEntry(row.entry.id)} disabled={workspaceBlocked}>Delete</button>
+                    <button type="button" onclick={() => saveHistoryEntryToNewCollection(row.entry.id)} disabled={workspaceBlocked}><MenuIcon name="collection-add" />New collection…</button>
+                    <div class="menu-sep" role="separator"></div>
+                    <button class="danger" type="button" onclick={() => deleteHistoryEntry(row.entry.id)} disabled={workspaceBlocked}><MenuIcon name="trash" />Delete</button>
                   </div>
                 {/if}
               </div>
@@ -735,10 +765,17 @@
           <div class="sidebar-virtual-spacer" style={`height: ${visibleHistoryRows.after}px`}></div>
         </div>
       {:else}
+        {#if historyGroups.length}
+          <div class="history-empty">
+            <span>Nothing matches this filter.</span>
+            <button class="btn-secondary btn-sm" type="button" onclick={() => { historyQuery = ''; historyStatusFilter = 'all'; }}>Clear filter</button>
+          </div>
+        {:else}
         <div class="history-empty">
           <span>No request history yet.</span>
           <small>Sent requests will be stored here for 14 days.</small>
         </div>
+        {/if}
       {/if}
     </div>
   {:else}
@@ -748,8 +785,11 @@
         <button class="collection-add" type="button" onclick={createEnvironment} aria-label="New environment" disabled={workspaceBlocked}>+</button>
       </div>
       <button class="environment-globals-item" class:active={topView === 'globals'} type="button" onclick={openGlobals} disabled={workspaceBlocked}>
-        <span>Globals</span>
-        <small>{globalVariableCount} variables · every workspace</small>
+        <span class="environment-dot environment-dot--globals" aria-hidden="true"></span>
+        <span class="environment-item-text">
+          <span>Globals</span>
+          <small>{globalVariableCount} {globalVariableCount === 1 ? 'variable' : 'variables'} · every workspace</small>
+        </span>
       </button>
       {#if activeWorkspaceEnvironments.length}
         <div class="environment-list" bind:this={environmentListEl} onscroll={onEnvironmentScroll}>
@@ -757,20 +797,21 @@
           {#each visibleEnvironmentRows.rows as row (row.key)}
             {#if row.type === 'none'}
               <button class="environment-none-item" class:active={!activeEnvironmentId} type="button" onclick={() => selectEnvironment('')} disabled={workspaceBlocked}>
-                <span>No environment</span>
-                <small>Send requests without variables</small>
+                <span class="environment-dot environment-dot--none" aria-hidden="true"></span>
+                <span class="environment-item-text">
+                  <span>No environment</span>
+                  <small>Send requests without variables</small>
+                </span>
               </button>
             {:else if row.type === 'environment'}
               <div class="environment-item" class:active={row.environment.id === activeEnvironmentId}>
                 <button class="environment-item-main" type="button" onclick={() => openEnvironment(row.environment.id)} disabled={workspaceBlocked}>
-                  <span>{row.environment.name}</span>
-                  <small>{environmentValueCount(row.environment)} variables</small>
+                  <span class="environment-dot" aria-hidden="true"></span>
+                  <span class="environment-item-text">
+                    <span>{row.environment.name}</span>
+                    <small>{row.environment.id === activeEnvironmentId ? 'In use · ' : ''}{environmentValueCount(row.environment)} {environmentValueCount(row.environment) === 1 ? 'variable' : 'variables'}</small>
+                  </span>
                 </button>
-                <div class="environment-item-actions">
-                  <button type="button" onclick={() => renameEnvironment(row.environment.id)} aria-label="Rename environment" disabled={workspaceBlocked}>Rename</button>
-                  <button type="button" onclick={() => exportEnvironmentToPostman(row.environment.id)} aria-label="Export environment" disabled={workspaceBlocked}>Export</button>
-                  <button class="danger" type="button" onclick={() => deleteEnvironment(row.environment.id)} aria-label="Delete environment" disabled={workspaceBlocked}>Delete</button>
-                </div>
               </div>
             {/if}
           {/each}

@@ -1,7 +1,9 @@
 <script lang="ts">
   import type { UpdateInfo } from '../backend';
-  import type { SavedRequest } from '../types/models';
-  import { requestTabLabel } from '../utils';
+  import type { SavedRequest, ShortcutId } from '../types/models';
+  import { requestSupportsCurl, requestTabLabel } from '../utils';
+  import { buildPaletteCommands } from '../commandPalette';
+  import { shortcutComboLabel } from '../stores/features/preferences';
   import { vm } from '../stores/app.svelte';
   import { appLazyComponents as lazy } from '../stores/lazyComponents.svelte';
   import AppDialog from './AppDialog.svelte';
@@ -31,6 +33,36 @@
     whatsNewAvailable,
     onShowWhatsNew,
   }: Props = $props();
+
+  let paletteCommands = $derived(vm.globalSearchOpen ? buildPaletteCommands({
+    hasActiveRequest: vm.topView === 'request' && Boolean(vm.activeRequest),
+    canCopyCurl: Boolean(vm.activeRequest && requestSupportsCurl(vm.activeRequest)),
+    autosave: vm.autosave,
+    codePanelAvailable: vm.codePanelAvailable,
+    codePanelOpen: vm.codePanelOpen,
+    sidebarHidden: vm.sidebarHidden,
+    responseLayout: vm.responseLayout,
+    themeMode: vm.appTheme.mode,
+    whatsNewAvailable,
+    showSidebarView: (view) => {
+      vm.sidebarView = view;
+      vm.sidebarHidden = false;
+    },
+    openGlobals: () => vm.openGlobals(),
+    openCollectionRunner: () => vm.openCollectionRunner(),
+    openMockServer: () => vm.openMockServerTab(),
+    openGit: () => vm.openGitTab(),
+    openCookies: () => vm.openCookieJar(),
+    openSettings: (tab) => vm.openSettings(tab),
+    runShortcut: (id) => vm.runShortcut(id),
+    createCollection: () => vm.createCollection(),
+    createEnvironment: () => vm.createEnvironment(),
+    importCollection: vm.openPostmanImport,
+    copyCurl: () => vm.copyRequestCurl(vm.activeRequestId),
+    setResponseLayout: (layout) => vm.setResponseLayout(layout),
+    setThemeMode: (mode) => vm.setThemeMode(mode),
+    showWhatsNew: onShowWhatsNew,
+  }) : []);
 </script>
 
 {#if vm.missingSecrets.length}
@@ -93,6 +125,8 @@
     <lazy.GlobalSearchModalComponent
       bind:query={vm.globalSearchQuery}
       results={vm.globalSearchResults}
+      commands={paletteCommands}
+      shortcutLabel={(id: ShortcutId) => shortcutComboLabel(vm.shortcutCombo(id), appRuntime)}
       activeRequestId={vm.activeRequestId}
       {requestTabLabel}
       collectionLabel={(request: SavedRequest) => vm.collectionNameById(request.collectionId) || request.collection}

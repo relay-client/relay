@@ -26,7 +26,6 @@ function makeHost(rows: KVRow[] = []) {
     persistRequestStore: vi.fn().mockResolvedValue(true),
     guardWorkspaceWritable: () => true,
     ...globalsFeature,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
 }
 

@@ -25,7 +25,7 @@ export default [
       globals: { ...globals.browser, ...globals.node },
     },
     rules: {
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
@@ -48,6 +48,13 @@ export default [
   },
 
   {
+    files: ['apps/desktop/frontend/src/tests/**', 'apps/desktop/frontend/e2e/**'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+
+  {
     files: ['apps/desktop/frontend/src/lib/stores/**'],
     rules: {
       '@typescript-eslint/no-unused-expressions': 'off',
@@ -62,8 +69,8 @@ export default [
     },
     rules: {
       '@typescript-eslint/no-unused-expressions': 'off',
-      'svelte/require-each-key': 'warn',
-      'svelte/prefer-svelte-reactivity': 'warn',
+      'svelte/require-each-key': 'error',
+      'svelte/prefer-svelte-reactivity': 'error',
     },
   },
 ];

@@ -29,6 +29,15 @@
   } = $props();
 
   let richSelect = $derived(dialog.mode === 'select' && Boolean(dialog.options?.some(option => option.icon || option.description)));
+
+  const KIND_LABELS: Record<string, string> = {
+    http: 'HTTP',
+    graphql: 'GQL',
+    ws: 'WS',
+    sio: 'SIO',
+    grpc: 'gRPC',
+    mcp: 'MCP',
+  };
 </script>
 
 <div class="dialog-backdrop" role="presentation" onmousedown={(event) => event.target === event.currentTarget && onDismiss()}>
@@ -52,7 +61,7 @@
     {#if dialog.mode === 'select' && dialog.options}
       {#if richSelect}
         <div class="dialog-choice-grid" role="radiogroup" aria-label={dialog.title}>
-          {#each dialog.options as opt}
+          {#each dialog.options as opt, eachIndex (eachIndex)}
             <button
               class="dialog-choice-card"
               class:active={inputValue === opt.value}
@@ -64,6 +73,9 @@
               disabled={opt.disabled}
               onclick={() => onChooseOption(opt.value)}
             >
+              {#if opt.icon && KIND_LABELS[opt.icon]}
+                <span class="dialog-choice-kind" class:protocol={opt.icon !== 'http'} aria-hidden="true">{KIND_LABELS[opt.icon]}</span>
+              {:else}
               <span
                 class="dialog-choice-icon"
                 class:http={opt.icon === 'http' || opt.icon === 'postman'}
@@ -72,6 +84,7 @@
                 class:ws={opt.icon === 'ws' || opt.icon === 'har'}
                 class:sio={opt.icon === 'sio' || opt.icon === 'insomnia'}
                 class:grpc={opt.icon === 'grpc'}
+                class:mcp={opt.icon === 'mcp'}
                 class:bruno={opt.icon === 'bruno'}
                 aria-hidden="true"
               >
@@ -136,12 +149,19 @@
                     <circle cx="7.3" cy="5.2" r="1.35" fill="currentColor"/>
                     <circle cx="10.7" cy="12.8" r="1.35" fill="currentColor"/>
                   </svg>
+                {:else if opt.icon === 'mcp'}
+                  <svg width="22" height="22" viewBox="0 0 18 18" fill="none">
+                    <path d="M2.8 12.4l5-5a1.9 1.9 0 012.7 0 1.9 1.9 0 010 2.7l-3.1 3.1" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M7.5 7.4a1.9 1.9 0 012.7 0l2.3 2.3" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M10.2 4.7a1.9 1.9 0 012.7 0l2.3 2.3a1.9 1.9 0 010 2.7l-3.6 3.6" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
                 {:else}
                   <svg width="22" height="22" viewBox="0 0 18 18" fill="none">
                     <path d="M3.2 5.8h9.6M10.4 3.5l2.4 2.3-2.4 2.3M14.8 12.2H5.2M7.6 9.9l-2.4 2.3 2.4 2.3" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 {/if}
               </span>
+              {/if}
               <span class="dialog-choice-copy">
                 <strong>{opt.label}</strong>
                 {#if opt.description}<small>{opt.description}</small>{/if}
@@ -167,7 +187,7 @@
           </button>
           {#if selectOpen}
             <div class="dialog-select-menu" role="listbox">
-              {#each dialog.options as opt}
+              {#each dialog.options as opt, eachIndex (eachIndex)}
                 <button
                   class:active={inputValue === opt.value}
                   class:disabled={opt.disabled}

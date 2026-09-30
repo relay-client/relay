@@ -78,7 +78,7 @@
     </span>
 
     <span class="rt-rows">
-      {#each rows as row}
+      {#each rows as row, eachIndex (eachIndex)}
         <span class="rt-row">
           <span class="rt-label">{row.label}</span>
           <span class="rt-track">

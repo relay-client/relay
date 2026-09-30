@@ -149,34 +149,6 @@
         {/if}
       </div>
       <div class="status-right">
-        <div class="response-mini-tabs" role="tablist" use:tabListKeyboard>
-          <button role="tab" class:active={responseTab === 'body'} aria-selected={responseTab === 'body'} aria-controls="response-panel-body" tabindex={responseTab === 'body' ? 0 : -1} onclick={() => setResponseTab('body')} type="button">Body</button>
-          {#if responsePreview.kind !== 'none'}
-            <button role="tab" class:active={responseTab === 'preview'} aria-selected={responseTab === 'preview'} aria-controls="response-panel-preview" tabindex={responseTab === 'preview' ? 0 : -1} onclick={() => setResponseTab('preview')} type="button">Preview</button>
-          {/if}
-          <button role="tab" class:active={responseTab === 'headers'} aria-selected={responseTab === 'headers'} aria-controls="response-panel-headers" tabindex={responseTab === 'headers' ? 0 : -1} onclick={() => setResponseTab('headers')} type="button">
-            Headers{#if response.headers?.length}<span class="badge">{response.headers.length}</span>{/if}
-          </button>
-          {#if diffBaselineOptions.length}
-            <button role="tab" class:active={responseTab === 'diff'} aria-selected={responseTab === 'diff'} aria-controls="response-panel-diff" tabindex={responseTab === 'diff' ? 0 : -1} onclick={() => setResponseTab('diff')} type="button">
-              Diff
-              {#if responseDiffSummary && !responseDiffSummary.identical}
-                <span class="badge badge-fail">{responseDiffSummary.added + responseDiffSummary.removed}</span>
-              {/if}
-            </button>
-          {/if}
-          {#if response.timeline?.length || response.sentRequests?.length}
-            <button role="tab" class:active={responseTab === 'timeline'} aria-selected={responseTab === 'timeline'} aria-controls="response-panel-timeline" tabindex={responseTab === 'timeline' ? 0 : -1} onclick={() => setResponseTab('timeline')} type="button">Timeline</button>
-          {/if}
-          {#if response.testResult?.tests?.length || response.preRequestResult?.logs?.length || response.testResult?.logs?.length || response.preRequestResult?.error || response.testResult?.error}
-            <button role="tab" class:active={responseTab === 'test-results'} class="tab-script" aria-selected={responseTab === 'test-results'} aria-controls="response-panel-scripts" tabindex={responseTab === 'test-results' ? 0 : -1} onclick={() => setResponseTab('test-results')} type="button">
-              Scripts
-              {#if responseTestSummary}
-                <span class="badge" class:badge-pass={responseTestSummary.allPassed} class:badge-fail={!responseTestSummary.allPassed}>{responseTestSummary.passed}/{responseTestSummary.total}</span>
-              {/if}
-            </button>
-          {/if}
-        </div>
         {#if responseSearchOpen}
           <div class="response-search-box">
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
@@ -201,7 +173,7 @@
           </div>
         {/if}
         <div class="resp-actions">
-          <button class="btn-icon" title="Search response" aria-label="Search response" onclick={toggleResponseSearch} type="button">
+          <button class="btn-icon" title="Search response" aria-label="Search response" aria-pressed={responseSearchOpen} onclick={toggleResponseSearch} type="button">
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
               <circle cx="5.8" cy="5.8" r="3.8" stroke="currentColor" stroke-width="1.3"/>
               <path d="M8.7 8.7l2.7 2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
@@ -236,11 +208,39 @@
           </button>
         </div>
       </div>
+      <div class="response-mini-tabs" role="tablist" use:tabListKeyboard>
+        <button role="tab" class:active={responseTab === 'body'} aria-selected={responseTab === 'body'} aria-controls="response-panel-body" tabindex={responseTab === 'body' ? 0 : -1} onclick={() => setResponseTab('body')} type="button">Body</button>
+        {#if responsePreview.kind !== 'none'}
+          <button role="tab" class:active={responseTab === 'preview'} aria-selected={responseTab === 'preview'} aria-controls="response-panel-preview" tabindex={responseTab === 'preview' ? 0 : -1} onclick={() => setResponseTab('preview')} type="button">Preview</button>
+        {/if}
+        <button role="tab" class:active={responseTab === 'headers'} aria-selected={responseTab === 'headers'} aria-controls="response-panel-headers" tabindex={responseTab === 'headers' ? 0 : -1} onclick={() => setResponseTab('headers')} type="button">
+          Headers{#if response.headers?.length}<span class="badge">{response.headers.length}</span>{/if}
+        </button>
+        {#if diffBaselineOptions.length}
+          <button role="tab" class:active={responseTab === 'diff'} aria-selected={responseTab === 'diff'} aria-controls="response-panel-diff" tabindex={responseTab === 'diff' ? 0 : -1} onclick={() => setResponseTab('diff')} type="button">
+            Diff
+            {#if responseDiffSummary && !responseDiffSummary.identical}
+              <span class="badge badge-fail">{responseDiffSummary.added + responseDiffSummary.removed}</span>
+            {/if}
+          </button>
+        {/if}
+        {#if response.timeline?.length || response.sentRequests?.length}
+          <button role="tab" class:active={responseTab === 'timeline'} aria-selected={responseTab === 'timeline'} aria-controls="response-panel-timeline" tabindex={responseTab === 'timeline' ? 0 : -1} onclick={() => setResponseTab('timeline')} type="button">Timeline</button>
+        {/if}
+        {#if response.testResult?.tests?.length || response.preRequestResult?.logs?.length || response.testResult?.logs?.length || response.preRequestResult?.error || response.testResult?.error}
+          <button role="tab" class:active={responseTab === 'test-results'} class="tab-script" aria-selected={responseTab === 'test-results'} aria-controls="response-panel-scripts" tabindex={responseTab === 'test-results' ? 0 : -1} onclick={() => setResponseTab('test-results')} type="button">
+            Scripts
+            {#if responseTestSummary}
+              <span class="badge" class:badge-pass={responseTestSummary.allPassed} class:badge-fail={!responseTestSummary.allPassed}>{responseTestSummary.passed}/{responseTestSummary.total}</span>
+            {/if}
+          </button>
+        {/if}
+      </div>
     </div>
 
       {#if responseTab === 'body'}
         <div class="response-tab-panel" id="response-panel-body" role="tabpanel">
-        {#each response.warnings ?? [] as warning}
+        {#each response.warnings ?? [] as warning, eachIndex (eachIndex)}
           <div class="response-warning" role="status">{warning}</div>
         {/each}
         {#if response.error}
@@ -290,7 +290,7 @@
 
     {:else if responseTab === 'headers'}
       <div class="response-headers-table" id="response-panel-headers" role="tabpanel">
-        {#each (response.headers ?? []) as h}
+        {#each (response.headers ?? []) as h, eachIndex (eachIndex)}
           <div class="resp-header-row">
             <span class="resp-header-key">{h.key}</span>
             <span class="resp-header-val">{h.value}</span>
@@ -336,7 +336,7 @@
             {#if response.preRequestResult.error}
               <div class="script-error-msg">{response.preRequestResult.error}</div>
             {/if}
-            {#each (response.preRequestResult.logs ?? []) as log}
+            {#each (response.preRequestResult.logs ?? []) as log, eachIndex (eachIndex)}
               <div class="script-log-row"><span class="log-icon">›</span><span class="log-msg">{log}</span></div>
             {/each}
           </div>
@@ -354,7 +354,7 @@
             {#if response.testResult.error}
               <div class="script-error-msg">{response.testResult.error}</div>
             {/if}
-            {#each (response.testResult.tests ?? []) as t}
+            {#each (response.testResult.tests ?? []) as t, eachIndex (eachIndex)}
               <div class="test-row" class:pass={t.passed} class:fail={!t.passed}>
                 <span class="test-icon">
                   {#if t.passed}
@@ -367,7 +367,7 @@
                 {#if t.error}<span class="test-err">{t.error}</span>{/if}
               </div>
             {/each}
-            {#each (response.testResult.logs ?? []) as log}
+            {#each (response.testResult.logs ?? []) as log, eachIndex (eachIndex)}
               <div class="script-log-row"><span class="log-icon">›</span><span class="log-msg">{log}</span></div>
             {/each}
           </div>

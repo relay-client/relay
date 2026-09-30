@@ -9,12 +9,14 @@
     LIGHT_THEME_VARIANTS,
     type AppTheme,
     type AppThemeMode,
-    type ThemeVariant,
     type ThemeVariantId,
   } from '../theme';
   import { checkForUpdate, applyUpdate, restartApp, getAppInfo, diagnosticsReport, openLogFolder } from '../backend';
   import { clipboardCopy } from '../utils';
   import { cleanReleaseNotes } from '../releaseNotes';
+  import ReleaseNotes from './ReleaseNotes.svelte';
+  import ThemePreview from './ThemePreview.svelte';
+  import relayMark from '../assets/relay-mark.png';
   import { friendlyUpdateError } from '../updateErrors';
   import { shortcutComboLabel } from '../stores/features/preferences';
 
@@ -368,7 +370,7 @@
   const PROXY_MODES: { value: ProxyMode; label: string }[] = [
     { value: 'off', label: 'Off' },
     { value: 'on', label: 'On' },
-    { value: 'system', label: 'System Proxy' },
+    { value: 'system', label: 'System proxy' },
   ];
   const PROXY_PROTOCOLS: ProxyProtocol[] = ['http', 'https', 'socks5'];
 
@@ -382,18 +384,6 @@
     const raw = inputValue(event);
     const value = Number(raw);
     updateProxy({ port: Number.isFinite(value) && value > 0 ? Math.floor(value) : 0 });
-  }
-
-  function themePreviewStyle(variant: ThemeVariant): string {
-    const { background, surface, rail, border, accent, text } = variant.preview;
-    return [
-      `--theme-card-bg: ${background}`,
-      `--theme-card-surface: ${surface}`,
-      `--theme-card-rail: ${rail}`,
-      `--theme-card-border: ${border}`,
-      `--theme-card-accent: ${accent}`,
-      `--theme-card-text: ${text}`,
-    ].join('; ');
   }
 
 </script>
@@ -436,13 +426,14 @@
             >
               {#if item.id === 'general'}
                 <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
-                  <circle cx="7.5" cy="7.5" r="2.2" stroke="currentColor" stroke-width="1.3"/>
-                  <path d="M7.5 1.5v1.2M7.5 12.3v1.2M1.5 7.5h1.2M12.3 7.5h1.2M3.4 3.4l.85.85M10.75 10.75l.85.85M3.4 11.6l.85-.85M10.75 4.25l.85-.85" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                  <path d="M2 4.5h5.2M10.8 4.5H13M2 10.5h2.2M7.8 10.5H13" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                  <circle cx="9" cy="4.5" r="1.8" stroke="currentColor" stroke-width="1.3"/>
+                  <circle cx="6" cy="10.5" r="1.8" stroke="currentColor" stroke-width="1.3"/>
                 </svg>
               {:else if item.id === 'theme'}
                 <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
-                  <circle cx="7.5" cy="7.5" r="2.5" stroke="currentColor" stroke-width="1.3"/>
-                  <path d="M7.5 1.5v1.5M7.5 12v1.5M1.5 7.5H3M12 7.5h1.5M3.2 3.2l1.1 1.1M10.7 10.7l1.1 1.1M3.2 11.8l1.1-1.1M10.7 4.3l1.1-1.1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                  <circle cx="7.5" cy="7.5" r="5.8" stroke="currentColor" stroke-width="1.3"/>
+                  <path d="M7.5 1.7a5.8 5.8 0 010 11.6V1.7z" fill="currentColor"/>
                 </svg>
               {:else if item.id === 'proxy'}
                 <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
@@ -493,10 +484,10 @@
             <button class="btn-secondary btn-sm" type="button" onclick={resetAllShortcuts}>Reset all</button>
           </div>
           <div class="shortcut-list">
-            {#each shortcutGroups() as group}
+            {#each shortcutGroups() as group, eachIndex (eachIndex)}
               <div class="shortcut-group">
                 <h3>{group.name}</h3>
-                {#each group.items as shortcut}
+                {#each group.items as shortcut, eachIndex (eachIndex)}
                   <div class="shortcut-row" class:editing={shortcutEditingId === shortcut.id}>
                     <span>{shortcut.label}</span>
                     <div class="shortcut-controls">
@@ -504,7 +495,7 @@
                         {#if shortcutEditingId === shortcut.id}
                           <span class="shortcut-recording">Recording...</span>
                         {:else}
-                          {#each shortcutKeycaps(shortcutCombo(shortcut.id)) as keycap}
+                          {#each shortcutKeycaps(shortcutCombo(shortcut.id)) as keycap, eachIndex (eachIndex)}
                             <kbd>{keycap}</kbd>
                           {/each}
                         {/if}
@@ -547,28 +538,15 @@
           <div class="theme-section">
             <p class="settings-section-label">Light theme</p>
             <div class="theme-variant-grid">
-              {#each LIGHT_THEME_VARIANTS as variant}
+              {#each LIGHT_THEME_VARIANTS as variant, eachIndex (eachIndex)}
                 <button
                   class="theme-variant-card"
                   class:active={appTheme.light === variant.id}
                   type="button"
                   onclick={() => setThemeVariant(variant.id)}
                 >
-                  <div class="theme-card-preview" style={themePreviewStyle(variant)} aria-hidden="true">
-                    <span class="tcp-rail">
-                      <span class="tcp-rail-dot"></span>
-                      <span class="tcp-rail-bar"></span>
-                      <span class="tcp-rail-bar"></span>
-                    </span>
-                    <span class="tcp-main">
-                      <span class="tcp-bar">
-                        <span class="tcp-chip"></span>
-                        <span class="tcp-url"></span>
-                      </span>
-                      <span class="tcp-line wide"></span>
-                      <span class="tcp-line"></span>
-                      <span class="tcp-line short"></span>
-                    </span>
+                  <div class="theme-card-preview" aria-hidden="true">
+                    <ThemePreview variant={variant.id} />
                   </div>
                   <span class="theme-variant-name">{variant.name}</span>
                   <span class="theme-card-check" aria-hidden="true">
@@ -584,28 +562,15 @@
           <div class="theme-section">
             <p class="settings-section-label">Dark theme</p>
             <div class="theme-variant-grid">
-              {#each DARK_THEME_VARIANTS as variant}
+              {#each DARK_THEME_VARIANTS as variant, eachIndex (eachIndex)}
                 <button
                   class="theme-variant-card"
                   class:active={appTheme.dark === variant.id}
                   type="button"
                   onclick={() => setThemeVariant(variant.id)}
                 >
-                  <div class="theme-card-preview" style={themePreviewStyle(variant)} aria-hidden="true">
-                    <span class="tcp-rail">
-                      <span class="tcp-rail-dot"></span>
-                      <span class="tcp-rail-bar"></span>
-                      <span class="tcp-rail-bar"></span>
-                    </span>
-                    <span class="tcp-main">
-                      <span class="tcp-bar">
-                        <span class="tcp-chip"></span>
-                        <span class="tcp-url"></span>
-                      </span>
-                      <span class="tcp-line wide"></span>
-                      <span class="tcp-line"></span>
-                      <span class="tcp-line short"></span>
-                    </span>
+                  <div class="theme-card-preview" aria-hidden="true">
+                    <ThemePreview variant={variant.id} />
                   </div>
                   <span class="theme-variant-name">{variant.name}</span>
                   <span class="theme-card-check" aria-hidden="true">
@@ -629,7 +594,7 @@
             <div class="proxy-row">
               <span class="proxy-label">Mode</span>
               <div class="proxy-radio-group" role="radiogroup" aria-label="Proxy mode">
-                {#each PROXY_MODES as option}
+                {#each PROXY_MODES as option, eachIndex (eachIndex)}
                   <label class="proxy-radio">
                     <input type="radio" name="proxy-mode" value={option.value} checked={proxyConfig.mode === option.value} onchange={() => updateProxy({ mode: option.value })} />
                     <span>{option.label}</span>
@@ -641,7 +606,7 @@
             <div class="proxy-row" class:proxy-disabled={proxyConfig.mode !== 'on'}>
               <span class="proxy-label">Protocol</span>
               <div class="proxy-radio-group" role="radiogroup" aria-label="Proxy protocol">
-                {#each PROXY_PROTOCOLS as protocol}
+                {#each PROXY_PROTOCOLS as protocol, eachIndex (eachIndex)}
                   <label class="proxy-radio">
                     <input type="radio" name="proxy-protocol" value={protocol} checked={proxyConfig.protocol === protocol} disabled={proxyConfig.mode !== 'on'} onchange={() => updateProxy({ protocol })} />
                     <span>{protocol.toUpperCase()}</span>
@@ -694,7 +659,7 @@
             {/if}
 
             <div class="proxy-row" class:proxy-disabled={proxyConfig.mode !== 'on'}>
-              <label class="proxy-label" for="proxy-bypass">Proxy Bypass</label>
+              <label class="proxy-label" for="proxy-bypass">Proxy bypass</label>
               <input id="proxy-bypass" class="proxy-input" type="text" spellcheck="false" autocomplete="off" placeholder="localhost, 127.0.0.1, .internal" value={proxyConfig.bypass} disabled={proxyConfig.mode !== 'on'} oninput={(event) => updateProxy({ bypass: inputValue(event) })} />
             </div>
           </div>
@@ -703,93 +668,63 @@
 
       {#if settingsTab === 'updates'}
         <div class="settings-body updates-tab" id="settings-panel-updates" role="tabpanel">
-          <div class="updates-current">
-            <p class="settings-section-label">Current version</p>
-            <span class="updates-version-badge">{currentVersion || '…'}</span>
-            {#if isDevBuild}<span class="updates-dev-tag">dev build</span>{/if}
-          </div>
-
-          {#if isDevBuild}
-            <div class="updates-dev-notice">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M8 1.5l6.5 11h-13l6.5-11z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
-                <path d="M8 6v4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-                <circle cx="8" cy="11.6" r="0.75" fill="currentColor"/>
-              </svg>
-              <div>
-                <strong>Updates aren't available in development builds.</strong>
-                <p>You're running Relay from a local <code>make dev</code> / <code>go run</code> build. To receive auto-updates, install a release build from the <a href="https://github.com/relay-client/relay/releases/latest" onclick={(e) => { e.preventDefault(); openExternalURL('https://github.com/relay-client/relay/releases/latest'); }}>releases page</a>.</p>
-              </div>
-            </div>
-          {:else}
-          <div class="updates-status">
-            {#if updateState === 'idle'}
-              <button class="btn-secondary btn-sm" type="button" onclick={handleCheck}>
-                Check for updates
-              </button>
-
-            {:else if updateState === 'checking'}
-              <div class="updates-row">
-                <span class="updates-spinner" aria-hidden="true"></span>
-                <span class="updates-label">Checking…</span>
-              </div>
-
-            {:else if updateState === 'up-to-date'}
-              <div class="updates-row">
-                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true" class="updates-ok-icon">
-                  <circle cx="7.5" cy="7.5" r="6.5" stroke="currentColor" stroke-width="1.3"/>
-                  <path d="M4.5 7.5l2 2 4-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <span class="updates-label">You're on the latest version</span>
-                <button class="btn-secondary btn-sm" type="button" onclick={handleCheck}>Check again</button>
-              </div>
-
-            {:else if updateState === 'available' && updateInfo}
-              <div class="updates-available">
-                <div class="updates-available-head">
-                  <span class="updates-new-badge">v{updateInfo.version}</span>
-                  {#if updateInfo.publishedAt}
-                    <span class="updates-date">{formatDate(updateInfo.publishedAt)}</span>
-                  {/if}
-                  <button class="btn-secondary btn-sm" type="button" onclick={handleInstall}>
-                    Install update
-                  </button>
-                </div>
-                {#if cleanReleaseNotes(updateInfo.releaseNotes)}
-                  <div class="updates-notes">
-                    <p class="settings-section-label">What's new</p>
-                    <pre class="updates-notes-text">{cleanReleaseNotes(updateInfo.releaseNotes)}</pre>
-                  </div>
-                {/if}
-              </div>
-
-            {:else if updateState === 'installing'}
-              <div class="updates-row">
-                <span class="updates-spinner" aria-hidden="true"></span>
-                <span class="updates-label">Downloading and installing…</span>
-              </div>
-
-            {:else if updateState === 'ready'}
-              <div class="updates-ready">
-                <div class="updates-row">
-                  <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true" class="updates-ok-icon">
+          <div class="updates-summary">
+            <div class="updates-summary-copy">
+              <strong>Relay {currentVersion || '…'}</strong>
+              {#if isDevBuild}
+                <span>Development build</span>
+              {:else if updateState === 'idle'}
+                <span>Relay checks for updates in the background.</span>
+              {:else if updateState === 'checking'}
+                <span class="updates-inline"><span class="updates-spinner" aria-hidden="true"></span>Checking for updates…</span>
+              {:else if updateState === 'up-to-date'}
+                <span class="updates-inline">
+                  <svg width="13" height="13" viewBox="0 0 15 15" fill="none" aria-hidden="true" class="updates-ok-icon">
                     <circle cx="7.5" cy="7.5" r="6.5" stroke="currentColor" stroke-width="1.3"/>
                     <path d="M4.5 7.5l2 2 4-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
-                  <span class="updates-label">Update installed — restart to apply</span>
-                </div>
-                <button class="btn-secondary btn-sm" type="button" onclick={handleRestart}>
-                  Restart now
-                </button>
-              </div>
-
-            {:else if updateState === 'error'}
-              <div class="updates-error-block">
+                  You're on the latest version
+                </span>
+              {:else if updateState === 'available' && updateInfo}
+                <span>Version <b>{updateInfo.version}</b> is available{updateInfo.publishedAt ? ` · ${formatDate(updateInfo.publishedAt)}` : ''}</span>
+              {:else if updateState === 'installing'}
+                <span class="updates-inline"><span class="updates-spinner" aria-hidden="true"></span>Downloading and installing…</span>
+              {:else if updateState === 'ready'}
+                <span class="updates-inline">
+                  <svg width="13" height="13" viewBox="0 0 15 15" fill="none" aria-hidden="true" class="updates-ok-icon">
+                    <circle cx="7.5" cy="7.5" r="6.5" stroke="currentColor" stroke-width="1.3"/>
+                    <path d="M4.5 7.5l2 2 4-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  Update installed — restart to apply
+                </span>
+              {:else if updateState === 'error'}
                 <span class="updates-error-text">{updateError}</span>
+              {/if}
+            </div>
+            {#if !isDevBuild}
+              {#if updateState === 'idle'}
+                <button class="btn-secondary btn-sm" type="button" onclick={handleCheck}>Check for updates</button>
+              {:else if updateState === 'up-to-date'}
+                <button class="btn-secondary btn-sm" type="button" onclick={handleCheck}>Check again</button>
+              {:else if updateState === 'available' && updateInfo}
+                <button class="btn-primary btn-sm" type="button" onclick={handleInstall}>Install update</button>
+              {:else if updateState === 'ready'}
+                <button class="btn-primary btn-sm" type="button" onclick={handleRestart}>Restart now</button>
+              {:else if updateState === 'error'}
                 <button class="btn-secondary btn-sm" type="button" onclick={handleCheck}>Try again</button>
-              </div>
+              {/if}
             {/if}
           </div>
+
+          {#if isDevBuild}
+            <p class="updates-dev-notice">
+              Updates aren't available when Relay runs from a local <code>make dev</code> or <code>go run</code> build. Install a release build from the <a href="https://github.com/relay-client/relay/releases/latest" onclick={(e) => { e.preventDefault(); openExternalURL('https://github.com/relay-client/relay/releases/latest'); }}>releases page</a> to receive them.
+            </p>
+          {:else if updateState === 'available' && updateInfo && cleanReleaseNotes(updateInfo.releaseNotes)}
+            <div class="updates-notes">
+              <p class="settings-section-label">What's new in {updateInfo.version}</p>
+              <ReleaseNotes body={cleanReleaseNotes(updateInfo.releaseNotes)} />
+            </div>
           {/if}
         </div>
       {/if}
@@ -969,13 +904,13 @@
           {/if}
 
           {#if matchesQuery('Data', 'export', 'import', 'backup')}
-            <details class="settings-card settings-card-danger" bind:open={generalAdvancedOpen}>
+            <details class="settings-card" bind:open={generalAdvancedOpen}>
               <summary class="settings-card-summary">
-                <span class="settings-card-icon settings-card-icon-danger">
+                <span class="settings-card-icon">
                   <svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-                    <path d="M9 1.8l7.5 13H1.5l7.5-13z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
-                    <path d="M9 7v3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-                    <circle cx="9" cy="12.6" r="0.8" fill="currentColor"/>
+                    <ellipse cx="9" cy="4.2" rx="5.8" ry="2.2" stroke="currentColor" stroke-width="1.4"/>
+                    <path d="M3.2 4.2v9.6c0 1.2 2.6 2.2 5.8 2.2s5.8-1 5.8-2.2V4.2" stroke="currentColor" stroke-width="1.4"/>
+                    <path d="M3.2 9c0 1.2 2.6 2.2 5.8 2.2s5.8-1 5.8-2.2" stroke="currentColor" stroke-width="1.4"/>
                   </svg>
                 </span>
                 <span class="settings-card-title">Advanced data</span>
@@ -1022,10 +957,7 @@
 
       {#if settingsTab === 'support'}
         <div class="settings-body support-tab" id="settings-panel-support" role="tabpanel">
-          <div class="support-head">
-            <h3>Support</h3>
-            <p>Send bugs or questions to the public tracker.</p>
-          </div>
+          <p class="support-intro">Send bugs or questions to the public tracker.</p>
 
           <div class="support-actions">
             <button class="support-link-card" type="button" onclick={() => openExternalURL('https://github.com/relay-client/relay/issues')}>
@@ -1102,59 +1034,44 @@
 
       {#if settingsTab === 'about'}
         <div class="settings-body about-tab" id="settings-panel-about" role="tabpanel">
-          <div class="about-logo">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-              <path d="M3 7h11M11 4.5l3 2.5-3 2.5" stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M17 13H6M9 10.5l-3 2.5 3 2.5" stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+          <div class="about-hero">
+            <img class="about-icon" src={relayMark} alt="" width="64" height="64" draggable="false" />
+            <h3 class="about-name">Relay</h3>
+            {#if aboutInfo}
+              <p class="about-meta">Version {aboutInfo.version} · {aboutInfo.platform}</p>
+            {:else}
+              <span class="updates-spinner about-loading" aria-hidden="true"></span>
+            {/if}
           </div>
-          <h3 class="about-name">Relay</h3>
 
-          {#if aboutInfo}
-            <div class="about-info">
-              <div class="about-row">
-                <span class="about-label">Version</span>
-                <span class="about-value">{aboutInfo.version}</span>
-              </div>
-              <div class="about-row">
-                <span class="about-label">Platform</span>
-                <span class="about-value">{aboutInfo.platform}</span>
-              </div>
-            </div>
-          {:else}
-            <div class="about-loading">
-              <span class="updates-spinner" aria-hidden="true"></span>
-            </div>
-          {/if}
-
-          {#if whatsNewAvailable}
-            <button class="about-whats-new" type="button" onclick={onShowWhatsNew}>
-              <span class="about-whats-new-copy">
-                <strong>What's new</strong>
-                <span>Release notes for this build.</span>
+          <div class="about-list">
+            {#if whatsNewAvailable}
+              <button class="about-item about-item-link" type="button" onclick={onShowWhatsNew}>
+                <span class="about-item-copy">
+                  <strong>What's new</strong>
+                  <span>Release notes for this build</span>
+                </span>
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true" class="about-item-chevron">
+                  <path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            {/if}
+            <div class="about-item">
+              <span class="about-item-copy">
+                <strong>Automatically install updates</strong>
+                <span>Relay checks in the background, installs the new build, then asks for a restart.</span>
               </span>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                <path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
-          {/if}
-
-          <div class="about-update-card">
-            <div class="about-update-copy">
-              <p class="about-update-label">Updates</p>
-              <strong>Automatically install updates</strong>
-              <span>Relay checks in the background, installs the new build, then asks for a restart.</span>
+              <label class="switch-control" aria-label="Automatically install updates">
+                <input
+                  type="checkbox"
+                  checked={autoUpdateInstall}
+                  disabled={isDevBuild || updateState === 'installing'}
+                  onchange={handleAutoUpdateToggle}
+                />
+                <span class="switch-track"></span>
+                <span class="switch-state">{autoUpdateInstall ? 'ON' : 'OFF'}</span>
+              </label>
             </div>
-            <label class="switch-control" aria-label="Automatically install updates">
-              <input
-                type="checkbox"
-                checked={autoUpdateInstall}
-                disabled={isDevBuild || updateState === 'installing'}
-                onchange={handleAutoUpdateToggle}
-              />
-              <span class="switch-track"></span>
-              <span class="switch-state">{autoUpdateInstall ? 'ON' : 'OFF'}</span>
-            </label>
           </div>
           {#if isDevBuild}
             <p class="about-update-note">Auto-updates are available in release builds.</p>
@@ -1176,118 +1093,90 @@
     padding-top: 20px;
     display: flex;
     flex-direction: column;
-    gap: 22px;
+    gap: 20px;
   }
 
-  .updates-current {
+  .updates-summary {
     display: flex;
     align-items: center;
-    gap: 12px;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-subtle);
   }
 
-  .updates-current .settings-section-label {
-    margin-bottom: 0;
+  .updates-summary-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
   }
 
-  .updates-version-badge {
-    font-size: 11px;
+  .updates-summary-copy strong {
+    color: var(--text);
+    font-size: 14px;
     font-weight: 600;
-    font-family: var(--font-mono, monospace);
-    padding: 2px 8px;
-    border-radius: 5px;
-    background: var(--hover, rgba(255,255,255,0.06));
-    color: var(--text-2, #c0c0d8);
-    border: 1px solid var(--border, #333);
   }
 
-  .updates-dev-tag {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    padding: 2px 6px;
-    border-radius: 4px;
-    background: color-mix(in srgb, var(--accent) 18%, transparent);
-    color: var(--accent-hover, var(--accent));
-    border: 1px solid color-mix(in srgb, var(--accent) 38%, transparent);
+  .updates-summary-copy > span {
+    color: var(--text-3);
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+
+  .updates-summary-copy b {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .updates-summary .btn-sm {
+    flex: 0 0 auto;
+  }
+
+  .updates-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
   }
 
   .updates-dev-notice {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 12px 14px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--accent) 5%, transparent);
-    color: var(--text-2);
-  }
-
-  .updates-dev-notice > svg {
-    color: var(--accent-hover, var(--accent));
-    flex-shrink: 0;
-    margin-top: 1px;
-  }
-
-  .updates-dev-notice strong {
-    display: block;
-    margin-bottom: 4px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text);
-  }
-
-  .updates-dev-notice p {
     margin: 0;
-    font-size: 12px;
-    line-height: 1.55;
     color: var(--text-3);
+    font-size: 12.5px;
+    line-height: 1.6;
   }
 
   .updates-dev-notice code {
     padding: 1px 5px;
-    border-radius: 3px;
+    border-radius: 4px;
     background: var(--hover);
-    font-family: var(--font-mono, monospace);
+    color: var(--text-2);
+    font-family: var(--font-mono);
     font-size: 11px;
   }
 
   .updates-dev-notice a {
-    color: var(--accent-hover, var(--accent));
-    text-decoration: none;
+    color: var(--text-2);
+    text-decoration: underline;
+    text-decoration-color: var(--border);
+    text-underline-offset: 2px;
   }
 
   .updates-dev-notice a:hover {
-    text-decoration: underline;
-  }
-
-  .updates-status {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .updates-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .updates-label {
-    font-size: 13px;
-    color: var(--text-2, #c0c0d8);
+    color: var(--text);
+    text-decoration-color: currentColor;
   }
 
   .updates-ok-icon {
-    color: var(--success, #4ade80);
+    color: var(--s2xx);
     flex-shrink: 0;
   }
 
   .updates-spinner {
-    width: 13px;
-    height: 13px;
-    border: 1.5px solid var(--border, #444);
-    border-top-color: var(--accent, #7c6af7);
+    width: 12px;
+    height: 12px;
+    border: 1.5px solid var(--border);
+    border-top-color: var(--text-2);
     border-radius: 50%;
     animation: spin 0.7s linear infinite;
     flex-shrink: 0;
@@ -1297,82 +1186,25 @@
     to { transform: rotate(360deg); }
   }
 
-  .updates-available {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-
-  .updates-available-head {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .updates-new-badge {
-    font-size: 12px;
-    font-weight: 700;
-    font-family: var(--font-mono, monospace);
-    padding: 2px 8px;
-    border-radius: 5px;
-    background: color-mix(in srgb, var(--accent, #7c6af7) 18%, transparent);
-    color: var(--accent, #7c6af7);
-    border: 1px solid color-mix(in srgb, var(--accent, #7c6af7) 40%, transparent);
-  }
-
-  .updates-date {
-    font-size: 12px;
-    color: var(--text-3, #666);
-    flex: 1;
+  @media (prefers-reduced-motion: reduce) {
+    .updates-spinner {
+      animation-duration: 2s;
+    }
   }
 
   .updates-notes {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
   }
 
   .updates-notes .settings-section-label {
     margin-bottom: 0;
   }
 
-  .updates-notes-text {
-    font-size: 12px;
-    color: var(--text-2, #c0c0d8);
-    font-family: var(--font-mono, monospace);
-    background: var(--hover, rgba(255,255,255,0.04));
-    border: 1px solid var(--border, #333);
-    border-radius: 6px;
-    padding: 10px 12px;
-    white-space: pre-wrap;
-    word-break: break-word;
-    max-height: 160px;
-    overflow-y: auto;
-    line-height: 1.6;
-    margin: 0;
+  .updates-summary-copy > .updates-error-text {
+    color: var(--delete);
   }
-
-  .updates-ready {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .updates-error-block {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .updates-error-text {
-    font-size: 12px;
-    color: var(--error, #f87171);
-    background: color-mix(in srgb, var(--error, #f87171) 10%, transparent);
-    border: 1px solid color-mix(in srgb, var(--error, #f87171) 30%, transparent);
-    border-radius: 6px;
-    padding: 8px 10px;
-  }
-
 
   .settings-search {
     display: flex;
@@ -1437,23 +1269,19 @@
 
 
   .settings-card {
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: var(--elevated);
+    border: none;
+    border-bottom: 1px solid var(--border-subtle);
+    border-radius: 0;
+    background: transparent;
     flex-shrink: 0;
     overflow: hidden;
-    transition: border-color 0.12s;
-  }
-
-  .settings-card[open] {
-    border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
   }
 
   .settings-card-summary {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 14px;
+    padding: 14px 2px;
     cursor: pointer;
     user-select: none;
     list-style: none;
@@ -1466,17 +1294,12 @@
   .settings-card-icon {
     display: grid;
     place-items: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--accent) 15%, transparent);
-    color: var(--accent-hover, var(--accent));
+    width: 20px;
+    height: 20px;
+    border-radius: 0;
+    background: transparent;
+    color: var(--text-3);
     flex-shrink: 0;
-  }
-
-  .settings-card-icon-danger {
-    background: color-mix(in srgb, var(--error, #f87171) 14%, transparent);
-    color: var(--error, #f87171);
   }
 
   .settings-card-title {
@@ -1487,7 +1310,7 @@
 
   .settings-card-subtitle {
     flex: 1;
-    font-size: 12px;
+    font-size: 12.5px;
     color: var(--text-3);
   }
 
@@ -1501,26 +1324,14 @@
   }
 
   .settings-card-body {
-    padding: 0 14px 14px;
+    padding: 0 2px 16px 34px;
     display: flex;
     flex-direction: column;
     gap: 12px;
   }
 
-  .settings-card-danger {
-    border-color: color-mix(in srgb, var(--error, #f87171) 25%, var(--border));
-  }
-
-  .settings-card-danger[open] {
-    border-color: color-mix(in srgb, var(--error, #f87171) 45%, var(--border));
-  }
-
   .settings-danger-warning {
     margin: 0;
-    padding: 8px 10px;
-    background: color-mix(in srgb, var(--error, #f87171) 8%, transparent);
-    border: 1px solid color-mix(in srgb, var(--error, #f87171) 25%, transparent);
-    border-radius: 6px;
     font-size: 12px;
     line-height: 1.5;
     color: var(--text-2);
@@ -1531,19 +1342,13 @@
     font-weight: 600;
   }
 
-  .data-action-danger {
-    border-color: color-mix(in srgb, var(--error, #f87171) 25%, var(--border));
-    color: var(--error, #f87171);
-  }
-
   .data-action-danger:hover {
-    border-color: var(--error, #f87171);
-    background: color-mix(in srgb, var(--error, #f87171) 10%, transparent);
-    color: var(--error, #f87171);
+    border-color: color-mix(in srgb, var(--delete) 45%, var(--border));
+    color: var(--delete);
   }
 
-  .data-action-danger .data-action-icon {
-    color: var(--error, #f87171);
+  .data-action-danger:hover .data-action-icon {
+    color: currentColor;
   }
 
 
@@ -1556,26 +1361,27 @@
 
   .theme-mode-options {
     display: inline-flex;
-    gap: 3px;
+    align-self: flex-start;
+    gap: 2px;
     margin-bottom: 24px;
-    padding: 4px;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: var(--surface);
+    padding: 2px;
+    border: none;
+    border-radius: 8px;
+    background: var(--hover);
   }
 
   .theme-mode-option {
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    min-height: 32px;
-    padding: 0 15px;
+    min-height: 28px;
+    padding: 0 12px;
     border: none;
-    border-radius: 7px;
+    border-radius: 6px;
     background: transparent;
-    color: var(--text-2);
-    font-size: 13px;
-    font-weight: 600;
+    color: var(--text-3);
+    font-size: 12.5px;
+    font-weight: 500;
     transition: background 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
   }
 
@@ -1586,13 +1392,12 @@
 
   .theme-mode-option:hover {
     color: var(--text);
-    background: var(--hover);
   }
 
   .theme-mode-option.active {
-    color: var(--accent-hover);
-    background: color-mix(in srgb, var(--accent) 16%, var(--surface));
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 42%, transparent);
+    color: var(--text);
+    background: var(--modal-bg);
+    box-shadow: 0 0 0 1px var(--border), 0 1px 2px rgba(0, 0, 0, 0.16);
   }
 
   .theme-mode-option.active svg {
@@ -1627,111 +1432,44 @@
     flex-direction: column;
     gap: 10px;
     padding: 10px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    background: transparent;
     color: var(--text);
     text-align: left;
     transition: border-color 0.14s ease, background 0.14s ease, box-shadow 0.14s ease, transform 0.14s ease;
   }
 
   .theme-variant-card:hover {
-    border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
-    transform: translateY(-2px);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16);
+    border-color: var(--border);
   }
 
   .theme-variant-card.active {
     border-color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+    background: transparent;
     box-shadow: 0 0 0 1px var(--accent);
   }
 
   .theme-card-preview {
-    display: grid;
-    grid-template-columns: 26px 1fr;
-    height: 80px;
-    border-radius: 8px;
-    border: 1px solid var(--theme-card-border);
-    background: var(--theme-card-bg);
-    overflow: hidden;
-  }
-
-  .tcp-rail {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-    padding: 9px 0;
-    background: var(--theme-card-rail);
-    border-right: 1px solid color-mix(in srgb, var(--theme-card-border) 55%, transparent);
-  }
-
-  .tcp-rail-dot {
-    width: 13px;
-    height: 13px;
-    border-radius: 4px;
-    background: var(--theme-card-accent);
-  }
-
-  .tcp-rail-bar {
-    width: 13px;
-    height: 4px;
-    border-radius: 2px;
-    background: color-mix(in srgb, var(--theme-card-text) 26%, transparent);
-  }
-
-  .tcp-main {
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-    min-width: 0;
-    padding: 10px 10px 0;
-  }
-
-  .tcp-bar {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .tcp-chip {
-    width: 22px;
-    height: 11px;
-    border-radius: 3px;
-    background: var(--theme-card-accent);
-  }
-
-  .tcp-url {
-    flex: 1;
-    height: 11px;
-    border-radius: 3px;
-    background: var(--theme-card-surface);
-    border: 1px solid color-mix(in srgb, var(--theme-card-border) 65%, transparent);
-  }
-
-  .tcp-line {
-    width: 80%;
-    height: 5px;
-    border-radius: 3px;
-    background: color-mix(in srgb, var(--theme-card-text) 40%, transparent);
-  }
-
-  .tcp-line.wide {
+    position: relative;
+    display: block;
     width: 100%;
-  }
-
-  .tcp-line.short {
-    width: 52%;
-    background: color-mix(in srgb, var(--theme-card-text) 22%, transparent);
+    flex: 0 0 auto;
+    container-type: inline-size;
+    aspect-ratio: 16 / 10;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    isolation: isolate;
   }
 
   .theme-variant-name {
     display: flex;
     align-items: center;
-    padding: 0 2px 2px;
+    min-height: 16px;
+    padding: 0 22px 0 2px;
     font-size: 12.5px;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--text-2);
     line-height: 1.2;
     transition: color 0.14s ease;
@@ -1744,12 +1482,12 @@
 
   .theme-card-check {
     position: absolute;
-    top: 9px;
-    right: 9px;
+    right: 10px;
+    bottom: 10px;
     display: grid;
     place-items: center;
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     border-radius: 999px;
     background: var(--accent);
     color: #fff;
@@ -1790,8 +1528,8 @@
   .proxy-warning {
     margin: -4px 0 0;
     padding: 8px 10px;
-    background: color-mix(in srgb, var(--error, #f87171) 8%, transparent);
-    border: 1px solid color-mix(in srgb, var(--error, #f87171) 25%, transparent);
+    background: color-mix(in srgb, var(--delete) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--delete) 25%, transparent);
     border-radius: 6px;
     font-size: 12px;
     line-height: 1.5;
@@ -1824,31 +1562,6 @@
   .proxy-label {
     font-size: 13px;
     color: var(--text-2);
-  }
-
-  .proxy-radio-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-  }
-
-  .proxy-radio {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    color: var(--text);
-    cursor: pointer;
-  }
-
-  .proxy-radio input {
-    accent-color: var(--accent);
-    cursor: pointer;
-  }
-
-  .proxy-radio input:disabled,
-  .proxy-radio:has(input:disabled) {
-    cursor: not-allowed;
   }
 
   .proxy-input {
@@ -1910,28 +1623,14 @@
   .support-tab {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    padding-top: 24px;
-    max-width: 460px;
+    gap: 12px;
+    padding-top: 20px;
+    max-width: 480px;
   }
 
-  .support-head {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .support-head h3 {
+  .support-intro {
     margin: 0;
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--text);
-  }
-
-  .support-head p {
-    margin: 0;
-    max-width: 360px;
-    font-size: 12px;
+    font-size: 12.5px;
     line-height: 1.5;
     color: var(--text-3);
   }
@@ -1939,7 +1638,9 @@
   .support-actions {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    overflow: hidden;
   }
 
   .support-link-card {
@@ -1947,31 +1648,34 @@
     align-items: center;
     gap: 12px;
     width: 100%;
-    min-height: 64px;
-    padding: 12px 14px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--elevated);
+    padding: 11px 14px;
+    border: none;
+    background: transparent;
     color: var(--text);
     text-align: left;
     cursor: pointer;
-    transition: border-color 0.12s, background 0.12s, color 0.12s;
+    transition: background 0.12s;
+  }
+
+  .support-link-card + .support-link-card {
+    border-top: 1px solid var(--border-subtle);
   }
 
   .support-link-card:hover {
-    border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
-    background: color-mix(in srgb, var(--accent) 8%, var(--elevated));
+    background: var(--hover);
   }
 
   .support-link-icon {
     display: grid;
     place-items: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--accent) 13%, transparent);
-    color: var(--accent-hover, var(--accent));
+    width: 18px;
+    height: 18px;
+    color: var(--text-3);
     flex-shrink: 0;
+  }
+
+  .support-link-card:hover .support-link-icon {
+    color: var(--text-2);
   }
 
   .support-link-copy {
@@ -1979,12 +1683,12 @@
     flex: 1;
     min-width: 0;
     flex-direction: column;
-    gap: 3px;
+    gap: 2px;
   }
 
   .support-link-title {
     font-size: 13px;
-    font-weight: 650;
+    font-weight: 500;
     color: var(--text);
   }
 
@@ -2001,185 +1705,119 @@
     flex-shrink: 0;
   }
 
-
   .about-tab {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding-top: 36px;
-    gap: 0;
+    padding-top: 40px;
   }
 
-  .about-logo {
-    --relay-brand-a: #8ea2ff;
-    --relay-brand-b: #5865f2;
-    --relay-brand-c: #1d4ed8;
-    display: grid;
-    place-items: center;
-    width: 56px;
-    height: 56px;
-    border-radius: 14px;
-    background:
-      linear-gradient(160deg, rgba(255,255,255,0.18) 0%, transparent 55%),
-      linear-gradient(135deg, var(--relay-brand-a) 0%, var(--relay-brand-b) 48%, var(--relay-brand-c) 100%);
-    box-shadow:
-      inset 0 1px 0 rgba(255,255,255,0.32),
-      inset 0 -1px 0 rgba(0,0,0,0.12),
-      0 2px 8px rgba(88,101,242,0.28),
-      0 8px 24px rgba(88,101,242,0.18);
-    margin-bottom: 16px;
-    color: white;
-  }
-
-  .about-logo svg {
-    width: 26px;
-    height: 26px;
-  }
-
-  .about-name {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--text);
+  .about-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     margin-bottom: 28px;
   }
 
-  .about-info {
-    width: 100%;
-    max-width: 280px;
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-    margin-bottom: 18px;
+  .about-icon {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 14px;
+    border-radius: 15px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18), 0 6px 18px rgba(0, 0, 0, 0.22);
+    -webkit-user-drag: none;
   }
 
-  .about-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 11px 16px;
-    border-bottom: 1px solid var(--border-subtle);
-  }
-
-  .about-row:last-child {
-    border-bottom: none;
-  }
-
-  .about-label {
-    font-size: 13px;
-    color: var(--text-3);
-    font-weight: 500;
-  }
-
-  .about-value {
-    font-size: 13px;
-    font-weight: 600;
+  .about-name {
+    margin: 0;
     color: var(--text);
+    font-size: 17px;
+    font-weight: 600;
+  }
+
+  .about-meta {
+    margin: 5px 0 0;
+    color: var(--text-3);
+    font-size: 12.5px;
+    user-select: text;
   }
 
   .about-loading {
-    display: flex;
-    justify-content: center;
-    padding: 20px;
+    margin-top: 8px;
   }
 
-  .about-update-card {
+  .about-list {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 420px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    overflow: hidden;
+  }
+
+  .about-item {
     box-sizing: border-box;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
     width: 100%;
-    max-width: 360px;
     padding: 12px 14px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--elevated);
-  }
-
-  .about-whats-new {
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    width: 100%;
-    max-width: 360px;
-    padding: 12px 14px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--elevated);
-    color: var(--text-3);
-    text-align: left;
-    cursor: pointer;
-    transition: border-color 0.15s, background 0.15s, color 0.15s;
-  }
-
-  .about-whats-new:hover {
-    border-color: var(--accent);
-    background: var(--hover);
-    color: var(--accent);
-  }
-
-  .about-whats-new-copy {
-    display: grid;
-    gap: 3px;
-    min-width: 0;
-  }
-
-  .about-whats-new-copy strong {
+    border: none;
+    background: transparent;
     color: var(--text);
-    font-size: 12.5px;
+    text-align: left;
   }
 
-  .about-whats-new-copy span {
-    color: var(--text-3);
-    font-size: 11px;
-    line-height: 1.4;
+  .about-item + .about-item {
+    border-top: 1px solid var(--border-subtle);
   }
 
-  .about-update-copy {
+  .about-item-link {
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+
+  .about-item-link:hover {
+    background: var(--hover);
+  }
+
+  .about-item-copy {
     display: flex;
     flex: 1;
     min-width: 0;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
   }
 
-  .about-update-label {
-    margin: 0 0 2px;
-    font-size: 10px;
-    font-weight: 750;
-    text-transform: uppercase;
-    letter-spacing: 0;
-    color: var(--text-3);
-  }
-
-  .about-update-copy strong {
-    font-size: 13px;
-    font-weight: 650;
+  .about-item-copy strong {
     color: var(--text);
+    font-size: 13px;
+    font-weight: 500;
   }
 
-  .about-update-copy span {
+  .about-item-copy span {
+    color: var(--text-3);
     font-size: 12px;
     line-height: 1.45;
+  }
+
+  .about-item-chevron {
+    flex-shrink: 0;
     color: var(--text-3);
   }
 
-  .about-update-card .switch-control {
+  .about-item .switch-control {
     flex-shrink: 0;
   }
 
   .about-update-note {
-    max-width: 360px;
-    margin: 8px 0 0;
+    max-width: 420px;
+    margin: 10px 0 0;
+    color: var(--text-3);
     font-size: 12px;
     line-height: 1.45;
     text-align: center;
-    color: var(--text-3);
   }
 
   .settings-nav-about {
@@ -2191,7 +1829,7 @@
     padding-top: 16px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 0;
   }
 
   .general-save-options {
@@ -2294,7 +1932,7 @@
 
   .default-location-field label {
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 500;
     color: var(--text);
   }
 
@@ -2372,13 +2010,13 @@
     background: var(--elevated);
     color: var(--text-2);
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
     transition: border-color 0.12s, background 0.12s, color 0.12s;
   }
 
   .data-action-button:hover {
-    border-color: var(--accent);
+    border-color: var(--border);
     background: var(--hover);
     color: var(--text);
   }
@@ -2388,7 +2026,7 @@
     place-items: center;
     width: 18px;
     height: 18px;
-    color: var(--accent-hover, var(--accent));
+    color: var(--text-3);
     flex-shrink: 0;
   }
 

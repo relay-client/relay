@@ -51,6 +51,7 @@ type RequestExecutionHost = {
   guardWorkspaceWritable: (action?: string) => boolean;
   headerValidationErrorForRequest: (req: SavedRequest, envValues?: Record<string, string>) => string;
   invokeGrpc: () => Promise<void>;
+  sendMcpCall: () => Promise<void>;
   isEventStreamResponse: (response: HttpResponse | null) => boolean;
   markRequestLoading: (requestId: string, loading: boolean) => void;
   persistActiveRequestNow: (forceDisk?: boolean) => Promise<void>;
@@ -108,6 +109,10 @@ export const requestExecutionFeature = {
     }
     if (this.requestType === 'grpc') {
       await this.invokeGrpc();
+      return;
+    }
+    if (this.requestType === 'mcp') {
+      await this.sendMcpCall();
       return;
     }
     if (this.requestType === 'http' && (this.method === 'SSE' || this.sseSessionIsActive())) {

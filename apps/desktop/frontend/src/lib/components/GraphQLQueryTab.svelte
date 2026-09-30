@@ -135,16 +135,7 @@
           </div>
         {/if}
         <div class="graphql-explorer-empty-main">
-          <svg class="graphql-explorer-hero" width="124" height="112" viewBox="0 0 124 112" fill="none" aria-hidden="true">
-            <rect x="36" y="38" width="70" height="54" rx="10" stroke="currentColor" stroke-width="2.4"/>
-            <rect x="22" y="18" width="30" height="30" rx="8" stroke="currentColor" stroke-width="2.4"/>
-            <path d="M48 39l14-14M58 50h31M58 64h22M58 78h28" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
-            <path d="M37 29l6 6 10-13" stroke="#4ade80" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-            <rect x="49" y="61" width="14" height="14" rx="2" fill="#4ade80" stroke="currentColor" stroke-width="2"/>
-            <path d="M52 68l3 3 6-7" stroke="#102018" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-            <rect x="49" y="82" width="14" height="14" rx="2.5" stroke="currentColor" stroke-width="2"/>
-          </svg>
-          <strong>Explore data available from server</strong>
+          <strong>Explore what the server offers</strong>
           <button
             class="graphql-explorer-introspection-link"
             type="button"

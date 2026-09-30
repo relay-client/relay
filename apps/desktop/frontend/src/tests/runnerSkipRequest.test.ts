@@ -25,14 +25,11 @@ function makeHost() {
       error: '',
       tests: [],
       iteration,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any,
     runnerResultFromResponse: collectionRunnerFeature.runnerResultFromResponse,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = { id: 'r1', name: 'Charge card', method: 'POST', url: 'https://api/charge' } as any;
 
 function response(over: Partial<HttpResponse> = {}): HttpResponse {

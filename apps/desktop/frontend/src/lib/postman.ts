@@ -12,7 +12,7 @@ import { mediaTypeOf, normalizeRequestExample } from './examples';
 import { DEFAULT_GRPC_MESSAGE } from './requestBodyDefaults';
 
 const RELAY_EXTENSION_KEY = 'x-relay';
-const RELAY_REQUEST_TYPES = new Set<RequestType>(['http', 'graphql', 'ws', 'socketio', 'grpc']);
+const RELAY_REQUEST_TYPES = new Set<RequestType>(['http', 'graphql', 'ws', 'socketio', 'grpc', 'mcp']);
 const RELAY_REQUEST_TABS = new Set<RequestTab>(['docs', 'params', 'query', 'auth', 'headers', 'metadata', 'body', 'schema', 'service', 'events', 'scripts', 'settings']);
 
 function postmanDescription(value: unknown) {

@@ -1,0 +1,227 @@
+<script lang="ts">
+  import type { SidebarView } from '../types/models';
+  import type { SettingsTab, TopView } from '../stores/ui';
+
+  let {
+    sidebarView = $bindable<SidebarView>('collections'),
+    sidebarHidden = $bindable(false),
+    topView,
+    mockRunning = false,
+    gitChangeCount = 0,
+    cookieCount = 0,
+    settingsShortcut = '',
+    workspaceBlocked = false,
+    openCollectionRunner,
+    openMockTab,
+    openGitTab,
+    openCookieJar,
+    openSettings,
+  }: {
+    sidebarView: SidebarView;
+    sidebarHidden: boolean;
+    topView: TopView;
+    mockRunning?: boolean;
+    gitChangeCount?: number;
+    cookieCount?: number;
+    settingsShortcut?: string;
+    workspaceBlocked?: boolean;
+    openCollectionRunner: () => void;
+    openMockTab: () => void;
+    openGitTab: () => void;
+    openCookieJar: () => void;
+    openSettings: (tab?: SettingsTab) => void;
+  } = $props();
+
+  function showSidebarView(view: SidebarView) {
+    sidebarView = view;
+    sidebarHidden = false;
+  }
+
+  let sidebarActive = (view: SidebarView) => !sidebarHidden && sidebarView === view;
+</script>
+
+<nav class="activity-rail" aria-label="Relay">
+  <div class="activity-rail-titlebar titlebar-drag-region"></div>
+
+  <div class="activity-rail-group">
+    <button class="activity-rail-btn" class:active={sidebarActive('collections')} type="button" aria-label="Collections" title="Collections" aria-pressed={sidebarActive('collections')} onclick={() => showSidebarView('collections')} disabled={workspaceBlocked}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 3 3 8l9 5 9-5-9-5z"/><path d="m3 13 9 5 9-5"/>
+      </svg>
+    </button>
+    <button class="activity-rail-btn" class:active={sidebarActive('environments')} type="button" aria-label="Environments" title="Environments" aria-pressed={sidebarActive('environments')} onclick={() => showSidebarView('environments')} disabled={workspaceBlocked}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>
+      </svg>
+    </button>
+    <button class="activity-rail-btn" class:active={sidebarActive('history')} type="button" aria-label="History" title="History" aria-pressed={sidebarActive('history')} onclick={() => showSidebarView('history')} disabled={workspaceBlocked}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="activity-rail-separator" aria-hidden="true"></div>
+
+  <div class="activity-rail-group">
+    <button class="activity-rail-btn" class:active={topView === 'runner'} type="button" aria-label="Collection runner" title="Collection runner" onclick={openCollectionRunner} disabled={workspaceBlocked}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M7 5v14l11-7z"/>
+      </svg>
+    </button>
+    <button class="activity-rail-btn" class:active={topView === 'mock'} type="button" aria-label="Mock server" title={mockRunning ? 'Mock server (running)' : 'Mock server'} onclick={openMockTab} disabled={workspaceBlocked}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/>
+      </svg>
+      {#if mockRunning}<span class="activity-rail-dot" aria-hidden="true"></span>{/if}
+    </button>
+    <button class="activity-rail-btn" class:active={topView === 'git'} type="button" aria-label="Git" title={gitChangeCount > 0 ? `Git (${gitChangeCount} changed)` : 'Git'} onclick={openGitTab}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="8" r="2"/><path d="M6 8v8M18 10c0 4-6 3-10 6"/>
+      </svg>
+      {#if gitChangeCount > 0}<span class="activity-rail-count" aria-hidden="true">{gitChangeCount > 99 ? '99+' : gitChangeCount}</span>{/if}
+    </button>
+  </div>
+
+  <div class="activity-rail-spacer"></div>
+
+  <div class="activity-rail-group">
+    <button class="activity-rail-btn" type="button" aria-label="Cookies" title="Cookies" onclick={openCookieJar} disabled={workspaceBlocked}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M20.6 13.1A8.5 8.5 0 1 1 10.9 3.4a3 3 0 0 0 3.9 3.9 3 3 0 0 0 3.9 3.9 3 3 0 0 0 1.9 1.9z"/><path d="M8.2 9h.01M11.5 14.2h.01M7.4 16.2h.01M14.8 11.7h.01" stroke-width="2.6"/>
+      </svg>
+      {#if cookieCount > 0}<span class="activity-rail-count" aria-hidden="true">{cookieCount > 99 ? '99+' : cookieCount}</span>{/if}
+    </button>
+    <button class="activity-rail-btn" type="button" aria-label="Settings" title={settingsShortcut ? `Settings (${settingsShortcut})` : 'Settings'} onclick={() => openSettings('general')}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4z"/>
+        <path d="M19.6 13.5a7.8 7.8 0 0 0 0-3l2-1.45-2-3.46-2.42 1a8 8 0 0 0-2.6-1.5L14.25 2h-4.5l-.33 3.08a8 8 0 0 0-2.6 1.5l-2.42-1-2 3.46 2 1.45a7.8 7.8 0 0 0 0 3l-2 1.45 2 3.46 2.42-1a8 8 0 0 0 2.6 1.5l.33 3.08h4.5l.33-3.08a8 8 0 0 0 2.6-1.5l2.42 1 2-3.46-2-1.45z"/>
+      </svg>
+    </button>
+  </div>
+</nav>
+
+<style>
+  .activity-rail {
+    grid-column: 1;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: var(--rail-w);
+    padding: 10px 0;
+    position: relative;
+    background: var(--surface);
+    overflow: hidden;
+  }
+
+  .activity-rail::after {
+    content: '';
+    position: absolute;
+    top: var(--rail-divider-top, 0px);
+    right: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--border-subtle);
+    pointer-events: none;
+  }
+  :global(:root[data-platform="darwin"]) .activity-rail {
+    --rail-divider-top: 45px;
+  }
+  :global(:root[data-platform="darwin"] .shell:not(.sidebar-hidden)) .activity-rail::after {
+    display: none;
+  }
+
+  .activity-rail-titlebar {
+    flex: 0 0 auto;
+    align-self: stretch;
+    height: var(--titlebar-h, 0px);
+  }
+
+  .activity-rail-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .activity-rail-separator {
+    width: 20px;
+    height: 1px;
+    margin: 6px 0;
+    background: var(--border-subtle);
+  }
+
+  .activity-rail-spacer {
+    flex: 1 1 auto;
+  }
+
+  .activity-rail-btn {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-3);
+    cursor: pointer;
+    transition: box-shadow 0.12s;
+  }
+  .activity-rail-btn:hover:not(:disabled) {
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+  .activity-rail-btn.active {
+    background: var(--elevated);
+    color: var(--text);
+  }
+  .activity-rail-btn.active::before {
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: 9px;
+    bottom: 9px;
+    width: 2px;
+    border-radius: 0 2px 2px 0;
+    background: var(--accent);
+  }
+  .activity-rail-btn:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+    outline-offset: 1px;
+  }
+  .activity-rail-btn:disabled {
+    cursor: default;
+    opacity: 0.4;
+  }
+
+  .activity-rail-dot {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    width: 7px;
+    height: 7px;
+    border: 1.5px solid var(--surface);
+    border-radius: 50%;
+    background: var(--s2xx);
+  }
+
+  .activity-rail-count {
+    position: absolute;
+    top: 3px;
+    right: 1px;
+    min-width: 15px;
+    height: 15px;
+    padding: 0 4px;
+    border: 1.5px solid var(--surface);
+    border-radius: 8px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 9.5px;
+    font-weight: 600;
+    line-height: 12px;
+    text-align: center;
+  }
+</style>

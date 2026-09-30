@@ -41,8 +41,7 @@ function makeHost() {
 function paste(command: string) {
   const host = makeHost();
   const parsed = parseCurl(command);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  requestBodyFeature.applyParsedCurl.call(host as any, parsed);
+  requestBodyFeature.applyParsedCurl.call(host as never, parsed);
   return host;
 }
 

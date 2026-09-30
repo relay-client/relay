@@ -25,7 +25,7 @@ describe('git pull summary toast', () => {
   it('formats commit counts and the new head', () => {
     expect(formatGitCommitToast({
       ok: true,
-      git: { head: 'abc1234' } as any,
+      git: { head: 'abc1234' } as never,
       error: '',
       output: '',
       files: ['relay.yml', 'workspaces/Main/collections/API.yml'],
@@ -36,7 +36,7 @@ describe('git pull summary toast', () => {
   it('formats pushed commits and changed files', () => {
     expect(formatGitPushToast({
       ok: true,
-      git: { upstream: 'origin/feature' } as any,
+      git: { upstream: 'origin/feature' } as never,
       error: '',
       output: '',
       files: [],
@@ -47,7 +47,7 @@ describe('git pull summary toast', () => {
   });
 
   it('formats fetch status', () => {
-    expect(formatGitFetchToast({ behind: 2 } as any)).toBe('Fetch complete: 2 remote commits ready to pull');
-    expect(formatGitFetchToast({ upstream: 'origin/main', upstreamGone: true } as any)).toBe('Fetch complete: origin/main is gone on remote');
+    expect(formatGitFetchToast({ behind: 2 } as never)).toBe('Fetch complete: 2 remote commits ready to pull');
+    expect(formatGitFetchToast({ upstream: 'origin/main', upstreamGone: true } as never)).toBe('Fetch complete: origin/main is gone on remote');
   });
 });

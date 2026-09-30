@@ -80,6 +80,7 @@ type RequestCrudHost = {
   closeCollectionSettingsTab: () => void;
   closeFloatingMenus: () => void;
   closeGitTab: () => void;
+  closeHistoryDetail: () => void;
   closeActiveRequestTab: (force?: boolean) => Promise<void>;
   closeRequestTab: (id: string, force?: boolean) => Promise<void>;
   collectionNameById: (collectionId: string) => string;
@@ -107,6 +108,7 @@ type RequestCrudHost = {
   requestForEditing: (id: string) => SavedRequest | undefined;
   requestHasContent: (req: SavedRequest) => boolean;
   requestTypeEditable: boolean;
+  mcpMethod: string;
   requestsForDisplay: () => SavedRequest[];
   savedRequestIsRealtime: (req: Pick<SavedRequest, 'requestType' | 'url'>) => boolean;
   savedRequestSnapshot: (req: SavedRequest) => SavedRequest;
@@ -172,10 +174,11 @@ export const requestCrudFeature = {
   },
 
   isRequestType(this: RequestCrudHost, value: unknown): value is RequestType {
-    return value === 'http' || value === 'graphql' || value === 'ws' || value === 'socketio' || value === 'grpc';
+    return value === 'http' || value === 'graphql' || value === 'ws' || value === 'socketio' || value === 'grpc' || value === 'mcp';
   },
 
   normalizeRequestTypeValue(this: RequestCrudHost, value: unknown, url = ''): RequestType {
+    if (value === 'mcp') return 'mcp';
     if (value === 'grpc') return 'grpc';
     if (value === 'socketio') return 'socketio';
     if (value === 'ws') return 'ws';
@@ -299,6 +302,17 @@ export const requestCrudFeature = {
       this.apiKeyIn = 'header';
       if (wasGraphQL) this.bodyContent = defaultBodyContentFor('grpc');
       else if (!this.bodyContent.trim()) this.bodyContent = defaultBodyContentFor('grpc');
+    } else if (this.requestType === 'mcp') {
+      if (this.method === 'SSE') void this.sseDisconnect();
+      if (previousType === 'ws') void this.webSocketDisconnect();
+      if (previousType === 'socketio') void this.socketIODisconnect();
+      if (/^wss?:\/\//i.test(this.url)) this.url = this.url.replace(/^ws/i, 'http');
+      this.method = 'POST';
+      this.requestTab = ['docs', 'body', 'auth', 'headers', 'scripts', 'settings', 'examples'].includes(this.requestTab) ? this.requestTab : 'body';
+      this.bodyType = 'none';
+      this.rawBodyType = 'json';
+      this.bodyContent = '';
+      if (!this.mcpMethod) this.mcpMethod = 'tools/list';
     } else {
       if (previousType === 'ws') void this.webSocketDisconnect();
       if (previousType === 'socketio') void this.socketIODisconnect();
@@ -323,14 +337,15 @@ export const requestCrudFeature = {
 
   async chooseNewRequestType(this: RequestCrudHost): Promise<RequestType | null> {
     const selected = await this.openSelectDialog('New request', 'Choose the transport for this request:', [
-      { value: 'http', label: 'HTTP Request', icon: 'http', description: 'REST, SSE, and regular request/response flows.' },
-      { value: 'graphql', label: 'GraphQL Request', icon: 'graphql', description: 'Endpoint query with variables, auth, headers, scripts, and schema.' },
-      { value: 'ws', label: 'WebSocket Request', icon: 'ws', description: 'Persistent connection for sending and receiving messages.' },
-      { value: 'socketio', label: 'Socket.IO Request', icon: 'sio', description: 'Socket.IO protocol with namespaces, events, and reconnection.' },
-      { value: 'grpc', label: 'gRPC Request', icon: 'grpc', description: 'Protobuf RPCs with metadata, reflection, proto files, and streaming responses.' },
+      { value: 'http', label: 'HTTP request', icon: 'http', description: 'REST, SSE, and regular request/response flows.' },
+      { value: 'graphql', label: 'GraphQL request', icon: 'graphql', description: 'Endpoint query with variables, auth, headers, scripts, and schema.' },
+      { value: 'ws', label: 'WebSocket request', icon: 'ws', description: 'Persistent connection for sending and receiving messages.' },
+      { value: 'socketio', label: 'Socket.IO request', icon: 'sio', description: 'Socket.IO protocol with namespaces, events, and reconnection.' },
+      { value: 'grpc', label: 'gRPC request', icon: 'grpc', description: 'Protobuf RPCs with metadata, reflection, proto files, and streaming responses.' },
+      { value: 'mcp', label: 'MCP request', icon: 'mcp', description: 'Call a Model Context Protocol server by hand — list its tools, fill the arguments, and read the raw exchange.' },
     ], 'Create', 'Cancel');
     if (!selected) return null;
-    return selected === 'http' || selected === 'graphql' || selected === 'ws' || selected === 'socketio' || selected === 'grpc' ? selected : null;
+    return selected === 'http' || selected === 'graphql' || selected === 'ws' || selected === 'socketio' || selected === 'grpc' || selected === 'mcp' ? selected : null;
   },
 
   async createNewRequest(this: RequestCrudHost, collectionId?: string, requestType?: RequestType) {
@@ -588,6 +603,8 @@ export const requestCrudFeature = {
       this.closeCollectionSettingsTab();
     } else if (this.topView === 'git') {
       this.closeGitTab();
+    } else if (this.topView === 'history') {
+      this.closeHistoryDetail();
     }
   },
 

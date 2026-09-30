@@ -137,10 +137,9 @@
   }
 
   function toggleExpand(key: number) {
-    const next = new Set(expandedIds);
-    if (next.has(key)) next.delete(key);
-    else next.add(key);
-    expandedIds = next;
+    expandedIds = expandedIds.has(key)
+      ? new Set([...expandedIds].filter(item => item !== key))
+      : new Set([...expandedIds, key]);
   }
 
   function formatTime(ts: number): string {
@@ -292,7 +291,7 @@
       {/if}
       {#if status === 'connected'}
         <span class="sse-summary-dot"></span>
-        <span>{events.length.toLocaleString()} events</span>
+        <span>{events.length.toLocaleString()} {events.length === 1 ? 'event' : 'events'}</span>
         <span class="sse-summary-dot"></span>
         <span>{formatSize(streamSize)}</span>
         <span class="sse-summary-dot"></span>
@@ -306,7 +305,7 @@
         <span class="sse-summary-dot"></span>
         <span class="sse-status-error" title={error}>{friendlySSEError(error)}</span>
       {:else}
-        <span>{events.length.toLocaleString()} events</span>
+        <span>{events.length.toLocaleString()} {events.length === 1 ? 'event' : 'events'}</span>
         <span class="sse-summary-dot"></span>
         <span>{formatSize(streamSize)}</span>
       {/if}
@@ -344,7 +343,7 @@
 
     <div class="resp-actions">
       {#if sseTab === 'messages'}
-        <button class="btn-icon" title="Search response" aria-label="Search response" onclick={() => (searchOpen = !searchOpen)} type="button">
+        <button class="btn-icon" title="Search response" aria-label="Search response" aria-pressed={searchOpen} onclick={() => (searchOpen = !searchOpen)} type="button">
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
             <circle cx="5.8" cy="5.8" r="3.8" stroke="currentColor" stroke-width="1.3"/>
             <path d="M8.7 8.7l2.7 2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
@@ -470,7 +469,7 @@
   {:else}
     <div class="response-headers-table sse-headers-table">
       {#if headers.length}
-        {#each headers as h}
+        {#each headers as h, eachIndex (eachIndex)}
           <div class="resp-header-row">
             <span class="resp-header-key">{h.key}</span>
             <span class="resp-header-val">{h.value}</span>

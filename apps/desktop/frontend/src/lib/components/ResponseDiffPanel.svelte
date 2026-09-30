@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Select from './Select.svelte';
   import type { HttpResponse } from '../backend';
   import { collapseUnchanged, type DiffChunk, type ResponseDiff } from '../responseDiff';
 
@@ -42,7 +43,7 @@
   {:else}
     <div class="diff-bar">
       <div class="diff-bar-meta">
-        <span class="diff-side diff-side-before">
+        <span class="diff-side diff-side-before" title="Baseline">
           {baselineLabel} · {previous.statusCode}{#if previous.duration} · {previous.duration} ms{/if}
         </span>
         <span class="diff-arrow" aria-hidden="true">→</span>
@@ -54,11 +55,7 @@
         {#if options.length > 1}
           <label class="diff-baseline-picker">
             <span>Compare with</span>
-            <select value={selectedId} onchange={(event) => onSelect((event.currentTarget as HTMLSelectElement).value)}>
-              {#each options as option (option.id)}
-                <option value={option.id}>{option.label}</option>
-              {/each}
-            </select>
+            <Select value={selectedId} options={options.map(option => ({ value: option.id, label: option.label }))} className="diff-baseline-select" ariaLabel="Compare with" onChange={onSelect} />
           </label>
         {/if}
         {#if diff.identical}
@@ -86,11 +83,11 @@
       <div class="diff-empty">Both responses have identical bodies.</div>
     {:else}
       <div class="diff-lines">
-        {#each chunks as chunk}
+        {#each chunks as chunk, eachIndex (eachIndex)}
           {#if chunk.kind === 'gap'}
             <div class="diff-gap">{chunk.count} unchanged line{chunk.count === 1 ? '' : 's'}</div>
           {:else}
-            {#each chunk.lines as line}
+            {#each chunk.lines as line, eachIndex (eachIndex)}
               <div class="diff-line diff-{line.kind}">
                 <span class="diff-num">{line.beforeLine ?? ''}</span>
                 <span class="diff-num">{line.afterLine ?? ''}</span>

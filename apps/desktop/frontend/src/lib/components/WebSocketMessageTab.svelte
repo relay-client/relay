@@ -36,7 +36,7 @@
         </button>
         {#if vm.wsMessageTypeMenuOpen}
           <div class="raw-type-list ws-type-options" role="listbox">
-            {#each WS_MESSAGE_TYPES as type}
+            {#each WS_MESSAGE_TYPES as type, eachIndex (eachIndex)}
               <button
                 class:active={vm.webSocketMessageBodyType() === type}
                 role="option"

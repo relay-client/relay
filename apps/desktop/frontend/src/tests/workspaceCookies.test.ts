@@ -35,7 +35,7 @@ describe('workspace scoped cookies', () => {
       normalizeCookieEntry: cookieFeature.normalizeCookieEntry,
     };
 
-    const normalized = cookieFeature.normalizeWorkspaceCookieStore.call(host as any, {
+    const normalized = cookieFeature.normalizeWorkspaceCookieStore.call(host as never, {
       'workspace-2': [cookie('scoped', 'kept')],
       'workspace-3': [{ name: '', value: 'invalid' }],
     });
@@ -60,10 +60,11 @@ describe('workspace scoped cookies', () => {
       globalVariables: [],
       openRequestIds: [],
       requestHistory: [],
+      collectionLastRuns: {},
       pruneHistory: (history: unknown[]) => history,
     };
 
-    const payload = requestPersistenceFeature.requestStorePayload.call(host as any);
+    const payload = requestPersistenceFeature.requestStorePayload.call(host as never);
 
     expect(payload.workspaceCookies).toEqual({
       'workspace-1': [cookie('sid', 'active')],
@@ -104,7 +105,7 @@ describe('workspace scoped cookies', () => {
       applySavedRequest: vi.fn(),
     };
 
-    await workspaceFeature.switchWorkspace.call(host as any, 'workspace-2');
+    await workspaceFeature.switchWorkspace.call(host as never, 'workspace-2');
 
     expect(calls).toEqual([
       ['capture', 'workspace-1'],
@@ -144,7 +145,7 @@ describe('workspace scoped cookies', () => {
       persistRequestStore,
     };
 
-    await requestPersistenceFeature.persistActiveRequestNow.call(host as any, true);
+    await requestPersistenceFeature.persistActiveRequestNow.call(host as never, true);
 
     expect(captureActiveWorkspaceCookies).toHaveBeenCalledTimes(1);
     expect(removeDirtyRequest).toHaveBeenCalledWith(request.id);

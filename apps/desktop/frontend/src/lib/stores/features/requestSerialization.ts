@@ -191,10 +191,39 @@ export const requestSerializationFeature = {
       sioPath: req.settings.sioPath,
       sioNamespace: req.settings.sioNamespace,
       sioListenEvents: (req.sioEvents ?? []).filter(r => r.enabled && r.key.trim()).map(r => r.key.trim()),
+      mcpProtocolVersion: '', mcpMethod: '', mcpName: '', mcpArguments: '',
+      mcpCursor: '', mcpInputResponses: '', mcpRequestState: '',
+      mcpInputSchema: '', mcpOutputSchema: '',
       collectionVariables: collectionVariableValues(this.collectionForRequest(req)),
       requestId,
       secretEnvironmentKeys,
       secretEnvironmentValues,
+    };
+  },
+
+  savedRequestToRunnableMcpRequest(
+    this: RequestSerializationHost,
+    req: SavedRequest,
+    envValues = this.activeEnvironmentValues(),
+    secretEnvironmentValues = this.activeSecretEnvironmentValues(),
+    secretEnvironmentKeys = this.activeSecretEnvironmentKeys(),
+    requestId = req.id,
+    overrides: { method?: string; name?: string; args?: string; inputSchema?: string; outputSchema?: string; cursor?: string } = {},
+  ): HttpRequest {
+    const base = this.savedRequestToRunnableHttpRequest(req, envValues, secretEnvironmentValues, secretEnvironmentKeys, requestId);
+    const resolved = this.requestWithCollectionDefaults(req);
+    return {
+      ...base,
+      url: this.resolveTemplate((resolved.url ?? '').trim(), envValues),
+      mcpProtocolVersion: resolved.mcpProtocolVersion ?? '',
+      mcpMethod: overrides.method ?? resolved.mcpMethod ?? '',
+      mcpName: this.resolveTemplate(overrides.name ?? resolved.mcpName ?? '', envValues),
+      mcpArguments: this.resolveTemplate(overrides.args ?? resolved.mcpArguments ?? '', envValues),
+      mcpCursor: overrides.cursor ?? '',
+      mcpInputResponses: '',
+      mcpRequestState: '',
+      mcpInputSchema: overrides.inputSchema ?? '',
+      mcpOutputSchema: overrides.outputSchema ?? '',
     };
   },
 

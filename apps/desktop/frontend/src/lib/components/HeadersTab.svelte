@@ -1,3 +1,7 @@
+<script lang="ts" module>
+  let autoHeadersOpen = $state(false);
+</script>
+
 <script lang="ts">
   import { onMount } from 'svelte';
   import { vm } from '../stores/app.svelte';
@@ -154,9 +158,16 @@
   </div>
   <button class="kv-col-resizer kv-col-resizer--key" type="button" onmousedown={(e) => vm.startColResize('key', e)} aria-label="Resize key column"></button>
   <button class="kv-col-resizer kv-col-resizer--value" type="button" onmousedown={(e) => vm.startColResize('val', e)} aria-label="Resize value column"></button>
-  {#each vm.autoRequestHeaders as header}
+  {#if vm.autoRequestHeaders.length}
+    <button class="kv-auto-toggle" type="button" aria-expanded={autoHeadersOpen} onclick={() => (autoHeadersOpen = !autoHeadersOpen)}>
+      <svg class:open={autoHeadersOpen} width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M3.5 2L6.5 5L3.5 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      {vm.autoRequestHeaders.length} {vm.autoRequestHeaders.length === 1 ? 'header' : 'headers'} added by Relay
+      <span class="kv-auto-toggle-keys">{vm.autoRequestHeaders.filter(h => !h.overridden).map(h => h.key).join(', ')}</span>
+    </button>
+  {/if}
+  {#each autoHeadersOpen ? vm.autoRequestHeaders : [] as header, eachIndex (eachIndex)}
     <div class="kv-row kv-row--auto" class:kv-row--overridden={header.overridden}>
-      <span class="kv-auto-badge">auto</span>
+      <span class="kv-auto-badge" title="Added by Relay"><svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true"><rect x="2.5" y="5.2" width="7" height="5" rx="1.2" stroke="currentColor" stroke-width="1.1"/><path d="M4 5.2V3.9a2 2 0 014 0v1.3" stroke="currentColor" stroke-width="1.1"/></svg><span class="sr-only">Added by Relay</span></span>
       <span class="kv-cell kv-auto-key">{header.key}</span>
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <span
@@ -171,7 +182,7 @@
     </div>
   {/each}
   {#each vm.reqHeaders as row, i (row.id)}
-    <div class="kv-row" data-testid="request-header-row">
+    <div class="kv-row" data-testid="request-header-row" class:inactive-row={!row.enabled && (row.key || row.value || row.description)}>
       <input type="checkbox" class="kv-check" bind:checked={row.enabled} aria-label="Enable" disabled={!row.key && !row.value} />
       <VariableInput
         className="kv-input"

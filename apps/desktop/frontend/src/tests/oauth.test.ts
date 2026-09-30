@@ -59,7 +59,6 @@ function makeHost(over: Record<string, unknown> = {}) {
     requests: [],
     collections: [],
     ...over,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
 }
 

@@ -34,6 +34,7 @@ import {
 } from './utils';
 
 function normalizeRequestType(input: Partial<SavedRequest>): RequestType {
+    if (input.requestType === 'mcp') return 'mcp';
     if (input.requestType === 'grpc') return 'grpc';
     if (input.requestType === 'socketio') return 'socketio';
     if (input.requestType === 'ws') return 'ws';
@@ -155,10 +156,13 @@ export function normalizeSavedRequest(
     const isRealtime = normalizedRequestType === 'ws' || normalizedRequestType === 'socketio';
     const isGraphQL = normalizedRequestType === 'graphql';
     const isGrpc = normalizedRequestType === 'grpc';
+    const isMcp = normalizedRequestType === 'mcp';
     const bodyDefaults = requestBodyDefaultsFor(normalizedRequestType);
-    const rawRequestTab = input.requestTab || (isGrpc ? 'body' : isRealtime ? 'body' : isGraphQL ? 'query' : 'params');
+    const rawRequestTab = input.requestTab || (isMcp ? 'body' : isGrpc ? 'body' : isRealtime ? 'body' : isGraphQL ? 'query' : 'params');
     const requestTab = isGraphQL && !['docs', 'query', 'auth', 'headers', 'schema', 'scripts'].includes(rawRequestTab)
         ? 'query'
+        : isMcp && !['docs', 'body', 'auth', 'headers', 'scripts', 'settings', 'examples'].includes(rawRequestTab)
+        ? 'body'
         : isGrpc && !['docs', 'body', 'auth', 'metadata', 'service', 'scripts', 'settings'].includes(rawRequestTab)
         ? 'body'
         : isRealtime && ['scripts', 'query', 'schema'].includes(rawRequestTab)
@@ -166,13 +170,13 @@ export function normalizeSavedRequest(
         : (input.method ?? '').toUpperCase() === 'SSE' && ['scripts', 'query', 'schema'].includes(rawRequestTab)
         ? 'params'
         : rawRequestTab;
-    const realtimeLabel = normalizedRequestType === 'grpc' ? 'gRPC' : normalizedRequestType === 'socketio' ? 'Socket.IO' : normalizedRequestType === 'ws' ? 'WS' : normalizedRequestType === 'graphql' ? 'GraphQL' : '';
+    const realtimeLabel = normalizedRequestType === 'mcp' ? 'MCP' : normalizedRequestType === 'grpc' ? 'gRPC' : normalizedRequestType === 'socketio' ? 'Socket.IO' : normalizedRequestType === 'ws' ? 'WS' : normalizedRequestType === 'graphql' ? 'GraphQL' : '';
     const rawName = input.name || requestTitleFrom(realtimeLabel || (input.method || 'GET'), input.url || '');
     let folderPath = Array.isArray(input.folderPath) ? input.folderPath.map(asText).filter(Boolean) : [];
     let normalizedName = rawName;
     if (!folderPath.length && rawName.includes(' / ')) {
         const parts = rawName.split(' / ').map(p => p.trim()).filter(Boolean);
-        const looksLikeAutoTitle = /^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|GRAPHQL|GQL|WS|WEBSOCKET|SIO|SOCKET\.IO|GRPC|SSE)\b/i.test(parts[0] ?? '')
+        const looksLikeAutoTitle = /^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|GRAPHQL|GQL|WS|WEBSOCKET|SIO|SOCKET\.IO|GRPC|MCP|SSE)\b/i.test(parts[0] ?? '')
             || (parts[0] ?? '').includes('/');
         if (parts.length > 1 && !looksLikeAutoTitle) {
             folderPath = parts.slice(0, -1);
@@ -230,6 +234,10 @@ export function normalizeSavedRequest(
         grpcProtoFilePath: input.grpcProtoFilePath || '',
         grpcProtoFileName: input.grpcProtoFileName || '',
         grpcProtoImportPaths: Array.isArray(input.grpcProtoImportPaths) ? input.grpcProtoImportPaths.map(asText).filter(Boolean) : [],
+        mcpMethod: input.mcpMethod || (isMcp ? 'tools/list' : ''),
+        mcpName: input.mcpName || '',
+        mcpArguments: input.mcpArguments || '',
+        mcpProtocolVersion: input.mcpProtocolVersion || '',
         ...(normalizedExamples ? { examples: normalizedExamples } : {}),
     };
 }
@@ -244,6 +252,7 @@ export function normalizeHistoryEntry(
     return {
         id: input.id || newEntityId('history'),
         request: normalizeSavedRequest(input.request, collections, defaultWorkspaceId),
+        ...(typeof input.sourceRequestId === 'string' && input.sourceRequestId ? { sourceRequestId: input.sourceRequestId } : {}),
         statusCode: finiteNumber(input.statusCode),
         status: input.status || '',
         duration: finiteNumber(input.duration),

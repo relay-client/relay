@@ -1,6 +1,7 @@
 <script lang="ts">
   import { requestSupportsCurl } from '../utils';
   import RequestTypeBadge from './RequestTypeBadge.svelte';
+  import MenuIcon from './MenuIcon.svelte';
   import type { SavedRequest, WorkspaceDiagnostic } from '../types/models';
   import type { TopView } from '../stores/ui';
 
@@ -112,7 +113,7 @@
       />
     </div>
   {:else}
-    <button class="collection-request" type="button" title={requestTabLabel(req)} onclick={() => switchRequest(req.id)} ondblclick={startRequestInlineRename} disabled={disabled}>
+    <button class="collection-request" type="button" title={requestTabLabel(req)} onclick={() => switchRequest(req.id)} ondblclick={startRequestInlineRename} oncontextmenu={(event) => { if (disabled || req.isInvalid) return; event.preventDefault(); toggleRequestMenu(menuKey, event); }} disabled={disabled}>
       <RequestTypeBadge request={req} invalid={req.isInvalid} />
       <span class="collection-title">{requestTabLabel(req)}</span>
     </button>
@@ -142,11 +143,12 @@
   {/if}
   {#if !req.isInvalid && openRequestMenuId === menuKey}
     <div class="request-menu">
-      <button type="button" onclick={() => renameRequest(req.id)} disabled={disabled}>Rename</button>
-      <button type="button" onclick={() => duplicateRequest(req.id)} disabled={disabled}>Duplicate</button>
-      {#if !req.isDraft}<button type="button" onclick={() => toggleRequestPinned(req.id)} disabled={disabled}>{req.isPinned ? 'Unstar' : 'Star'}</button>{/if}
-      {#if requestSupportsCurl(req)}<button type="button" onclick={() => copyRequestCurl(req.id)} disabled={disabled}>Copy cURL</button>{/if}
-      <button class="danger" type="button" onclick={() => deleteRequest(req.id)} disabled={disabled}>Delete</button>
+      <button type="button" onclick={() => renameRequest(req.id)} disabled={disabled}><MenuIcon name="rename" />Rename</button>
+      <button type="button" onclick={() => duplicateRequest(req.id)} disabled={disabled}><MenuIcon name="duplicate" />Duplicate</button>
+      {#if !req.isDraft}<button type="button" onclick={() => toggleRequestPinned(req.id)} disabled={disabled}><MenuIcon name="star" />{req.isPinned ? 'Unstar' : 'Star'}</button>{/if}
+      {#if requestSupportsCurl(req)}<button type="button" onclick={() => copyRequestCurl(req.id)} disabled={disabled}><MenuIcon name="copy" />Copy as cURL</button>{/if}
+      <div class="menu-sep" role="separator"></div>
+      <button class="danger" type="button" onclick={() => deleteRequest(req.id)} disabled={disabled}><MenuIcon name="trash" />Delete</button>
     </div>
   {/if}
 </div>

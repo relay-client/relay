@@ -109,7 +109,7 @@
     onSelectFile: (path: string) => void | Promise<void>;
   } = $props();
 
-  const FILE_ROW_HEIGHT = 34;
+  const FILE_ROW_HEIGHT = 30;
   const COMMIT_ROW_HEIGHT = 46;
   const VIRTUAL_OVERSCAN = 8;
   const YAML_PAGE_SIZE = 6;
@@ -460,6 +460,15 @@
       || line.startsWith('rename to ')
       || line.startsWith('--- ')
       || line.startsWith('+++ ');
+  }
+
+  function pathName(path: string) {
+    return path.slice(path.lastIndexOf('/') + 1) || path;
+  }
+
+  function pathFolder(path: string) {
+    const index = path.lastIndexOf('/');
+    return index > 0 ? path.slice(0, index).replace(/^workspaces\/[^/]+\//, '') : '';
   }
 
   function fileStatusLabel(fileStatus: string) {
@@ -867,13 +876,10 @@
         </div>
         <span class="git-status-pill" class:dirty={!status.clean} class:operation={Boolean(status.operation)} title={statusTitle}>
           {#if status.operation}
-            <GitIcon name="play" size={11} />
             {status.operation}
           {:else if changeCount}
-            <GitIcon name="commit" size={11} />
             {changeCount} changed
           {:else}
-            <GitIcon name="check" size={11} />
             Clean
           {/if}
         </span>
@@ -916,7 +922,6 @@
         </button>
         <button
           class="git-tool-btn"
-          class:primary={status.behind > 0}
           class:loading={isBusy('pull')}
           type="button"
           onclick={() => onPull()}
@@ -930,7 +935,6 @@
         </button>
         <button
           class="git-tool-btn"
-          class:primary={canPush}
           class:loading={isBusy('push')}
           type="button"
           onclick={onPush}
@@ -1207,7 +1211,7 @@
       <div class="git-layout">
       <div class="git-files">
         <div class="git-panel-head">
-          <span class="git-panel-title"><GitIcon name="commit" />Changes <em class="git-panel-count">{changeCount}</em></span>
+          <span class="git-panel-title">Changes {#if changeCount}<em class="git-panel-count">{changeCount}</em>{/if}</span>
           <div class="git-panel-actions">
             {#if changeCount && !selectedFileCount}
               <button
@@ -1222,11 +1226,11 @@
                 <GitIcon name="commit" busy={isBusy('commit')} />
                 Commit all
               </button>
-              <button class="git-action-btn compact icon-only" type="button" onclick={toggleAllFileSelection} disabled={loading} title="Select all changed files" aria-label="Select all">
+              <button class="git-action-btn compact ghost icon-only" type="button" onclick={toggleAllFileSelection} disabled={loading} title="Select all changed files" aria-label="Select all">
                 <GitIcon name="check-square" />
               </button>
               <button
-                class="git-action-btn compact danger icon-only"
+                class="git-action-btn compact ghost danger icon-only"
                 class:loading={isBusy('discard-all')}
                 type="button"
                 onclick={onDiscardAll}
@@ -1284,7 +1288,7 @@
             {#each virtualChangedFiles as file (file.path)}
               <div class="git-file-row" class:active={selectedPath === file.path} class:selected={selectedFileSet.has(file.path)} role="listitem">
                 <input
-                  class="git-file-check"
+                  class="git-file-check kv-check"
                   type="checkbox"
                   checked={selectedFileSet.has(file.path)}
                   aria-label={`Select ${file.path}`}
@@ -1297,9 +1301,10 @@
                     class:removed={file.status === 'deleted'}
                     class:modified={file.status === 'modified' || file.status === 'changed' || file.status === 'renamed'}
                     class:conflict={file.status === 'conflicted'}
+                    title={file.status}
                   >{fileStatusLabel(file.status)}</span>
-                  <strong>{file.path}</strong>
-                  <small>{file.status}</small>
+                  <strong title={file.path}>{pathName(file.path)}<small>{pathFolder(file.path)}</small></strong>
+                  <span class="sr-only">{file.status}</span>
                 </button>
               </div>
             {/each}
@@ -1310,11 +1315,11 @@
 
       <div class="git-diff">
         <div class="git-panel-head">
-          <span class="git-panel-title"><GitIcon name="eye" />{diffTitle}</span>
+          <span class="git-panel-title" title={diffTitle}>{selectedCommit ? diffTitle : pathName(diffTitle)}{#if !selectedCommit && pathFolder(diffTitle)}<small>{pathFolder(diffTitle)}</small>{/if}</span>
           <div class="git-panel-actions">
             {#if diff.truncated}<small>truncated</small>{/if}
             <button
-              class="git-action-btn compact"
+              class="git-action-btn compact ghost"
               type="button"
               onclick={() => selectedFileIsConflict ? openConflictResolver() : (expandedPanel = 'diff')}
               disabled={selectedFileIsConflict ? !conflict.path : (!diff.diff && !diffLoading)}
@@ -1325,7 +1330,7 @@
             </button>
             {#if selectedChangedFile && selectedPath !== 'Outgoing changes'}
               <button
-                class="git-action-btn compact danger"
+                class="git-action-btn compact ghost danger"
                 class:loading={isBusy('discard-file')}
                 type="button"
                 onclick={onDiscardFile}
@@ -1334,7 +1339,7 @@
                 title="Discard local changes for this file"
               >
                 <GitIcon name="trash" busy={isBusy('discard-file')} />
-                Discard file
+                Discard
               </button>
             {/if}
           </div>
@@ -1396,7 +1401,7 @@
           <div class="git-diff-code" role="region" aria-label="Git diff">
             {#if stagedDiffLines.length}
               <div class="git-diff-section-label">Staged</div>
-              {#each stagedDiffLines as line, index}
+              {#each stagedDiffLines as line, index (index)}
                 {@const kind = diffLineKind(line)}
                 <div class="git-diff-line" class:added={kind === 'added'} class:removed={kind === 'removed'} class:hunk={kind === 'hunk'}>
                   <span class="git-diff-line-no">{index + 1}</span>
@@ -1406,7 +1411,7 @@
             {/if}
             {#if unstagedDiffLines.length}
               <div class="git-diff-section-label">Unstaged</div>
-              {#each unstagedDiffLines as line, index}
+              {#each unstagedDiffLines as line, index (index)}
                 {@const kind = diffLineKind(line)}
                 <div class="git-diff-line" class:added={kind === 'added'} class:removed={kind === 'removed'} class:hunk={kind === 'hunk'}>
                   <span class="git-diff-line-no">{index + 1}</span>
@@ -1417,7 +1422,7 @@
           </div>
         {:else if diff.diff}
           <div class="git-diff-code" role="region" aria-label="Git diff">
-            {#each visibleDiffLines as line, index}
+            {#each visibleDiffLines as line, index (index)}
               {@const kind = diffLineKind(line)}
               <div class="git-diff-line" class:added={kind === 'added'} class:removed={kind === 'removed'} class:hunk={kind === 'hunk'}>
                 <span class="git-diff-line-no">{index + 1}</span>
@@ -1432,12 +1437,11 @@
 
       <div class="git-history">
         <div class="git-panel-head">
-          <span class="git-panel-title"><GitIcon name="history" />History</span>
+          <span class="git-panel-title">History</span>
           <div class="git-panel-actions">
             <small>{commitCountLabel}</small>
-            <button class="git-action-btn compact" class:loading={isBusy('log')} type="button" onclick={onRefreshLog} disabled={loading} aria-busy={isBusy('log')} title="Refresh commit history">
+            <button class="git-action-btn compact ghost icon-only" class:loading={isBusy('log')} type="button" onclick={onRefreshLog} disabled={loading} aria-busy={isBusy('log')} title="Refresh commit history" aria-label="Refresh commit history">
               <GitIcon name="refresh" busy={isBusy('log')} />
-              Refresh
             </button>
           </div>
         </div>
@@ -1459,9 +1463,8 @@
               >
                 <span>
                   <strong>{commit.message || '(no message)'}</strong>
-                  <small>{commit.shortHash} · {commit.author}</small>
+                  <small>{commit.shortHash} · {commit.author} · {commitDateLabel(commit.date)}</small>
                 </span>
-                <em>{commitDateLabel(commit.date)}</em>
               </button>
             {/each}
             <div class="git-list-spacer" style={`height: ${commitWindow.after}px`}></div>
@@ -1494,8 +1497,13 @@
       <div class="git-review-modal" class:conflict={expandedPanel === 'conflict'} role="dialog" aria-modal="true" aria-labelledby="git-review-title" tabindex="-1" onkeydown={(event) => event.key === 'Escape' && closeExpandedPanel()}>
         <div class="dialog-head git-review-head">
           <div>
-            <h2 id="git-review-title">{expandedPanel === 'diff' ? diffTitle : 'Resolve conflict'}</h2>
-            <p>{expandedPanel === 'diff' ? (selectedPath || 'Review workspace changes') : (selectedPath || 'Choose a conflicted Relay file')}</p>
+            {#if expandedPanel === 'diff'}
+              <h2 id="git-review-title">{selectedCommit ? diffTitle : pathName(diffTitle)}</h2>
+              <p>{selectedCommit ? 'Commit diff' : (pathFolder(diffTitle) || 'Review workspace changes')}</p>
+            {:else}
+              <h2 id="git-review-title">Resolve conflict{selectedPath ? ` · ${pathName(selectedPath)}` : ''}</h2>
+              <p>{selectedPath ? (pathFolder(selectedPath) || selectedPath) : 'Choose a conflicted Relay file'}</p>
+            {/if}
           </div>
           <button type="button" class="dialog-close" onclick={closeExpandedPanel} aria-label="Close review">×</button>
         </div>
@@ -1511,7 +1519,7 @@
               <div class="git-diff-code expanded" role="region" aria-label="Expanded Git diff">
                 {#if stagedDiffLines.length}
                   <div class="git-diff-section-label">Staged</div>
-                  {#each stagedDiffLines as line, index}
+                  {#each stagedDiffLines as line, index (index)}
                     {@const kind = diffLineKind(line)}
                     <div class="git-diff-line" class:added={kind === 'added'} class:removed={kind === 'removed'} class:hunk={kind === 'hunk'}>
                       <span class="git-diff-line-no">{index + 1}</span>
@@ -1521,7 +1529,7 @@
                 {/if}
                 {#if unstagedDiffLines.length}
                   <div class="git-diff-section-label">Unstaged</div>
-                  {#each unstagedDiffLines as line, index}
+                  {#each unstagedDiffLines as line, index (index)}
                     {@const kind = diffLineKind(line)}
                     <div class="git-diff-line" class:added={kind === 'added'} class:removed={kind === 'removed'} class:hunk={kind === 'hunk'}>
                       <span class="git-diff-line-no">{index + 1}</span>
@@ -1532,7 +1540,7 @@
               </div>
             {:else if diff.diff}
               <div class="git-diff-code expanded" role="region" aria-label="Expanded Git diff">
-                {#each visibleDiffLines as line, index}
+                {#each visibleDiffLines as line, index (index)}
                   {@const kind = diffLineKind(line)}
                   <div class="git-diff-line" class:added={kind === 'added'} class:removed={kind === 'removed'} class:hunk={kind === 'hunk'}>
                     <span class="git-diff-line-no">{index + 1}</span>
@@ -1559,7 +1567,8 @@
                     {#each conflictedFiles as file (file.path)}
                       <button class="git-conflict-file-pill" class:active={selectedPath === file.path} type="button" onclick={() => openConflictFile(file.path)} title={file.path}>
                         <span>{fileStatusLabel(file.status)}</span>
-                        <strong>{file.path}</strong>
+                        <strong>{pathName(file.path)}</strong>
+                        {#if pathFolder(file.path)}<small>{pathFolder(file.path)}</small>{/if}
                       </button>
                     {/each}
                   </div>
@@ -1639,7 +1648,7 @@
                           {/if}
                           {#each conflictBlocks as block, blockIndex (conflictBlockKey(block, blockIndex))}
                             {#if block.kind === 'text'}
-                              {#each block.raw as line, lineIndex}
+                              {#each block.raw as line, lineIndex (lineIndex)}
                                 <div class="git-conflict-visual-line">
                                   <span>{block.startLine + lineIndex}</span>
                                   <code>{line || ' '}</code>

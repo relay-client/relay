@@ -2,7 +2,7 @@ import type { CookieJarEntry, KeyValue, ResponseTimings, ScriptResult } from '..
 
 export type { CookieJarEntry, KeyValue, ResponseTimings, ScriptResult };
 
-export type RequestType = 'http' | 'graphql' | 'ws' | 'socketio' | 'grpc';
+export type RequestType = 'http' | 'graphql' | 'ws' | 'socketio' | 'grpc' | 'mcp';
 export type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS' | 'SSE';
 
 export type SSEStatus = 'idle' | 'connecting' | 'reconnecting' | 'connected' | 'error';
@@ -252,6 +252,10 @@ export type SavedRequest = {
   grpcProtoFilePath?: string;
   grpcProtoFileName?: string;
   grpcProtoImportPaths?: string[];
+  mcpMethod?: string;
+  mcpName?: string;
+  mcpArguments?: string;
+  mcpProtocolVersion?: string;
   examples?: RequestExample[];
 };
 
@@ -331,6 +335,7 @@ export type CollectionRunnerResult = {
 };
 export type RequestHistoryEntry = {
   id: string; request: SavedRequest; statusCode: number; status: string;
+  sourceRequestId?: string;
   duration: number; createdAt: number;
   responseStored?: boolean;
   responseSize?: number;
@@ -343,6 +348,7 @@ export type RequestStore = {
   workspaces: Workspace[]; collections: Collection[]; environments?: Environment[];
   requests: SavedRequest[]; history?: RequestHistoryEntry[]; globals?: KVRow[];
   workspaceCookies?: Record<string, CookieJarEntry[]>;
+  collectionRuns?: Record<string, import('../collectionRuns').CollectionRunRecord>;
 };
 export type FolderGroup = {
   key: string; path: string[]; name: string; requests: SavedRequest[];

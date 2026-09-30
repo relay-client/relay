@@ -3,7 +3,7 @@ import { codePanelMaxWidth } from '../lib/stores/features/uiShell';
 
 describe('code panel layout limits', () => {
   it('keeps at least half of the available workspace for the editor', () => {
-    expect(codePanelMaxWidth(1440, 280)).toBe(577);
+    expect(codePanelMaxWidth(1440, 280)).toBe(548);
     expect(codePanelMaxWidth(1920, 280)).toBe(760);
   });
 
@@ -12,6 +12,6 @@ describe('code panel layout limits', () => {
   });
 
   it('uses the extra space when the sidebar is hidden', () => {
-    expect(codePanelMaxWidth(1280, 0)).toBe(637);
+    expect(codePanelMaxWidth(1280, 0)).toBe(614);
   });
 });

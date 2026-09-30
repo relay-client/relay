@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { HttpRequest, HttpResponse, SaveRequestStoreResult } from '../lib/backend';
+import type { CookieJarEntry, HttpRequest, HttpResponse, SaveRequestStoreResult } from '../lib/backend';
 import { DEFAULT_REQUEST_SETTINGS, mkRow } from '../lib/constants';
 import { buildOpenCollectionFiles, openCollectionBundleFromFiles } from '../lib/opencollection';
 import { buildOpenApiDocument } from '../lib/openapi';
 import { buildPostmanCollection, postmanRequestsFromItems } from '../lib/postman';
-import { parseRunnerDataFile } from '../lib/runnerData';
+import { parseRunnerDataFile, type RunnerDataRow } from '../lib/runnerData';
+import type { CollectionRunRecord } from '../lib/collectionRuns';
 import { DEFAULT_RUNNER_CONCURRENCY } from '../lib/concurrency';
 import { emptyCollectionDefaults } from '../lib/collectionDefaults';
 import { makeWorkspace, normalizeSavedRequest } from '../lib/normalizers';
@@ -20,6 +21,7 @@ import type {
   OAuth2GrantType,
   RawBodyType,
   RequestExample,
+  RequestHistoryEntry,
   RequestSettings,
   RequestSettingsOverrides,
   RequestStore,
@@ -29,6 +31,7 @@ import type {
   SavedRequest,
   ScriptEngine,
   SidebarView,
+  SIOArg,
   Workspace,
 } from '../lib/types/models';
 import type { TopView } from '../lib/stores/ui';
@@ -176,9 +179,9 @@ class TestApp {
   environments: Environment[] = [];
   globalVariables: KVRow[] = [];
   requests: SavedRequest[] = [];
-  requestHistory: any[] = [];
-  workspaceCookies: Record<string, any[]> = {};
-  cookies: any[] = [];
+  requestHistory: RequestHistoryEntry[] = [];
+  workspaceCookies: Record<string, CookieJarEntry[]> = {};
+  cookies: CookieJarEntry[] = [];
   openRequestIds: string[] = [];
   lastClosedRequestIds: string[] = [];
   folderCollapseState: Record<string, boolean> = {};
@@ -315,7 +318,7 @@ class TestApp {
   loading = false;
   sioEvents: KVRow[] = [];
   sioEventName = '';
-  sioArgs: any[] = [];
+  sioArgs: SIOArg[] = [];
   sioSelectedArgId = '1';
   sioAck = false;
   collectionRunnerOpen = false;
@@ -326,13 +329,15 @@ class TestApp {
   collectionRunnerExcludeTags = '';
   collectionRunnerIterations = 1;
   collectionRunnerDataFileName = '';
-  collectionRunnerDataRows: any[] = [];
+  collectionRunnerDataRows: RunnerDataRow[] = [];
   collectionRunnerDataError = '';
   collectionRunnerParallel = false;
   collectionRunnerConcurrency = DEFAULT_RUNNER_CONCURRENCY;
   collectionRunnerTitle = '';
   collectionRunnerRunning = false;
   collectionRunnerResults: CollectionRunnerResult[] = [];
+  collectionLastRuns: Record<string, CollectionRunRecord> = {};
+  collectionRunnerShowingLastRun = false;
   collectionRunnerStartedAt = 0;
   collectionRunnerFinishedAt = 0;
   collectionRunnerCancelRequested = false;
@@ -574,9 +579,15 @@ describe('full application e2e smoke', () => {
     await app.startCollectionRunner(
       'Smoke API',
       app.requests.filter(req => [loginId, graphId, wsId].includes(req.id)),
-      { dataRows: runnerRows, parallel: false },
+      { dataRows: runnerRows, parallel: false, collectionId: collection.id },
     );
     expect(app.collectionRunnerResults).toHaveLength(4);
+    expect(app.collectionLastRuns[collection.id]?.results).toHaveLength(4);
+    expect(backend.state.savedStores.at(-1)?.collectionRuns?.[collection.id]?.results).toHaveLength(4);
+    app.collectionRunnerResults = [];
+    app.showCollectionLastRun(collection.id);
+    expect(app.collectionRunnerResults).toHaveLength(4);
+    expect(app.collectionRunnerShowingLastRun).toBe(true);
     expect(app.collectionRunnerResults.every(result => result.status === 'passed')).toBe(true);
     expect(app.collectionRunnerSummary).toMatchObject({ total: 4, passed: 4, failed: 0, allPassed: true });
     expect(app.collectionImportToast).toContain('Skipped 1 realtime request');
@@ -830,7 +841,7 @@ describe('full application e2e smoke', () => {
       recordRequestHistory: async () => undefined,
     };
 
-    const sendPromise = requestExecutionFeature.send.call(host as any);
+    const sendPromise = requestExecutionFeature.send.call(host as never);
     await settleMicrotasks();
 
     expect(activeResponse).toBe(previous);
@@ -881,8 +892,6 @@ describe('importing a spec from a URL', () => {
   it('fetches the spec and builds a collection from it', async () => {
     const app = newApp();
     vi.mocked(backend.sendHttpRequest).mockImplementationOnce(async (req: HttpRequest) => {
-      // The spec is fetched through the Go sender, not the WebView: a spec host
-      // has no reason to send CORS headers.
       expect(req.method).toBe('GET');
       expect(req.url).toBe('https://api.petstore.test/openapi.json');
       expect(req.followRedirects).toBe(true);
@@ -904,7 +913,6 @@ describe('importing a spec from a URL', () => {
     expect(app.requests.every((req: SavedRequest) => req.collectionId === app.collections[0].id)).toBe(true);
     expect(app.collectionImportToast).toMatch(/Imported 3 requests/);
 
-    // The collection has to reach disk, or the import is gone on next launch.
     const persisted = backend.state.savedStores.at(-1);
     expect(persisted?.collections?.[0]?.name).toBe('Petstore API');
     expect(persisted?.requests).toHaveLength(3);
@@ -988,10 +996,6 @@ describe('importing a spec from a URL', () => {
 });
 
 describe('opening a saved request', () => {
-  // Clicking a request in the sidebar loads it into the editor. The snapshot
-  // the editor then produces has to be identical to what was stored, or the
-  // request is marked unsaved the moment it is opened — and the indicator that
-  // is supposed to mean "you changed something" stops meaning anything.
   it('does not mark it dirty', async () => {
     backend.state.savedStores = [];
     const app = new TestApp() as TestApp & Record<string, any>;
@@ -1049,10 +1053,47 @@ describe('opening a saved request', () => {
     expect(second).not.toBe(first);
   });
 
-  // The editor compares against what came back from disk, and everything on the
-  // way back goes through normalizeSavedRequest. A field that normalization
-  // adds, drops or rewrites — and that the editor's own snapshot does not
-  // produce identically — marks the request unsaved the moment it is opened.
+  it('does not mark an HTTP request from an older store dirty once it is sent', async () => {
+    backend.state.savedStores = [];
+    const app = new TestApp() as TestApp & Record<string, any>;
+
+    app.prompts.push('Older store');
+    await app.createCollection();
+    const collection = app.collections[0];
+    app.selects.push('http');
+    await app.createNewRequest(collection.id, 'http');
+    await settleMicrotasks();
+    const first = app.activeRequestId;
+    app.url = 'https://api.example.test/market';
+    await app.saveActiveRequest();
+
+    app.selects.push('http');
+    await app.createNewRequest(collection.id, 'http');
+    await settleMicrotasks();
+    app.url = 'https://api.example.test/other';
+    await app.saveActiveRequest();
+
+    const legacy = { ...app.requests.find((req: SavedRequest) => req.id === first)! } as Record<string, unknown>;
+    for (const key of Object.keys(legacy)) if (key.startsWith('mcp')) delete legacy[key];
+    const restored = normalizeSavedRequest(legacy as never, app.collections, app.activeWorkspaceId);
+    app.requests = app.requests.map((req: SavedRequest) => (req.id === first ? restored : req));
+    app.recordSavedRequestSnapshots(app.requests);
+
+    await app.switchRequest(first);
+    await settleMicrotasks();
+    app.updateRequestDirtyState(first, app.snapshotActiveRequest());
+
+    const stored = app.requests.find((req: SavedRequest) => req.id === first)!;
+    const reopened = app.snapshotActiveRequest();
+    const a = JSON.parse(app.requestDirtyFingerprint(stored));
+    const b = JSON.parse(app.requestDirtyFingerprint(reopened));
+    const drifted = Object.keys({ ...a, ...b })
+      .filter(key => JSON.stringify(a[key]) !== JSON.stringify(b[key]))
+      .map(key => `${key}: stored ${JSON.stringify(a[key])} vs reopened ${JSON.stringify(b[key])}`);
+    expect(drifted).toEqual([]);
+    expect(app.isRequestDirty(first)).toBe(false);
+  });
+
   it('survives the trip through the store on disk', async () => {
     backend.state.savedStores = [];
     const app = new TestApp() as TestApp & Record<string, any>;

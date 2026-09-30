@@ -394,6 +394,10 @@ export function SendGrpcRequest(arg1) {
   return window['go']['api']['App']['SendGrpcRequest'](arg1);
 }
 
+export function SendMcpRequest(arg1) {
+  return window['go']['api']['App']['SendMcpRequest'](arg1);
+}
+
 export function SendRequest(arg1) {
   return window['go']['api']['App']['SendRequest'](arg1);
 }

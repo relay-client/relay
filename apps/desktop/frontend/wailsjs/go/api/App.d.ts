@@ -199,6 +199,8 @@ export function SaveWorkspaceSecrets(arg1:Record<string, string>):Promise<api.Wo
 
 export function SendGrpcRequest(arg1:model.GrpcRequest):Promise<model.GrpcResponse>;
 
+export function SendMcpRequest(arg1:model.HttpRequest):Promise<model.McpResponse>;
+
 export function SendRequest(arg1:model.HttpRequest):Promise<model.HttpResponse>;
 
 export function SendRequestToFile(arg1:model.HttpRequest,arg2:string):Promise<api.DownloadResult>;

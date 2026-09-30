@@ -41,7 +41,7 @@ describe('request persistence failures', () => {
       setSaveStatus: vi.fn(),
     };
 
-    await requestPersistenceFeature.persistActiveRequestNow.call(host as any);
+    await requestPersistenceFeature.persistActiveRequestNow.call(host as never);
 
     expect(host.dirtyRequestIds.has(current.id)).toBe(true);
     expect(host.setSaveStatus).toHaveBeenLastCalledWith('error');
@@ -69,7 +69,7 @@ describe('request persistence failures', () => {
       persistRequestStore: vi.fn().mockResolvedValue(false),
     };
 
-    await requestPersistenceFeature.saveRequestById.call(host as any, current.id);
+    await requestPersistenceFeature.saveRequestById.call(host as never, current.id);
 
     expect(host.dirtyRequestIds.has(current.id)).toBe(true);
     expect(host.savedRequestSnapshots.get(current.id)).toEqual(saved);
@@ -100,7 +100,7 @@ describe('request persistence failures', () => {
       persistRequestStore: vi.fn().mockResolvedValue(true),
     };
 
-    await requestCrudFeature.reviewDraftsBeforeQuit.call(host as any);
+    await requestCrudFeature.reviewDraftsBeforeQuit.call(host as never);
 
     expect(cancelQuit).toHaveBeenCalledTimes(1);
     expect(confirmQuit).not.toHaveBeenCalled();

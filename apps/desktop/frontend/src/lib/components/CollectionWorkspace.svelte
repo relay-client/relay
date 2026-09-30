@@ -10,6 +10,7 @@
   import CodeEditor from '../CodeEditor.svelte';
   import Select from './Select.svelte';
   import VariableInput from './VariableInput.svelte';
+  import { relativeTime, type CollectionRunTally } from '../collectionRuns';
 
   type CollectionSettingsTab = 'overview' | 'headers' | 'vars' | 'auth' | 'script' | 'tests' | 'proxy';
   type CollectionSettingsPatch = Pick<Collection, 'name' | 'description' | 'defaults'> & { baseFingerprint?: string };
@@ -27,6 +28,8 @@
   let {
     collection,
     requestCount = 0,
+    lastRun = null,
+    onOpenRunner,
     collectionSettingsTab = $bindable<CollectionSettingsTab>('overview'),
     autosave = false,
     saveState = 'idle',
@@ -39,6 +42,8 @@
   }: {
     collection: Collection | undefined;
     requestCount?: number;
+    lastRun?: (CollectionRunTally & { finishedAt: number }) | null;
+    onOpenRunner: (collectionId: string) => void;
     collectionSettingsTab: CollectionSettingsTab;
     autosave?: boolean;
     saveState?: 'idle' | 'saving' | 'saved';
@@ -217,9 +222,15 @@
   {#if collection}
     <div class="collection-workspace-head">
       <div>
-        <span class="overview-eyebrow">Collection</span>
         <h1>{collection.name}</h1>
         <p>{requestCount} request{requestCount === 1 ? '' : 's'} · defaults are applied when requests are sent</p>
+        {#if lastRun}
+          <p class="collection-last-run">
+            <span class="collection-last-run-dot" class:fail={lastRun.failed > 0} aria-hidden="true"></span>
+            <button class="collection-last-run-link" type="button" onclick={() => onOpenRunner(collection.id)} disabled={workspaceBlocked}>Last run {relativeTime(lastRun.finishedAt)}</button>
+            · {lastRun.passed} of {lastRun.total} passed{#if lastRun.failed} · {lastRun.failed} failed{/if}
+          </p>
+        {/if}
       </div>
       <div class="overview-actions">
         {#if externalUpdate}
@@ -231,7 +242,7 @@
           <span class="env-save-indicator saved">Saved</span>
         {/if}
         <button class="btn-secondary btn-sm" type="button" onclick={() => onCreateRequest(collection.id)} disabled={workspaceBlocked}>New request</button>
-        <button class="btn-secondary btn-sm" type="button" onclick={reset} disabled={workspaceBlocked}>Reset defaults</button>
+        <button class="btn-ghost btn-sm" type="button" onclick={reset} disabled={workspaceBlocked}>Reset defaults</button>
         {#if !autosave}
           <button class="btn-primary btn-sm" class:feedback-ok={saved} type="button" onclick={save} disabled={workspaceBlocked}>{saved ? 'Saved' : 'Save'}</button>
         {/if}
@@ -244,8 +255,8 @@
         <button role="tab" class:active={collectionSettingsTab === 'headers'} aria-selected={collectionSettingsTab === 'headers'} tabindex={collectionSettingsTab === 'headers' ? 0 : -1} type="button" onclick={() => (collectionSettingsTab = 'headers')}>Headers{#if activeCount(headers) > 0}<span class="badge">{activeCount(headers)}</span>{/if}</button>
         <button role="tab" class:active={collectionSettingsTab === 'vars'} aria-selected={collectionSettingsTab === 'vars'} tabindex={collectionSettingsTab === 'vars' ? 0 : -1} type="button" onclick={() => (collectionSettingsTab = 'vars')}>Vars{#if activeCount(variables) > 0}<span class="badge">{activeCount(variables)}</span>{/if}</button>
         <button role="tab" class:active={collectionSettingsTab === 'auth'} aria-selected={collectionSettingsTab === 'auth'} tabindex={collectionSettingsTab === 'auth' ? 0 : -1} type="button" onclick={() => (collectionSettingsTab = 'auth')}>Auth{#if auth.type !== 'none'}<span class="badge badge-on">On</span>{/if}</button>
-        <button role="tab" class:active={collectionSettingsTab === 'script'} aria-selected={collectionSettingsTab === 'script'} tabindex={collectionSettingsTab === 'script' ? 0 : -1} type="button" onclick={() => (collectionSettingsTab = 'script')}>Script{#if scriptLineCount(activePre) > 0}<span class="badge badge-script">{scriptLineCount(activePre)}L</span>{/if}</button>
-        <button role="tab" class:active={collectionSettingsTab === 'tests'} aria-selected={collectionSettingsTab === 'tests'} tabindex={collectionSettingsTab === 'tests' ? 0 : -1} type="button" onclick={() => (collectionSettingsTab = 'tests')}>Tests{#if scriptLineCount(activeTest) > 0}<span class="badge badge-script">{scriptLineCount(activeTest)}L</span>{/if}</button>
+        <button role="tab" class:active={collectionSettingsTab === 'script'} aria-selected={collectionSettingsTab === 'script'} tabindex={collectionSettingsTab === 'script' ? 0 : -1} type="button" onclick={() => (collectionSettingsTab = 'script')}>Script{#if scriptLineCount(activePre) > 0}<span class="badge badge-on">{scriptLineCount(activePre)} lines</span>{/if}</button>
+        <button role="tab" class:active={collectionSettingsTab === 'tests'} aria-selected={collectionSettingsTab === 'tests'} tabindex={collectionSettingsTab === 'tests' ? 0 : -1} type="button" onclick={() => (collectionSettingsTab = 'tests')}>Tests{#if scriptLineCount(activeTest) > 0}<span class="badge badge-on">{scriptLineCount(activeTest)} lines</span>{/if}</button>
         <button role="tab" class:active={collectionSettingsTab === 'proxy'} aria-selected={collectionSettingsTab === 'proxy'} tabindex={collectionSettingsTab === 'proxy' ? 0 : -1} type="button" onclick={() => (collectionSettingsTab = 'proxy')}>Proxy</button>
       </div>
 
@@ -318,7 +329,7 @@
         {:else if collectionSettingsTab === 'auth'}
           <div class="auth-section collection-auth-section">
             <div class="auth-type-column">
-              <span class="field-label">Auth Type</span>
+              <span class="field-label">Auth type</span>
               <div class="auth-select">
                 <button class="auth-select-trigger" type="button" onclick={() => (authMenuOpen = !authMenuOpen)} aria-label="Auth Type" aria-expanded={authMenuOpen}>
                   <span>{COLLECTION_AUTH_OPTIONS.find(option => option.value === auth.type)?.label ?? 'No Auth'}</span>
@@ -326,7 +337,7 @@
                 </button>
                 {#if authMenuOpen}
                   <div class="auth-select-menu">
-                    {#each COLLECTION_AUTH_OPTIONS as option}
+                    {#each COLLECTION_AUTH_OPTIONS as option, eachIndex (eachIndex)}
                       <button class:active={auth.type === option.value} type="button" onclick={() => { auth.type = option.value; authMenuOpen = false; }}>
                         {#if auth.type === option.value}<span class="auth-check">✓</span>{:else}<span class="auth-check"></span>{/if}
                         <span>{option.label}</span>
@@ -360,14 +371,14 @@
                 <input id="collection-oauth-url" class="field-input" bind:value={auth.oauth2TokenURL} spellcheck="false" />
                 <label class="field-label" for="collection-oauth-id">Client ID</label>
                 <input id="collection-oauth-id" class="field-input" bind:value={auth.oauth2ClientID} spellcheck="false" />
-                <label class="field-label" for="collection-oauth-secret">Client Secret</label>
+                <label class="field-label" for="collection-oauth-secret">Client secret</label>
                 <input id="collection-oauth-secret" class="field-input" bind:value={auth.oauth2Secret} type="password" />
                 <label class="field-label" for="collection-oauth-scope">Scope</label>
                 <input id="collection-oauth-scope" class="field-input" bind:value={auth.oauth2Scope} spellcheck="false" />
               {:else if auth.type === 'aws'}
                 <div class="auth-grid-2">
-                  <div><label class="field-label" for="collection-aws-key">Access Key ID</label><input id="collection-aws-key" class="field-input field-mono" bind:value={auth.awsAccessKey} spellcheck="false" /></div>
-                  <div><label class="field-label" for="collection-aws-secret">Secret Access Key</label><input id="collection-aws-secret" class="field-input field-mono" bind:value={auth.awsSecretKey} type="password" /></div>
+                  <div><label class="field-label" for="collection-aws-key">Access key ID</label><input id="collection-aws-key" class="field-input field-mono" bind:value={auth.awsAccessKey} spellcheck="false" /></div>
+                  <div><label class="field-label" for="collection-aws-secret">Secret access key</label><input id="collection-aws-secret" class="field-input field-mono" bind:value={auth.awsSecretKey} type="password" /></div>
                   <div><label class="field-label" for="collection-aws-region">Region</label><input id="collection-aws-region" class="field-input" bind:value={auth.awsRegion} spellcheck="false" /></div>
                   <div><label class="field-label" for="collection-aws-service">Service</label><input id="collection-aws-service" class="field-input" bind:value={auth.awsService} spellcheck="false" /></div>
                 </div>
@@ -378,7 +389,7 @@
           </div>
         {:else if collectionSettingsTab === 'script'}
           <div class="script-section collection-script-section">
-            <div class="script-toolbar"><span class="script-lang-badge">{engineLabel}</span><span class="script-hint">Runs before each request's own pre-request script</span></div>
+            <div class="script-head"><span class="script-hint">{engineLabel} · runs before each request's own pre-request script</span></div>
             {#if scriptEngine === 'js'}
               <CodeEditor bind:value={preRequestScriptJs} language="javascript" placeholder={'// Collection pre-request script (JavaScript) pm.variables.set("traceId", "relay-001")'} minHeight="280px" maxHeight="520px" />
             {:else}
@@ -387,7 +398,7 @@
           </div>
         {:else if collectionSettingsTab === 'tests'}
           <div class="script-section collection-script-section">
-            <div class="script-toolbar"><span class="script-lang-badge">{engineLabel}</span><span class="script-hint">Runs before each request's own test script after the response arrives</span></div>
+            <div class="script-head"><span class="script-hint">{engineLabel} · runs before each request's own test script, after the response arrives</span></div>
             {#if scriptEngine === 'js'}
               <CodeEditor bind:value={testScriptJs} language="javascript" placeholder={'// Collection test script (JavaScript) pm.test("No server error", () => pm.expect(pm.response.code).to.be.below(500))'} minHeight="280px" maxHeight="520px" />
             {:else}
