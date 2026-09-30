@@ -7,6 +7,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const master = join(root, 'apps', 'desktop', 'build', 'appicon.png');
 
 const ogPath = join(root, 'apps', 'web', 'public', 'og.png');
+const avatarPath = join(root, '.github', 'assets', 'org-avatar.png');
 
 const tile = await sharp(master).trim({ threshold: 1 }).png().toBuffer();
 
@@ -55,3 +56,38 @@ await sharp(Buffer.from(ogSvg))
   .toFile(ogPath);
 
 console.log('wrote', ogPath);
+
+const { data: masterPixels, info: masterInfo } = await sharp(master).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+const marks = Buffer.from(masterPixels);
+for (let i = 0; i < marks.length; i += 4) {
+  const blueness = marks[i + 2] - (marks[i] + marks[i + 1]) / 2;
+  const coverage = Math.max(0, Math.min(1, (blueness - 14) / 36));
+  marks[i + 3] = Math.round(marks[i + 3] * coverage);
+}
+const avatarSize = 1024;
+const markScale = 1.12;
+const scaledSize = Math.round(avatarSize * markScale);
+const inset = Math.round((scaledSize - avatarSize) / 2);
+const avatarMarks = await sharp(marks, { raw: masterInfo })
+  .resize(scaledSize, scaledSize)
+  .extract({ left: inset, top: inset, width: avatarSize, height: avatarSize })
+  .png()
+  .toBuffer();
+const avatarBackground = `<svg xmlns="http://www.w3.org/2000/svg" width="${avatarSize}" height="${avatarSize}" viewBox="0 0 ${avatarSize} ${avatarSize}">
+  <defs>
+    <linearGradient id="tileBg" x1="0" y1="0" x2="0" y2="${avatarSize}" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fcfcfe"/>
+      <stop offset="1" stop-color="#e3e5ef"/>
+    </linearGradient>
+  </defs>
+  <rect width="${avatarSize}" height="${avatarSize}" fill="url(#tileBg)"/>
+</svg>`;
+
+mkdirSync(dirname(avatarPath), { recursive: true });
+await sharp(Buffer.from(avatarBackground))
+  .composite([{ input: avatarMarks }])
+  .png()
+  .toFile(avatarPath);
+
+console.log('wrote', avatarPath);
+
