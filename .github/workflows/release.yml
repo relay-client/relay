@@ -237,8 +237,6 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          # The Windows build is a GUI-subsystem binary, so it has no console
-          # to write to. Redirecting to a file gives it a valid stdout handle.
           $out = Join-Path $env:RUNNER_TEMP "relay-version.txt"
           $process = Start-Process -FilePath "release\relay-windows-amd64.exe" `
             -ArgumentList "--version" -Wait -PassThru -NoNewWindow -RedirectStandardOutput $out
@@ -263,8 +261,6 @@ jobs:
             *) echo "::error::built binary reports '$output', expected version $VERSION"; exit 1 ;;
           esac
           release/relay-linux-amd64 --diagnostics
-          # The AppImage wraps the same binary, but its AppRun and payload are
-          # assembled by hand above and have their own ways to be wrong.
           appimage="release/relay-${VERSION}-linux-amd64.AppImage"
           chmod +x "$appimage"
           packaged="$("$appimage" --appimage-extract-and-run --version)"
@@ -300,8 +296,6 @@ jobs:
         run: |
           set -euo pipefail
           : > release-notes.md
-          # Checkout writes the triggering tag as a lightweight ref, which loses the
-          # annotation the notes are read from. Re-fetch it as the real tag object.
           git fetch --force origin "refs/tags/${{ github.ref_name }}:refs/tags/${{ github.ref_name }}"
           TYPE=$(git for-each-ref --format='%(objecttype)' "refs/tags/${{ github.ref_name }}")
           if [ "$TYPE" = "tag" ]; then
