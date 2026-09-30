@@ -30,11 +30,11 @@ Supported algorithms (RFC 7616): `MD5`, `SHA-256`, `SHA-512-256`, and their `-se
 
 ## OAuth 2.0
 
-Relay supports four grant types:
+Relay supports four grant types, picked from **Grant type**:
 
-- **Client Credentials** — enter the token URL, client ID, client secret, and optional scope, then click **Get Access Token**.
-- **Authorization Code** — enter the authorization URL, token URL, client ID, optional client secret, and scope, then click **Authorize in browser**. Relay opens the system browser and receives the callback through a temporary loopback listener on `127.0.0.1`.
-- **Device Code** (RFC 8628) — enter the device authorization URL, token URL, and client ID, then click **Start device sign-in**. Relay shows the user code, opens the verification page, and polls the token endpoint until you approve. It honours the server's `interval` and backs off on `slow_down`. This is the grant to use where a loopback redirect cannot work — a headless machine or a remote session.
+- **Client credentials** — enter the token URL, client ID, client secret, and optional scope, then click **Get access token**.
+- **Authorization code** — enter the authorization URL, token URL, client ID, optional client secret, and scope, then click **Authorize in browser**. Relay opens the system browser and receives the callback through a temporary loopback listener on `127.0.0.1`.
+- **Device code** (RFC 8628) — enter the device authorization URL, token URL, and client ID, then click **Start device sign-in**. Relay shows the user code, opens the verification page, and polls the token endpoint until you approve. It honours the server's `interval` and backs off on `slow_down`. This is the grant to use where a loopback redirect cannot work — a headless machine or a remote session.
 - **Password** — the RFC 6749 resource-owner grant: token URL, username, and password. Legacy by design, but still required by some internal token endpoints.
 
 ![OAuth 2.0 Client Credentials form with token controls](../../../../assets/screenshots/auth-oauth2-token-fetch.png)

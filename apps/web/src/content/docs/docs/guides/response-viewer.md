@@ -3,7 +3,7 @@ title: Response viewer
 description: Reading the body, headers, test results, paging through large payloads, search, and copying responses.
 ---
 
-The Response panel takes the bottom half of the request workspace. After a request finishes you'll see four useful surfaces here: the body, headers, test results, and the response metadata bar at the top.
+The Response panel sits to the right of the request editor when the window leaves both at least 1000px, and below it in a narrower window. After a request finishes you'll see four useful surfaces here: the body, headers, test results, and the response metadata bar at the top.
 
 ## The status bar
 
@@ -30,7 +30,7 @@ The body view auto-detects how to render the payload:
 
 ### Searching the body
 
-Click the magnifying glass next to the response tabs (or press the search shortcut configured in *Settings → Shortcuts*) to open the inline search bar. As you type, matches highlight in place and the counter shows `current/total`:
+Click the magnifying glass at the right end of the status row (or press the search shortcut configured in *Settings → Shortcuts*) to open the inline search bar. As you type, matches highlight in place and the counter shows `current/total`:
 
 - `↓` / `↑` — jump to next / previous match
 - `Enter` / `Shift+Enter` — same as next / previous

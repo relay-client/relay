@@ -13,7 +13,7 @@ Every shortcut is rebindable from **Settings → Shortcuts**. Click any shortcut
 
 | Shortcut | Action |
 |----------|--------|
-| `Cmd/Ctrl K` | Global search (requests, collections, history) |
+| `Cmd/Ctrl K` | Command palette — search saved requests and run commands |
 | `Cmd/Ctrl ,` | Open settings |
 | `Cmd/Ctrl Backslash` | Toggle sidebar |
 | `Alt Cmd/Ctrl Backslash` | Toggle right sidebar / code snippet panel |

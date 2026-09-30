@@ -93,8 +93,6 @@ export default defineConfig({
           attrs: { rel: 'apple-touch-icon', href: `${BASE_NORMALIZED}/apple-touch-icon.png` },
         },
         {
-          // The splash header is transparent while it sits on the hero and takes on the page
-          // surface once you scroll past it.
           tag: 'script',
           content: `(() => {
   const mark = () => {

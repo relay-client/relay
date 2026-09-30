@@ -13,6 +13,7 @@ Open it from:
 
 - A collection menu: **Run collection**.
 - A folder menu: **Run folder**.
+- The play icon in the activity rail on the left.
 - The workspace overview quick action.
 
 Relay opens the runner workspace and selects runnable requests from the current collection. Realtime sessions (`SSE`, WebSocket, Socket.IO) are skipped because they do not naturally finish. HTTP, GraphQL, and gRPC requests can run.
@@ -78,7 +79,7 @@ A request fails when the transport errors, headers are invalid, a script errors,
 
 ## Reports
 
-After a run, click **Download Report** to save an HTML report. It includes:
+After a run, click **Download report** to save an HTML report. It includes:
 
 - Summary counts.
 - Duration.
@@ -87,6 +88,12 @@ After a run, click **Download Report** to save an HTML report. It includes:
 - Test names and failures.
 
 Reports are local files; Relay does not upload them anywhere.
+
+## Last run
+
+Relay remembers the most recent finished run of each collection — every request's status, time, checks and error, up to 500 results. Open the runner on that collection, or switch its *Collection* picker back to it, and the results are there with *Last run* and when it happened above them, until you run again. The collection's own page shows the same run as one line — *Last run 2 hours ago · 12 of 13 passed* — and the link opens the runner.
+
+A run where every request was skipped is not recorded. The results live in the encrypted local profile next to your history, never in the workspace YAML, so they are not committed to Git and stay on this device.
 
 ## Common gotchas
 

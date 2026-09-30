@@ -35,10 +35,14 @@ The same dropdown shows all workspaces with their request counts. Switching is i
 
 ### Workspace overview
 
-If no request is open, the workspace overview is shown. It surfaces:
+If no request is open, the workspace overview is shown. Under the workspace name — with how many collections, requests and environments it holds, and whether it lives in a Git repository — it lists:
 
-- **Workspace notes** — a freeform textarea that's saved with the workspace. Great for noting API base URLs, regex for the auth header, conventions, or onboarding pointers for teammates.
-- **Quick actions** — one-click access to create collections / requests / environments, jump to Git sync, open the code-snippet drawer, or hop into Settings.
+- **Continue where you left off** — the last requests you sent from this workspace, newest first, with the status each one got. Click one to open it. Requests you have since deleted are left out.
+- **Collections** — every collection with its request and folder count. Click one to open its settings.
+- **Start** — new request, search, import, new collection, new environment, run a collection and keyboard shortcuts, with the shortcut shown where there is one.
+- **Notes** — freeform text saved with the workspace. Useful for base URLs, auth hints, conventions or onboarding pointers for teammates.
+
+A workspace with nothing in it yet shows a short first-run panel instead: start a new request (paste a URL or a whole cURL command) or import a collection from Postman, Insomnia, OpenAPI, Bruno / OpenCollection or HAR.
 
 ## Collections
 
@@ -47,7 +51,7 @@ A collection groups related requests inside a workspace. There's no maximum — 
 ### Creating a collection
 
 - Sidebar header → **+** (the plus button)
-- Workspace overview → *Create collection* quick action
+- Workspace overview → *Start* → **New collection**
 - Right-click anywhere in the empty sidebar area → *New collection*
 - Empty-state CTA when a workspace has no collections yet
 
@@ -103,8 +107,8 @@ A request is the leaf of the tree. Each request has its own URL, method, headers
 ### Creating a request
 
 - Collection or folder `⋯` menu → **Add request**
-- Workspace overview → *Create request* quick action
-- Drafts: top of the sidebar → the request type picker (HTTP / GraphQL / WebSocket / Socket.IO). Drafts live in a special "scratch" area until you save them to a collection.
+- Workspace overview → *Start* → **New request**
+- Drafts: **+** after the open tabs, then pick the request type. Drafts live in a special "scratch" area until you save them to a collection.
 
 ### The request `⋯` menu
 
@@ -136,7 +140,19 @@ The sidebar search input filters requests by name, URL, and method as you type:
 - Prefixing with `m:` filters by method (`m:POST users`)
 - Filter is workspace-scoped — searching doesn't leak between workspaces
 
-Press the *Global search* shortcut (default `Cmd/Ctrl K`) for a workspace-wide search that opens the matching request directly.
+## Command palette
+
+Press `Cmd/Ctrl K` — or click the search field in the title bar — to open the command palette. Type to search the saved requests of the workspace by name, URL, method, collection or folder; the same query also filters Relay's commands:
+
+- **Request** — send, save, edit the URL, duplicate, rename, copy as cURL, close or reopen a tab. Shown while a request is open.
+- **Create** — a new request, collection or environment, or an import.
+- **Go to** — collections, environments, history, globals, the collection runner, the mock server, Git, cookies, settings and proxy settings.
+- **View** — show or hide the sidebar and the code snippet panel, put the response beside or below the request, switch between light, dark and system theme.
+- **Help** — what's new, reporting an issue, about Relay.
+
+Start the query with `>` to list commands only. `↑` and `↓` move through the list, `Enter` runs the selection, `Esc` closes the palette. A command bound to a shortcut shows it, including one you reassigned in *Settings → Shortcuts*.
+
+![Command palette listing saved requests above the commands](../../../../assets/screenshots/global-search.png)
 
 ## Empty states
 

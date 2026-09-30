@@ -25,29 +25,38 @@ Toggle a day open or closed with the chevron. Days collapse independently — yo
 
 ![History panel with a successful request grouped under Today](../../../../assets/screenshots/history.png)
 
-## Reopening a request from history
+## The entry view
 
-Click any entry to load it into the editor as a **draft**. The request URL, method, headers, body, auth, and scripts are restored exactly as they were sent, and the response that came back is restored into the response panel — no need to re-send if you just want to inspect what you got. Re-sending would answer a different question anyway: the server may not reply the same way it did an hour ago.
+Click an entry to open it on its own page — a *History* tab in the title bar, closed like any other tab. It shows what was sent and what came back, side by side:
 
-A row whose response was kept shows a small dot next to its status code. To look at the response without opening the request, use **View response** in the row's ••• menu.
+- **Request** — the method and full URL, the header rows the request carried (secret values stay masked), the auth type, and the body. Headers Relay adds on the wire, such as `Host` and `User-Agent`, are not part of the entry.
+- **Response** — status, time, size and content type, then the stored response headers and body in the same viewer as the response panel, with syntax highlighting and line numbers.
 
-Drafts loaded from history don't belong to any collection. You can:
+If the request it was sent from still exists, the page says where it lives, and the link opens it. **Copy as cURL** copies the request as it was sent, **Delete** removes the entry, and **Open in editor** brings it back as a request you can change and send again.
 
-- Edit and send again — the new send becomes a fresh history entry.
-- Save the draft to a collection: click *Save* in the request bar, choose the target collection, give it a name.
-- Discard it by closing the tab.
+![A history entry with its request and stored JSON response](../../../../assets/screenshots/history-detail.png)
+
+### Open in editor
+
+**Open in editor** copies the entry into the collection you are working in as a new request, opens it, and restores the stored response into the response panel — no need to re-send just to look at what you got. Re-sending would answer a different question anyway: the server may not reply the same way it did an hour ago. The new send becomes a fresh history entry.
+
+### Stored responses
+
+Relay keeps the response of each entry — status, headers and body — in the encrypted profile, up to 2 MB per entry. A larger body is cut to fit and the page says so; a binary body is not kept. A row whose response was kept shows a small dot next to its status code.
 
 ## History entry menu
 
-The `⋯` button on each history row offers:
+The `•••` button on each history row offers:
 
-- **Save to collection** — pick an existing collection in this workspace; Relay drops the request into it. Useful when an ad-hoc curl-paste turns out to be worth keeping.
-- **Save to new collection** — same, but creates the collection on the fly with a name you pick.
-- **Delete entry** — removes just this one history record. Useful for clearing out one-off mistakes.
+- **Open in editor** — as above.
+- **Save as example** — keeps the stored response as an example on the request that is open. Shown when a request is open and the entry's response was kept.
+- **Save to** a collection — pick an existing collection in this workspace; Relay drops the request into it. Useful when an ad-hoc curl-paste turns out to be worth keeping.
+- **New collection…** — same, but creates the collection on the fly with a name you pick.
+- **Delete** — removes just this one history record.
 
 ## Bulk operations
 
-The header `⋯` button (top right of the history panel) has:
+The `•••` button in the History header has:
 
 - **Clear all** — wipes every history entry in the current workspace. Asks for confirmation. *This does not touch your saved collections.*
 
@@ -64,17 +73,9 @@ When you exceed either cap, the oldest entries are pruned the next time the requ
 
 These caps aren't exposed in Settings yet — they're constants in the source. If you find yourself wanting longer retention, file a request on GitHub.
 
-## Search across history
+## Finding an entry
 
-The global search modal (default shortcut `Cmd/Ctrl K`) searches across:
-
-![Global search modal](../../../../assets/screenshots/global-search.png)
-
-- Open tabs
-- Saved requests in collections
-- **History entries** — last 14 days
-
-A history entry is marked with a small clock icon in the results so you can tell at a glance it's not a saved request.
+The filter at the top of the History panel matches URLs and request names, and the status buttons narrow the list to `2xx`, `3xx`, `4xx` or `5xx`. The command palette (`Cmd/Ctrl K`) searches saved requests, not history.
 
 ## Privacy & data location
 

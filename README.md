@@ -40,7 +40,7 @@ Guides, the scripting reference, and the YAML workspace format live in the **[do
 - Query params, headers, body (JSON, form-data, x-www-form-urlencoded, raw text/XML/HTML, binary file)
 - cURL import — paste a curl command into the URL field, it parses automatically
 - Bulk edit for params, headers and form fields — switch the table to a `key: value` text area and back
-- GraphQL, Server-Sent Events, WebSocket, Socket.IO, and gRPC request types
+- GraphQL, Server-Sent Events, WebSocket, Socket.IO, gRPC, and MCP request types — an MCP call discovers the server's tools, resources and prompts, seeds the arguments from the tool's schema, and shows the raw JSON-RPC exchange
 - Postman, Insomnia, Bruno/OpenCollection, OpenAPI/Swagger, HAR, cURL, and all-data backup import paths
 - OpenAPI/Swagger imports from a link as well as a file — paste the spec URL and Relay fetches it and builds the collection
 - Postman, OpenAPI, OpenCollection, and all-data backup export paths
@@ -72,6 +72,7 @@ pm.test("has an id", () => pm.response.to.have.jsonSchema({ type: "object", requ
 
 **Environments & Variables**
 - Multiple environments per workspace, switch with one click
+- Matrix view — every variable as a row, every environment as a column, edited in place
 - `{{variable}}` template syntax in URLs, headers, params, body, auth fields
 - Set variables from test scripts (`pm.variables.set`, `pm.environment.set`)
 - Manual-save and autosave modes both cover request and environment edits
@@ -80,7 +81,8 @@ pm.test("has an id", () => pm.response.to.have.jsonSchema({ type: "object", requ
 - Multiple workspaces for separate projects or clients
 - Collections with nested folder hierarchy and empty-folder preservation
 - Drag-and-drop organisation
-- Request history — every send, replayable, with the response it came back with (14-day retention, 1000 entries)
+- Request history — every send on its own page, request and stored response side by side, reopenable in the editor (14-day retention, 1000 entries)
+- Collection runner — sequential or parallel, data files, iterations, an HTML report, and the last run of every collection kept
 - Git-backed YAML workspaces with diagnostics, conflict helpers, and local-only secrets
 - **CLI runner** — `relay run ./workspace --env CI` executes requests and their test scripts for CI, with data-driven iterations (`--data`), pretty/JSON/JUnit reporters, variable export, and a non-zero exit code on failure
 
@@ -108,7 +110,7 @@ pm.test("has an id", () => pm.response.to.have.jsonSchema({ type: "object", requ
 
 **Settings per request**: HTTP version (auto / 1.1 / 2), SSL verification, redirect policy (follow, preserve method, preserve auth), cookie jar, timeout, proxy, URL encoding.
 
-**Keyboard-first**: all actions have configurable shortcuts. Global search (`Cmd/Ctrl K`), quick send (`Cmd/Ctrl Enter`), focus the URL (`Cmd/Ctrl L`), tab switching (`Cmd/Ctrl 1`–`8`, with `9` for the last tab). Relay shows `Cmd` on macOS and `Ctrl` on Windows and Linux.
+**Keyboard-first**: all actions have configurable shortcuts. A command palette (`Cmd/Ctrl K`) finds requests and runs commands, quick send (`Cmd/Ctrl Enter`), focus the URL (`Cmd/Ctrl L`), tab switching (`Cmd/Ctrl 1`–`8`, with `9` for the last tab). Relay shows `Cmd` on macOS and `Ctrl` on Windows and Linux.
 
 **Dark and light themes**, with multiple built-in variations.
 

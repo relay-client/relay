@@ -9,7 +9,7 @@ Every setting on this page is **per-request** — changing it on `Get user` does
 
 ![Request Settings tab with browser security and transport controls](../../../../assets/screenshots/request-settings.png)
 
-App-wide preferences (autosave, theme, shortcuts, updates) live in a separate Settings modal opened from the gear icon in the title bar. See [App settings](/docs/guides/settings/) for that surface.
+App-wide preferences (autosave, theme, shortcuts, updates) live in a separate Settings modal opened from the gear at the bottom of the activity rail. See [App settings](/docs/guides/settings/) for that surface.
 
 
 ## HTTP version
@@ -87,7 +87,7 @@ The toggle **Use the cookie jar** controls whether `Set-Cookie` responses are st
 - **On** (default) — cookies sent in responses are added to the per-workspace cookie jar. On subsequent requests to the same domain, matching cookies are attached automatically.
 - **Off** — Relay neither stores nor sends jar cookies for this request. You can still set cookies manually via the `Cookie` header.
 
-The jar is shared across all requests in a workspace. View / edit it via the cookie icon next to the URL bar.
+The jar is shared across all requests in a workspace. View / edit it via the cookie icon at the bottom of the activity rail.
 
 See [Cookies](/docs/guides/cookies/) for manual cookie editing, matching rules, and backup behavior.
 

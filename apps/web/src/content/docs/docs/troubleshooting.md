@@ -99,9 +99,9 @@ This error means the auto-updater couldn't find a binary for your platform in th
 
 ### Updates aren't available in development builds
 
-If you're running a `make dev` / `go run` build, Settings → Updates shows a *DEV BUILD* badge and a notice instead of a Check button. This is intentional — there's no released version newer than your local source tree. Install a release build to receive updates.
+If you're running a `make dev` / `go run` build, Settings → Updates says *Development build* and explains why, instead of offering a check. This is intentional — there's no released version newer than your local source tree. Install a release build to receive updates.
 
-![Settings → Updates showing the DEV BUILD notice](../../../assets/screenshots/settings-updates-dev.png)
+![Settings → Updates in a development build](../../../assets/screenshots/settings-updates-dev.png)
 
 ### "The downloaded update could not be verified"
 
@@ -171,7 +171,7 @@ Folders cap at 50 requests for performance. Either move some requests up to the 
 Relay defaults to **Manual save**, where typing only refreshes the unsaved-changes indicator (debounced 250 ms) and the write happens on `Cmd/Ctrl S`. With **Autosave** enabled, each pause also persists the request to the encrypted store (debounced 1.2 s); on a multi-MB store that write can stutter on slow disks. Try:
 
 - *Settings → General → Manual save* (the default) — write only on `Cmd/Ctrl S` instead of autosaving on every pause.
-- Clean up old history: *Sidebar → History → ⋯ → Clear all*.
+- Clean up old history: *History* in the activity rail → `•••` → *Clear all*.
 
 ### Huge response slows everything down
 

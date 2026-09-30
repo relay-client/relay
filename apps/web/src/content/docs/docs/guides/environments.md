@@ -53,9 +53,21 @@ Every occurrence is generated independently — two `{{$guid}}` in one request p
 
 The editor's `{{` autocomplete lists them alongside your own variables. A `{{$name}}` Relay doesn't implement is left as-is rather than sent as an empty value.
 
+## Comparing environments
+
+With two or more environments, the environment page has a **Matrix** view: every variable of the workspace as a row, every environment as a column, the one in use highlighted. It answers "what is `baseUrl` in staging?" and "which environment is missing a token?" without opening each environment.
+
+![Environment matrix comparing variables across two environments](../../../../assets/screenshots/environment-matrix.png)
+
+- Type in a cell to change that environment's value. A cell that says *Not set* has no such variable in that environment; click it to set one.
+- Rename a variable in its row and it is renamed in every environment.
+- The lock marks a variable secret everywhere — masking it in one environment and showing it in another would leak it anyway. The eye shows the values while you look.
+- **+ Variable** adds a variable to every environment at once, empty; the bin removes it from all of them.
+- Click an environment's name to open it on its own. **Single** switches back to one environment at a time; Relay remembers which view you used.
+
 ## Switching environments
 
-Use the environment switcher in the top bar. The active environment is per-workspace — switching to a different workspace remembers its last-used environment.
+Use the environment switcher in the title bar. The active environment is per-workspace — switching to a different workspace remembers its last-used environment.
 
 ## Setting variables from scripts
 
