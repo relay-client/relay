@@ -8,6 +8,7 @@ type RelayE2EState = {
   sentRequests: Array<Record<string, unknown>>;
   sseConnects: Array<Record<string, unknown>>;
   grpcDiscoveries: Array<Record<string, unknown>>;
+  sentMcpRequests: Array<Record<string, unknown>>;
   sentGrpcRequests: Array<Record<string, unknown>>;
   webSocketConnects: Array<Record<string, unknown>>;
   webSocketMessages: Array<Record<string, unknown>>;
@@ -27,6 +28,7 @@ declare global {
 const stepPauseMs = Number.parseInt(process.env.RELAY_E2E_STEP_PAUSE_MS ?? '0', 10);
 const responseScreenshotPath = process.env.RELAY_E2E_RESPONSE_SCREENSHOT ?? '';
 const docsScreenshotDir = process.env.RELAY_DOCS_SCREENSHOT_DIR ?? '';
+const readmeScreenshotPath = process.env.RELAY_README_SCREENSHOT ?? '';
 
 const DOCS_VIEWPORT = { width: 1200, height: 780 };
 const DOCS_CROP_PADDING = 26;
@@ -64,9 +66,6 @@ async function docsElementClip(page: Page, target: Locator) {
 async function captureDocsScreenshot(page: Page, name: string, cropTo?: Locator) {
   if (!docsScreenshotDir) return;
   await waitForTransientToasts(page);
-  // An earlier scrollIntoView can leave an ancestor scrolled. html, body and #app are
-  // overflow:hidden, which browsers still scroll programmatically, so the app ends up
-  // shifted out of frame with the page background filling the rest of the shot.
   await page.evaluate(() => {
     window.scrollTo(0, 0);
     const frame = [
@@ -188,6 +187,7 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
       sentRequests: [],
       sseConnects: [],
       grpcDiscoveries: [],
+      sentMcpRequests: [],
       sentGrpcRequests: [],
       webSocketConnects: [],
       webSocketMessages: [],
@@ -431,6 +431,49 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
       },
       SSEDisconnect: async (sessionId) => {
         emit('sse:close', { sessionId, message: 'SSE disconnected by E2E', timestamp: Date.now() });
+      },
+      SendMcpRequest: async (req) => {
+        state.sentMcpRequests.push(clone(req));
+        const base = {
+          http: { ...jsonResponse(req), body: '' },
+          serverName: '', serverVersion: '', instructions: '',
+          supportedVersions: [], capabilities: [],
+          resultType: 'complete', result: '', content: [], structuredContent: '',
+          isError: false, tools: [], resources: [], prompts: [],
+          nextCursor: '', ttlMs: 0, cacheScope: '',
+          inputRequests: '', requestState: '',
+          notifications: [], rpcErrorCode: 0, rpcErrorMessage: '', rpcErrorData: '',
+          warnings: [], error: '',
+        };
+        if (req.mcpMethod === 'server/discover') {
+          return {
+            ...base,
+            serverName: 'E2E Weather', serverVersion: '2.1.0',
+            supportedVersions: ['2026-07-28'],
+            capabilities: ['tools'],
+            instructions: 'Weather utilities for the end-to-end run.',
+          };
+        }
+        if (req.mcpMethod === 'tools/list') {
+          return {
+            ...base,
+            tools: [{
+              name: 'get_weather',
+              title: 'Weather lookup',
+              description: 'Current weather for a place.',
+              inputSchema: '{"type":"object","properties":{"location":{"type":"string"}},"required":["location"]}',
+              outputSchema: '',
+              annotations: '',
+              rejected: '',
+            }],
+          };
+        }
+        const raw = '{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete"}}';
+        return {
+          ...base,
+          http: { ...base.http, body: raw },
+          content: [{ type: 'text', text: 'It is 21C and clear.', data: '', mimeType: '', uri: '', name: '', description: '' }],
+        };
       },
       GrpcDiscover: async (req) => {
         state.grpcDiscoveries.push(clone(req));
@@ -753,10 +796,15 @@ async function fillPrompt(page: Page, title: string, value: string) {
   await expect(dialog).toBeHidden();
 }
 
+async function chooseAppSelect(page: Page, select: Locator, optionLabel: string) {
+  await select.locator('.app-select-trigger').click();
+  await select.locator('.app-select-option').filter({ hasText: optionLabel }).first().click();
+}
+
 async function chooseRequestType(page: Page, label: string) {
   const dialog = page.getByRole('dialog', { name: 'New request' });
   await expect(dialog).toBeVisible();
-  await dialog.getByRole('radio', { name: new RegExp(label) }).click();
+  await dialog.getByRole('radio', { name: new RegExp(label, 'i') }).click();
   await dialog.getByRole('button', { name: 'Create' }).click();
   await expect(dialog).toBeHidden();
 }
@@ -788,7 +836,9 @@ async function expectResponseTabsToFit(page: Page) {
     const activeInsideBar = !activeRect || (activeRect.top >= barRect.top - 1 && activeRect.bottom <= barRect.bottom + 1);
     const groupsStayInsideBar = leftRect.left >= barRect.left - 1 && rightRect.right <= barRect.right + 1;
     const groupsDoNotOverlap = leftRect.right <= rightRect.left - 4;
-    return labelsFit && activeInsideBar && groupsStayInsideBar && groupsDoNotOverlap && tabsRect.right <= actionsRect.left - 4;
+    const tabsOnTheirOwnRow = tabsRect.top >= Math.max(leftRect.bottom, actionsRect.bottom) - 1
+      && tabsRect.left >= barRect.left - 1 && tabsRect.right <= barRect.right + 1;
+    return labelsFit && activeInsideBar && groupsStayInsideBar && groupsDoNotOverlap && tabsOnTheirOwnRow;
   })).toBe(true);
 }
 
@@ -900,7 +950,7 @@ test.describe('Relay desktop browser E2E', () => {
       requestAnimationFrame(sample);
     }));
     expect(Math.max(...toolbarOpenFrames) - Math.min(...toolbarOpenFrames)).toBeLessThanOrEqual(0.1);
-    await expect(page.locator('.global-search span')).toBeVisible();
+    await expect(page.locator('.global-search span')).toBeHidden();
     const searchIcon = page.locator('.global-search > svg');
     await expect.poll(async () => (await searchIcon.boundingBox())?.width ?? 0).toBeGreaterThanOrEqual(13);
     await page.getByLabel('Code snippet', { exact: true }).click();
@@ -1013,7 +1063,7 @@ test.describe('Relay desktop browser E2E', () => {
     await expect(bodyTypeButton).toBeVisible();
     await bodyTypeButton.click();
     await expect(page.getByRole('listbox', { name: 'Body types' })).toBeVisible();
-    await page.getByRole('option', { name: 'raw', exact: true }).click();
+    await page.getByRole('option', { name: 'Raw', exact: true }).click();
 
     const rawTypeButton = page.locator('.raw-type-button');
     const beautifyButton = bodyModeRow.getByRole('button', { name: 'Beautify', exact: true });
@@ -1044,7 +1094,7 @@ test.describe('Relay desktop browser E2E', () => {
       return row.getBoundingClientRect().height === before.rowHeight
         && (content?.getBoundingClientRect().top ?? 0) === before.contentTop;
     }, compactBodyLayout)).toBe(true);
-    await page.getByRole('option', { name: 'x-www-form-urlencoded', exact: true }).click();
+    await page.getByRole('option', { name: 'URL-encoded', exact: true }).click();
 
     const compactKvTable = page.locator('.tab-content .headers-kv-table');
     await expect(compactKvTable).toBeVisible();
@@ -1052,16 +1102,17 @@ test.describe('Relay desktop browser E2E', () => {
       const head = table.querySelector<HTMLElement>('.kv-head');
       const row = table.querySelector<HTMLElement>('.kv-row');
       const descriptionHead = head?.querySelectorAll<HTMLElement>('.kv-head-cell')[2];
-      const descriptionInput = row?.querySelectorAll<HTMLElement>('.kv-input')[2];
-      if (!head || !row || !descriptionHead || !descriptionInput) return false;
+      const descriptionInput = row?.querySelector<HTMLElement>('.kv-desc');
+      const valueInput = row?.querySelectorAll<HTMLElement>('.kv-input')[1];
+      if (!head || !row || !descriptionHead || !descriptionInput || !valueInput) return false;
 
       const tableBox = table.getBoundingClientRect();
-      const descriptionHeadBox = descriptionHead.getBoundingClientRect();
-      const descriptionInputBox = descriptionInput.getBoundingClientRect();
+      const valueInputBox = valueInput.getBoundingClientRect();
       return table.scrollWidth <= table.clientWidth + 1
-        && descriptionHeadBox.width >= 56
-        && descriptionHeadBox.right <= tableBox.right + 1
-        && descriptionInputBox.right <= tableBox.right + 1;
+        && getComputedStyle(descriptionHead).display === 'none'
+        && getComputedStyle(descriptionInput).display === 'none'
+        && valueInputBox.width >= 80
+        && valueInputBox.right <= tableBox.right + 1;
     })).toBe(true);
     await expect(page.getByLabel('Resize key column')).toBeHidden();
     await expect(page.getByLabel('Resize value column')).toBeHidden();
@@ -1070,6 +1121,7 @@ test.describe('Relay desktop browser E2E', () => {
       const tabContent = table.closest<HTMLElement>('.tab-content');
       if (!tabContent) return false;
       const scrollbarColor = getComputedStyle(tabContent).scrollbarColor;
+      if (scrollbarColor === undefined) return true;
       return scrollbarColor !== 'auto'
         && scrollbarColor !== ''
         && !scrollbarColor.includes('rgb(206, 212, 218)');
@@ -1109,7 +1161,7 @@ test.describe('Relay desktop browser E2E', () => {
     for (let index = 0; index < 12; index += 1) await panelDivider.press('ArrowDown');
 
     await page.setViewportSize({ width: 1024, height: 800 });
-    await expect(page.locator('.global-search span')).toBeVisible();
+    await expect(page.locator('.global-search span')).toBeHidden();
 
     const codePanelResizer = page.getByLabel('Resize code snippet panel');
     await expect(codePanelResizer).toHaveCSS('cursor', 'col-resize');
@@ -1161,7 +1213,7 @@ test.describe('Relay desktop browser E2E', () => {
     await expect(page.getByRole('button', { name: 'Body type', exact: true })).toBeHidden();
     await expect.poll(async () => bodyModeRow.evaluate((row) => {
       const binaryLabel = Array.from(row.querySelectorAll<HTMLElement>('.body-mode-label'))
-        .find((label) => label.textContent?.trim() === 'binary');
+        .find((label) => label.textContent?.trim() === 'Binary');
       const rawType = row.querySelector<HTMLElement>('.raw-type-menu');
       const beautify = row.querySelector<HTMLElement>('.body-mode-beautify');
       if (!binaryLabel || !rawType || !beautify) return false;
@@ -1190,7 +1242,7 @@ test.describe('Relay desktop browser E2E', () => {
     await page.getByLabel('Request name').fill('Cursor request');
     await page.getByLabel('Request name').press('Enter');
     await expect(page.locator('.win-controls')).toBeVisible();
-    await expect(page.locator('.save-btn').first()).toBeVisible();
+    await expect(page.locator('.save-btn:not(.revert-btn)').first()).toBeVisible();
     await expect(page.locator('.collection-request').filter({ hasText: 'Cursor request' })).toHaveCSS('cursor', 'default');
     await expect(page.locator('.saved-request-tab').filter({ hasText: 'Cursor request' }).getByRole('tab')).toHaveCSS('cursor', 'default');
 
@@ -1198,7 +1250,7 @@ test.describe('Relay desktop browser E2E', () => {
       const [header, search, save, settings, controls] = await Promise.all([
         page.locator('.workspace-searchbar').boundingBox(),
         page.locator('.global-search').boundingBox(),
-        page.locator('.save-btn').first().boundingBox(),
+        page.locator('.save-btn:not(.revert-btn)').first().boundingBox(),
         page.getByLabel('Settings', { exact: true }).boundingBox(),
         page.locator('.win-controls').boundingBox(),
       ]);
@@ -1220,7 +1272,6 @@ test.describe('Relay desktop browser E2E', () => {
 
     await page.setViewportSize({ width: 1120, height: 800 });
     await expect(page.locator('.save-btn-label')).toBeHidden();
-    await expect(page.locator('.global-search kbd')).toBeHidden();
     await expectHeaderNotToOverlap();
   });
 
@@ -1233,7 +1284,14 @@ test.describe('Relay desktop browser E2E', () => {
     await page.goto('/');
 
     await expect(page.getByRole('button', { name: 'Collections' })).toBeVisible();
-    await expect(page.locator('.brand-name')).toHaveText('Relay');
+    await expect(page.getByRole('navigation', { name: 'Relay' })).toBeVisible();
+    await page.getByRole('button', { name: 'Toggle sidebar' }).click();
+    await expect(page.locator('.shell')).toHaveClass(/sidebar-hidden/);
+    await expect(page.getByRole('button', { name: 'Collections' })).toBeVisible();
+    await page.getByRole('button', { name: 'Collections' }).click();
+    await expect(page.locator('.shell')).not.toHaveClass(/sidebar-hidden/);
+    await page.getByRole('button', { name: 'Collections' }).click();
+    await expect(page.locator('.shell')).not.toHaveClass(/sidebar-hidden/);
     await tourPause(page, 'App loaded');
 
     if (docsScreenshotDir) {
@@ -1256,7 +1314,7 @@ test.describe('Relay desktop browser E2E', () => {
     await envRows.nth(1).getByRole('button', { name: 'Default' }).click();
     await envRows.nth(1).getByLabel('Environment variable value').fill('secret-e2e-token');
     await page.getByRole('button', { name: /^(Use environment|In use)$/ }).click();
-    await expect(page.getByRole('button', { name: 'In use' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'In use', exact: true })).toBeVisible();
     await tourPause(page, 'Environment created and activated');
     await waitForTransientToasts(page);
     await captureDocsScreenshot(page, 'environments-panel');
@@ -1269,7 +1327,7 @@ test.describe('Relay desktop browser E2E', () => {
       await expect(importDialog).toContainText(source);
     }
     await captureDocsScreenshot(page, 'import-postman');
-    await importDialog.getByRole('button', { name: 'Discard' }).click();
+    await importDialog.getByRole('button', { name: 'Cancel' }).click();
 
     await page.getByLabel('New collection').click();
     await fillPrompt(page, 'New collection', 'Smoke API');
@@ -1291,7 +1349,9 @@ test.describe('Relay desktop browser E2E', () => {
 
     await page.getByLabel('Request name').fill('Login user');
     await page.getByLabel('Request name').press('Enter');
-    await page.getByLabel('HTTP method').click();
+    await page.getByLabel('Method and protocol').click();
+    await expect(page.getByText('The protocol is fixed once a request is saved.', { exact: false })).toBeVisible();
+    await expect(page.getByRole('option', { name: 'GraphQL' })).toHaveCount(0);
     await page.getByRole('option', { name: 'POST' }).click();
     await page.getByLabel('Request URL').fill('{{baseUrl}}/login');
 
@@ -1378,8 +1438,6 @@ test.describe('Relay desktop browser E2E', () => {
     await captureDocsScreenshot(page, 'response-viewer-tests');
     await page.locator('.response-mini-tabs').getByRole('tab', { name: 'Body' }).click();
     await captureDocsScreenshot(page, 'response-viewer-json');
-    // The first-request guide wants the request half of the window, not a second copy of
-    // the response viewer, so move off the Settings tab before this one.
     await chooseRequestSection(page, 'Body');
     await captureDocsScreenshot(page, 'request-editor');
     if (docsScreenshotDir) {
@@ -1448,6 +1506,27 @@ test.describe('Relay desktop browser E2E', () => {
     await expect(page.locator('.history-entry').first()).toContainText('200');
     await tourPause(page, 'HTTP response saved and history checked');
     await captureDocsScreenshot(page, 'history');
+
+    await page.locator('.history-entry-main').first().click();
+    const historyDetail = page.getByRole('region', { name: 'History entry' });
+    await expect(historyDetail).toBeVisible();
+    await expect(historyDetail.locator('.history-detail-title h1')).toContainText('Login user');
+    await expect(historyDetail.locator('.history-detail-title')).toContainText('from Smoke API / Auth');
+    await expect(historyDetail.locator('.history-detail-stats')).toContainText('200');
+    await expect(historyDetail.locator('.history-detail-url')).toContainText('/login?scope=smoke');
+    await expect(historyDetail.getByRole('textbox', { name: 'Response body' })).toContainText('"requestId": "login-e2e"');
+    await expect(page.locator('.history-entry.active')).toHaveCount(1);
+    await captureDocsScreenshot(page, 'history-detail');
+    await page.getByLabel('Close history entry').click();
+    await expect(historyDetail).toBeHidden();
+
+    await page.getByRole('tab', { name: 'Overview' }).click();
+    const recent = page.getByRole('region', { name: 'Continue where you left off' });
+    await expect(recent).toContainText('Login user');
+    await expect(recent).toContainText('Smoke API / Auth');
+    await expect(recent).toContainText('200');
+    await recent.getByRole('button', { name: /Login user/ }).click();
+    await expect(page.getByLabel('Request URL')).toHaveValue(/\/login/);
     if (docsScreenshotDir) {
       try {
         await page.getByRole('button', { name: 'Cookies', exact: true }).click();
@@ -1485,14 +1564,25 @@ test.describe('Relay desktop browser E2E', () => {
     await folderRow(page, 'Auth').locator('.folder-menu').getByRole('button', { name: 'Run folder' }).click();
     await expect(page.getByRole('region', { name: 'Collection runner' })).toBeVisible();
     await expect(page.getByTestId('runner-request-row')).toHaveCount(2);
-    await page.getByRole('button', { name: /Run 2 Requests/ }).click();
+    await page.getByRole('button', { name: /Run 2 requests/i }).click();
     await expect(page.getByTestId('runner-result-row')).toHaveCount(2);
     await expect(page.locator('.runner-results-summary')).toContainText('Passed');
-    await expect(page.locator('.runner-results-summary')).toContainText('2/2 requests');
-    await page.getByRole('button', { name: 'Download Report' }).click();
+    await expect(page.locator('.runner-results-summary')).toContainText('Requests 2/2');
+    await page.getByRole('button', { name: 'Download report' }).click();
     await expect.poll(() => page.evaluate(() => window.__relayE2E.savedFiles.length)).toBe(2);
     await tourPause(page, 'Runner finished and report downloaded');
     await captureDocsScreenshot(page, 'collection-runner-results');
+    const storedRuns = await page.evaluate(() => (window.__relayE2E.store as { collectionRuns?: Record<string, { results: unknown[] }> }).collectionRuns ?? {});
+    expect(Object.values(storedRuns).map(run => run.results.length)).toEqual([2]);
+
+    await page.getByRole('button', { name: 'Collections' }).click();
+    await collectionRow(page, 'Smoke API').getByLabel('Collection menu').click();
+    await collectionRow(page, 'Smoke API').locator('.collection-menu').getByRole('button', { name: 'Settings' }).click();
+    await expect(page.locator('.collection-last-run')).toContainText('Last run just now');
+    await expect(page.locator('.collection-last-run')).toContainText('2 of 2 passed');
+    await page.locator('.collection-last-run-link').click();
+    await expect(page.getByRole('region', { name: 'Collection runner' })).toBeVisible();
+    await expect(page.getByTestId('runner-result-row')).toHaveCount(2);
 
     await page.getByRole('button', { name: 'Collections' }).click();
     await folderRow(page, 'Auth').getByLabel('Folder menu').click();
@@ -1500,7 +1590,7 @@ test.describe('Relay desktop browser E2E', () => {
     await chooseRequestType(page, 'HTTP Request');
     await page.getByLabel('Request name').fill('Live events SSE');
     await page.getByLabel('Request name').press('Enter');
-    await page.getByLabel('HTTP method').click();
+    await page.getByLabel('Method and protocol').click();
     await page.getByRole('option', { name: 'SSE' }).click();
     await page.getByLabel('Request URL').fill('{{baseUrl}}/events');
     await page.getByRole('button', { name: 'Connect', exact: true }).click();
@@ -1584,7 +1674,7 @@ test.describe('Relay desktop browser E2E', () => {
       try {
         await page.getByLabel('Workspace switcher').click({ timeout: 4000 });
         await page.getByRole('button', { name: 'View all workspaces' }).click({ timeout: 4000 });
-        const workspaceNotes = page.getByPlaceholder('Write workspace notes');
+        const workspaceNotes = page.getByLabel('Notes', { exact: true });
         await workspaceNotes.fill(
           [
             'Staging base URL: https://api.relay.test',
@@ -1592,9 +1682,11 @@ test.describe('Relay desktop browser E2E', () => {
             'Run the Smoke API collection before tagging a release.',
           ].join('\n'),
         );
+        await workspaceNotes.blur();
+        await page.locator('.workspace-overview').evaluate((overview) => { overview.scrollTop = 0; });
         await captureDocsScreenshot(page, 'workspace-overview');
         await workspaceNotes.fill('');
-        await page.getByRole('button', { name: 'Open Git sync' }).click({ timeout: 4000 });
+        await page.getByRole('button', { name: 'Git', exact: true }).click({ timeout: 4000 });
         await expect(page.locator('.git-workspace')).toContainText('feature/docs-refresh');
         await page.locator('.git-file-open').first().click();
         await expect(page.locator('.git-diff')).toContainText('oauth2RefreshToken');
@@ -1602,7 +1694,7 @@ test.describe('Relay desktop browser E2E', () => {
       } catch (err) { console.log('docs screenshot workspace-overview skipped:', err); }
       try {
         await page.locator('.global-search').click({ timeout: 4000 });
-        await expect(page.getByRole('dialog', { name: 'Search requests' })).toBeVisible({ timeout: 4000 });
+        await expect(page.getByRole('dialog', { name: 'Search requests and commands' })).toBeVisible({ timeout: 4000 });
         await captureDocsScreenshot(page, 'global-search');
         await page.keyboard.press('Escape');
       } catch (err) { console.log('docs screenshot global-search skipped:', err); }
@@ -1707,9 +1799,8 @@ test.describe('Relay desktop browser E2E', () => {
     const renderedLines = viewer.locator('.response-line');
     await expect(renderedLines).not.toHaveCount(0);
     expect(await renderedLines.count()).toBeLessThan(200);
-    expect(await renderedLines.first().locator('.response-line-no').evaluate(
-      element => getComputedStyle(element).position,
-    )).toBe('relative');
+    const gutter = viewer.locator('.response-gutter');
+    expect(await gutter.evaluate(element => getComputedStyle(element).position)).toBe('sticky');
     await captureDocsScreenshot(page, 'response-viewer-large-body');
 
     await viewer.evaluate((element) => {
@@ -1720,17 +1811,19 @@ test.describe('Relay desktop browser E2E', () => {
       await renderedLines.first().getAttribute('data-line-number'),
     )).toBeGreaterThan(1_000);
     expect(await renderedLines.count()).toBeLessThan(200);
-    const firstRenderedLine = renderedLines.first();
-    const gutterLeft = await firstRenderedLine.locator('.response-line-no').evaluate(
+    const firstGutterNumber = gutter.locator('.response-line-no').first();
+    expect(await firstGutterNumber.getAttribute('data-line-number')).toBe(await renderedLines.first().getAttribute('data-line-number'));
+    const gutterLeft = await firstGutterNumber.evaluate(
       element => Math.round(element.getBoundingClientRect().left),
     );
     await viewer.evaluate((element) => {
       element.scrollLeft = 240;
       element.dispatchEvent(new Event('scroll'));
     });
-    await expect.poll(async () => firstRenderedLine.locator('.response-line-no').evaluate(
+    await expect.poll(async () => firstGutterNumber.evaluate(
       element => Math.round(element.getBoundingClientRect().left),
     )).toBe(gutterLeft);
+
 
     await page.getByLabel('Search response').click();
     const realCategoryName = realResponseBody
@@ -1744,6 +1837,114 @@ test.describe('Relay desktop browser E2E', () => {
       await renderedLines.first().getAttribute('data-line-number'),
     )).toBeLessThan(1_000);
     expect(await renderedLines.count()).toBeLessThan(200);
+  });
+
+  test('pins the line numbers while a wide virtualized response scrolls', async ({ page }) => {
+    const wideBody = JSON.stringify(Array.from({ length: 1_500 }, (_, index) => ({
+      id: index,
+      payload: `row-${index}-`.padEnd(2_000, 'x'),
+    })), null, 2);
+    await installRelayBridge(page, wideBody);
+    await page.goto('/');
+    await page.getByLabel('New unsaved request').click();
+    await chooseRequestType(page, 'HTTP Request');
+    await page.getByLabel('Request URL').fill('https://api.relay.test/large-response');
+    await page.getByRole('button', { name: 'Send', exact: true }).click();
+    await expect(page.getByText('200 OK')).toBeVisible();
+
+    const viewer = page.getByRole('textbox', { name: 'Response body', exact: true });
+    await expect(viewer).toHaveAttribute('data-virtualized', 'true');
+    const gutter = viewer.locator('.response-gutter');
+    const gutterLeft = await gutter.evaluate(element => Math.round(element.getBoundingClientRect().left));
+
+    await viewer.evaluate((element) => {
+      element.scrollTop = 20_000;
+      element.scrollLeft = 900;
+      element.dispatchEvent(new Event('scroll'));
+    });
+    expect(await viewer.evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
+    await expect.poll(async () => Number(
+      await viewer.locator('.response-line').first().getAttribute('data-line-number'),
+    )).toBeGreaterThan(500);
+
+    expect(await gutter.evaluate(element => Math.round(element.getBoundingClientRect().left))).toBe(gutterLeft);
+    const alignment = await viewer.evaluate((element) => {
+      const numbers = Array.from(element.querySelectorAll<HTMLElement>('.response-gutter .response-line-no'));
+      const rows = Array.from(element.querySelectorAll<HTMLElement>('.response-virtual-code .response-line'));
+      const viewerRect = element.getBoundingClientRect();
+      const probeY = viewerRect.top + viewerRect.height / 2;
+      const number = numbers.find(node => {
+        const rect = node.getBoundingClientRect();
+        return rect.top <= probeY && rect.bottom > probeY;
+      });
+      const row = rows.find(node => node.dataset.lineNumber === number?.dataset.lineNumber);
+      const hit = document.elementFromPoint(viewerRect.left + 20, probeY);
+      return {
+        sameCount: numbers.length === rows.length,
+        offset: number && row ? Math.abs(number.getBoundingClientRect().top - row.getBoundingClientRect().top) : -1,
+        gutterOnTop: Boolean(hit?.closest('.response-gutter')),
+      };
+    });
+    expect(alignment.sameCount).toBe(true);
+    expect(alignment.offset).toBeGreaterThanOrEqual(0);
+    expect(alignment.offset).toBeLessThan(1);
+    expect(alignment.gutterOnTop).toBe(true);
+  });
+
+  test('runs commands from the command palette', async ({ page }) => {
+    await installRelayBridge(page);
+    await page.goto('/');
+    await page.getByLabel('New unsaved request').click();
+    await chooseRequestType(page, 'HTTP Request');
+    await page.getByLabel('Request URL').fill('https://api.relay.test/users');
+
+    const palette = page.getByRole('dialog', { name: 'Search requests and commands' });
+    const input = palette.getByRole('combobox', { name: 'Search requests and commands' });
+
+    await page.locator('.global-search').click();
+    await expect(palette).toBeVisible();
+    await expect(palette.locator('.palette-section').first()).toBeVisible();
+    await expect(palette.getByRole('option', { name: /Send request/ })).toBeVisible();
+
+    await input.fill('> history');
+    await expect(palette.locator('.global-search-item')).toHaveCount(0);
+    await expect(palette.getByRole('option').first()).toHaveAttribute('data-command-id', 'go-history');
+    await input.press('Enter');
+    await expect(palette).toBeHidden();
+    await expect(page.locator('.history-panel')).toBeVisible();
+
+    await page.locator('.global-search').click();
+    await input.fill('> response');
+    const layoutOption = palette.getByRole('option', { name: /Show response below the request/ });
+    await expect(layoutOption).toBeVisible();
+    await input.press('ArrowDown');
+    await input.press('ArrowUp');
+    await expect(layoutOption).toHaveAttribute('aria-selected', 'true');
+    await input.press('Enter');
+    expect(await page.evaluate(() => localStorage.getItem('relay.responseLayout.v1'))).toBe('below');
+
+    await page.locator('.global-search').click();
+    await input.fill('> response');
+    await expect(palette.getByRole('option', { name: /Show response beside the request/ })).toBeVisible();
+    await input.press('Escape');
+    await expect(palette).toBeHidden();
+  });
+
+  test('closes a labelled dropdown after an option is picked', async ({ page }) => {
+    await installRelayBridge(page);
+    await page.goto('/');
+    await page.getByLabel('New collection').click();
+    await fillPrompt(page, 'New collection', 'Billing');
+    await page.getByRole('button', { name: 'Collection runner' }).click();
+
+    const picker = page.locator('.runner-select');
+    const trigger = picker.locator('.app-select-trigger');
+    await trigger.click();
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    await picker.getByRole('option', { name: 'Billing' }).click();
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    await expect(picker.getByRole('option')).toHaveCount(0);
+    await expect(trigger).toContainText('Billing');
   });
 
   test('keeps wrapped response lines inside the viewer gutter', async ({ page }) => {
@@ -1973,9 +2174,10 @@ test.describe('Relay desktop browser E2E', () => {
     await expect(diffTab).toBeVisible();
     await diffTab.click();
 
-    const picker = page.locator('.diff-baseline-picker select');
+    const picker = page.getByRole('button', { name: /^Compare with/ });
     await expect(picker).toBeVisible();
-    await picker.selectOption({ label: '200 OK' });
+    await picker.click();
+    await page.getByRole('option', { name: '200 OK', exact: true }).click();
 
     await expect(page.locator('.diff-side-before')).toContainText('200 OK');
     await expect(page.locator('.diff-count-add')).toBeVisible();
@@ -1984,6 +2186,107 @@ test.describe('Relay desktop browser E2E', () => {
 
     await page.getByRole('button', { name: 'Clear baseline' }).click();
     await expect(page.locator('.diff-side-before')).toContainText('previous');
+  });
+
+  test('lists every open tab when the title row runs out of room', async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 760 });
+    await installRelayBridge(page);
+    await page.goto('/');
+
+    const overflowButton = page.getByRole('button', { name: 'All open tabs' });
+    await expect(overflowButton).toBeHidden();
+    for (let index = 0; index < 7; index += 1) {
+      await page.getByLabel('New unsaved request').click();
+      await chooseRequestType(page, 'HTTP Request');
+    }
+    await expect(overflowButton).toBeVisible();
+
+    const tabs = page.locator('.saved-request-tabs');
+    await expect.poll(async () => tabs.evaluate((list) => list.scrollWidth > list.clientWidth)).toBe(true);
+    await expect.poll(async () => page.locator('.saved-request-tab:not(.overview-request-tab)').first().evaluate(tab => tab.getBoundingClientRect().width)).toBeLessThan(120);
+
+    await overflowButton.click();
+    const list = page.getByRole('listbox', { name: 'Open tabs' });
+    await expect(list.getByRole('option')).toHaveCount(8);
+    await list.getByRole('option', { name: 'Overview' }).click();
+    await expect(list).toBeHidden();
+    await expect(page.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  test('compares and edits variables across environments in the matrix', async ({ page }) => {
+    if (docsScreenshotDir) await page.setViewportSize(DOCS_VIEWPORT);
+    await installRelayBridge(page);
+    await page.goto('/');
+
+    await page.getByRole('button', { name: 'Environments' }).click();
+    await page.getByLabel('New environment').click();
+    await fillPrompt(page, 'New environment', 'Local');
+    const envRows = page.getByTestId('environment-variable-row');
+    await envRows.nth(0).getByLabel('Environment variable key').fill('baseUrl');
+    await envRows.nth(0).getByLabel('Environment variable value').fill('http://localhost:4242');
+
+    await page.getByLabel('New environment').click();
+    await fillPrompt(page, 'New environment', 'Staging');
+
+    await page.getByRole('radio', { name: 'Matrix' }).click();
+    await expect(page.getByRole('heading', { name: 'Variables' })).toBeVisible();
+    const matrixRows = page.getByTestId('environment-matrix-row');
+    await expect(matrixRows).toHaveCount(1);
+    await expect(page.getByLabel('baseUrl in Local', { exact: true })).toHaveValue('http://localhost:4242');
+
+    await page.getByRole('button', { name: 'Set baseUrl in Staging' }).click();
+    await page.getByLabel('baseUrl in Staging', { exact: true }).fill('https://staging.relay.test');
+
+    const name = page.getByLabel('Name of baseUrl');
+    await name.fill('apiBase');
+    await name.press('Enter');
+    await expect(page.getByLabel('apiBase in Staging', { exact: true })).toHaveValue('https://staging.relay.test');
+
+    await page.getByRole('button', { name: 'Make apiBase secret' }).click();
+    await expect(page.getByLabel('apiBase in Local', { exact: true })).toHaveAttribute('type', 'password');
+    await captureDocsScreenshot(page, 'environment-matrix');
+
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect.poll(async () => {
+      const store = await page.evaluate(() => window.__relayE2E.store as {
+        environments?: Array<{ name: string; values: Array<{ key: string; value: string; secret?: boolean }> }>;
+      });
+      return (store.environments ?? []).map(environment => ({
+        name: environment.name,
+        values: environment.values.filter(row => row.key).map(row => `${row.key}=${row.value}${row.secret ? ' (secret)' : ''}`),
+      }));
+    }).toEqual([
+      { name: 'Local', values: ['apiBase=http://localhost:4242 (secret)'] },
+      { name: 'Staging', values: ['apiBase=https://staging.relay.test (secret)'] },
+    ]);
+
+    await page.getByRole('radio', { name: 'Single' }).click();
+    await expect(page.getByTestId('environment-variable-row').first().getByLabel('Environment variable key')).toHaveValue('apiBase');
+  });
+
+  test('sending a saved request leaves it saved', async ({ page }) => {
+    await installRelayBridge(page);
+    await page.goto('/');
+
+    await page.getByLabel('New collection').click();
+    await fillPrompt(page, 'New collection', 'Orders API');
+    await collectionRow(page, 'Orders API').getByLabel('Collection menu').click();
+    await collectionRow(page, 'Orders API').locator('.collection-menu').getByRole('button', { name: 'Add request' }).click();
+    await chooseRequestType(page, 'HTTP Request');
+    await page.getByLabel('Request name').fill('Get order');
+    await page.getByLabel('Request name').press('Enter');
+    await page.getByLabel('Request URL').fill('https://api.relay.test/orders/8123');
+
+    const saveButton = page.locator('.save-btn:not(.revert-btn)');
+    await expect(saveButton).toBeEnabled();
+    await saveButton.click();
+    await expect(saveButton).toBeDisabled();
+
+    await page.getByRole('button', { name: 'Send', exact: true }).click();
+    await expect(page.getByText('200 OK')).toBeVisible();
+    await expect(saveButton).toBeDisabled();
+    await expect(saveButton).toHaveText('Saved');
+    await expect(page.locator('.saved-request-tab.dirty')).toHaveCount(0);
   });
 
   test('saves a response as an example, and keeps it in the store', async ({ page }) => {
@@ -2023,7 +2326,7 @@ test.describe('Relay desktop browser E2E', () => {
     await confirm.getByRole('button', { name: 'Delete', exact: true }).click();
     await expect(page.locator('.examples-row')).toHaveCount(1);
 
-    const saveButton = page.locator('.save-btn').first();
+    const saveButton = page.locator('.save-btn:not(.revert-btn)').first();
     await expect(saveButton).toBeEnabled();
     await saveButton.click();
     await expect(saveButton).toBeDisabled();
@@ -2058,9 +2361,8 @@ test.describe('Relay desktop browser E2E', () => {
     await expect(page.getByText('200 OK')).toBeVisible();
     await page.getByRole('button', { name: 'Save as example', exact: true }).click();
     await expect(page.locator('.examples-row')).toHaveCount(1);
-    // The panel counts examples from the saved store, not from the open editor.
-    await page.locator('.save-btn').first().click();
-    await expect(page.locator('.save-btn').first()).toBeDisabled();
+    await page.locator('.save-btn:not(.revert-btn)').first().click();
+    await expect(page.locator('.save-btn:not(.revert-btn)').first()).toBeDisabled();
 
     await page.getByLabel('Mock server', { exact: true }).click();
     const panel = page.locator('section[aria-label="Mock server"]');
@@ -2099,7 +2401,6 @@ test.describe('Relay desktop browser E2E', () => {
       });
     });
 
-    // Newest first: the unmatched request is the one worth seeing at the top.
     const log = panel.locator('.mock-log-row');
     await expect(log).toHaveCount(2);
     await expect(log.first()).toContainText('no example matched');
@@ -2113,6 +2414,78 @@ test.describe('Relay desktop browser E2E', () => {
     ]);
   });
 
+  test('discovers an MCP server, calls a tool, and keeps the raw exchange', async ({ page }) => {
+    if (docsScreenshotDir) await page.setViewportSize(DOCS_VIEWPORT);
+    await installRelayBridge(page);
+    await page.goto('/');
+
+    await page.getByLabel('New unsaved request').click();
+    await chooseRequestType(page, 'MCP Request');
+    await page.getByLabel('Request URL').fill('https://mcp.relay.test/mcp');
+
+    await page.getByLabel('Request URL').press('Tab');
+
+    const discover = page.locator('.mcp-discover');
+    await expect(discover).toBeEnabled();
+    await discover.click();
+
+    await expect(page.locator('.mcp-server')).toContainText('E2E Weather');
+    await expect(page.locator('.mcp-server')).toContainText('1 tool');
+
+    await chooseAppSelect(page, page.locator('.mcp-select').first(), 'tools/call');
+    await chooseAppSelect(page, page.locator('.mcp-select').nth(1), 'Weather lookup');
+    await expect(page.locator('.mcp-editor')).toContainText('location');
+
+    await page.getByRole('button', { name: 'Send', exact: true }).click();
+    await expect(page.locator('.mcp-result-panel')).toContainText('It is 21C and clear.');
+    await captureDocsScreenshot(page, 'request-mcp');
+
+    await page.getByRole('tab', { name: 'Raw exchange' }).click();
+    await expect(page.locator('.mcp-code')).toContainText('jsonrpc');
+
+    const sent = await page.evaluate(() => window.__relayE2E.sentMcpRequests.map(r => r.mcpMethod));
+    expect(sent).toEqual(['server/discover', 'tools/list', 'tools/call']);
+  });
+
+  test('reloads a running mock after an example changes with the panel closed', async ({ page }) => {
+    await installRelayBridge(page);
+    await page.goto('/');
+
+    await page.getByLabel('New collection').click();
+    await fillPrompt(page, 'New collection', 'Orders API');
+    await collectionRow(page, 'Orders API').getByLabel('Collection menu').click();
+    await collectionRow(page, 'Orders API').locator('.collection-menu').getByRole('button', { name: 'Add request' }).click();
+    await chooseRequestType(page, 'HTTP Request');
+    await page.getByLabel('Request name').fill('Get order');
+    await page.getByLabel('Request name').press('Enter');
+    await page.getByLabel('Request URL').fill('https://api.relay.test/orders/8123');
+    await page.getByRole('button', { name: 'Send', exact: true }).click();
+    await expect(page.getByText('200 OK')).toBeVisible();
+    await page.getByRole('button', { name: 'Save as example', exact: true }).click();
+    await page.locator('.save-btn:not(.revert-btn)').first().click();
+    await expect(page.locator('.save-btn:not(.revert-btn)').first()).toBeDisabled();
+
+    await page.getByLabel('Mock server', { exact: true }).click();
+    const panel = page.locator('section[aria-label="Mock server"]');
+    await panel.locator('.mock-select').getByRole('button').first().click();
+    await page.getByRole('option', { name: 'Orders API — 1 example' }).click();
+    await panel.getByRole('button', { name: 'Start server' }).click();
+    await expect(panel.locator('.mock-live-label')).toHaveText('Running');
+
+    await page.locator('.collection-request').filter({ hasText: 'Get order' }).click();
+    await expect(panel).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Send', exact: true }).click();
+    await page.getByRole('button', { name: 'Save as example', exact: true }).click();
+    await expect(page.locator('.examples-row')).toHaveCount(2);
+    await page.locator('.save-btn:not(.revert-btn)').first().click();
+    await expect(page.locator('.save-btn:not(.revert-btn)').first()).toBeDisabled();
+
+    await expect
+      .poll(() => page.evaluate(() => window.__relayE2E.calls.filter(call => call.startsWith('StartMockServer'))))
+      .toEqual(['StartMockServer:Orders API:1', 'StartMockServer:Orders API:2']);
+  });
+
   test('pairs a browser from the Sync Cookies tab and syncs into the open workspace', async ({ page }) => {
     if (docsScreenshotDir) await page.setViewportSize(DOCS_VIEWPORT);
     await installRelayBridge(page);
@@ -2124,7 +2497,7 @@ test.describe('Relay desktop browser E2E', () => {
     await page.getByRole('button', { name: 'Cookies', exact: true }).click();
 
     const modal = page.getByRole('dialog', { name: 'Cookies' });
-    await modal.getByRole('tab', { name: /Sync Cookies/ }).click();
+    await modal.getByRole('tab', { name: /Sync cookies/i }).click();
     await expect(modal.getByText('Cookie sync is off')).toBeVisible();
 
     await modal.getByRole('button', { name: 'Turn on' }).click();
@@ -2151,7 +2524,6 @@ test.describe('Relay desktop browser E2E', () => {
     await expect(modal.getByText(/does not look like a domain/)).toBeVisible();
     await expect(modal.locator('.cookie-sync-chip')).toHaveCount(2);
 
-    // The extension asks to connect; Relay shows the code it must match.
     await page.evaluate(() => {
       const state = window.__relayE2E;
       state.cookieSync = {
@@ -2217,7 +2589,6 @@ test.describe('Relay desktop browser E2E', () => {
     await expect(modal.getByText('Chrome is connected')).toBeVisible();
     await expect(modal.locator('.cookie-sync-log')).toContainText('1 cookie synced');
 
-    // A domain the browser was never granted is called out rather than looking synced.
     await page.evaluate(async () => {
       const state = window.__relayE2E;
       state.cookieSync = { ...state.cookieSync, connected: true, browser: 'Chrome', unreadable: ['shop.relay.test'] };
@@ -2227,16 +2598,76 @@ test.describe('Relay desktop browser E2E', () => {
     await expect(modal.locator('.cookie-sync-chip.unreadable')).toHaveCount(1);
     await captureDocsScreenshot(page, 'cookie-jar-sync-paired');
 
-    await modal.getByRole('tab', { name: 'Manage Cookies' }).click();
+    await modal.getByRole('tab', { name: 'Manage cookies' }).click();
     await expect(modal.locator('.cookie-domain-card')).toContainText('api.relay.test');
     await expect(modal.locator('.cookie-domain-card')).toContainText('session');
 
-    await modal.getByRole('tab', { name: /Sync Cookies/ }).click();
+    await modal.getByRole('tab', { name: /Sync cookies/i }).click();
     await modal.getByRole('button', { name: 'Disconnect it' }).click();
     await expect(modal.getByText('Waiting for a browser')).toBeVisible();
 
     await modal.getByRole('button', { name: 'Turn off' }).click();
     await expect(modal.getByText('Cookie sync is off')).toBeVisible();
     await expect(modal.locator('.cookie-sync-code')).toHaveCount(0);
+  });
+});
+
+test.describe('README screenshot', () => {
+  test.use({ colorScheme: 'dark' });
+  test('captures the README screenshot', async ({ page }) => {
+    test.skip(!readmeScreenshotPath, 'Set RELAY_README_SCREENSHOT to capture the README screenshot');
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await installRelayBridge(page, '', 'darwin/e2e', false);
+    await page.addInitScript(() => {
+      const app = (window as any).go.api.App;
+      app.AppInfo = async () => ({ name: 'Relay', version: '2.0.0', runtime: 'darwin/e2e', goVersion: 'e2e' });
+      for (const workspace of (window as any).__relayE2E.store.workspaces ?? []) workspace.name = 'Acme';
+      const send = app.SendRequest;
+      app.SendRequest = async (req: any) => {
+        if (!String(req.url).includes('/orders')) return send(req);
+        const body = JSON.stringify({
+          id: 'ord_8f3k2m',
+          status: 'confirmed',
+          customer: { id: 'cus_1042', name: 'Ada Lovelace', email: 'ada@example.com' },
+          items: [
+            { sku: 'KB-75', name: 'Mechanical keyboard', quantity: 1, price: 149.0 },
+            { sku: 'MS-02', name: 'Wireless mouse', quantity: 2, price: 39.5 },
+          ],
+          total: 228.0,
+          currency: 'EUR',
+          createdAt: '2026-09-30T18:42:07Z',
+        }, null, 2);
+        return { statusCode: 201, status: '201 Created', headers: [{ key: 'content-type', value: 'application/json' }, { key: 'location', value: '/orders/ord_8f3k2m' }], body, duration: 86, size: body.length, error: '', warnings: [], timeline: [], sentRequests: [], testResult: { tests: [{ name: 'status is 201', passed: true }, { name: 'returns an order id', passed: true }], logs: [] }, preRequestResult: { tests: [], logs: [] } };
+      };
+    });
+    await page.goto('/');
+    await page.getByLabel('New collection').click();
+    await fillPrompt(page, 'New collection', 'Orders API');
+    for (const [name, method, url] of [
+      ['List orders', 'GET', '{{baseUrl}}/orders?status=open'],
+      ['Get order', 'GET', '{{baseUrl}}/orders/{{orderId}}'],
+      ['Cancel order', 'DELETE', '{{baseUrl}}/orders/{{orderId}}'],
+      ['Create order', 'POST', '{{baseUrl}}/orders'],
+    ] as const) {
+      await collectionRow(page, 'Orders API').getByLabel('Collection menu').click();
+      await collectionRow(page, 'Orders API').locator('.collection-menu').getByRole('button', { name: 'Add request' }).click();
+      await chooseRequestType(page, 'HTTP Request');
+      await page.getByLabel('Request name').fill(name);
+      await page.getByLabel('Request name').press('Enter');
+      if (method !== 'GET') {
+        await page.getByLabel('Method and protocol').click();
+        await page.getByRole('option', { name: method }).click();
+      }
+      await page.getByLabel('Request URL').fill(url);
+    }
+    await chooseRequestSection(page, 'Body');
+    await page.locator('label.body-mode-label').filter({ hasText: 'raw' }).click();
+    await fillCodeEditor(page, 'request-body-editor', JSON.stringify({ customerId: 'cus_1042', items: [{ sku: 'KB-75', quantity: 1 }, { sku: 'MS-02', quantity: 2 }], currency: 'EUR' }, null, 2));
+    await page.getByRole('button', { name: /^Send( |$)/ }).first().click();
+    await expect(page.getByText('201 Created')).toBeVisible();
+    await page.locator('.response-mini-tabs').getByRole('tab', { name: 'Body' }).click();
+    await page.mouse.move(1439, 899);
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: readmeScreenshotPath });
   });
 });
