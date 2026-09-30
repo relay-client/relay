@@ -29,7 +29,7 @@ Cookies are refreshed after normal sends and after Collection Runner runs.
 
 ## Managing cookies
 
-Open the cookie modal from the cookie icon near the request URL. You can:
+Open the cookie modal from the cookie icon at the bottom of the activity rail, on the far left of the window. You can:
 
 - Filter by domain.
 - Add a domain manually.

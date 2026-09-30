@@ -108,7 +108,7 @@ Insomnia's data model is a flat list of `requests`, `request_groups` (folders), 
 After importing, do a smoke test:
 
 1. Open the most-used request from the collection. Check headers, body, and auth all look right.
-2. Pick the active environment (sidebar → *Environments* → click it). Confirm the variables resolve in the URL bar (`{{baseUrl}}` should turn purple when valid).
+2. Pick the active environment with the environment switcher in the title bar. Confirm the variables resolve: in the URL bar, a `{{variable}}` the environment does not define is marked in red, and one it does define stays plain.
 3. Press *Send*. The response should match what you'd get in the source app.
 
 If something doesn't carry over correctly, the import is non-destructive — your Postman / Insomnia export is still untouched on disk. Re-export, re-import, or file an issue with the export attached.

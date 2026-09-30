@@ -1,14 +1,11 @@
 :root {
   --relay-brand: #5865f2;
   --relay-brand-strong: #4954e8;
-  --relay-violet: #6d5cf5;
-  --relay-blue: #43a0f1;
+  --relay-brand-light: #9aa2ff;
 
   --sl-font: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --sl-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  /* Starlight's default scale runs h1 42px / h2 35px against 16px body, which reads as a
-     poster rather than a document. This is a tighter scale with the same body size. */
   --sl-text-h1: 2rem;
   --sl-text-h2: 1.4rem;
   --sl-text-h3: 1.15rem;
@@ -55,8 +52,6 @@ header.header {
   letter-spacing: -0.01em;
   gap: 0.55rem;
 }
-/* The artwork carries its own rounded shape, so clipping it again in CSS is what made the
-   header icon, the hero badge and the app's own sidebar three different silhouettes. */
 .site-title img {
   border-radius: 0;
 }
@@ -68,8 +63,6 @@ header.header {
 .relay-hero {
   position: relative;
   isolation: isolate;
-  /* Full bleed: the splash page's container is centred inside the pane, so pulling half the
-     difference out on each side reaches the window edge. */
   width: 100vw;
   max-width: none;
   margin-inline: calc(50% - 50vw);
@@ -78,36 +71,30 @@ header.header {
   border: 0;
   border-radius: 0;
   color: #fff;
-  background:
-    radial-gradient(120% 100% at 8% -10%, rgba(109, 92, 245, 0.42), transparent 58%),
-    radial-gradient(110% 120% at 96% 108%, rgba(67, 160, 241, 0.32), transparent 55%),
-    linear-gradient(168deg, #171a33 0%, #0f1124 55%, #0b0c18 100%);
+  background: #111113;
   overflow: hidden;
 }
 
-/* A faint grid, so the band reads as a surface rather than a coloured rectangle. */
 .relay-hero::before {
   content: "";
   position: absolute;
   inset: 0;
   z-index: -1;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
   background-size: 64px 64px;
   mask-image: radial-gradient(85% 75% at 30% 20%, #000 20%, transparent 78%);
   pointer-events: none;
 }
 
-/* A hairline of light where the band ends, instead of fading it into the page — a
-   gradient to white over a dark ground only ever reads as a grey smear. */
 .relay-hero::after {
   content: "";
   position: absolute;
   inset-inline: 0;
   bottom: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+  background: #2d2d32;
   pointer-events: none;
 }
 
@@ -134,7 +121,7 @@ header.header {
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.02em;
-  color: #d7daff;
+  color: #c9c9cf;
 }
 .relay-badge img { width: 24px; height: 24px; display: block; }
 
@@ -147,10 +134,7 @@ header.header {
   color: #fff;
 }
 .relay-hero-grad {
-  background: linear-gradient(92deg, #b9bfff, #7fc7ff 60%, #62e8e0);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--relay-brand-light);
 }
 
 .relay-hero-sub {
@@ -158,7 +142,7 @@ header.header {
   max-width: 33rem;
   font-size: 1.05rem;
   line-height: 1.6;
-  color: #a6accd;
+  color: #a6a6ae;
 }
 
 .relay-hero-actions {
@@ -182,12 +166,9 @@ header.header {
 .relay-btn-primary {
   background: var(--relay-brand);
   color: #fff;
-  box-shadow: 0 12px 30px -12px rgba(88, 101, 242, 0.9);
 }
 .relay-btn-primary:hover {
-  background: var(--relay-brand-strong);
-  transform: translateY(-1px);
-  box-shadow: 0 16px 36px -12px rgba(88, 101, 242, 1);
+  background: #6b77ff;
 }
 .relay-btn-ghost {
   background: rgba(255, 255, 255, 0.07);
@@ -196,28 +177,18 @@ header.header {
 }
 .relay-btn-ghost:hover { background: rgba(255, 255, 255, 0.13); }
 .relay-btn-link {
-  color: #b9bfe6;
+  color: #a6a6ae;
   padding-inline: 0.5rem;
 }
 .relay-btn-link:hover { color: #fff; }
 
 .relay-hero-meta {
   margin-top: 1.4rem;
-  font-size: 0.78rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: #6f7598;
+  font-size: 0.85rem;
+  color: #85858e;
 }
 
 .relay-hero-visual { position: relative; min-width: 0; }
-.relay-hero-visual::before {
-  content: "";
-  position: absolute;
-  inset: -16% -12% -12% -12%;
-  z-index: -1;
-  background: radial-gradient(56% 56% at 55% 40%, rgba(88, 101, 242, 0.5), transparent 70%);
-  filter: blur(30px);
-}
 .relay-hero-shot {
   position: relative;
   width: 100%;
@@ -229,10 +200,7 @@ header.header {
     0 40px 80px -28px rgba(0, 0, 0, 0.75);
 }
 
-/* The splash header sits on the hero until the page scrolls away from it. */
 :root:has(.relay-hero) .main-frame { padding-top: 0; }
-/* The splash page's content panel keeps its 1.5rem of top padding even with the title
-   panel hidden, which leaves a strip of page background above the hero. */
 :root:has(.relay-hero) .content-panel {
   padding-top: 0;
   border-top: 0;
@@ -250,7 +218,7 @@ header.header {
 :root:has(.relay-hero) header.header site-search button[data-open-modal] {
   background: rgba(255, 255, 255, 0.07);
   border-color: rgba(255, 255, 255, 0.15);
-  color: #c3c9ec;
+  color: #a6a6ae;
 }
 :root:has(.relay-hero) header.header site-search button[data-open-modal]:hover {
   background: rgba(255, 255, 255, 0.12);
@@ -258,7 +226,7 @@ header.header {
 }
 :root:has(.relay-hero) header.header site-search kbd kbd {
   background: rgba(255, 255, 255, 0.13);
-  color: #e7e9ff;
+  color: #ececef;
   border-color: transparent;
 }
 :root[data-hero-scrolled='true']:has(.relay-hero) header.header {
@@ -279,7 +247,6 @@ header.header {
   color: var(--sl-color-gray-2);
 }
 
-/* Hero art is chrome, not article content — the markdown image frame must not touch it. */
 .relay-hero img:not(.relay-hero-shot) {
   border: 0;
   background: none;
@@ -295,25 +262,19 @@ header.header {
 }
 
 .sl-markdown-content .card {
-  background: color-mix(in srgb, var(--sl-color-bg) 90%, var(--sl-color-accent) 10%);
-  border: 1px solid color-mix(in srgb, var(--sl-color-gray-5) 60%, transparent);
-  border-radius: 14px;
-  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+  --sl-card-border: var(--relay-hairline);
+  --sl-card-bg: transparent;
+  background: var(--relay-surface);
+  border: 1px solid var(--relay-hairline);
+  border-radius: 12px;
+  transition: border-color 0.16s ease;
 }
 .sl-markdown-content .card:hover {
-  transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--sl-color-accent) 55%, transparent);
-  box-shadow: 0 18px 40px -26px color-mix(in srgb, var(--sl-color-accent) 80%, black);
+  border-color: color-mix(in srgb, var(--sl-color-gray-4) 70%, transparent);
 }
-
-/* ---------------------------------------------------------------------------
-   Document surfaces
-
-   Everything below this line is the reading experience: headings, prose,
-   screenshots, tables and code. Starlight's defaults are deliberately large so
-   they suit a landing page; a reference manual wants smaller type, tighter
-   rhythm, and screenshots that read as objects rather than as page background.
-   --------------------------------------------------------------------------- */
+.sl-markdown-content .card .icon {
+  color: var(--sl-color-gray-2);
+}
 
 .sl-markdown-content {
   line-height: 1.7;
@@ -341,9 +302,6 @@ header.header {
   margin-top: 1.6rem;
 }
 
-/* A screenshot is a picture of a window, so it gets a window's edge. Without a
-   frame the app's own white chrome runs into the page and the shot reads as a
-   hole in the layout. */
 .sl-markdown-content img {
   display: block;
   margin-inline: auto;
@@ -356,8 +314,6 @@ header.header {
   box-shadow: 0 22px 46px -30px rgba(0, 0, 0, 0.8);
 }
 
-/* Inline code carries key names and field names all over these docs, so it has
-   to be legible without shouting. */
 .sl-markdown-content :not(pre) > code {
   border: 1px solid var(--relay-hairline);
   border-radius: 6px;
@@ -391,7 +347,6 @@ header.header {
   margin-block: 1.25rem;
 }
 
-/* Navigation: the sidebar is a map, not a menu of primary actions. */
 .sidebar-content a {
   font-size: 0.875rem;
   padding-block: 0.34rem;
@@ -410,8 +365,6 @@ header.header {
   font-size: 0.8125rem;
 }
 
-/* Buttons: the download call to action was reading two sizes larger than
-   anything around it. */
 .sl-link-button {
   border-radius: 9px;
   padding: 0.52rem 1.05rem;
@@ -434,8 +387,6 @@ header.header {
   line-height: 1.6;
 }
 
-/* The splash page carries the marketing weight, so its section headings sit a
-   step above the reference scale the guides use. */
 :root:has(.relay-hero) .sl-markdown-content h2 {
   font-size: 1.75rem;
   margin-top: 3.5rem;
@@ -443,14 +394,6 @@ header.header {
 :root:has(.relay-hero) .sl-markdown-content h2 + * {
   margin-top: 1.25rem;
 }
-
-/* ---------------------------------------------------------------------------
-   Search
-
-   Pagefind ships a working but unstyled widget, and Starlight passes it through
-   almost untouched. Search is the second thing anyone touches on a docs site, so
-   it gets the same treatment as the rest: one surface, one radius, one accent.
-   --------------------------------------------------------------------------- */
 
 site-search button[data-open-modal] {
   border-radius: 9px;
@@ -461,8 +404,6 @@ site-search button[data-open-modal] {
 site-search button[data-open-modal]:hover {
   border-color: color-mix(in srgb, var(--sl-color-accent) 45%, var(--relay-hairline));
 }
-/* The hint is a <kbd> wrapper around one <kbd> per key. Styling the wrapper as well gives
-   it the chips' own background and padding, so the keys sit inside a third chip. */
 site-search button[data-open-modal] > kbd {
   background: none;
   border: 0;
@@ -477,8 +418,6 @@ site-search button[data-open-modal] kbd kbd {
 }
 
 site-search dialog {
-  /* One surface. Anything inside painting its own background shows up as a square
-     panel inset in a rounded dialog. */
   background: var(--sl-color-bg);
   border: 1px solid var(--relay-hairline);
   border-radius: 18px;
@@ -489,7 +428,7 @@ site-search dialog {
   box-shadow: 0 32px 80px -20px rgba(0, 0, 0, 0.8);
 }
 site-search dialog::backdrop {
-  background: color-mix(in srgb, #0b0d1a 55%, transparent);
+  background: color-mix(in srgb, #0c0c0e 55%, transparent);
   backdrop-filter: blur(3px);
 }
 
@@ -502,8 +441,6 @@ site-search dialog::backdrop {
   --pagefind-ui-font: var(--sl-font);
 }
 
-/* The query row reads as one field with the dialog, not a box inside a box. The magnifier
-   is a pseudo-element on the form, positioned for Pagefind's own row height. */
 #starlight__search .pagefind-ui__form::before {
   top: calc(var(--relay-search-row, 3rem) / 2);
   margin-top: 0;
@@ -511,9 +448,6 @@ site-search dialog::backdrop {
   opacity: 0.55;
 }
 #starlight__search input.pagefind-ui__search-input {
-  /* The query row is a flex item now, and a flex item is allowed to shrink past its own
-     height — which leaves the magnifier and the clear button, both positioned for a full
-     row, floating away from the text. */
   flex: 0 0 auto;
   height: var(--relay-search-row);
   padding-block: 0;
@@ -531,18 +465,8 @@ site-search dialog::backdrop {
   border-color: color-mix(in srgb, var(--sl-color-accent) 55%, transparent);
   background: var(--sl-color-bg);
 }
-/* Pagefind sizes the clear button to the full height of the field and pins it flush to the
-   right edge, so any background it takes on paints over the field's own border and rounded
-   corner. Sized and inset to sit inside the field instead.
-
-   Its containing block is the form, which is now a full-height flex column — a percentage
-   `top` would put it halfway down the results. It is offset from the top by half the query
-   row instead, which is the one measurement that stays true. */
 #starlight__search .pagefind-ui__search-clear {
   top: calc(var(--relay-search-row, 3rem) / 2);
-  /* Starlight narrows the field by `--sl-search-cancel-space` to make room for the mobile
-     Cancel button and offsets this button by the same amount; overriding the offset with a
-     flat value drops the clear button on top of Cancel. */
   inset-inline-end: calc(var(--sl-search-cancel-space, 0px) + 0.45rem);
   transform: translateY(-50%);
   width: 2rem;
@@ -589,8 +513,6 @@ site-search dialog::backdrop {
   color: var(--sl-color-white);
   text-decoration: none;
 }
-/* Pagefind draws a grey connector rail behind every sub-result; the rounded hover row
-   below replaces it, and left in place it reads as a stray vertical line. */
 #starlight__search .pagefind-ui__result-nested::before {
   display: none;
 }
@@ -604,12 +526,9 @@ site-search dialog::backdrop {
 #starlight__search .pagefind-ui__result-nested:focus-within {
   background: color-mix(in srgb, var(--sl-color-accent) 9%, transparent);
   border-inline-start-color: var(--sl-color-accent);
-  /* Pagefind also outlines the row on hover; the tint and the rail already say it. */
   outline: none;
 }
 
-/* Keyboard focus gets a ring of its own, rounded and in the accent, rather than the
-   browser's square default around the text — and no page-wide band behind the title. */
 #starlight__search .pagefind-ui__result-link:focus-visible {
   outline: 2px solid var(--sl-color-accent);
   outline-offset: 3px;
@@ -620,10 +539,6 @@ site-search dialog::backdrop {
   outline: none;
 }
 
-/* Before anything is typed the dialog still holds its 240px minimum, so it does not jump on
-   the first keystroke. Say what the box is for rather than showing an empty pane. Pagefind
-   hides the results drawer outright in that state, so the hint hangs off the form; if that
-   class is ever renamed the hint simply stops appearing. */
 #starlight__search .pagefind-ui__form:has(.pagefind-ui__drawer.pagefind-ui__hidden)::after {
   content: "Search the guides, the reference and the changelog.";
   display: block;
@@ -649,8 +564,6 @@ site-search dialog::backdrop {
   font-weight: 650;
 }
 
-/* A keyboard legend, because this dialog is opened from the keyboard far more often than
-   it is clicked. */
 @media (min-width: 50rem) {
   site-search .dialog-frame::after {
     content: "↑↓ to move · ↵ to open · esc to close";
@@ -663,10 +576,6 @@ site-search dialog::backdrop {
   }
 }
 
-/* Keep the query and the legend in place while the results scroll under them.
-   `.pagefind-ui__form` wraps the query row *and* the results, so the scrolling element
-   has to be the drawer inside it — which means every box between the dialog's bounded
-   height and that drawer is a flex column that is allowed to shrink. */
 site-search .dialog-frame {
   overflow: hidden;
 }
@@ -687,12 +596,6 @@ site-search .search-container,
   overscroll-behavior: contain;
 }
 
-/* ---------------------------------------------------------------------------
-   Navigation, callouts, code and page furniture
-   --------------------------------------------------------------------------- */
-
-/* The active sidebar row was a solid brand-blue pill — the loudest thing on the
-   page, competing with the heading. A tint and a rail say the same thing quietly. */
 .sidebar-content a[aria-current='page'],
 .sidebar-content a[aria-current='page']:hover,
 .sidebar-content a[aria-current='page']:focus {
@@ -728,8 +631,6 @@ site-search .search-container,
   font-weight: 650;
 }
 
-/* Callouts: a tinted rail and a calmer body, so a note reads as an annotation
-   rather than a second article. */
 .sl-markdown-content .starlight-aside {
   border-inline-start-width: 3px;
   border-radius: 0 12px 12px 0;
@@ -750,7 +651,6 @@ site-search .search-container,
   margin-top: 0.4rem;
 }
 
-/* Code blocks */
 .sl-markdown-content .expressive-code .frame {
   border-radius: 12px;
 }
@@ -763,7 +663,6 @@ site-search .search-container,
   font-weight: 600;
 }
 
-/* Prose links carry a lot of the navigation in these guides. */
 .sl-markdown-content a:not(:where(.starlight-aside a, .card a, .sl-link-card a)) {
   text-underline-offset: 0.22em;
   text-decoration-thickness: 1px;
@@ -774,7 +673,6 @@ site-search .search-container,
   text-decoration-color: var(--sl-color-accent);
 }
 
-/* Previous / next */
 .pagination-links a {
   border-radius: 12px;
   border-color: var(--relay-hairline);
@@ -785,8 +683,6 @@ site-search .search-container,
   background: color-mix(in srgb, var(--sl-color-accent) 5%, transparent);
   transform: translateY(-1px);
 }
-/* The row is "Previous" over the page name; giving both the same size flattens it into
-   one large block. */
 .pagination-links a > span {
   font-size: 0.72rem;
   font-weight: 650;
@@ -806,14 +702,12 @@ site-search .search-container,
   padding: 0.75rem 0.95rem;
 }
 
-/* Link cards, used across the splash page and the guides index. */
 .sl-markdown-content .sl-link-card {
   border-radius: 12px;
   border-color: var(--relay-hairline);
-  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 .sl-markdown-content .sl-link-card:hover {
-  border-color: color-mix(in srgb, var(--sl-color-accent) 55%, transparent);
-  background: color-mix(in srgb, var(--sl-color-accent) 5%, transparent);
-  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--sl-color-gray-4) 70%, transparent);
+  background: var(--relay-surface);
 }

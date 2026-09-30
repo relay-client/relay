@@ -9,7 +9,7 @@ It needs no account and no configuration. An example already records a status, h
 
 ## Starting it
 
-Open the **Mock** tab from the toolbar, pick a collection, and press **Start server**. Relay reports the base URL:
+Open the **Mock** tab from the server icon in the activity rail on the left, pick a collection, and press **Start server**. Relay reports the base URL:
 
 ```
 http://127.0.0.1:3100
@@ -59,11 +59,11 @@ The **unmatched** rows are the useful ones. They are the difference between *my 
 }
 ```
 
-The log is kept on Relay's side as well as streamed to the panel, so closing and reopening the tab does not lose what arrived while you were elsewhere.
+The log is kept on Relay's side as well as streamed to the panel, so closing and reopening the tab does not lose what arrived while you were elsewhere. A request the client abandoned — it gave up during a reproduced delay — is listed too, with the example that would have answered, rather than vanishing.
 
 ## Editing an example while the server runs
 
-The mock reloads itself when you change an example it is serving, so it cannot answer with something you already edited. The request log survives that reload — from the client's point of view nothing restarted — and a rename does not bounce the server, because it changes nothing a client can observe.
+The mock reloads itself when you change an example it is serving, so it cannot answer with something you already edited. This happens whether or not the mock panel is open — editing an example from the request editor is enough. The routes are swapped on the running server rather than restarting it: the port never moves, open connections are not dropped, and the request log survives, because from the client's point of view nothing happened. A rename does not bounce the server either, because it changes nothing a client can observe.
 
 Clicking a route, or a matched row in the log, opens the example behind it.
 
@@ -74,7 +74,7 @@ Each example knows how long the real call took. **Reproduce recorded response ti
 ## Scope and safety
 
 - **Loopback only.** The server binds `127.0.0.1`, never `0.0.0.0`. A mock built from real recorded responses — which may still hold data from a live system — is not something to put on the network by accident.
-- **CORS preflight is answered for any origin**, because the first client to hit a mock is usually a browser app running on another port.
+- **CORS is answered for pages served from this machine** — any `localhost`, `127.0.0.1` or `::1` origin on any port — because the first client to hit a mock is usually a browser app running on another port. A page served from anywhere else gets a `403` and no CORS headers: the mock replays responses recorded from real APIs, and a site you happen to have open should not be able to read them. The refusal is listed in the request log with the origin that was turned away.
 - **One server at a time.** Starting it for a different collection switches it over; the panel says so before you do.
 - **It stops when Relay quits.** There is no background daemon.
 

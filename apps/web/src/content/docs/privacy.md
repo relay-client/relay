@@ -69,7 +69,7 @@ Three features bind a local listener. All three are loopback-only (`127.0.0.1`),
 |----------|----------------|----------------|
 | OAuth 2.0 redirect | Only while an Authorization Code sign-in is in flight, on an ephemeral port | The single `/callback` that receives the authorization code, then closes |
 | [Cookie sync](/docs/guides/cookies/#sync-cookies-from-your-browser) bridge | While *Sync Cookies* is on (ports 3199-3203) | Pairing and the WebSocket a paired browser pushes cookies over. Extension origins only; a web page probing the port gets a `403` |
-| [Mock server](/docs/guides/mock-server/) | While you have it running, on the port you choose | The saved examples of the collection you pointed it at — status, headers and body as recorded. Anything on your machine that can reach the port can read them, so treat a mock made from real responses accordingly |
+| [Mock server](/docs/guides/mock-server/) | While you have it running, on the port you choose | The saved examples of the collection you pointed it at — status, headers and body as recorded. Any program on your machine that can reach the port can read them, so treat a mock made from real responses accordingly. In a browser, only a page served from this machine is answered; a site on another host gets a `403` |
 
 ## Scripting safety
 

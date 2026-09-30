@@ -1,11 +1,13 @@
 ---
 title: Request types
-description: HTTP, GraphQL, SSE, WebSocket, Socket.IO, and gRPC requests in Relay.
+description: HTTP, GraphQL, SSE, WebSocket, Socket.IO, gRPC, and MCP requests in Relay.
 ---
 
 Relay has separate request modes for protocols that behave differently on the wire. Pick the type when creating a request; Relay changes the editor tabs, send/connect controls, response panel, and export behavior to match.
 
 ![New request dialog with request type choices](../../../../assets/screenshots/new-request-dialog.png)
+
+The picker at the start of the address bar holds both decisions: the HTTP methods on top, the other protocols below. While a request is still a draft you can switch it there — pick `POST` on a GraphQL draft and it becomes an HTTP request. Once the request is saved its protocol is fixed; the picker still changes an HTTP request's method, and a request of any other type shows its protocol without a menu.
 
 ## At a glance
 
@@ -17,6 +19,7 @@ Relay has separate request modes for protocols that behave differently on the wi
 | WebSocket | Raw `ws://` / `wss://` sessions | Params, Auth, Headers, Message, Settings | Frames, handshake, logs | No |
 | Socket.IO | Socket.IO servers with namespaces/events | Params, Auth, Headers, Events, Message, Settings | Events, handshake, logs | No |
 | gRPC | Protobuf RPCs with metadata/reflection/proto files | Metadata, Body, Service, Scripts, Settings | Messages, metadata, trailers, scripts | Yes |
+| MCP | Model Context Protocol servers — list their tools and call one by hand | Arguments, Auth, Headers, Scripts, Settings | Result, raw exchange, notifications | Yes |
 
 Realtime requests are intentionally skipped by the Collection Runner because they are long-lived sessions. gRPC is runnable because each invocation produces a bounded response.
 
@@ -98,6 +101,32 @@ The request body is JSON in protobuf JSON shape. Metadata lives in its own tab. 
 gRPC supports pre-request/test scripts, environment variables, collection defaults, and runner reports.
 
 ![gRPC request with selected method and response messages](../../../../assets/screenshots/request-grpc.png)
+
+## MCP
+
+An MCP request calls a [Model Context Protocol](https://modelcontextprotocol.io) server — the servers agents talk to — without an agent in the loop. Relay speaks protocol revision **2026-07-28**, which is stateless: every call is a single HTTP POST to the server's endpoint, so an MCP call is an ordinary saved request that can be replayed, diffed, scripted and committed.
+
+Put the server's endpoint in the URL bar, then press **Discover**. Relay calls `server/discover` and follows it with `tools/list`, `resources/list` and `prompts/list` for the capabilities the server actually declares, so a server with no prompts is never asked for any. The panel then names the server, its version and what it holds.
+
+Choose a method and, for `tools/call`, `resources/read` or `prompts/get`, the tool, resource or prompt to address. Picking a tool seeds the **Arguments** editor from the tool's own input schema, and the arguments are checked for being a JSON object before anything is sent.
+
+![MCP request with a discovered server, a chosen tool and its result](../../../../assets/screenshots/request-mcp.png)
+
+The response panel has three views:
+
+- **Result** — the content blocks the server returned, its `structuredContent`, and, when a tool asked for more input, the `inputRequests` it sent back.
+- **Raw exchange** — the JSON-RPC envelope exactly as it arrived, including the individual frames when the server answered with a stream. This is the view that makes a failing tool call diagnosable.
+- **Notifications** — the progress and log notifications a streamed answer carried before its result.
+
+What Relay checks on your behalf:
+
+- **A tool that contradicts its own output schema is called out.** If the server publishes an `outputSchema` and its `structuredContent` does not match, the mismatch is listed as a warning — and the content is still shown, because the server is the one at fault.
+- **A tool whose `x-mcp-header` annotations the specification forbids cannot be called.** Relay names the reason instead of quietly dropping the tool from the list, which is what a conforming agent client does.
+- **Headers the protocol derives from the body are yours to read, not to set.** `Mcp-Method`, `Mcp-Name`, `MCP-Protocol-Version` and the `Mcp-Param-*` headers are built from the call; a header of the same name in the Headers tab is replaced and you are told so, because a server must reject a request whose headers and body disagree.
+
+Auth, proxy, client certificates, redirects and the response cap are the ordinary HTTP ones — an MCP call is an HTTP request, and it carries the same settings.
+
+Not in this release: the **stdio** transport, so servers launched as a local command (`npx some-server`) cannot be reached yet; the protocol revisions before `2026-07-28`; `subscriptions/listen`; and sampling, which Relay declines because it has no model and is not going to acquire one.
 
 ## Import and export notes
 
