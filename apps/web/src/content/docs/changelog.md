@@ -5,6 +5,32 @@ description: Notable Relay changes and links to the exact notes for each publish
 
 This page summarizes the notable-change log maintained in the source repository. For the exact notes and artifacts attached to every published tag, use the [Relay releases page](https://github.com/relay-client/relay/releases).
 
+## 2.0.0
+
+Relay 2.0 is a new look — the Graphite design, from the window chrome to every screen, menu and dialog — plus MCP requests, a command palette, a page for each history entry and the last run of each collection. It needs macOS 12 or later.
+
+### Added
+
+- **MCP is a request type.** Point Relay at a Model Context Protocol server, press *Discover*, pick a tool, fill the arguments from its schema and send — and read the raw JSON-RPC exchange that went over the wire. An MCP call is an ordinary saved request: diffed in review, run by the collection runner, asserted on by a test script. See [Request types](/docs/guides/request-types/#mcp).
+- **A command palette.** `Cmd/Ctrl K` finds a saved request and also runs Relay's commands — send, save, duplicate, copy as cURL, create, import, jump to any view, change the layout or theme. See [Workspaces](/docs/guides/workspaces/#command-palette).
+- **Environments side by side.** A *Matrix* view puts every variable in a row and every environment in a column, edited in place. See [Environments](/docs/guides/environments/#comparing-environments).
+- **A page for each history entry**, with what was sent next to the stored response. See [Request history](/docs/guides/history/#the-entry-view).
+- **Each collection remembers its last run**, shown in the runner and on the collection's page. See [Collection Runner](/docs/guides/collection-runner/#last-run).
+
+### Changed
+
+- **The Graphite design.** Neutral greys with hairline borders, colour kept for what carries meaning — methods, status codes, variables — and the accent only on the primary action. An activity rail replaces the sidebar's section labels, tabs sit in the title bar, the method lives inside the URL field, and the response opens beside the request in a wide window. Every screen, menu and dialog was brought to it, and every screenshot in these docs was retaken.
+- **A new app icon** — two offset chevrons in the brand blue — on the Dock, the installer, the start-up screen and these pages.
+- **Relay needs macOS 12 Monterey or later**, with the system WebKit from Safari 16.2 or newer. Windows and Linux are unchanged.
+
+### Fixed
+
+- A dropdown inside a labelled field reopened after an option was picked on macOS. The end-to-end suite now also runs in WebKit, the engine Relay uses there.
+- A stored history response over 2 MB could not be read back.
+- Response line numbers fell behind the text while scrolling fast on macOS, and a sideways scroll could strand them in the middle of a wide response.
+
+---
+
 ## 1.8.1
 
 ### Changed
