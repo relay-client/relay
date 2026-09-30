@@ -30,11 +30,12 @@
   flex-wrap: nowrap;
   align-self: stretch;
   flex-shrink: 0;
+  gap: 18px;
 }
 
 .sse-tabs button {
   height: 40px;
-  border-radius: 7px 7px 0 0;
+  border-radius: 0;
 }
 
 .sse-summary {
@@ -652,21 +653,25 @@
 }
 
 .ws-panel .sse-event-arrow,
-.ws-panel .sse-event-arrow.incoming,
 .ws-panel .sse-event-arrow.system {
-  color: var(--put);
-  background: color-mix(in srgb, var(--put) 13%, transparent);
+  color: var(--text-3);
+  background: transparent;
+}
+
+.ws-panel .sse-event-arrow.incoming {
+  color: var(--s2xx);
+  background: transparent;
 }
 
 .ws-panel .sse-event-arrow.outgoing {
-  color: var(--post);
-  background: color-mix(in srgb, var(--post) 13%, transparent);
+  color: color-mix(in srgb, var(--accent) 62%, var(--text));
+  background: transparent;
 }
 
 .ws-panel .sse-event-row.sse-event-disconnected .sse-event-arrow.system,
 .ws-panel .sse-event-row.sse-event-error .sse-event-arrow.system {
   color: var(--s5xx);
-  background: color-mix(in srgb, var(--s5xx) 13%, transparent);
+  background: transparent;
 }
 
 .ws-panel .sse-event-row.sse-event-connected .sse-event-arrow.system {
@@ -764,7 +769,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--s2xx);
   flex-shrink: 0;
   animation: sse-pulse 1.2s ease-in-out infinite;
 }
@@ -772,4 +777,146 @@
 @keyframes sse-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }
+}
+
+.sse-event-row {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sse-event-row.sse-event-connected,
+.sse-event-row.sse-event-disconnected,
+.sse-event-row.sse-event-error {
+  background: transparent;
+}
+
+.sse-event-main {
+  gap: 10px;
+  min-height: 36px;
+  padding: 0 16px;
+}
+
+.sse-event-arrow {
+  width: 16px;
+  height: 16px;
+  background: transparent;
+  color: var(--text-3);
+}
+
+.sse-event-arrow.outgoing {
+  color: color-mix(in srgb, var(--accent) 62%, var(--text));
+}
+
+.sse-event-arrow.incoming {
+  color: var(--s2xx);
+}
+
+.sse-badge,
+.sse-badge-message,
+.sse-badge-notification,
+.sse-badge-info,
+.sse-badge-ping,
+.sse-badge-system,
+.sse-badge-default {
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.sse-badge-connected { color: var(--s2xx); border: none; background: transparent; }
+.sse-badge-disconnected,
+.sse-badge-error { color: var(--s5xx); border: none; background: transparent; }
+
+.sse-event-preview {
+  font-family: var(--font-mono);
+}
+
+.sse-event-time {
+  font-family: var(--font-mono);
+}
+
+.btn-sse-connect,
+.btn-ws-connect {
+  background: var(--accent);
+}
+
+.btn-sse-connect:hover,
+.btn-ws-connect:hover {
+  background: var(--accent-hover);
+}
+
+.btn-sse-disconnect,
+.btn-ws-disconnect {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+}
+
+.btn-sse-disconnect:hover,
+.btn-ws-disconnect:hover {
+  background: var(--hover);
+}
+
+.sse-summary {
+  flex-shrink: 0;
+}
+
+.sse-tabs {
+  min-width: 0;
+  flex-shrink: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.sse-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.sse-postman-bar {
+  flex-wrap: wrap;
+  row-gap: 0;
+  column-gap: 8px;
+  min-height: 0;
+  padding: 0 16px;
+  background: var(--bg);
+}
+
+.sse-postman-bar > .sse-summary {
+  flex: 1 1 auto;
+  height: 40px;
+}
+
+.sse-postman-bar > .sse-tabs {
+  order: 1;
+  flex: 1 0 100%;
+  gap: 20px;
+  height: 38px;
+}
+
+.sse-postman-bar > .sse-tabs button {
+  height: 38px;
+}
+
+.sse-postman-bar > .sse-summary {
+  flex: 1 1 0;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  row-gap: 30px;
+  min-width: 0;
+  height: 40px;
+  padding-top: 12px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.sse-postman-bar > .sse-summary > * {
+  flex-shrink: 0;
+}
+
+.sse-postman-bar > .sse-summary {
+  min-width: 120px;
 }

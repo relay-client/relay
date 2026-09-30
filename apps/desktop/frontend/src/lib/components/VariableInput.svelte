@@ -90,12 +90,11 @@
   const pickerMatches = $derived.by(() => {
     if (!pickerOptions.length) return [];
     const needle = value.trim().toLowerCase();
-    const seen = new Set<string>();
+    const keys = pickerOptions.map(option => option.toLowerCase());
     const options = pickerOptions
-      .filter(option => {
-        const key = option.toLowerCase();
-        if (!option.trim() || seen.has(key)) return false;
-        seen.add(key);
+      .filter((option, index) => {
+        const key = keys[index];
+        if (!option.trim() || keys.indexOf(key) !== index) return false;
         return !needle || key.includes(needle);
       });
     if (!needle) return options;

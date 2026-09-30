@@ -1,6 +1,7 @@
 <script lang="ts">
   import { trapFocus } from '../a11y';
-  import { formatSectionBlocks, stripInlineMarkdown, type ChangelogSection } from '../whatsNew';
+  import type { ChangelogSection } from '../whatsNew';
+  import ReleaseNotes from './ReleaseNotes.svelte';
 
   let {
     section,
@@ -10,31 +11,19 @@
     onDismiss: () => void;
   } = $props();
 
-  let blocks = $derived(formatSectionBlocks(section.body));
-
   function formatDate(value: string) {
     if (!value) return '';
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) return value;
     return parsed.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
   }
-
-  function blockClass(heading: string) {
-    const key = heading.toLowerCase();
-    if (key.startsWith('add')) return 'added';
-    if (key.startsWith('fix')) return 'fixed';
-    if (key.startsWith('chang')) return 'changed';
-    if (key.startsWith('remov') || key.startsWith('deprecat')) return 'removed';
-    return '';
-  }
 </script>
 
 <div class="dialog-backdrop" role="presentation" onmousedown={(event) => event.target === event.currentTarget && onDismiss()}>
   <div class="whats-new-modal" role="dialog" aria-modal="true" aria-labelledby="whats-new-title" tabindex="-1" use:trapFocus>
-    <div class="whats-new-head">
+    <div class="dialog-head whats-new-head">
       <div class="whats-new-title-group">
-        <span class="whats-new-eyebrow">What's new</span>
-        <h2 id="whats-new-title">Relay {section.version}</h2>
+        <h2 id="whats-new-title">What's new in Relay {section.version}</h2>
         {#if section.date}
           <span class="whats-new-date">{formatDate(section.date)}</span>
         {/if}
@@ -43,28 +32,8 @@
     </div>
 
     <div class="whats-new-body">
-      {#if blocks.length}
-        {#each blocks as block}
-          <section class="whats-new-block">
-            {#if block.heading}
-              <h3 class="whats-new-block-heading {blockClass(block.heading)}">{block.heading}</h3>
-            {/if}
-            <ul>
-              {#each block.items as item}
-                <li>
-                  {stripInlineMarkdown(item.text)}
-                  {#if item.children.length}
-                    <ul class="whats-new-subitems">
-                      {#each item.children as child}
-                        <li>{stripInlineMarkdown(child)}</li>
-                      {/each}
-                    </ul>
-                  {/if}
-                </li>
-              {/each}
-            </ul>
-          </section>
-        {/each}
+      {#if section.body.trim()}
+        <ReleaseNotes body={section.body} />
       {:else}
         <p class="whats-new-empty">This release has no recorded notes.</p>
       {/if}
@@ -76,7 +45,12 @@
         href="https://github.com/relay-client/relay/releases/tag/v{section.version}"
         target="_blank"
         rel="noreferrer noopener"
-      >Full release notes</a>
+      >
+        Full release notes
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+          <path d="M3 7l4-4M4 3h3v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </a>
       <button class="btn-primary" type="button" onclick={onDismiss} data-autofocus>Got it</button>
     </div>
   </div>

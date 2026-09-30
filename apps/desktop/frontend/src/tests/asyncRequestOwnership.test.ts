@@ -40,7 +40,7 @@ describe('request-owned async operations', () => {
       },
     };
 
-    const importing = graphqlFeature.importGraphQLSchemaFromUrl.call(host as any, 'https://schema.test');
+    const importing = graphqlFeature.importGraphQLSchemaFromUrl.call(host as never, 'https://schema.test');
     await Promise.resolve();
     host.activeRequestId = 'request-b';
     host.graphqlSchemaOperationToken += 1;
@@ -96,7 +96,7 @@ describe('request-owned async operations', () => {
       scheduleActiveRequestPersist: vi.fn(),
     };
 
-    const discovering = grpcFeature.discoverGrpcServices.call(host as any);
+    const discovering = grpcFeature.discoverGrpcServices.call(host as never);
     await Promise.resolve();
     host.activeRequestId = 'request-b';
     host.grpcServiceOperationToken += 1;

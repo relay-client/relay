@@ -103,7 +103,7 @@ describe('collection folder paths', () => {
       requestsForDisplay: () => [],
     };
 
-    const groups = collectionFeature.buildCollectionGroups.call(host as any);
+    const groups = collectionFeature.buildCollectionGroups.call(host as never);
     const users = groups[0].folders.find(folder => folder.name === 'Users');
 
     expect(users?.collapsed).toBe(false);
@@ -121,11 +121,11 @@ describe('collection folder paths', () => {
       scheduleRequestStorePersist: () => { persistCalls += 1; },
     };
 
-    const topLevelKey = folderFeature.folderCollapseKey.call(host as any, 'api', ['Users']);
-    const nestedKey = folderFeature.folderCollapseKey.call(host as any, 'api', ['Users', 'Active']);
+    const topLevelKey = folderFeature.folderCollapseKey.call(host as never, 'api', ['Users']);
+    const nestedKey = folderFeature.folderCollapseKey.call(host as never, 'api', ['Users', 'Active']);
 
-    await folderFeature.toggleFolderCollapsed.call(host as any, 'api', ['Users']);
-    await folderFeature.toggleFolderCollapsed.call(host as any, 'api', ['Users', 'Active']);
+    await folderFeature.toggleFolderCollapsed.call(host as never, 'api', ['Users']);
+    await folderFeature.toggleFolderCollapsed.call(host as never, 'api', ['Users', 'Active']);
 
     expect(host.folderCollapseState[topLevelKey]).toBe(true);
     expect(host.folderCollapseState[nestedKey]).toBe(false);

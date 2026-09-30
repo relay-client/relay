@@ -5,6 +5,7 @@ import type { Collection, CollectionRunnerResult, GrpcResponse, RequestType, Sav
 import type { RunnerDataRow } from '../../runnerData';
 import { downloadTextFile, requestTabLabel, requestTransportLabel } from '../../utils';
 import type { TopView } from '../ui';
+import { collectionRunRecord, type CollectionRunRecord } from '../../collectionRuns';
 
 const REQUEST_CANCELED_ERROR = 'Request canceled';
 
@@ -30,6 +31,10 @@ type CollectionRunnerHost = {
   collectionRunnerTitle: string;
   collectionRunnerRunning: boolean;
   collectionRunnerResults: CollectionRunnerResult[];
+  collectionLastRuns: Record<string, CollectionRunRecord>;
+  collectionRunnerShowingLastRun: boolean;
+  persistRequestStore: () => Promise<unknown>;
+  showCollectionLastRun: (collectionId: string) => void;
   collectionRunnerStartedAt: number;
   collectionRunnerFinishedAt: number;
   collectionRunnerCancelRequested: boolean;
@@ -74,7 +79,7 @@ type CollectionRunnerHost = {
   selectAllCollectionRunnerRequests: () => void;
   clearCollectionRunnerDataFile: () => void;
   stopCollectionRunner: () => void;
-  startCollectionRunner: (title: string, requests: SavedRequest[], options?: { delayMs?: number; iterations?: number; parallel?: boolean; concurrency?: number; dataRows?: RunnerDataRow[] }) => Promise<void>;
+  startCollectionRunner: (title: string, requests: SavedRequest[], options?: { delayMs?: number; iterations?: number; parallel?: boolean; concurrency?: number; dataRows?: RunnerDataRow[]; collectionId?: string }) => Promise<void>;
   runnerResultShell: (req: SavedRequest, status?: CollectionRunnerResult['status'], runId?: string, iteration?: number) => CollectionRunnerResult;
   runnerResultFromResponse: (req: SavedRequest, resp: HttpResponse, runId: string, iteration: number) => CollectionRunnerResult;
   runnerResultFromGrpcResponse: (req: SavedRequest, resp: GrpcResponse, runId: string, iteration: number) => CollectionRunnerResult;
@@ -124,6 +129,7 @@ export const collectionRunnerFeature = {
     this.collectionRunnerOpen = true;
     this.topView = 'runner';
     this.collectionRunnerTitle = this.collections.find(collection => collection.id === nextCollectionId)?.name || 'Collection Runner';
+    if (!this.collectionRunnerRunning && (collectionChanged || !this.collectionRunnerResults.length)) this.showCollectionLastRun(nextCollectionId);
     if (selectedRequestIds) {
       const allowedIds = new Set(this.collectionRunnerSelectableRequests.map(request => request.id));
       this.collectionRunnerSelectedRequestIds = new Set(selectedRequestIds.filter(id => allowedIds.has(id)));
@@ -143,8 +149,16 @@ export const collectionRunnerFeature = {
     this.collectionRunnerCollectionId = collectionId;
     this.collectionRunnerTitle = this.collections.find(collection => collection.id === collectionId)?.name || 'Collection Runner';
     this.collectionRunnerSelectedRequestIds = new Set();
-    this.collectionRunnerResults = [];
+    this.showCollectionLastRun(collectionId);
     this.selectAllCollectionRunnerRequests();
+  },
+  showCollectionLastRun(this: CollectionRunnerHost, collectionId: string) {
+    if (this.collectionRunnerRunning) return;
+    const record = this.collectionLastRuns[collectionId];
+    this.collectionRunnerResults = record ? record.results.map(result => ({ ...result })) : [];
+    this.collectionRunnerStartedAt = record?.startedAt ?? 0;
+    this.collectionRunnerFinishedAt = record?.finishedAt ?? 0;
+    this.collectionRunnerShowingLastRun = Boolean(record);
   },
   setCollectionRunnerDelayMs(this: CollectionRunnerHost, value: string | number) {
     this.collectionRunnerDelayMs = Math.max(0, Math.floor(Number(value) || 0));
@@ -208,6 +222,7 @@ export const collectionRunnerFeature = {
     this.collectionRunnerParallel = false;
     this.collectionRunnerConcurrency = DEFAULT_RUNNER_CONCURRENCY;
     this.collectionRunnerResults = [];
+    this.collectionRunnerShowingLastRun = false;
     this.selectAllCollectionRunnerRequests();
   },
   async startCollectionRunnerFromSelection(this: CollectionRunnerHost) {
@@ -222,6 +237,7 @@ export const collectionRunnerFeature = {
         dataRows: this.collectionRunnerDataRows,
         parallel: this.collectionRunnerParallel,
         concurrency: this.collectionRunnerConcurrency,
+        collectionId: this.collectionRunnerEffectiveCollectionId,
       },
     );
   },
@@ -402,7 +418,7 @@ export const collectionRunnerFeature = {
       if (this.collectionRunnerActiveRequestId === runnerRequestId) this.collectionRunnerActiveRequestId = '';
     }
   },
-  async startCollectionRunner(this: CollectionRunnerHost, title: string, requests: SavedRequest[], options: { delayMs?: number; iterations?: number; parallel?: boolean; concurrency?: number; dataRows?: RunnerDataRow[] } = {}) {
+  async startCollectionRunner(this: CollectionRunnerHost, title: string, requests: SavedRequest[], options: { delayMs?: number; iterations?: number; parallel?: boolean; concurrency?: number; dataRows?: RunnerDataRow[]; collectionId?: string } = {}) {
     if (!requests.length) {
       this.collectionImportToast = 'No requests to run';
       setTimeout(() => (this.collectionImportToast = ''), 2200);
@@ -429,6 +445,7 @@ export const collectionRunnerFeature = {
     this.collectionRunnerResults = runs.map(run => this.runnerResultShell(run.request, 'queued', run.runId, run.iteration));
     this.collectionRunnerStartedAt = Date.now();
     this.collectionRunnerFinishedAt = 0;
+    this.collectionRunnerShowingLastRun = false;
     this.collectionRunnerRunning = true;
     this.collectionRunnerCancelRequested = false;
     this.collectionRunnerActiveRequestId = '';
@@ -480,6 +497,13 @@ export const collectionRunnerFeature = {
     this.collectionRunnerFinishedAt = Date.now();
     this.collectionRunnerRunning = false;
     void this.refreshCookieJar(true, true);
+    const record = options.collectionId
+      ? collectionRunRecord(options.collectionId, title, this.collectionRunnerStartedAt, this.collectionRunnerFinishedAt, this.collectionRunnerResults)
+      : null;
+    if (record) {
+      this.collectionLastRuns = { ...this.collectionLastRuns, [record.collectionId]: record };
+      try { await this.persistRequestStore(); } catch {}
+    }
   },
   stopCollectionRunner(this: CollectionRunnerHost) {
     this.collectionRunnerCancelRequested = true;

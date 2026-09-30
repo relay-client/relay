@@ -31,7 +31,7 @@
   <button class="kv-col-resizer kv-col-resizer--key" type="button" onmousedown={(e) => vm.startColResize('key', e)} aria-label="Resize key column"></button>
   <button class="kv-col-resizer kv-col-resizer--value" type="button" onmousedown={(e) => vm.startColResize('val', e)} aria-label="Resize value column"></button>
   {#each vm.params as row, i (row.id)}
-    <div class="kv-row" data-testid="params-row">
+    <div class="kv-row" data-testid="params-row" class:inactive-row={!row.enabled && (row.key || row.value || row.description)}>
       <input type="checkbox" class="kv-check" bind:checked={row.enabled} onchange={() => vm.syncUrlFromParams()} aria-label="Enable" disabled={!row.key && !row.value} />
       <VariableInput className="kv-input" bind:value={row.key} suggestions={vm.variableSuggestions} placeholder="Key" oninput={() => { guardTrailing(vm.params, i); vm.syncUrlFromParams(); }} />
       <VariableInput className="kv-input" bind:value={row.value} suggestions={vm.variableSuggestions} placeholder="Value" oninput={() => { guardTrailing(vm.params, i); vm.syncUrlFromParams(); }} />

@@ -5,6 +5,8 @@ import {
   isReleaseVersion,
   latestReleaseNotes,
   parseChangelog,
+  releaseNoteKind,
+  sectionIntro,
   releaseNotesFor,
   shouldShowWhatsNew,
   stripInlineMarkdown,
@@ -175,3 +177,31 @@ describe('stripInlineMarkdown', () => {
       .toBe('relay run is new, see docs');
   });
 });
+
+describe('release notes from a tag annotation', () => {
+  it('accepts second-level headings', () => {
+    const blocks = formatSectionBlocks('## Added\n- Environment matrix\n## Fixed\n- Tab names');
+    expect(blocks.map(b => b.heading)).toEqual(['Added', 'Fixed']);
+    expect(blocks[1].items.map(item => item.text)).toEqual(['Tab names']);
+  });
+
+  it('classifies headings for the section dot', () => {
+    expect(releaseNoteKind('Added')).toBe('added');
+    expect(releaseNoteKind('Fixed')).toBe('fixed');
+    expect(releaseNoteKind('Changed')).toBe('changed');
+    expect(releaseNoteKind('Deprecated')).toBe('removed');
+    expect(releaseNoteKind('Security')).toBe('');
+  });
+});
+
+describe('sectionIntro', () => {
+  it('reads the prose above the first heading', () => {
+    expect(sectionIntro('Relay 2.0 is a new look.\nIt needs macOS 12.\n\n### Added\n- Palette')).toBe('Relay 2.0 is a new look. It needs macOS 12.');
+  });
+
+  it('is empty when a section starts with a heading or a bullet', () => {
+    expect(sectionIntro('### Added\n- Palette')).toBe('');
+    expect(sectionIntro('- Palette')).toBe('');
+  });
+});
+

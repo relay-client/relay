@@ -187,7 +187,7 @@ describe('cookie sync bridge', () => {
 
   it('pulls the jar back into the UI when the browser pushes cookies', async () => {
     const handlers: Record<string, (payload: unknown) => void> = {};
-    (globalThis as any).window = {
+    (globalThis as unknown as { window?: unknown }).window = {
       runtime: {
         EventsOn: (event: string, callback: (payload: unknown) => void) => {
           handlers[event] = callback;
@@ -203,13 +203,13 @@ describe('cookie sync bridge', () => {
     expect(vm.cookieSync.browser).toBe('Chrome');
     await new Promise(resolve => setTimeout(resolve, COOKIE_SYNC_REFRESH_DEBOUNCE_MS + 20));
     expect(vm.refreshCookieJar).toHaveBeenCalledWith(true, true);
-    delete (globalThis as any).window;
+    delete (globalThis as unknown as { window?: unknown }).window;
   });
 
   it('reads the jar once for a burst of pushes', async () => {
     vi.useFakeTimers();
     const handlers: Record<string, (payload: unknown) => void> = {};
-    (globalThis as any).window = {
+    (globalThis as unknown as { window?: unknown }).window = {
       runtime: {
         EventsOn: (event: string, callback: (payload: unknown) => void) => {
           handlers[event] = callback;
@@ -229,7 +229,7 @@ describe('cookie sync bridge', () => {
     expect(vm.refreshCookieJar).toHaveBeenCalledTimes(1);
     expect(vm.cookieSync.lastSyncCount).toBe(11);
 
-    delete (globalThis as any).window;
+    delete (globalThis as unknown as { window?: unknown }).window;
     vi.useRealTimers();
   });
 

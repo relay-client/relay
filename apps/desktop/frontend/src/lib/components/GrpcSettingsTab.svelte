@@ -20,7 +20,7 @@
     <div class="collection-defaults-applied" aria-label="Applied collection defaults">
       <strong>Applied collection defaults</strong>
       <span>
-        {#each vm.appliedCollectionDefaultNotes as note}
+        {#each vm.appliedCollectionDefaultNotes as note, eachIndex (eachIndex)}
           <em>{note}</em>
         {/each}
       </span>

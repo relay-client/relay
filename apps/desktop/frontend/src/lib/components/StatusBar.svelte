@@ -121,7 +121,7 @@
       {/if}
       <span class="storage-status-mode">{storageMode}</span>
       {#if gitStatus.isRepo && changeCount > 0}
-        <span class="storage-change-count">{changeCount}</span>
+        <span class="storage-change-count">· {changeCount} changed</span>
       {/if}
     </button>
   </div>
@@ -142,7 +142,7 @@
         <button class="theme-menu-scrim" type="button" aria-label="Close theme menu" onclick={() => (themeMenuOpen = false)}></button>
         <div class="theme-menu" role="menu" aria-label="Appearance">
           <div class="theme-menu-modes">
-            {#each THEME_MODE_OPTIONS as option}
+            {#each THEME_MODE_OPTIONS as option, eachIndex (eachIndex)}
               <button
                 class="theme-menu-mode"
                 class:active={appTheme.mode === option.value}
@@ -156,7 +156,7 @@
             {/each}
           </div>
           <div class="theme-menu-list">
-            {#each themeVariantList as variant}
+            {#each themeVariantList as variant, eachIndex (eachIndex)}
               <button
                 class="theme-menu-item"
                 class:active={activeVariantId === variant.id}

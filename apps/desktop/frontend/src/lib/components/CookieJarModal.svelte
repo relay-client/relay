@@ -317,7 +317,7 @@
         aria-controls="cookie-manage-panel"
         tabindex={tab === 'manage' ? 0 : -1}
         onclick={() => (tab = 'manage')}
-      >Manage Cookies</button>
+      >Manage cookies</button>
       <button
         class="cookie-tab"
         class:active={tab === 'sync'}
@@ -328,7 +328,7 @@
         tabindex={tab === 'sync' ? 0 : -1}
         onclick={() => (tab = 'sync')}
       >
-        Sync Cookies
+        Sync cookies
         {#if sync.running}
           <span class="cookie-sync-dot" class:live={sync.paired} aria-hidden="true"></span>
         {/if}
@@ -347,7 +347,7 @@
             <strong>{syncHeadline}</strong>
             <span>{syncDetail}</span>
           </div>
-          <button class="btn-primary" type="button" onclick={onToggleSync} disabled={syncBusy}>
+          <button class={sync.running ? 'btn-secondary' : 'btn-primary'} type="button" onclick={onToggleSync} disabled={syncBusy}>
             {sync.running ? 'Turn off' : 'Turn on'}
           </button>
         </div>
@@ -422,7 +422,7 @@
               spellcheck="false"
               onkeydown={(event) => event.key === 'Enter' && addSyncDomain()}
             />
-            <button class="btn-primary" type="button" onclick={addSyncDomain} disabled={syncBusy}>Add domain</button>
+            <button class="btn-secondary" type="button" onclick={addSyncDomain} disabled={syncBusy}>Add domain</button>
           </div>
           {#if syncDomains.length}
             <div class="cookie-sync-chips">
@@ -474,7 +474,7 @@
     {:else}
     <div class="cookie-toolbar postman-cookie-toolbar">
       <input bind:value={domainInput} placeholder="Type a domain name" spellcheck="false" onkeydown={(event) => event.key === 'Enter' && addDomain()} data-autofocus />
-      <button class="btn-primary" type="button" onclick={addDomain}>Add domain</button>
+      <button class="btn-secondary" type="button" onclick={addDomain}>Add domain</button>
     </div>
 
     {#if visibleError}

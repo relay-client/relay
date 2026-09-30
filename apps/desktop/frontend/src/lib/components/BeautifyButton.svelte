@@ -42,19 +42,18 @@
     flex: 0 0 auto;
     height: 26px;
     padding: 0 10px;
-    border: 1px solid var(--border);
-    border-radius: 5px;
+    border: 1px solid transparent;
+    border-radius: 6px;
     background: transparent;
     color: var(--text-2);
-    font-size: 11px;
+    font-size: 12px;
     white-space: nowrap;
     cursor: pointer;
     transition: border-color 0.15s, color 0.15s, background 0.15s;
   }
   .beautify-btn:hover:not(:disabled) {
-    border-color: var(--accent);
     color: var(--text);
-    background: var(--accent-dim);
+    background: var(--hover);
   }
   .beautify-btn:disabled {
     opacity: 0.3;

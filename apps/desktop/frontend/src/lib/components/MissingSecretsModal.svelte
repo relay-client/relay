@@ -28,9 +28,9 @@
       <button type="button" class="dialog-close" onclick={onDismiss} aria-label="Close dialog">×</button>
     </div>
     <div class="missing-secrets-body">
-      <p>{secrets.length} secret value{secrets.length === 1 ? '' : 's'} needed for this workspace.</p>
+      <p>This workspace references {secrets.length} secret{secrets.length === 1 ? '' : 's'} that {secrets.length === 1 ? "isn't" : "aren't"} stored on this machine. Relay keeps secret values out of Git.</p>
       <div class="missing-secrets-list">
-        {#each secrets as secret}
+        {#each secrets as secret, index (secret.key)}
           <label>
             <span>{secret.label}</span>
             <small>{secret.key}</small>
@@ -39,7 +39,7 @@
               value={values[secret.key] ?? ''}
               autocomplete="off"
               spellcheck="false"
-              data-autofocus
+              data-autofocus={index === 0 ? '' : undefined}
               oninput={(event) => onUpdate(secret.key, event.currentTarget.value)}
             />
           </label>

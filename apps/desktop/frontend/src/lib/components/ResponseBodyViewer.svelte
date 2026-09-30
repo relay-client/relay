@@ -27,7 +27,6 @@
   } = $props();
 
   let viewer: HTMLDivElement | undefined;
-  let gutterScrollLeft = 0;
   let scrollTop = $state(0);
   let viewportHeight = $state(300);
   let lastPage = $state<number | null>(null);
@@ -82,10 +81,6 @@
 
   function onScroll(event: Event) {
     const node = event.currentTarget as HTMLDivElement;
-    if (node.scrollLeft !== gutterScrollLeft) {
-      gutterScrollLeft = node.scrollLeft;
-      node.style.setProperty('--response-gutter-offset', `${gutterScrollLeft}px`);
-    }
     if (!virtualized) return;
     const next = Math.floor(
       node.scrollTop / VIRTUAL_SCROLL_QUANTUM,
@@ -151,17 +146,31 @@
   onscroll={onScroll}
   onkeydown={onKeydown}
 >
-  {#if virtualWindow.before}
-    <div class="response-lines-spacer" style={`height: ${virtualWindow.before}px`}></div>
-  {/if}
-  {#each visibleLines as line (line.number)}
-    <div class="response-line" data-line-number={line.number}>
-      <span class="response-line-no">{line.number}</span>
-      <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-      <code class="response-line-code">{@html line.html}</code>
+  {#if virtualized}
+    <div class="response-virtual" style={`height: ${rawLines.length * VIRTUAL_LINE_HEIGHT}px`}>
+      <div class="response-gutter" aria-hidden="true">
+        <div class="response-lines-spacer" style={`height: ${virtualWindow.before}px`}></div>
+        {#each visibleLines as line (line.number)}
+          <div class="response-line-no" data-line-number={line.number}>{line.number}</div>
+        {/each}
+      </div>
+      <div class="response-virtual-code">
+        <div class="response-lines-spacer" style={`height: ${virtualWindow.before}px`}></div>
+        {#each visibleLines as line (line.number)}
+          <div class="response-line" data-line-number={line.number}>
+            <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+            <code class="response-line-code">{@html line.html}</code>
+          </div>
+        {/each}
+      </div>
     </div>
-  {/each}
-  {#if virtualWindow.after}
-    <div class="response-lines-spacer" style={`height: ${virtualWindow.after}px`}></div>
+  {:else}
+    {#each visibleLines as line (line.number)}
+      <div class="response-line" data-line-number={line.number}>
+        <span class="response-line-no">{line.number}</span>
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+        <code class="response-line-code">{@html line.html}</code>
+      </div>
+    {/each}
   {/if}
 </div>

@@ -14,12 +14,12 @@
   <div class="settings-header">
     <div>
       <span class="settings-title">Request settings</span>
-      <span class="settings-subtitle">Saved locally and applied when this request is sent.</span>
+      <span class="settings-subtitle">Kept with this request. Save them as the default to start new requests with the same values.</span>
     </div>
     <div class="settings-actions">
-      <button class="btn-secondary btn-sm" type="button" onclick={vm.resetRequestSettings}>Reset</button>
-      <button class="btn-primary btn-sm" class:feedback-ok={vm.settingsSaved} type="button" onclick={vm.saveRequestSettings}>
-        {vm.settingsSaved ? 'Saved' : 'Save'}
+      <button class="btn-ghost btn-sm" type="button" onclick={vm.resetRequestSettings} title="Return every setting to Relay's defaults and forget the saved default">Reset</button>
+      <button class="btn-secondary btn-sm" class:feedback-ok={vm.settingsSaved} type="button" onclick={vm.saveRequestSettings} title="New requests start with these settings">
+        {vm.settingsSaved ? 'Saved as default' : 'Save as default'}
       </button>
     </div>
   </div>
@@ -28,7 +28,7 @@
     <div class="collection-defaults-applied" aria-label="Applied collection defaults">
       <strong>Applied collection defaults</strong>
       <span>
-        {#each vm.appliedCollectionDefaultNotes as note}
+        {#each vm.appliedCollectionDefaultNotes as note, eachIndex (eachIndex)}
           <em>{note}</em>
         {/each}
       </span>

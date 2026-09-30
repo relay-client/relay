@@ -1,11 +1,12 @@
 <script lang="ts">
+  import MenuIcon from './MenuIcon.svelte';
   import { tabListKeyboard } from '../a11y';
   import RequestTypeBadge from './RequestTypeBadge.svelte';
   import WindowControls from './WindowControls.svelte';
   import { MAX_WORKSPACES } from '../constants';
   import { shortcutComboLabel } from '../stores/features/preferences';
   import type { Collection, Environment, SavedRequest, SidebarView, Workspace } from '../types/models';
-  import type { SettingsTab, TopView } from '../stores/ui';
+  import type { TopView } from '../stores/ui';
 
   let {
     workspaceSearch = $bindable(''),
@@ -24,11 +25,10 @@
     activeWorkspaceEnvironments,
     activeEnvironmentId,
     dirtyRequestIds,
-    activeRequestIsDirty,
-    activeRequestCanRevert,
     collectionRunnerOpen = false,
     collectionRunnerRunning = false,
     activeCollectionSettings,
+    historyDetailOpen = false,
     gitTabOpen = false,
     mockTabOpen = false,
     mockRunning = false,
@@ -36,8 +36,6 @@
     autosave,
     appRuntime = '',
     workspaceBlocked = false,
-    saveActiveRequest,
-    revertActiveRequestChanges,
     toggleWorkspaceMenu,
     createWorkspace,
     switchWorkspace,
@@ -45,16 +43,13 @@
     workspaceRequestCountFor,
     deleteWorkspace,
     openGlobalSearch,
-    openSettings,
-    openCookieJar,
-    openCollectionRunner,
     closeCollectionRunner,
     closeCollectionSettings,
+    closeHistoryDetail,
     openGitTab,
     closeGitTab,
     openMockTab,
     closeMockTab,
-    cookieCount,
     requestTabLabel,
     switchRequest,
     closeRequestTab,
@@ -81,11 +76,10 @@
     activeWorkspaceEnvironments: Environment[];
     activeEnvironmentId: string;
     dirtyRequestIds: string[];
-    activeRequestIsDirty: boolean;
-    activeRequestCanRevert: boolean;
     collectionRunnerOpen?: boolean;
     collectionRunnerRunning?: boolean;
     activeCollectionSettings?: Collection;
+    historyDetailOpen?: boolean;
     gitTabOpen?: boolean;
     mockTabOpen?: boolean;
     mockRunning?: boolean;
@@ -93,8 +87,6 @@
     autosave: boolean;
     appRuntime?: string;
     workspaceBlocked?: boolean;
-    saveActiveRequest: () => void;
-    revertActiveRequestChanges: () => void;
     toggleWorkspaceMenu: (event: MouseEvent) => void;
     createWorkspace: () => void;
     switchWorkspace: (workspaceId: string) => void;
@@ -102,16 +94,13 @@
     workspaceRequestCountFor: (workspaceId: string) => number;
     deleteWorkspace: (workspaceId: string) => void;
     openGlobalSearch: () => void;
-    openSettings: (tab?: SettingsTab) => void;
-    openCookieJar: () => void;
-    openCollectionRunner: () => void;
     closeCollectionRunner: () => void;
     closeCollectionSettings: () => void;
+    closeHistoryDetail: () => void;
     openGitTab: () => void;
     closeGitTab: () => void;
     openMockTab: () => void;
     closeMockTab: () => void;
-    cookieCount: number;
     requestTabLabel: (request: SavedRequest) => string;
     switchRequest: (id: string) => void;
     closeRequestTab: (id: string) => void;
@@ -123,22 +112,73 @@
     environmentValueCount: (environment: Environment) => number;
   } = $props();
 
-  let showSaveBtn = $derived(!workspaceBlocked && !autosave && topView === 'request' && activeRequestId !== '');
-  let activeIsDirty = $derived(!workspaceBlocked && activeRequestIsDirty);
-  let activeCanRevert = $derived(!workspaceBlocked && activeRequestCanRevert);
   let dirtyRequestIdSet = $derived(new Set(dirtyRequestIds));
   let workspaceLimitReached = $derived(workspaces.length >= MAX_WORKSPACES);
   let filteredWorkspaces = $derived(workspaces.filter(workspace => !workspaceSearch.trim() || workspace.name.toLowerCase().includes(workspaceSearch.trim().toLowerCase())));
   let globalSearchShortcut = $derived(shortcutComboLabel('Meta+K', appRuntime));
-  let saveShortcut = $derived(shortcutComboLabel('Meta+S', appRuntime));
-  let settingsShortcut = $derived(shortcutComboLabel('Meta+,', appRuntime));
+
+  let tabListEl = $state<HTMLDivElement>();
+  let tabsOverflowing = $state(false);
+  let tabsHiddenBefore = $state(false);
+  let tabsHiddenAfter = $state(false);
+  let tabMenuOpen = $state(false);
+
+  $effect(() => {
+    const list = tabListEl;
+    if (!list) return;
+    const measure = () => {
+      tabsOverflowing = list.scrollWidth > list.clientWidth + 1;
+      tabsHiddenBefore = list.scrollLeft > 1;
+      tabsHiddenAfter = list.scrollLeft + list.clientWidth < list.scrollWidth - 1;
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(list);
+    const mutations = new MutationObserver(measure);
+    mutations.observe(list, { childList: true });
+    list.addEventListener('scroll', measure, { passive: true });
+    measure();
+    return () => { observer.disconnect(); mutations.disconnect(); list.removeEventListener('scroll', measure); };
+  });
+
+  $effect(() => {
+    if (!tabsOverflowing) tabMenuOpen = false;
+  });
+
+  function closeTabMenuOnFocusOut(event: FocusEvent) {
+    const current = event.currentTarget;
+    const next = event.relatedTarget;
+    if (!(current instanceof HTMLElement)) return;
+    if (!(next instanceof Node) || !current.contains(next)) tabMenuOpen = false;
+  }
+
+  function onTabMenuKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      tabMenuOpen = false;
+    }
+  }
+
+  function pickTab(select: () => void) {
+    select();
+    tabMenuOpen = false;
+  }
+  $effect(() => {
+    topView;
+    activeRequestId;
+    openRequests.length;
+    const list = tabListEl;
+    if (!list) return;
+    queueMicrotask(() => {
+      list.querySelector<HTMLElement>('.saved-request-tab.active')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    });
+  });
 
 </script>
 
 <div class="workspace-searchbar titlebar-drag-region">
   <div class="workspace-searchbar-left">
     <div class="workspace-switcher">
-      <button class="workspace-switcher-trigger" type="button" onclick={toggleWorkspaceMenu} aria-label="Workspace switcher" aria-expanded={workspaceMenuOpen} title="Workspace switcher">
+      <button class="workspace-switcher-trigger" type="button" onclick={toggleWorkspaceMenu} aria-label="Workspace switcher" aria-expanded={workspaceMenuOpen} title={`Workspace: ${activeWorkspace?.name ?? defaultWorkspace}`}>
         <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
           <path d="M4.5 6V4.2a3 3 0 016 0V6M3.2 6h8.6v6.2H3.2V6z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
         </svg>
@@ -162,7 +202,7 @@
             {workspaces.length}/{MAX_WORKSPACES} workspaces
           </div>
           <div class="workspace-menu-list">
-            {#each filteredWorkspaces as workspace}
+            {#each filteredWorkspaces as workspace, eachIndex (eachIndex)}
               <div class="workspace-menu-item" class:active={workspace.id === activeWorkspaceId} class:invalid={workspace.isInvalid}>
                 <button class="workspace-menu-select" type="button" onclick={() => switchWorkspace(workspace.id)} title={workspace.isInvalid ? 'Open the Git tab to fix this workspace YAML' : 'Open workspace'}>
                   <span class="workspace-lock">
@@ -197,69 +237,10 @@
       {/if}
     </div>
   </div>
-  <button class="global-search" type="button" onclick={openGlobalSearch} disabled={workspaceBlocked} title={workspaceBlocked ? 'Fix workspace YAML before searching requests' : 'Search requests'}>
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="11" cy="11" r="7.5" stroke="currentColor" stroke-width="2"/>
-      <path d="m16.5 16.5 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-    </svg>
-    <span>Search requests…</span>
-    <kbd>{globalSearchShortcut}</kbd>
-  </button>
-  <div class="searchbar-right">
-    {#if showSaveBtn}
-      <button class="save-btn" class:dirty={activeIsDirty} type="button" onclick={saveActiveRequest} title={`Save (${saveShortcut})`} disabled={!activeIsDirty}>
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
-          <path d="M2 2h7.5L11 3.5V11H2V2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
-          <rect x="4" y="7.5" width="5" height="3" rx="0.5" stroke="currentColor" stroke-width="1.1"/>
-          <rect x="4.5" y="2" width="3.5" height="2.5" rx="0.5" stroke="currentColor" stroke-width="1.1"/>
-        </svg>
-        <span class="save-btn-label">Save</span>
-      </button>
-      <button class="save-btn revert-btn" class:dirty={activeCanRevert} type="button" onclick={revertActiveRequestChanges} title="Revert unsaved changes" aria-label="Revert unsaved changes" disabled={!activeCanRevert}>
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
-          <path d="M4.2 3.2H2v-2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M2.3 3.1A4.5 4.5 0 117 11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-        </svg>
-      </button>
-    {/if}
-    <button class="searchbar-settings-btn" class:active={topView === 'runner'} type="button" onclick={openCollectionRunner} title="Collection runner" aria-label="Collection runner" disabled={workspaceBlocked}>
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <circle cx="14.5" cy="4.5" r="2" stroke="currentColor" stroke-width="1.8"/>
-        <path d="M9.5 9.5l3.4-1.8 2.4 3.1 3.2.6M12.2 10.6l-2 4.2-4 1.4M14.7 13.2l-1 3.7 2.5 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </button>
-    <button class="searchbar-settings-btn" class:active={topView === 'mock'} type="button" onclick={openMockTab} title="Mock server" aria-label="Mock server" disabled={workspaceBlocked}>
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <rect x="3" y="5" width="18" height="14" rx="2.4" stroke="currentColor" stroke-width="1.8"/>
-        <path d="M3 10h18" stroke="currentColor" stroke-width="1.8"/>
-        <circle cx="6.6" cy="7.5" r="0.9" fill="currentColor"/>
-      </svg>
-      {#if mockRunning}<span class="mock-header-dot" aria-hidden="true"></span>{/if}
-    </button>
-    <button class="searchbar-settings-btn searchbar-cookie-btn" type="button" onclick={openCookieJar} title="Cookies" aria-label="Cookies" disabled={workspaceBlocked}>
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M20.6 13.1A8.5 8.5 0 1110.9 3.4a3 3 0 003.9 3.9 3 3 0 003.9 3.9 3 3 0 001.9 1.9z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
-        <path d="M8.2 9h.01M11.5 14.2h.01M7.4 16.2h.01M14.8 11.7h.01" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
-      </svg>
-      {#if cookieCount > 0}
-        <span class="searchbar-cookie-count">{cookieCount > 99 ? '99+' : cookieCount}</span>
-      {/if}
-    </button>
-    <button class="searchbar-settings-btn" type="button" onclick={() => openSettings('general')} title={`Settings (${settingsShortcut})`} aria-label="Settings">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M12 15.2a3.2 3.2 0 100-6.4 3.2 3.2 0 000 6.4z" stroke="currentColor" stroke-width="1.8"/>
-        <path d="M19.6 13.5a7.8 7.8 0 000-3l2-1.45-2-3.46-2.42 1a8 8 0 00-2.6-1.5L14.25 2h-4.5l-.33 3.08a8 8 0 00-2.6 1.5l-2.42-1-2 3.46 2 1.45a7.8 7.8 0 000 3l-2 1.45 2 3.46 2.42-1a8 8 0 002.6 1.5l.33 3.08h4.5l.33-3.08a8 8 0 002.6-1.5l2.42 1 2-3.46-2-1.45z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-      </svg>
-    </button>
-    <WindowControls />
-  </div>
-</div>
-
-<div class="request-tabbar">
   <div class="request-tab-strip">
-    <div class="saved-request-tabs" role="tablist" use:tabListKeyboard>
+    <div class="saved-request-tabs" class:fade-start={tabsHiddenBefore} class:fade-end={tabsHiddenAfter} role="tablist" use:tabListKeyboard bind:this={tabListEl}>
       <div class="saved-request-tab overview-request-tab" class:active={topView === 'overview'}>
-        <button role="tab" type="button" aria-selected={topView === 'overview'} tabindex={topView === 'overview' ? 0 : -1} onclick={() => (topView = 'overview')}>
+        <button role="tab" type="button" aria-label="Overview" title="Overview" aria-selected={topView === 'overview'} tabindex={topView === 'overview' ? 0 : -1} onclick={() => (topView = 'overview')}>
           <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M2 8.2h4.5M2 4.2h11M2 12.2h8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
           <span class="tab-title">Overview</span>
         </button>
@@ -273,7 +254,7 @@
             </svg>
             <span class="tab-title">Runner</span>
           </button>
-          <button class="tab-close" type="button" onclick={closeCollectionRunner} aria-label="Close runner tab" disabled={workspaceBlocked}>×</button>
+          <button class="tab-close" type="button" onclick={closeCollectionRunner} aria-label="Close runner tab" disabled={workspaceBlocked}><svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
         </div>
       {/if}
       {#if gitTabOpen}
@@ -287,7 +268,7 @@
               <span class="git-tab-count">{gitChangeCount > 99 ? '99+' : gitChangeCount}</span>
             {/if}
           </button>
-          <button class="tab-close" type="button" onclick={closeGitTab} aria-label="Close Git tab">×</button>
+          <button class="tab-close" type="button" onclick={closeGitTab} aria-label="Close Git tab"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
         </div>
       {/if}
       {#if mockTabOpen}
@@ -302,7 +283,7 @@
               <span class="mock-tab-dot" aria-label="Mock server is running"></span>
             {/if}
           </button>
-          <button class="tab-close" type="button" onclick={closeMockTab} aria-label="Close Mock tab">×</button>
+          <button class="tab-close" type="button" onclick={closeMockTab} aria-label="Close Mock tab"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
         </div>
       {/if}
       {#if activeCollectionSettings}
@@ -314,50 +295,127 @@
             </svg>
             <span class="tab-title">{activeCollectionSettings.name}</span>
           </button>
-          <button class="tab-close" type="button" onclick={closeCollectionSettings} aria-label="Close collection settings" disabled={workspaceBlocked}>×</button>
+          <button class="tab-close" type="button" onclick={closeCollectionSettings} aria-label="Close collection settings" disabled={workspaceBlocked}><svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
         </div>
       {/if}
-      {#each openRequests as req}
-        <div class="saved-request-tab" class:active={req.id === activeRequestId && topView === 'request'} class:draft={req.isDraft} class:dirty={!autosave && !req.isDraft && dirtyRequestIdSet.has(req.id)}>
-          <button role="tab" type="button" aria-selected={req.id === activeRequestId && topView === 'request'} tabindex={req.id === activeRequestId && topView === 'request' ? 0 : -1} onclick={() => switchRequest(req.id)} disabled={workspaceBlocked}>
-            {#if req.isDraft}
-              <span class="draft-dot" title="Unsaved draft"></span>
-            {:else if !autosave && dirtyRequestIdSet.has(req.id)}
-              <span class="dirty-dot" title="Unsaved changes"></span>
-            {:else}
-              <RequestTypeBadge request={req} variant="tab" />
-            {/if}
-            <span class="tab-title">{requestTabLabel(req)}</span>
+      {#if historyDetailOpen}
+        <div class="saved-request-tab runner-tab" class:active={topView === 'history'}>
+          <button role="tab" type="button" aria-selected={topView === 'history'} tabindex={topView === 'history' ? 0 : -1} onclick={() => (topView = 'history')}>
+            <svg width="14" height="14" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+              <circle cx="7.5" cy="7.5" r="5.5" stroke="currentColor" stroke-width="1.35"/>
+              <path d="M7.5 4.6v3.1l2 1.3" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="tab-title">History</span>
           </button>
-          <button class="tab-close" type="button" onclick={() => closeRequestTab(req.id)} aria-label="Close tab" disabled={workspaceBlocked}>×</button>
+          <button class="tab-close" type="button" onclick={closeHistoryDetail} aria-label="Close history entry"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
+        </div>
+      {/if}
+      {#each openRequests as req, eachIndex (eachIndex)}
+        {@const unsaved = req.isDraft ? 'Unsaved draft' : !autosave && dirtyRequestIdSet.has(req.id) ? 'Unsaved changes' : ''}
+        <div class="saved-request-tab" class:active={req.id === activeRequestId && topView === 'request'} class:draft={req.isDraft} class:dirty={!autosave && !req.isDraft && dirtyRequestIdSet.has(req.id)} class:unsaved={Boolean(unsaved)} title={unsaved || undefined}>
+          <button role="tab" type="button" aria-selected={req.id === activeRequestId && topView === 'request'} tabindex={req.id === activeRequestId && topView === 'request' ? 0 : -1} onclick={() => switchRequest(req.id)} disabled={workspaceBlocked}>
+            <RequestTypeBadge request={req} variant="tab" />
+            <span class="tab-title">{requestTabLabel(req)}</span>
+            {#if unsaved}<span class="sr-only">({unsaved})</span>{/if}
+          </button>
+          <button class="tab-close" type="button" onclick={() => closeRequestTab(req.id)} aria-label="Close tab" disabled={workspaceBlocked}><svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
         </div>
       {/each}
     </div>
     <button class="tabbar-icon new-request-tab-btn" type="button" onclick={() => createDraftRequest()} title={workspaceBlocked ? 'Fix workspace YAML before creating requests' : 'New unsaved request'} aria-label="New unsaved request" disabled={workspaceBlocked}>+</button>
-  </div>
-  <div class="environment-switcher">
-    <button class="environment-select" type="button" onclick={toggleEnvironmentMenu} aria-expanded={environmentMenuOpen} disabled={workspaceBlocked}>
-      <span>{environmentLabel()}</span>
-      <svg width="10" height="7" viewBox="0 0 10 7" fill="none" aria-hidden="true">
-        <path d="M1.5 2L5 5.5L8.5 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
-    </button>
-    {#if environmentMenuOpen}
-      <div class="environment-menu">
-        <button class:active={!activeEnvironmentId} type="button" onclick={() => useEnvironment('')} disabled={workspaceBlocked}>No environment</button>
-        {#each activeWorkspaceEnvironments as environment}
-          <button class:active={environment.id === activeEnvironmentId} type="button" onclick={() => useEnvironment(environment.id)} disabled={workspaceBlocked}>
-            {environment.name}
-            {#if environmentHasValues(environment)}<small>{environmentValueCount(environment)}</small>{/if}
-          </button>
-        {/each}
-        <button type="button" onclick={() => { environmentMenuOpen = false; sidebarView = 'environments'; topView = 'environment'; }} disabled={workspaceBlocked}>Manage environments</button>
+    {#if tabsOverflowing}
+      <div class="tab-overflow" onfocusout={closeTabMenuOnFocusOut} onkeydown={onTabMenuKeydown} role="presentation">
+        <button class="tabbar-icon tab-overflow-btn" class:active={tabMenuOpen} type="button" onclick={() => (tabMenuOpen = !tabMenuOpen)} aria-label="All open tabs" title="All open tabs" aria-haspopup="listbox" aria-expanded={tabMenuOpen}>
+          <svg width="12" height="8" viewBox="0 0 12 8" fill="none" aria-hidden="true">
+            <path d="M1.5 2l4.5 4.5L10.5 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        {#if tabMenuOpen}
+          <div class="tab-overflow-menu" role="listbox" aria-label="Open tabs">
+            <button role="option" class:active={topView === 'overview'} aria-selected={topView === 'overview'} type="button" onclick={() => pickTab(() => (topView = 'overview'))}>
+              <span class="tab-overflow-name">Overview</span>
+            </button>
+            {#if collectionRunnerOpen}
+              <button role="option" class:active={topView === 'runner'} aria-selected={topView === 'runner'} type="button" onclick={() => pickTab(() => (topView = 'runner'))} disabled={workspaceBlocked}>
+                <span class="tab-overflow-name">Runner</span>
+              </button>
+            {/if}
+            {#if gitTabOpen}
+              <button role="option" class:active={topView === 'git'} aria-selected={topView === 'git'} type="button" onclick={() => pickTab(openGitTab)}>
+                <span class="tab-overflow-name">Git</span>
+              </button>
+            {/if}
+            {#if mockTabOpen}
+              <button role="option" class:active={topView === 'mock'} aria-selected={topView === 'mock'} type="button" onclick={() => pickTab(openMockTab)}>
+                <span class="tab-overflow-name">Mock</span>
+              </button>
+            {/if}
+            {#if activeCollectionSettings}
+              <button role="option" class:active={topView === 'collection'} aria-selected={topView === 'collection'} type="button" onclick={() => pickTab(() => (topView = 'collection'))} disabled={workspaceBlocked}>
+                <span class="tab-overflow-name">{activeCollectionSettings.name}</span>
+              </button>
+            {/if}
+            {#if historyDetailOpen}
+              <button role="option" class:active={topView === 'history'} aria-selected={topView === 'history'} type="button" onclick={() => pickTab(() => (topView = 'history'))}>
+                <span class="tab-overflow-name">History</span>
+              </button>
+            {/if}
+            {#each openRequests as req (req.id)}
+              <button role="option" class:active={req.id === activeRequestId && topView === 'request'} aria-selected={req.id === activeRequestId && topView === 'request'} type="button" onclick={() => pickTab(() => switchRequest(req.id))} disabled={workspaceBlocked}>
+                <RequestTypeBadge request={req} variant="tab" />
+                <span class="tab-overflow-name">{requestTabLabel(req)}</span>
+              </button>
+            {/each}
+          </div>
+        {/if}
       </div>
     {/if}
   </div>
-  {#if codePanelAvailable}
-    <button class="tabbar-icon" class:active={codePanelOpen} type="button" onclick={() => (codePanelOpen = !codePanelOpen)} title="Code snippet" aria-label="Code snippet">
-      &lt;/&gt;
-    </button>
-  {/if}
+  <button class="global-search" type="button" onclick={openGlobalSearch} disabled={workspaceBlocked} title={workspaceBlocked ? 'Fix workspace YAML before searching requests' : 'Search requests and run commands'}>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="11" cy="11" r="7.5" stroke="currentColor" stroke-width="2"/>
+      <path d="m16.5 16.5 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <span>Search requests…</span>
+    <kbd>{globalSearchShortcut}</kbd>
+  </button>
+  <div class="searchbar-right">
+    <div class="environment-switcher">
+      <button class="environment-select" class:env-none={!activeEnvironmentId} type="button" onclick={toggleEnvironmentMenu} aria-expanded={environmentMenuOpen} disabled={workspaceBlocked} title={`Environment: ${environmentLabel()}`}>
+        <svg class="environment-select-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>
+        </svg>
+        <span>{environmentLabel()}</span>
+        <svg width="10" height="7" viewBox="0 0 10 7" fill="none" aria-hidden="true">
+          <path d="M1.5 2L5 5.5L8.5 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+      {#if environmentMenuOpen}
+        <div class="environment-menu">
+          <button class:active={!activeEnvironmentId} type="button" onclick={() => useEnvironment('')} disabled={workspaceBlocked}>
+            <span class="environment-menu-dot none" aria-hidden="true"></span>
+            <span class="environment-menu-name">No environment</span>
+          </button>
+          {#each activeWorkspaceEnvironments as environment, eachIndex (eachIndex)}
+            <button class:active={environment.id === activeEnvironmentId} type="button" onclick={() => useEnvironment(environment.id)} disabled={workspaceBlocked}>
+              <span class="environment-menu-dot" class:in-use={environment.id === activeEnvironmentId} aria-hidden="true"></span>
+              <span class="environment-menu-name">{environment.name}</span>
+              {#if environmentHasValues(environment)}<small>{environmentValueCount(environment)}</small>{/if}
+            </button>
+          {/each}
+          <div class="menu-sep" role="separator"></div>
+          <button type="button" onclick={() => { environmentMenuOpen = false; sidebarView = 'environments'; topView = 'environment'; }} disabled={workspaceBlocked}>
+            <MenuIcon name="settings" />
+            <span class="environment-menu-name">Manage environments</span>
+          </button>
+        </div>
+      {/if}
+    </div>
+    {#if codePanelAvailable}
+      <button class="tabbar-icon" class:active={codePanelOpen} type="button" onclick={() => (codePanelOpen = !codePanelOpen)} title="Code snippet" aria-label="Code snippet">
+        &lt;/&gt;
+      </button>
+    {/if}
+    <WindowControls />
+  </div>
 </div>

@@ -6,6 +6,28 @@ import type { VariableSuggestion } from '../../variables';
 import { variableTemplate } from '../../variables';
 import { resolveDynamicVariable } from '../../dynamicVariables';
 import { parseEnvFile } from '../../utils';
+import {
+  addMatrixKey,
+  buildEnvironmentMatrix,
+  matrixKeyProblem,
+  removeMatrixKey,
+  renameMatrixKey,
+  secretFor,
+  setMatrixSecret,
+  setMatrixValue,
+  unsetMatrixValue,
+} from '../../environmentMatrix';
+
+export type EnvironmentView = 'single' | 'matrix';
+export const ENVIRONMENT_VIEW_KEY = 'relay.environmentView.v1';
+
+export function readEnvironmentView(): EnvironmentView {
+  try {
+    return localStorage.getItem(ENVIRONMENT_VIEW_KEY) === 'single' ? 'single' : 'matrix';
+  } catch {
+    return 'matrix';
+  }
+}
 
 const VARIABLE_RESOLUTION_DEPTH = 20;
 
@@ -20,6 +42,7 @@ type EnvironmentHost = {
   environmentPersistTimer: ReturnType<typeof setTimeout> | null;
   environmentSavedTimer: ReturnType<typeof setTimeout> | null;
   environments: Environment[];
+  environmentView: EnvironmentView;
   workspaces: Workspace[];
   sidebarView: 'collections' | 'environments' | 'history';
   topView: string;
@@ -41,6 +64,7 @@ type EnvironmentHost = {
   scheduleEnvironmentPersist: (delay?: number) => void;
   saveEnvironment: () => Promise<boolean>;
   mergeActiveEnvironmentValues: (values: Record<string, string>) => Promise<boolean>;
+  updateWorkspaceEnvironments: (change: (environment: Environment) => KVRow[], onlyId?: string) => void;
 };
 
 export function mergeEnvironmentRowsWithValues(rows: KVRow[], values: Record<string, string>) {
@@ -251,6 +275,63 @@ export const environmentFeature = {
       return { ...environment, values: this.environmentRowsWithTrailing(next) };
     });
     this.scheduleEnvironmentPersist();
+  },
+  setEnvironmentView(this: EnvironmentHost, view: EnvironmentView) {
+    this.environmentView = view;
+    try {
+      localStorage.setItem(ENVIRONMENT_VIEW_KEY, view);
+    } catch {}
+  },
+  updateWorkspaceEnvironments(this: EnvironmentHost, change: (environment: Environment) => KVRow[], onlyId = '') {
+    if (!this.guardWorkspaceWritable('Environment changes')) return;
+    this.environments = this.environments.map(environment => {
+      if (environment.workspaceId !== this.activeWorkspaceId) return environment;
+      if (onlyId && environment.id !== onlyId) return environment;
+      const values = change(environment);
+      return values === environment.values ? environment : { ...environment, values };
+    });
+    this.scheduleEnvironmentPersist();
+  },
+  setEnvironmentMatrixValue(this: EnvironmentHost, environmentId: string, key: string, value: string) {
+    const secret = secretFor(this.activeWorkspaceEnvironments, key);
+    this.updateWorkspaceEnvironments(environment => setMatrixValue(environment, key, value, secret), environmentId);
+  },
+  unsetEnvironmentMatrixValue(this: EnvironmentHost, environmentId: string, key: string) {
+    this.updateWorkspaceEnvironments(environment => unsetMatrixValue(environment, key), environmentId);
+  },
+  setEnvironmentVariableSecret(this: EnvironmentHost, key: string, secret: boolean) {
+    this.updateWorkspaceEnvironments(environment => setMatrixSecret(environment, key, secret));
+  },
+  renameEnvironmentVariable(this: EnvironmentHost, from: string, to: string): string {
+    const next = to.trim();
+    if (next === from) return '';
+    const problem = matrixKeyProblem(buildEnvironmentMatrix(this.activeWorkspaceEnvironments).map(row => row.key), next, from);
+    if (problem) return problem;
+    this.updateWorkspaceEnvironments(environment => renameMatrixKey(environment, from, next));
+    return '';
+  },
+  async addEnvironmentVariable(this: EnvironmentHost) {
+    if (!this.guardWorkspaceWritable('Environment changes')) return;
+    const existing = buildEnvironmentMatrix(this.activeWorkspaceEnvironments).map(row => row.key);
+    let message = 'Added to every environment, empty. Fill in the value each one should use.';
+    let draft = '';
+    for (;;) {
+      const name = await this.openPromptDialog('New variable', draft, message);
+      if (name === null) return;
+      const problem = matrixKeyProblem(existing, name);
+      if (!problem) {
+        this.updateWorkspaceEnvironments(environment => addMatrixKey(environment, name.trim()));
+        return;
+      }
+      message = problem;
+      draft = name;
+    }
+  },
+  async removeEnvironmentVariable(this: EnvironmentHost, key: string) {
+    if (!this.guardWorkspaceWritable('Environment changes')) return;
+    const ok = await this.openConfirmDialog('Delete variable', `Remove ${key} from every environment in this workspace?`, 'Delete');
+    if (!ok) return;
+    this.updateWorkspaceEnvironments(environment => removeMatrixKey(environment, key));
   },
   removeEnvironmentRow(this: EnvironmentHost, environmentId: string, index: number) {
     if (!this.guardWorkspaceWritable('Environment changes')) return;

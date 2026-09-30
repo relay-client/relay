@@ -83,7 +83,7 @@ export function formatSectionBlocks(body: string): WhatsNewBlock[] {
     const line = raw.trimEnd();
     if (!line.trim()) continue;
 
-    const heading = line.match(/^###\s+(.+?)\s*$/);
+    const heading = line.match(/^#{2,4}\s+(.+?)\s*$/);
     if (heading) {
       current = { heading: heading[1], items: [] };
       blocks.push(current);
@@ -124,4 +124,23 @@ export function stripInlineMarkdown(text: string): string {
     .replace(/`([^`]+)`/g, '$1')
     .replace(/\*\*([^*]+)\*\*/g, '$1')
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+}
+
+export function releaseNoteKind(heading: string): string {
+  const key = heading.trim().toLowerCase();
+  if (key.startsWith('add') || key.startsWith('new')) return 'added';
+  if (key.startsWith('fix')) return 'fixed';
+  if (key.startsWith('chang') || key.startsWith('improv')) return 'changed';
+  if (key.startsWith('remov') || key.startsWith('deprecat') || key.startsWith('break')) return 'removed';
+  return '';
+}
+
+export function sectionIntro(body: string): string {
+  const lines: string[] = [];
+  for (const raw of String(body || '').split('\n')) {
+    const line = raw.trim();
+    if (/^#{2,4}\s/.test(line) || /^[-*]\s/.test(line)) break;
+    if (line) lines.push(line);
+  }
+  return lines.join(' ');
 }

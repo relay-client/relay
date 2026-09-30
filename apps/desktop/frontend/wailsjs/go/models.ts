@@ -1317,6 +1317,15 @@ export namespace model {
 	    sioListenEvents: string[];
 	    sseDisableReconnect: boolean;
 	    sseReconnectIntervalMs: number;
+	    mcpProtocolVersion: string;
+	    mcpMethod: string;
+	    mcpName: string;
+	    mcpArguments: string;
+	    mcpCursor: string;
+	    mcpInputResponses: string;
+	    mcpRequestState: string;
+	    mcpInputSchema: string;
+	    mcpOutputSchema: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new HttpRequest(source);
@@ -1380,6 +1389,15 @@ export namespace model {
 	        this.sioListenEvents = source["sioListenEvents"];
 	        this.sseDisableReconnect = source["sseDisableReconnect"];
 	        this.sseReconnectIntervalMs = source["sseReconnectIntervalMs"];
+	        this.mcpProtocolVersion = source["mcpProtocolVersion"];
+	        this.mcpMethod = source["mcpMethod"];
+	        this.mcpName = source["mcpName"];
+	        this.mcpArguments = source["mcpArguments"];
+	        this.mcpCursor = source["mcpCursor"];
+	        this.mcpInputResponses = source["mcpInputResponses"];
+	        this.mcpRequestState = source["mcpRequestState"];
+	        this.mcpInputSchema = source["mcpInputSchema"];
+	        this.mcpOutputSchema = source["mcpOutputSchema"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -1553,6 +1571,185 @@ export namespace model {
 		}
 	}
 	
+	export class McpContent {
+	    type: string;
+	    text?: string;
+	    data?: string;
+	    mimeType?: string;
+	    uri?: string;
+	    name?: string;
+	    description?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new McpContent(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.type = source["type"];
+	        this.text = source["text"];
+	        this.data = source["data"];
+	        this.mimeType = source["mimeType"];
+	        this.uri = source["uri"];
+	        this.name = source["name"];
+	        this.description = source["description"];
+	    }
+	}
+	export class McpNotification {
+	    method: string;
+	    params?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new McpNotification(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.method = source["method"];
+	        this.params = source["params"];
+	    }
+	}
+	export class McpPrompt {
+	    name: string;
+	    title?: string;
+	    description?: string;
+	    arguments?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new McpPrompt(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.title = source["title"];
+	        this.description = source["description"];
+	        this.arguments = source["arguments"];
+	    }
+	}
+	export class McpResource {
+	    uri: string;
+	    name?: string;
+	    title?: string;
+	    description?: string;
+	    mimeType?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new McpResource(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.uri = source["uri"];
+	        this.name = source["name"];
+	        this.title = source["title"];
+	        this.description = source["description"];
+	        this.mimeType = source["mimeType"];
+	    }
+	}
+	export class McpTool {
+	    name: string;
+	    title?: string;
+	    description?: string;
+	    inputSchema?: string;
+	    outputSchema?: string;
+	    annotations?: string;
+	    rejected?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new McpTool(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.title = source["title"];
+	        this.description = source["description"];
+	        this.inputSchema = source["inputSchema"];
+	        this.outputSchema = source["outputSchema"];
+	        this.annotations = source["annotations"];
+	        this.rejected = source["rejected"];
+	    }
+	}
+	export class McpResponse {
+	    http: HttpResponse;
+	    serverName?: string;
+	    serverVersion?: string;
+	    instructions?: string;
+	    supportedVersions: string[];
+	    capabilities: string[];
+	    resultType?: string;
+	    result?: string;
+	    content: McpContent[];
+	    structuredContent?: string;
+	    isError?: boolean;
+	    tools: McpTool[];
+	    resources: McpResource[];
+	    prompts: McpPrompt[];
+	    nextCursor?: string;
+	    ttlMs?: number;
+	    cacheScope?: string;
+	    inputRequests?: string;
+	    requestState?: string;
+	    notifications: McpNotification[];
+	    rpcErrorCode?: number;
+	    rpcErrorMessage?: string;
+	    rpcErrorData?: string;
+	    warnings: string[];
+	    error?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new McpResponse(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.http = this.convertValues(source["http"], HttpResponse);
+	        this.serverName = source["serverName"];
+	        this.serverVersion = source["serverVersion"];
+	        this.instructions = source["instructions"];
+	        this.supportedVersions = source["supportedVersions"];
+	        this.capabilities = source["capabilities"];
+	        this.resultType = source["resultType"];
+	        this.result = source["result"];
+	        this.content = this.convertValues(source["content"], McpContent);
+	        this.structuredContent = source["structuredContent"];
+	        this.isError = source["isError"];
+	        this.tools = this.convertValues(source["tools"], McpTool);
+	        this.resources = this.convertValues(source["resources"], McpResource);
+	        this.prompts = this.convertValues(source["prompts"], McpPrompt);
+	        this.nextCursor = source["nextCursor"];
+	        this.ttlMs = source["ttlMs"];
+	        this.cacheScope = source["cacheScope"];
+	        this.inputRequests = source["inputRequests"];
+	        this.requestState = source["requestState"];
+	        this.notifications = this.convertValues(source["notifications"], McpNotification);
+	        this.rpcErrorCode = source["rpcErrorCode"];
+	        this.rpcErrorMessage = source["rpcErrorMessage"];
+	        this.rpcErrorData = source["rpcErrorData"];
+	        this.warnings = source["warnings"];
+	        this.error = source["error"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	
 	export class MockRequestLog {
 	    id: string;
 	    method: string;
@@ -1562,6 +1759,7 @@ export namespace model {
 	    exampleId?: string;
 	    exampleName?: string;
 	    requestName?: string;
+	    note?: string;
 	    statusCode: number;
 	    durationMs: number;
 	    timestamp: number;
@@ -1580,6 +1778,7 @@ export namespace model {
 	        this.exampleId = source["exampleId"];
 	        this.exampleName = source["exampleName"];
 	        this.requestName = source["requestName"];
+	        this.note = source["note"];
 	        this.statusCode = source["statusCode"];
 	        this.durationMs = source["durationMs"];
 	        this.timestamp = source["timestamp"];

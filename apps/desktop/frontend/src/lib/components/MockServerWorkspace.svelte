@@ -14,9 +14,7 @@
     busy,
     error,
     log,
-    routesChanged,
     onToggle,
-    onReload,
     onSelectCollection,
     onPortChange,
     onSimulateLatencyChange,
@@ -33,9 +31,7 @@
     busy: boolean;
     error: string;
     log: MockRequestLog[];
-    routesChanged: boolean;
     onToggle: () => void;
-    onReload: () => void;
     onSelectCollection: (id: string) => void;
     onPortChange: (port: number) => void;
     onSimulateLatencyChange: (value: boolean) => void;
@@ -73,15 +69,6 @@
   );
   const canStart = $derived(routes.length > 0 && collections.length > 0);
 
-  $effect(() => {
-    routesChanged;
-    if (routesChanged && !busy) {
-      const handle = setTimeout(onReload, 400);
-      return () => clearTimeout(handle);
-    }
-    return undefined;
-  });
-
   function routeUrl(route: MockRoute) {
     return `${status.url}${route.pathTemplate}`;
   }
@@ -103,6 +90,11 @@
 
   function portValue(event: Event) {
     return event.currentTarget instanceof HTMLInputElement ? Number(event.currentTarget.value) : port;
+  }
+
+  function exampleLabel(requestName: string, exampleName: string) {
+    if (!exampleName || /^\d{3}(\s+[A-Za-z' -]*)?$/.test(exampleName.trim())) return requestName || exampleName;
+    return requestName ? `${requestName} · ${exampleName}` : exampleName;
   }
 </script>
 
@@ -181,6 +173,7 @@
 
     <label class="mock-toggle-row">
       <input
+        class="kv-check"
         type="checkbox"
         checked={simulateLatency}
         onchange={(event) => onSimulateLatencyChange(event.currentTarget instanceof HTMLInputElement && event.currentTarget.checked)}
@@ -199,7 +192,7 @@
 
     <div class="mock-actions">
       {#if status.running}
-        <button class="btn-secondary danger" type="button" onclick={onToggle} disabled={busy}>Stop</button>
+        <button class="btn-secondary" type="button" onclick={onToggle} disabled={busy}>Stop</button>
       {:else}
         <button class="btn-primary" type="button" onclick={onToggle} disabled={busy || !canStart}>
           Start server
@@ -239,7 +232,7 @@
             <div class="mock-row" class:conflict={isConflicting(route)}>
               <span class="collection-method {methodColor(route.method)}">{route.method.toUpperCase()}</span>
               <code class="mock-path">{route.pathTemplate}</code>
-              {#each route.query as pair}
+              {#each route.query as pair, eachIndex (eachIndex)}
                 <span class="mock-chip mono">{pair.key}={pair.value}</span>
               {/each}
               <span class="status-badge {statusClass(route.statusCode)}">{route.statusCode}</span>
@@ -249,7 +242,7 @@
                 title="Open this example"
                 onclick={() => onOpenExample(route.exampleId)}
               >
-                {route.requestName} · {route.exampleName}
+                {exampleLabel(route.requestName, route.exampleName)}
               </button>
               {#if status.running}
                 <button
@@ -271,7 +264,7 @@
         <div class="mock-pane-head">
           <span class="mock-pane-title">
             Requests <span class="mock-count">{log.length}</span>
-            {#if unmatchedCount > 0}<span class="mock-count-bad">{unmatchedCount} unmatched</span>{/if}
+            {#if unmatchedCount > 0}<span class="mock-count-bad">· {unmatchedCount} unmatched</span>{/if}
           </span>
           {#if log.length}
             <button class="btn-secondary btn-sm" type="button" onclick={onClearLog}>Clear</button>
@@ -301,10 +294,13 @@
                   title="Open the example that answered"
                   onclick={() => onOpenExample(entry.exampleId ?? '')}
                 >
-                  {entry.requestName} · {entry.exampleName}
+                  {exampleLabel(entry.requestName ?? '', entry.exampleName ?? '')}
                 </button>
               {:else}
-                <span class="mock-row-name bad">no example matched</span>
+                <span class="mock-row-name bad">{entry.note || 'no example matched'}</span>
+              {/if}
+              {#if entry.matched && entry.note}
+                <span class="mock-row-note">{entry.note}</span>
               {/if}
               <span class="mock-duration">{entry.durationMs}ms</span>
             </div>

@@ -8,6 +8,15 @@
 
   let {
     requestName,
+    requestLocation = '',
+    showSave = false,
+    saveDirty = false,
+    canRevert = false,
+    saveShortcut = '',
+    sendShortcut = '',
+    sendShortcutInline = false,
+    onSave = () => {},
+    onRevert = () => {},
     requestType,
     method = $bindable('GET'),
     url = $bindable(''),
@@ -37,6 +46,15 @@
     onGrpcDiscover = async () => {},
   }: {
     requestName: string;
+    requestLocation?: string;
+    showSave?: boolean;
+    saveDirty?: boolean;
+    canRevert?: boolean;
+    saveShortcut?: string;
+    sendShortcut?: string;
+    sendShortcutInline?: boolean;
+    onSave?: () => void;
+    onRevert?: () => void;
     requestType: RequestType;
     method: string;
     url: string;
@@ -79,7 +97,6 @@
   let sioConnected = $derived(sioStatus === 'connected');
   let sioConnecting = $derived(sioStatus === 'connecting' || sioStatus === 'reconnecting');
 
-  let requestTypeMenuOpen = $state(false);
   let methodMenuOpen = $state(false);
   let grpcMethodMenuOpen = $state(false);
   let sendMenuOpen = $state(false);
@@ -97,7 +114,6 @@
     const closeMenusOnOutsidePointerDown = (event: PointerEvent) => {
       const target = event.target;
       if (target instanceof Node && requestComposerRef?.contains(target)) return;
-      requestTypeMenuOpen = false;
       methodMenuOpen = false;
       grpcMethodMenuOpen = false;
       sendMenuOpen = false;
@@ -128,13 +144,6 @@
     if (!(next instanceof Node) || !current.contains(next)) grpcMethodMenuOpen = false;
   }
 
-  function closeRequestTypeMenuOnFocusOut(event: FocusEvent) {
-    const current = event.currentTarget;
-    const next = event.relatedTarget;
-    if (!(current instanceof HTMLElement)) return;
-    if (!(next instanceof Node) || !current.contains(next)) requestTypeMenuOpen = false;
-  }
-
   function closeSendMenuOnFocusOut(event: FocusEvent) {
     const current = event.currentTarget;
     const next = event.relatedTarget;
@@ -142,13 +151,29 @@
     if (!(next instanceof Node) || !current.contains(next)) sendMenuOpen = false;
   }
 
+  const PROTOCOL_NAMES: Partial<Record<RequestType, string>> = {
+    graphql: 'GraphQL',
+    ws: 'WebSocket',
+    socketio: 'Socket.IO',
+    grpc: 'gRPC',
+    mcp: 'MCP',
+  };
+  let protocolTypes = $derived(requestTypes.filter(type => type !== 'http'));
+  let isHTTP = $derived(requestType === 'http');
+  let pickerInteractive = $derived(isHTTP || requestTypeEditable);
+  let pickerLabel = $derived(isHTTP ? method : requestTypeLabel(requestType));
+
   function selectRequestType(type: RequestType) {
     if (!requestTypeEditable) return;
     onRequestTypeChange(type);
-    requestTypeMenuOpen = false;
+    methodMenuOpen = false;
   }
 
   function selectMethod(nextMethod: string) {
+    if (!isHTTP) {
+      if (!requestTypeEditable) return;
+      onRequestTypeChange('http');
+    }
     method = nextMethod;
     methodMenuOpen = false;
   }
@@ -190,79 +215,10 @@
 
 <div class="request-composer" bind:this={requestComposerRef}>
   <div class="request-meta">
-    <div class="request-type-wrap" onfocusout={closeRequestTypeMenuOnFocusOut}>
-      <button
-        class="request-type-trigger"
-        class:open={requestTypeEditable && requestTypeMenuOpen}
-        class:locked={!requestTypeEditable}
-        type="button"
-        aria-label="Request type"
-        aria-haspopup={requestTypeEditable ? 'listbox' : undefined}
-        aria-expanded={requestTypeEditable ? requestTypeMenuOpen : undefined}
-        aria-disabled={!requestTypeEditable}
-        disabled={!requestTypeEditable}
-        title={requestTypeEditable ? 'Request type' : 'Request type can only be changed while the request is a draft'}
-        onclick={() => { if (requestTypeEditable) requestTypeMenuOpen = !requestTypeMenuOpen; }}
-      >
-        <span class="request-type-glyph" class:gql={requestType === 'graphql'} class:ws={requestType === 'ws'} class:sio={requestType === 'socketio'} class:grpc={requestType === 'grpc'} aria-hidden="true">
-          {#if requestType === 'ws'}
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-              <path d="M6 3.4v3M12 3.4v3M4.6 6.4h8.8v2.1a4.4 4.4 0 01-8.8 0V6.4zM9 12.9v1.7M6.5 14.6h5" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          {:else if requestType === 'graphql'}
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-              <path d="M9 2.6l5.3 3.1v6.2L9 15l-5.3-3.1V5.7L9 2.6z" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"/>
-              <circle cx="9" cy="2.6" r="1.35" fill="currentColor"/>
-              <circle cx="14.3" cy="5.7" r="1.35" fill="currentColor"/>
-              <circle cx="14.3" cy="11.9" r="1.35" fill="currentColor"/>
-              <circle cx="9" cy="15" r="1.35" fill="currentColor"/>
-              <circle cx="3.7" cy="11.9" r="1.35" fill="currentColor"/>
-              <circle cx="3.7" cy="5.7" r="1.35" fill="currentColor"/>
-            </svg>
-          {:else if requestType === 'socketio'}
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-              <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.4"/>
-              <path d="M9 4.5C6.5 7 7 11 9.5 13.5M9 13.5C11.5 11 11 7 8.5 4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-            </svg>
-          {:else if requestType === 'grpc'}
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-              <path d="M3.2 9h4.1M10.7 9h4.1M7.3 5.2l3.4 7.6M10.7 5.2l-3.4 7.6" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
-              <circle cx="3.2" cy="9" r="1.35" stroke="currentColor" stroke-width="1.2"/>
-              <circle cx="14.8" cy="9" r="1.35" stroke="currentColor" stroke-width="1.2"/>
-              <circle cx="7.3" cy="5.2" r="1.2" fill="currentColor"/>
-              <circle cx="10.7" cy="12.8" r="1.2" fill="currentColor"/>
-            </svg>
-          {:else}
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-              <path d="M3.2 5.8h9.6M10.4 3.5l2.4 2.3-2.4 2.3M14.8 12.2H5.2M7.6 9.9l-2.4 2.3 2.4 2.3" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          {/if}
-        </span>
-        <span>{requestTypeLabel(requestType)}</span>
-        {#if requestTypeEditable}
-          <svg class="request-type-caret" width="9" height="6" viewBox="0 0 9 6" fill="none" aria-hidden="true">
-            <path d="M1 1l3.5 3.5L8 1" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
-          </svg>
-        {/if}
-      </button>
-      {#if requestTypeEditable && requestTypeMenuOpen}
-        <div class="request-type-menu" role="listbox" aria-label="Request type">
-          {#each requestTypes as option}
-            <button
-              class:active={requestType === option}
-              role="option"
-              aria-selected={requestType === option}
-              type="button"
-              onclick={() => selectRequestType(option)}
-            >
-              <span class="method-check">{requestType === option ? '✓' : ''}</span>
-              <span>{requestTypeLabel(option)}</span>
-            </button>
-          {/each}
-        </div>
-      {/if}
-    </div>
-
+    {#if requestLocation}
+      <span class="request-location" title={requestLocation}>{requestLocation}</span>
+      <span class="request-location-sep" aria-hidden="true">/</span>
+    {/if}
     <input
       class="request-title-input"
       value={requestName}
@@ -273,56 +229,102 @@
       onblur={onRequestNameCommit}
       onkeydown={onNameKeydown}
     />
-  </div>
-
-  <div class="request-bar" class:request-bar-ws={requestType === 'ws' || requestType === 'socketio' || requestType === 'graphql'} class:request-bar-grpc={requestType === 'grpc'}>
-    {#if requestType === 'http'}
-      <div class="method-wrap" onfocusout={closeMethodMenuOnFocusOut}>
-        <button
-          class="method-trigger {methodColor(method)}"
-          class:open={methodMenuOpen}
-          type="button"
-          aria-label="HTTP method"
-          aria-haspopup="listbox"
-          aria-expanded={methodMenuOpen}
-          onclick={() => (methodMenuOpen = !methodMenuOpen)}
-        >
-          <span>{method}</span>
-          <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
-            <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    {#if showSave}
+      <div class="request-meta-actions">
+        <button class="save-btn revert-btn" class:dirty={canRevert} type="button" onclick={onRevert} title="Revert unsaved changes" aria-label="Revert unsaved changes" disabled={!canRevert}>
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+            <path d="M4.2 3.2H2v-2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2.3 3.1A4.5 4.5 0 117 11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
           </svg>
         </button>
-        {#if methodMenuOpen}
-          <div class="method-menu" role="listbox" aria-label="HTTP method">
-            {#each methods as option}
-              <button
-                class:active={method === option}
-                class={methodColor(option)}
-                role="option"
-                aria-selected={method === option}
-                type="button"
-                onclick={() => selectMethod(option)}
-              >
-                <span class="method-check">{method === option ? '✓' : ''}</span>
-                <span>{option}</span>
-              </button>
-            {/each}
+        <button class="save-btn" class:dirty={saveDirty} type="button" onclick={onSave} title={saveShortcut ? `Save (${saveShortcut})` : 'Save'} disabled={!saveDirty}>
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+            <path d="M2 2h7.5L11 3.5V11H2V2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+            <rect x="4" y="7.5" width="5" height="3" rx="0.5" stroke="currentColor" stroke-width="1.1"/>
+            <rect x="4.5" y="2" width="3.5" height="2.5" rx="0.5" stroke="currentColor" stroke-width="1.1"/>
+          </svg>
+          <span class="save-btn-label">{saveDirty ? 'Save' : 'Saved'}</span>
+        </button>
+      </div>
+    {/if}
+  </div>
+
+  <div class="request-bar" class:request-bar-ws={requestType === 'ws' || requestType === 'socketio' || requestType === 'graphql' || requestType === 'mcp'} class:request-bar-grpc={requestType === 'grpc'}>
+    <div class="url-field">
+      <div class="method-wrap" onfocusout={closeMethodMenuOnFocusOut}>
+        <button
+          class="method-trigger {isHTTP ? methodColor(method) : 'method-trigger--protocol'}"
+          class:open={methodMenuOpen}
+          class:locked={!pickerInteractive}
+          type="button"
+          aria-label="Method and protocol"
+          aria-haspopup={pickerInteractive ? 'listbox' : undefined}
+          aria-expanded={pickerInteractive ? methodMenuOpen : undefined}
+          aria-disabled={!pickerInteractive}
+          title={pickerInteractive ? undefined : 'The protocol can only be changed while the request is a draft'}
+          onclick={() => { if (pickerInteractive) methodMenuOpen = !methodMenuOpen; }}
+        >
+          <span>{pickerLabel}</span>
+          {#if pickerInteractive}
+            <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+              <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          {/if}
+        </button>
+        {#if methodMenuOpen && pickerInteractive}
+          <div class="method-menu" role="listbox" aria-label="Method and protocol">
+            <div class="method-menu-group" role="group" aria-label="HTTP">
+              <span class="method-menu-label" aria-hidden="true">HTTP</span>
+              {#each methods as option, eachIndex (eachIndex)}
+                <button
+                  class:active={isHTTP && method === option}
+                  class={methodColor(option)}
+                  role="option"
+                  aria-selected={isHTTP && method === option}
+                  type="button"
+                  onclick={() => selectMethod(option)}
+                >
+                  <span class="method-check">{isHTTP && method === option ? '✓' : ''}</span>
+                  <span>{option}</span>
+                </button>
+              {/each}
+            </div>
+            <div class="method-menu-group" role="group" aria-label="Other protocols">
+              <span class="method-menu-label" aria-hidden="true">Other protocols</span>
+              {#if requestTypeEditable}
+                {#each protocolTypes as option, eachIndex (eachIndex)}
+                  <button
+                    class="method-menu-protocol"
+                    class:active={requestType === option}
+                    role="option"
+                    aria-selected={requestType === option}
+                    type="button"
+                    onclick={() => selectRequestType(option)}
+                  >
+                    <span class="method-check">{requestType === option ? '✓' : ''}</span>
+                    <span>{PROTOCOL_NAMES[option] ?? requestTypeLabel(option)}</span>
+                  </button>
+                {/each}
+              {:else}
+                <p class="method-menu-note">The protocol is fixed once a request is saved. Create a new request to use GraphQL, WebSocket, Socket.IO, gRPC or MCP.</p>
+              {/if}
+            </div>
           </div>
         {/if}
       </div>
-    {/if}
 
-    <VariableInput
-      className="url-input"
-      bind:inputRef={urlInputRef}
-      bind:value={url}
-      multiline
-      suggestions={variableSuggestions}
-      placeholder={requestType === 'graphql' ? 'Enter GraphQL endpoint URL…' : requestType === 'ws' ? 'Enter WebSocket URL…' : requestType === 'socketio' ? 'Enter Socket.IO URL…' : requestType === 'grpc' ? 'Enter gRPC target, e.g. localhost:50051…' : 'Enter request URL or paste cURL…'}
-      ariaLabel={requestType === 'grpc' ? 'gRPC target' : 'Request URL'}
-      oninput={onUrlInput}
-      onpaste={(event) => { onUrlPaste(event); keepHostVisible(); }}
-    />
+      <VariableInput
+        className="url-input"
+        bind:inputRef={urlInputRef}
+        bind:value={url}
+        multiline
+        suggestions={variableSuggestions}
+        placeholder={requestType === 'graphql' ? 'Enter GraphQL endpoint URL…' : requestType === 'ws' ? 'Enter WebSocket URL…' : requestType === 'socketio' ? 'Enter Socket.IO URL…' : requestType === 'grpc' ? 'Enter gRPC target, e.g. localhost:50051…' : requestType === 'mcp' ? 'Enter the MCP endpoint URL…' : 'Enter request URL or paste cURL…'}
+        ariaLabel={requestType === 'grpc' ? 'gRPC target' : 'Request URL'}
+        oninput={onUrlInput}
+        onpaste={(event) => { onUrlPaste(event); keepHostVisible(); }}
+      />
+    </div>
 
     {#if isGRPC}
       <div class="grpc-method-wrap" onfocusout={closeGrpcMethodMenuOnFocusOut}>
@@ -360,7 +362,7 @@
 
             {#if grpcFilteredMethods.length}
               <div class="grpc-method-options">
-                {#each grpcFilteredMethods as option}
+                {#each grpcFilteredMethods as option, eachIndex (eachIndex)}
                   <button
                     class:active={grpcMethod === option.fullName}
                     role="option"
@@ -456,10 +458,11 @@
           class:btn-send-cancel={loading}
           onclick={onSend}
           type="button"
+          title={!loading && sendShortcut ? `Send (${sendShortcut})` : undefined}
         >
           {#if loading}<span class="spinner"></span>Cancel
           {:else}
-            Send
+            Send{#if sendShortcut && sendShortcutInline}<kbd class="btn-send-kbd">{sendShortcut}</kbd>{/if}
           {/if}
         </button>
         {#if !loading}

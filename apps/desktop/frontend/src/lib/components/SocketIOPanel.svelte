@@ -8,9 +8,9 @@
   const REALTIME_PAGE_SIZE = 200;
 
   const filterOptions: { value: SIOFilter; label: string; icon: string }[] = [
-    { value: 'all', label: 'All Messages', icon: '' },
-    { value: 'sent', label: 'Sent Messages', icon: '↑' },
-    { value: 'received', label: 'Received Messages', icon: '↓' },
+    { value: 'all', label: 'All messages', icon: '' },
+    { value: 'sent', label: 'Sent messages', icon: '↑' },
+    { value: 'received', label: 'Received messages', icon: '↓' },
   ];
 
   let {
@@ -148,10 +148,9 @@
   }
 
   function toggleExpand(id: string) {
-    const next = new Set(expandedIds);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    expandedIds = next;
+    expandedIds = expandedIds.has(id)
+      ? new Set([...expandedIds].filter(item => item !== id))
+      : new Set([...expandedIds, id]);
   }
 
   function closeFilterMenuOnFocusOut(event: FocusEvent) {
@@ -162,7 +161,7 @@
   }
 
   function selectMessageFilter(f: SIOFilter) { messageFilter = f; filterMenuOpen = false; }
-  function filterLabel() { return filterOptions.find((o) => o.value === messageFilter)?.label ?? 'All Messages'; }
+  function filterLabel() { return filterOptions.find((o) => o.value === messageFilter)?.label ?? 'All messages'; }
 
   function filterEmptyLabel(): string {
     if (searchQuery.trim()) return `No events match "${searchQuery}"`;
@@ -316,7 +315,7 @@
       </button>
       {#if filterMenuOpen}
         <div class="ws-filter-list" role="listbox" aria-label="Message filter">
-          {#each filterOptions as opt}
+          {#each filterOptions as opt, eachIndex (eachIndex)}
             <button
               class:active={messageFilter === opt.value}
               role="option"
@@ -333,7 +332,7 @@
     </div>
 
     <div class="resp-actions">
-      <button class="btn-icon" title="Search response" aria-label="Search response" onclick={() => (searchOpen = !searchOpen)} type="button">
+      <button class="btn-icon" title="Search response" aria-label="Search response" aria-pressed={searchOpen} onclick={() => (searchOpen = !searchOpen)} type="button">
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
           <circle cx="5.8" cy="5.8" r="3.8" stroke="currentColor" stroke-width="1.3"/>
           <path d="M8.7 8.7l2.7 2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
@@ -464,7 +463,7 @@
 
                   {#if message.handshake.requestHeaders && message.handshake.requestHeaders.length > 0}
                     <div class="sio-hs-section-title">Request Headers</div>
-                    {#each message.handshake.requestHeaders as h}
+                    {#each message.handshake.requestHeaders as h, eachIndex (eachIndex)}
                       <div class="sio-hs-header-row">
                         <span class="sio-hs-hkey">{h.key}</span>
                         <span class="sio-hs-hval">{h.value}</span>
@@ -474,7 +473,7 @@
 
                   {#if message.handshake.responseHeaders && message.handshake.responseHeaders.length > 0}
                     <div class="sio-hs-section-title">Response Headers</div>
-                    {#each message.handshake.responseHeaders as h}
+                    {#each message.handshake.responseHeaders as h, eachIndex (eachIndex)}
                       <div class="sio-hs-header-row">
                         <span class="sio-hs-hkey">{h.key}</span>
                         <span class="sio-hs-hval">{h.value}</span>
@@ -614,7 +613,7 @@
     text-transform: none;
     letter-spacing: 0;
     margin: 10px 0 4px;
-    font-family: sans-serif;
+    font-family: var(--font-ui);
   }
   .sio-hs-row {
     display: flex;

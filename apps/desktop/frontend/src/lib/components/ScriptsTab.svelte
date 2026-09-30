@@ -25,19 +25,18 @@
 </script>
 
 <div class="script-section">
-  <div class="subtabs" role="tablist" use:tabListKeyboard>
-    <button role="tab" class:active={vm.scriptTab === 'pre-request'} aria-selected={vm.scriptTab === 'pre-request'} tabindex={vm.scriptTab === 'pre-request' ? 0 : -1} type="button" onclick={() => (vm.scriptTab = 'pre-request')}>
-      Pre-request{#if scriptLineCount(vm.activePreRequestScript) > 0}<span class="badge badge-script">{scriptLineCount(vm.activePreRequestScript)}L</span>{/if}
-    </button>
-    <button role="tab" class:active={vm.scriptTab === 'tests'} aria-selected={vm.scriptTab === 'tests'} tabindex={vm.scriptTab === 'tests' ? 0 : -1} type="button" onclick={() => (vm.scriptTab = 'tests')}>
-      Tests{#if scriptLineCount(vm.activeTestScript) > 0}<span class="badge badge-script">{scriptLineCount(vm.activeTestScript)}L</span>{/if}
-    </button>
+  <div class="script-head">
+    <div class="subtabs" role="tablist" use:tabListKeyboard>
+      <button role="tab" class:active={vm.scriptTab === 'pre-request'} aria-selected={vm.scriptTab === 'pre-request'} tabindex={vm.scriptTab === 'pre-request' ? 0 : -1} type="button" onclick={() => (vm.scriptTab = 'pre-request')}>
+        Pre-request{#if scriptLineCount(vm.activePreRequestScript) > 0}<span class="subtab-count" title="Lines">{scriptLineCount(vm.activePreRequestScript)}</span>{/if}
+      </button>
+      <button role="tab" class:active={vm.scriptTab === 'tests'} aria-selected={vm.scriptTab === 'tests'} tabindex={vm.scriptTab === 'tests' ? 0 : -1} type="button" onclick={() => (vm.scriptTab = 'tests')}>
+        Tests{#if scriptLineCount(vm.activeTestScript) > 0}<span class="subtab-count" title="Lines">{scriptLineCount(vm.activeTestScript)}</span>{/if}
+      </button>
+    </div>
+    <span class="script-hint">{engineLabel} · {vm.scriptTab === 'pre-request' ? 'runs before the request is sent' : 'runs after the response is received'}</span>
   </div>
   {#if vm.scriptTab === 'pre-request'}
-    <div class="script-toolbar">
-      <span class="script-lang-badge">{engineLabel}</span>
-      <span class="script-hint">Runs before the request is sent · Modify URL, headers, params, body</span>
-    </div>
     <div class="script-ref">
       <span class="ref-title">Snippets</span>
       {#each preSnippets as snippet (snippet.label)}
@@ -63,10 +62,6 @@
       ariaLabel="Pre-request script editor"
     />
   {:else}
-    <div class="script-toolbar">
-      <span class="script-lang-badge">{engineLabel}</span>
-      <span class="script-hint">Runs after the response is received</span>
-    </div>
     <div class="script-ref">
       <span class="ref-title">Snippets</span>
       {#each testSnippetList as snippet (snippet.label)}

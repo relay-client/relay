@@ -15,10 +15,24 @@ const SIDEBAR_MAX_WIDTH = 460;
 const CODE_PANEL_MIN_WIDTH = 280;
 const CODE_PANEL_MAX_WIDTH = 760;
 const CODE_PANEL_MIN_WORKSPACE_WIDTH = 560;
-const SHELL_DIVIDER_WIDTH = 5;
+const ACTIVITY_RAIL_WIDTH = 52;
+
+export type ResponseLayout = 'right' | 'below';
+export const RESPONSE_LAYOUT_KEY = 'relay.responseLayout.v1';
+export const RESPONSE_RIGHT_MIN_WIDTH = 1000;
+const SPLIT_MIN_RATIO = 0.28;
+const SPLIT_MAX_RATIO = 0.72;
+
+export function readResponseLayout(): ResponseLayout {
+  try {
+    return localStorage.getItem(RESPONSE_LAYOUT_KEY) === 'below' ? 'below' : 'right';
+  } catch {
+    return 'right';
+  }
+}
 
 export function codePanelMaxWidth(viewportWidth: number, sidebarWidth: number): number {
-  const availableWidth = Math.max(0, viewportWidth - sidebarWidth - SHELL_DIVIDER_WIDTH);
+  const availableWidth = Math.max(0, viewportWidth - ACTIVITY_RAIL_WIDTH - sidebarWidth);
   const balancedWidth = Math.floor(availableWidth / 2);
   const workspaceReservedWidth = availableWidth - CODE_PANEL_MIN_WORKSPACE_WIDTH;
   return Math.max(
@@ -54,6 +68,12 @@ type UiShellHost = {
   panelResizeStartH: number;
   panelResizeStartY: number;
   panelResizing: boolean;
+  responseLayout: ResponseLayout;
+  requestSplitRatio: number;
+  splitResizing: boolean;
+  splitResizeStartX: number;
+  splitResizeStartRatio: number;
+  splitResizeWidth: number;
   rawTypeMenuOpen: boolean;
   requestError: string;
   requestPanelHeight: number;
@@ -120,7 +140,7 @@ export const uiShellFeature = {
 
   get codePanelAvailable(): boolean {
     const host = this as unknown as UiShellHost;
-    if (host.topView === 'git' || host.topView === 'runner' || host.topView === 'collection') return false;
+    if (host.topView !== 'request' || !host.activeRequestId) return false;
     return host.requestType !== 'graphql' && host.requestType !== 'ws' && host.requestType !== 'socketio' && host.requestType !== 'grpc';
   },
 
@@ -198,6 +218,28 @@ export const uiShellFeature = {
     e.preventDefault();
   },
 
+  startSplitResize(this: UiShellHost, e: MouseEvent) {
+    const container = (e.currentTarget as HTMLElement | null)?.parentElement;
+    this.splitResizing = true;
+    this.splitResizeStartX = e.clientX;
+    this.splitResizeStartRatio = this.requestSplitRatio;
+    this.splitResizeWidth = container?.clientWidth ?? window.innerWidth;
+    e.preventDefault();
+  },
+
+  onSplitDividerKeydown(this: UiShellHost, e: KeyboardEvent) {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    this.requestSplitRatio = clamp(this.requestSplitRatio + (e.key === 'ArrowRight' ? 0.02 : -0.02), SPLIT_MIN_RATIO, SPLIT_MAX_RATIO);
+  },
+
+  setResponseLayout(this: UiShellHost, layout: ResponseLayout) {
+    this.responseLayout = layout;
+    try {
+      localStorage.setItem(RESPONSE_LAYOUT_KEY, layout);
+    } catch {}
+  },
+
   startCodePanelResize(this: UiShellHost, e: MouseEvent) {
     this.codePanelResizing = true;
     this.codePanelResizeStartX = e.clientX;
@@ -242,6 +284,10 @@ export const uiShellFeature = {
       }
     }
     if (this.panelResizing) this.requestPanelHeight = clamp(this.panelResizeStartH + (e.clientY - this.panelResizeStartY), 120, window.innerHeight - 220);
+    if (this.splitResizing && this.splitResizeWidth > 0) {
+      const delta = (e.clientX - this.splitResizeStartX) / this.splitResizeWidth;
+      this.requestSplitRatio = clamp(this.splitResizeStartRatio + delta, SPLIT_MIN_RATIO, SPLIT_MAX_RATIO);
+    }
     if (this.codePanelResizing) {
       const sidebarWidth = this.sidebarHidden ? 0 : this.sidebarWidth;
       const maxW = codePanelMaxWidth(window.innerWidth, sidebarWidth);
@@ -260,6 +306,7 @@ export const uiShellFeature = {
   onWindowMouseUp(this: UiShellHost) {
     this.sidebarResizing = false;
     this.panelResizing = false;
+    this.splitResizing = false;
     this.codePanelResizing = false;
     this.colResizing = null;
   },

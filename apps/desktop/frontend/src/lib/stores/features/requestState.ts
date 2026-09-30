@@ -77,6 +77,10 @@ type RequestStateHost = {
   graphqlVariables: string;
   grpcMetadata: KVRow[];
   grpcMethod: string;
+  mcpMethod: string;
+  mcpName: string;
+  mcpArguments: string;
+  mcpProtocolVersion: string;
   grpcProtoFileName: string;
   grpcProtoFilePath: string;
   grpcProtoImportPaths: string[];
@@ -178,6 +182,8 @@ export const requestStateFeature = {
       grpcMethod: this.grpcMethod, grpcMetadata: this.grpcMetadata,
       grpcUseReflection: this.grpcUseReflection, grpcProtoFilePath: this.grpcProtoFilePath,
       grpcProtoFileName: this.grpcProtoFileName, grpcProtoImportPaths: this.grpcProtoImportPaths,
+      mcpMethod: this.mcpMethod, mcpName: this.mcpName,
+      mcpArguments: this.mcpArguments, mcpProtocolVersion: this.mcpProtocolVersion,
       graphqlOperationName: this.graphqlOperationName,
       examples: this.requestExamples.map(
         example => `${example.id}:${example.name}:${example.response.statusCode}:${example.response.body.length}:${example.notes ?? ''}`,
@@ -203,10 +209,11 @@ export const requestStateFeature = {
     const isRealtime = normalizedType === 'ws' || normalizedType === 'socketio';
     const isGraphQL = normalizedType === 'graphql';
     const isGrpc = normalizedType === 'grpc';
+    const isMcp = normalizedType === 'mcp';
     const bodyDefaults = requestBodyDefaultsFor(normalizedType);
     const settings = this.currentRequestSettings();
     const id = newRequestId();
-    return { id, name: 'New Request', filesystemName: filesystemNameFromName('New Request', id), nameAuto: true, requestType: normalizedType, isPinned: false, collectionId: resolved, collection: this.collectionNameById(resolved), folderPath: [], method: isGraphQL || isGrpc ? 'POST' : 'GET', url: '', requestTab: isGrpc ? 'body' : isRealtime ? 'body' : isGraphQL ? 'query' : 'params', params: [], headers: [], auth: resolved ? inheritAuthState() : emptyAuthState(), bodyType: bodyDefaults.bodyType, rawBodyType: bodyDefaults.rawBodyType, bodyContent: bodyDefaults.bodyContent, bodyFilePath: bodyDefaults.bodyFilePath, bodyFileName: bodyDefaults.bodyFileName, formRows: bodyDefaults.formRows, graphqlSchema: '', preRequestScript: '', testScript: '', preRequestScriptJs: '', testScriptJs: '', requestNotes: '', settings, settingsOverrides: {}, sioEvents: [], sioEventName: '', sioArgs: defaultSocketIOArgs(), sioAck: false, grpcMethod: '', grpcMetadata: [], grpcUseReflection: settings.grpcUseReflection, grpcProtoFilePath: '', grpcProtoFileName: '', grpcProtoImportPaths: [] };
+    return { id, name: 'New Request', filesystemName: filesystemNameFromName('New Request', id), nameAuto: true, requestType: normalizedType, isPinned: false, collectionId: resolved, collection: this.collectionNameById(resolved), folderPath: [], method: isGraphQL || isGrpc || isMcp ? 'POST' : 'GET', url: '', requestTab: isMcp || isGrpc ? 'body' : isRealtime ? 'body' : isGraphQL ? 'query' : 'params', params: [], headers: [], auth: resolved ? inheritAuthState() : emptyAuthState(), bodyType: bodyDefaults.bodyType, rawBodyType: bodyDefaults.rawBodyType, bodyContent: bodyDefaults.bodyContent, bodyFilePath: bodyDefaults.bodyFilePath, bodyFileName: bodyDefaults.bodyFileName, formRows: bodyDefaults.formRows, graphqlSchema: '', preRequestScript: '', testScript: '', preRequestScriptJs: '', testScriptJs: '', requestNotes: '', settings, settingsOverrides: {}, sioEvents: [], sioEventName: '', sioArgs: defaultSocketIOArgs(), sioAck: false, grpcMethod: '', mcpMethod: isMcp ? 'tools/list' : '', mcpName: '', mcpArguments: '', mcpProtocolVersion: '', grpcMetadata: [], grpcUseReflection: settings.grpcUseReflection, grpcProtoFilePath: '', grpcProtoFileName: '', grpcProtoImportPaths: [] };
   },
 
   snapshotActiveRequest(this: RequestStateHost, options: { forPersistence?: boolean } = {}): SavedRequest {
@@ -244,6 +251,10 @@ export const requestStateFeature = {
       sioArgs: this.sioArgs.map(a => ({ ...a })),
       sioAck: this.sioAck,
       grpcMethod: this.grpcMethod,
+      mcpMethod: this.mcpMethod,
+      mcpName: this.mcpName,
+      mcpArguments: this.mcpArguments,
+      mcpProtocolVersion: this.mcpProtocolVersion,
       grpcMetadata: cloneRowsForStore(this.grpcMetadata),
       grpcUseReflection: this.grpcUseReflection,
       grpcProtoFilePath: this.grpcProtoFilePath,
@@ -282,6 +293,13 @@ export const requestStateFeature = {
         Boolean(req.sioAck);
       return Boolean(hasName || hasUrl || hasBodyContent || hasSharedContent || hasSocketIOContent);
     }
+    if (requestType === 'mcp') {
+      const hasMcpContent =
+        Boolean(req.mcpName?.trim()) ||
+        Boolean(req.mcpArguments?.trim()) ||
+        Boolean(req.mcpMethod?.trim() && req.mcpMethod !== 'tools/list');
+      return Boolean(hasName || hasUrl || hasSharedContent || hasMcpContent);
+    }
     if (requestType === 'grpc') {
       const hasGrpcContent =
         Boolean(req.grpcMethod?.trim()) ||
@@ -317,6 +335,10 @@ export const requestStateFeature = {
     this.sioSelectedArgId = this.sioArgs[0]?.id ?? '1';
     this.sioAck = req.sioAck ?? false;
     this.grpcMethod = req.grpcMethod ?? '';
+    this.mcpMethod = req.mcpMethod || (this.requestType === 'mcp' ? 'tools/list' : '');
+    this.mcpName = req.mcpName ?? '';
+    this.mcpArguments = req.mcpArguments ?? '';
+    this.mcpProtocolVersion = req.mcpProtocolVersion ?? '';
     this.grpcMetadata = restoreRows(req.grpcMetadata ?? []);
     this.grpcUseReflection = req.settings.grpcUseReflection ?? req.grpcUseReflection ?? true;
     this.grpcProtoFilePath = req.grpcProtoFilePath ?? '';

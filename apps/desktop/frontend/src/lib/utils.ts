@@ -152,12 +152,12 @@ export function methodColor(m: string) {
     PATCH: 'method-patch', DELETE: 'method-delete',
     HEAD: 'method-head', OPTIONS: 'method-options',
     SSE: 'method-sse', GRAPHQL: 'method-graphql', GQL: 'method-graphql',
-    WS: 'method-ws', WEBSOCKET: 'method-ws', SIO: 'method-sio', 'SOCKET.IO': 'method-sio', GRPC: 'method-grpc',
+    WS: 'method-ws', WEBSOCKET: 'method-ws', SIO: 'method-sio', 'SOCKET.IO': 'method-sio', GRPC: 'method-grpc', MCP: 'method-mcp',
   };
   return map[m.toUpperCase()] ?? '';
 }
 
-type RequestKind = 'http' | 'graphql' | 'sse' | 'ws' | 'socketio' | 'grpc';
+type RequestKind = 'http' | 'graphql' | 'sse' | 'ws' | 'socketio' | 'grpc' | 'mcp';
 export type RequestKindInput = {
   requestType?: RequestType;
   method?: string;
@@ -166,6 +166,7 @@ export type RequestKindInput = {
 
 export function requestKindFor(input: RequestKindInput): RequestKind {
   if (input.requestType === 'socketio') return 'socketio';
+  if (input.requestType === 'mcp') return 'mcp';
   if (input.requestType === 'grpc') return 'grpc';
   if (input.requestType === 'graphql') return 'graphql';
   if (input.requestType === 'ws' || /^wss?:\/\//i.test(input.url ?? '')) return 'ws';
@@ -176,6 +177,7 @@ export function requestKindFor(input: RequestKindInput): RequestKind {
 export function requestBadgeLabel(input: RequestKindInput): string {
   const kind = requestKindFor(input);
   if (kind === 'socketio') return 'Socket.IO';
+  if (kind === 'mcp') return 'MCP';
   if (kind === 'grpc') return 'gRPC';
   if (kind === 'ws') return 'WebSocket';
   if (kind === 'graphql') return 'GraphQL';
@@ -185,7 +187,7 @@ export function requestBadgeLabel(input: RequestKindInput): string {
 
 export function requestSupportsCurl(input: RequestKindInput): boolean {
   const kind = requestKindFor(input);
-  return kind !== 'ws' && kind !== 'socketio' && kind !== 'graphql' && kind !== 'grpc';
+  return kind !== 'ws' && kind !== 'socketio' && kind !== 'graphql' && kind !== 'grpc' && kind !== 'mcp';
 }
 
 export function statusClass(code: number) {
@@ -249,9 +251,15 @@ export function requestTitleFrom(methodValue: string, urlValue: string) {
 
 export function requestTransportLabel(req: { requestType?: string; method: string; url?: string }) {
   if (req.requestType === 'socketio') return 'Socket.IO';
+  if (req.requestType === 'mcp') return 'MCP';
   if (req.requestType === 'grpc') return 'gRPC';
   if (req.requestType === 'graphql') return 'GraphQL';
   return req.requestType === 'ws' || /^wss?:\/\//i.test(req.url ?? '') ? 'WS' : req.method;
+}
+
+export function requestKindShortLabel(label: string) {
+  const short: Record<string, string> = { GraphQL: 'GQL', WebSocket: 'WS', 'Socket.IO': 'SIO' };
+  return short[label] ?? label;
 }
 
 export function requestTabLabel(req: { name: string; method: string; url: string; requestType?: string }) {

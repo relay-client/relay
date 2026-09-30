@@ -92,7 +92,7 @@
 
         {#if vm.grpcProtoImportPaths.length}
           <div class="grpc-import-paths">
-            {#each vm.grpcProtoImportPaths as path, index}
+            {#each vm.grpcProtoImportPaths as path, index (index)}
               <span class="grpc-import-path" title={path}>
                 {path}
                 <button type="button" onclick={() => vm.removeGrpcProtoImportPath(index)} aria-label="Remove import path">×</button>

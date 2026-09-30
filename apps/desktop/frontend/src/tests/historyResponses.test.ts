@@ -8,7 +8,7 @@ vi.mock('../lib/backend', () => ({
 }));
 
 import { clearHistoryResponses, loadHistoryResponse, pruneHistoryResponses, saveHistoryResponse } from '../lib/backend';
-import { historyContentType, historyFeature } from '../lib/stores/features/history';
+import { historyContentType, historyFeature, historyResponsePayload } from '../lib/stores/features/history';
 import { emptyHttpResponse } from '../lib/wire';
 import type { HttpResponse } from '../lib/backend';
 
@@ -45,8 +45,14 @@ function makeHost(over: Record<string, unknown> = {}) {
     loadStoredHistoryResponse: historyFeature.loadStoredHistoryResponse,
     deleteHistoryEntry: historyFeature.deleteHistoryEntry,
     clearRequestHistory: historyFeature.clearRequestHistory,
+    openHistoryDetail: historyFeature.openHistoryDetail,
+    closeHistoryDetail: historyFeature.closeHistoryDetail,
+    historyDetailId: '',
+    historyDetailResponse: null,
+    historyDetailLoading: false,
+    historyDetailError: '',
+    topView: 'request',
     ...over,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
 }
 
@@ -214,11 +220,6 @@ describe('opening an entry', () => {
 });
 
 describe('recording a failed send', () => {
-  // A request that never reached a server has no headers. The Go side now
-  // always sends an array, but a history entry stored by an older build — or a
-  // response restored from one — can still arrive without the field, and
-  // reading it crashed the panel with a TypeError that then replaced the
-  // message explaining why the request had failed.
   it('does not crash when the response carries no headers', () => {
     const failed = { ...emptyHttpResponse(), error: 'dial tcp: connection refused' } as HttpResponse;
     delete (failed as Partial<HttpResponse>).headers;
@@ -237,3 +238,95 @@ describe('recording a failed send', () => {
     expect(historyContentType(ok)).toBe('application/json');
   });
 });
+
+describe('storing a response that is too large for history', () => {
+  it('keeps a small response whole', () => {
+    const { payload, truncated } = historyResponsePayload(response() as HttpResponse);
+    expect(truncated).toBe(false);
+    expect(JSON.parse(payload).body).toBe('{"ok":true}');
+  });
+
+  it('cuts the body so the stored snapshot stays valid JSON under the cap', () => {
+    const body = '{"line":"\\n\\"quoted\\""}\n'.repeat(4_000);
+    const { payload, truncated } = historyResponsePayload(response({ body }) as HttpResponse, 32_000);
+    expect(truncated).toBe(true);
+    expect(new TextEncoder().encode(payload).length).toBeLessThanOrEqual(32_000);
+    const parsed = JSON.parse(payload) as HttpResponse;
+    expect(parsed.statusCode).toBe(200);
+    expect(body.startsWith(parsed.body)).toBe(true);
+    expect(parsed.body.length).toBeGreaterThan(10_000);
+  });
+
+  it('records the cut on the history entry', async () => {
+    mockSave.mockResolvedValueOnce({ stored: true, truncated: false } as never);
+    const host = makeHost();
+    await historyFeature.recordRequestHistory.call(host, response({ body: 'x'.repeat(3 * 1024 * 1024) }) as HttpResponse);
+    const [, payload] = mockSave.mock.calls.at(-1)!;
+    expect(() => JSON.parse(payload)).not.toThrow();
+    expect(host.requestHistory[0].responseTruncated).toBe(true);
+  });
+});
+
+describe('the history entry view', () => {
+  const entry = (over: Record<string, unknown> = {}) => ({
+    id: 'history-1',
+    request: { name: 'Users', method: 'GET', url: 'https://api.test/users' },
+    statusCode: 200,
+    status: '200 OK',
+    duration: 12,
+    createdAt: Date.now(),
+    responseStored: true,
+    ...over,
+  });
+
+  it('opens an entry and loads its stored response', async () => {
+    mockLoad.mockResolvedValueOnce({ stored: true, truncated: false, payload: JSON.stringify(response()) } as never);
+    const host = makeHost({ requestHistory: [entry()] });
+    await historyFeature.openHistoryDetail.call(host, 'history-1');
+    expect(host.topView).toBe('history');
+    expect(host.historyDetailId).toBe('history-1');
+    expect(host.historyDetailLoading).toBe(false);
+    expect(host.historyDetailResponse?.body).toBe('{"ok":true}');
+    expect(host.historyDetailError).toBe('');
+  });
+
+  it('does not ask the backend when nothing was stored', async () => {
+    mockLoad.mockClear();
+    const host = makeHost({ requestHistory: [entry({ responseStored: false })] });
+    await historyFeature.openHistoryDetail.call(host, 'history-1');
+    expect(mockLoad).not.toHaveBeenCalled();
+    expect(host.historyDetailResponse).toBeNull();
+    expect(host.historyDetailLoading).toBe(false);
+  });
+
+  it('keeps a read error on the view instead of the request panel', async () => {
+    mockLoad.mockResolvedValueOnce({ stored: false, error: 'decrypt failed' } as never);
+    const host = makeHost({ requestHistory: [entry()] });
+    await historyFeature.openHistoryDetail.call(host, 'history-1');
+    expect(host.historyDetailError).toContain('decrypt failed');
+    expect(host.requestError).toBe('');
+  });
+
+  it('ignores a slow load for an entry that is no longer shown', async () => {
+    let resolveFirst: (value: unknown) => void = () => {};
+    mockLoad.mockImplementationOnce(() => new Promise(resolve => { resolveFirst = resolve; }) as never);
+    mockLoad.mockResolvedValueOnce({ stored: true, payload: JSON.stringify(response({ body: 'second' })) } as never);
+    const host = makeHost({ requestHistory: [entry(), entry({ id: 'history-2' })] });
+    const first = historyFeature.openHistoryDetail.call(host, 'history-1');
+    await historyFeature.openHistoryDetail.call(host, 'history-2');
+    resolveFirst({ stored: true, payload: JSON.stringify(response({ body: 'first' })) });
+    await first;
+    expect(host.historyDetailId).toBe('history-2');
+    expect(host.historyDetailResponse?.body).toBe('second');
+  });
+
+  it('leaves the view when its entry is deleted', async () => {
+    mockLoad.mockResolvedValueOnce({ stored: true, payload: JSON.stringify(response()) } as never);
+    const host = makeHost({ requestHistory: [entry()], activeRequestId: '' });
+    await historyFeature.openHistoryDetail.call(host, 'history-1');
+    await historyFeature.deleteHistoryEntry.call(host, 'history-1');
+    expect(host.historyDetailId).toBe('');
+    expect(host.topView).toBe('overview');
+  });
+});
+

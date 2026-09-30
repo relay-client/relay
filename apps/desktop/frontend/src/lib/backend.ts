@@ -7,6 +7,7 @@ import type {
   OAuth2TokenResponse, SaveRequestStoreResult, SocketIOEmitMessage, SocketIOEmitResult, UpdateCheckResult,
   UpdateInfo, WebSocketSendMessage, WebSocketSendResult, WorkspaceDiagnostic, WorkspaceOpenResult,
   WorkspaceYAMLFileResult, HistoryResponseResult, MockServerConfig, MockServerStatus, MockRequestLog,
+  McpResponse,
 } from './wire';
 import {
   EMPTY_GIT_BRANCH_LIST, EMPTY_GIT_CONFLICT_FILE, EMPTY_GIT_LOG,
@@ -64,6 +65,14 @@ export async function sendGrpcRequest(req: GrpcRequest): Promise<GrpcResponse> {
     throw new Error('Wails bridge not available');
   }
   return app.SendGrpcRequest(req);
+}
+
+export async function sendMcpRequest(req: HttpRequest): Promise<McpResponse> {
+  const app = window.go?.api?.App;
+  if (!app?.SendMcpRequest) {
+    throw new Error('Wails bridge not available');
+  }
+  return app.SendMcpRequest(req);
 }
 
 export async function grpcDiscover(req: GrpcRequest): Promise<GrpcServiceDefinition> {

@@ -13,17 +13,23 @@
   import BodyModeSelector from './lib/components/BodyModeSelector.svelte';
   import RequestBar from './lib/components/RequestBar.svelte';
   import RequestEditorTabs from './lib/components/RequestEditorTabs.svelte';
+  import ActivityRail from './lib/components/ActivityRail.svelte';
+  import { shortcutComboLabel, usesMacShortcutGlyphs } from './lib/stores/features/preferences';
+  import { RESPONSE_RIGHT_MIN_WIDTH } from './lib/stores/features/uiShell';
   import Sidebar from './lib/components/Sidebar.svelte';
   import StatusBar from './lib/components/StatusBar.svelte';
   import WorkspaceChrome from './lib/components/WorkspaceChrome.svelte';
   import WorkspaceOverview from './lib/components/WorkspaceOverview.svelte';
   import GlobalsWorkspace from './lib/components/GlobalsWorkspace.svelte';
+  import HistoryDetail from './lib/components/HistoryDetail.svelte';
   import { METHODS, REQUEST_TYPES, DEFAULT_WORKSPACE, RAW_BODY_TYPES } from './lib/constants';
   import './styles/sse.css';
   import { installTitlebarDoubleClickHandler } from './lib/windowControls';
-  import { methodColor, requestTabLabel, requestTransportLabel, activeCount, statusClass, formatSize, scriptLineCount } from './lib/utils';
+  import { methodColor, requestTabLabel, requestTransportLabel, activeCount, statusClass, formatSize, scriptLineCount, requestSupportsCurl } from './lib/utils';
   import type { SnippetLanguage } from './lib/stores/ui';
   import type { ResponseTab } from './lib/types/models';
+  import { shouldVirtualizeResponseBody, type ResponseRenderMode } from './lib/response-render';
+  import { tallyCollectionRun } from './lib/collectionRuns';
 
   const AUTO_UPDATE_INSTALL_KEY = 'relay:auto-update-install';
   const UPDATE_READY_KEY = 'relay:update-ready';
@@ -69,6 +75,21 @@
   let focusedBeforeWindowBlur: HTMLElement | null = null;
   let codePanelAvailable = $derived(vm.codePanelAvailable);
   let sseSessionVisible = $derived(vm.sseSessionIsVisible());
+  let requestSplitWidth = $state(0);
+  let activeRequestLocation = $derived.by(() => {
+    const request = vm.activeRequest;
+    if (!request || request.isDraft) return '';
+    const collection = vm.collections.find(candidate => candidate.id === request.collectionId);
+    return [collection?.name ?? '', ...(request.folderPath ?? [])].filter(Boolean).join(' / ');
+  });
+  let activeCollectionLastRun = $derived.by(() => {
+    const record = vm.activeCollectionSettings ? vm.collectionLastRuns[vm.activeCollectionSettings.id] : undefined;
+    return record ? { ...tallyCollectionRun(record), finishedAt: record.finishedAt } : null;
+  });
+  let historyDetailBody = $derived(vm.historyDetailResponse ? vm.formatResponseBody(vm.historyDetailResponse) : '');
+  let historyDetailMode = $derived<ResponseRenderMode>(!vm.historyDetailResponse ? 'text' : vm.isJsonResponse(vm.historyDetailResponse) ? 'json' : vm.isHtmlResponse(vm.historyDetailResponse) ? 'html' : 'text');
+  let historyDetailVirtualized = $derived(historyDetailBody ? shouldVirtualizeResponseBody(historyDetailBody, historyDetailMode) : false);
+  let responseOnRight = $derived(vm.responseLayout === 'right' && requestSplitWidth >= RESPONSE_RIGHT_MIN_WIDTH);
 
   function setRuntimePlatform(runtime: string) {
     const platform = runtime.split('/')[0] || 'browser';
@@ -160,6 +181,11 @@
   });
 
   $effect(() => {
+    vm.mockServerRoutesChanged();
+    untrack(() => vm.scheduleMockServerReload());
+  });
+
+  $effect(() => {
     vm.response;
     vm.responseSearch;
     vm.responseBodyPage;
@@ -180,10 +206,6 @@
       settingsOpen: vm.settingsOpen,
       sseSessionVisible,
     });
-  });
-
-  $effect(() => {
-    if (!codePanelAvailable && vm.codePanelOpen) vm.codePanelOpen = false;
   });
 
   $effect(() => {
@@ -375,7 +397,7 @@
 <main
   class="shell"
   class:resizing-sidebar={vm.sidebarResizing}
-  class:resizing-col={vm.colResizing !== null}
+  class:resizing-col={vm.colResizing !== null || vm.splitResizing}
   class:resizing-row={vm.panelResizing}
   class:resizing-code={vm.codePanelResizing}
   class:code-open={vm.codePanelOpen && codePanelAvailable}
@@ -388,6 +410,22 @@
     type="file"
     accept=".json,.yaml,.yml,.bru,.http,.rest,.har,application/json,application/yaml,text/yaml,text/x-yaml"
     onchange={vm.onPostmanImportFile}
+  />
+
+  <ActivityRail
+    bind:sidebarView={vm.sidebarView}
+    bind:sidebarHidden={vm.sidebarHidden}
+    topView={vm.topView}
+    mockRunning={vm.mockServer.running}
+    gitChangeCount={vm.gitStatus.files?.length ?? 0}
+    cookieCount={vm.cookies.length}
+    settingsShortcut={shortcutComboLabel('Meta+,', vm.appRuntime)}
+    workspaceBlocked={vm.workspaceBlocked}
+    openCollectionRunner={vm.openCollectionRunner}
+    openMockTab={vm.openMockServerTab}
+    openGitTab={() => vm.openGitTab()}
+    openCookieJar={vm.openCookieJar}
+    openSettings={vm.openSettings}
   />
 
   <Sidebar
@@ -436,7 +474,8 @@
     clearRequestHistory={vm.clearRequestHistory}
     toggleHistoryDay={vm.toggleHistoryDay}
     openHistoryEntry={vm.openHistoryEntry}
-    showHistoryResponse={vm.showHistoryResponse}
+    openHistoryDetail={vm.openHistoryDetail}
+    activeHistoryId={vm.topView === 'history' ? vm.historyDetailId : ''}
     saveHistoryEntryAsExample={(id) => vm.saveHistoryEntryAsExample(id)}
     historyTitle={vm.historyTitle}
     {statusClass}
@@ -451,9 +490,6 @@
     selectEnvironment={vm.selectEnvironment}
     openEnvironment={vm.openEnvironment}
     environmentValueCount={vm.environmentValueCount}
-    renameEnvironment={vm.renameEnvironment}
-    deleteEnvironment={vm.deleteEnvironment}
-    exportEnvironmentToPostman={vm.exportEnvironmentToPostman}
     openWorkspaceDiagnostic={vm.openWorkspaceDiagnostic}
     workspaceBlocked={vm.workspaceBlocked}
   />
@@ -484,11 +520,10 @@
       activeWorkspaceEnvironments={vm.activeWorkspaceEnvironments}
       activeEnvironmentId={vm.activeEnvironmentId}
       dirtyRequestIds={vm.dirtyRequestIdList}
-      activeRequestIsDirty={vm.activeRequestIsDirty}
-      activeRequestCanRevert={vm.activeRequestCanRevert}
       collectionRunnerOpen={vm.collectionRunnerOpen}
       collectionRunnerRunning={vm.collectionRunnerRunning}
       activeCollectionSettings={vm.activeCollectionSettings}
+      historyDetailOpen={Boolean(vm.historyDetailEntry)}
       gitTabOpen={vm.gitWorkspaceOpen}
       mockTabOpen={vm.mockServerTabOpen}
       mockRunning={vm.mockServer.running}
@@ -496,8 +531,6 @@
       autosave={vm.autosave}
       appRuntime={vm.appRuntime}
       workspaceBlocked={vm.workspaceBlocked}
-      saveActiveRequest={vm.saveActiveRequest}
-      revertActiveRequestChanges={vm.revertActiveRequestChanges}
       toggleWorkspaceMenu={vm.toggleWorkspaceMenu}
       createWorkspace={vm.createWorkspace}
       switchWorkspace={vm.switchWorkspace}
@@ -505,16 +538,13 @@
       workspaceRequestCountFor={vm.workspaceRequestCountFor}
       deleteWorkspace={vm.deleteWorkspace}
       openGlobalSearch={vm.openGlobalSearch}
-      openSettings={vm.openSettings}
-      openCookieJar={vm.openCookieJar}
-      openCollectionRunner={vm.openCollectionRunner}
       closeCollectionRunner={vm.closeCollectionRunnerTab}
       closeCollectionSettings={vm.closeCollectionSettingsTab}
+      closeHistoryDetail={vm.closeHistoryDetail}
       openGitTab={vm.openGitTab}
       closeGitTab={vm.closeGitTab}
       openMockTab={vm.openMockServerTab}
       closeMockTab={vm.closeMockServerTab}
-      cookieCount={vm.cookies.length}
       {requestTabLabel}
       switchRequest={vm.switchRequest}
       closeRequestTab={vm.closeRequestTab}
@@ -531,8 +561,11 @@
         activeWorkspace={vm.activeWorkspace}
         workspaceBlocked={vm.workspaceBlocked}
         defaultWorkspace={DEFAULT_WORKSPACE}
-        workspaceRequestCount={vm.workspaceRequestCount}
-        collectionCount={vm.collections.filter(c => c.workspaceId === vm.activeWorkspaceId).length}
+        collectionGroups={vm.collectionGroups}
+        history={vm.requestHistory}
+        environmentCount={vm.activeWorkspaceEnvironments.length}
+        storedInGit={vm.gitStatus.isRepo}
+        shortcutLabel={(id) => shortcutComboLabel(vm.shortcutCombo(id), vm.appRuntime)}
         updateWorkspaceDescription={vm.updateWorkspaceDescription}
         renameWorkspace={vm.renameWorkspace}
         createWorkspace={vm.createWorkspace}
@@ -540,9 +573,11 @@
         createCollection={vm.createCollection}
         createNewRequest={vm.createNewRequest}
         createEnvironment={vm.createEnvironment}
-        codePanelAvailable={codePanelAvailable}
-        onOpenCodePanel={() => { if (codePanelAvailable) vm.codePanelOpen = true; }}
-        onOpenGit={vm.openGitTab}
+        openImport={vm.openPostmanImport}
+        openGlobalSearch={vm.openGlobalSearch}
+        openCollectionRunner={() => vm.openCollectionRunner()}
+        openCollection={(id) => vm.openCollectionSettings(id)}
+        switchRequest={(id) => vm.switchRequest(id)}
       />
     {:else if vm.topView === 'git'}
       {#if lazy.GitWorkspaceComponent}
@@ -626,6 +661,17 @@
         updateEnvironmentRow={vm.updateEnvironmentRow}
         removeEnvironmentRow={vm.removeEnvironmentRow}
         importEnvFromFile={vm.importEnvFromFile}
+        exportEnvironment={vm.exportEnvironmentToPostman}
+        environments={vm.activeWorkspaceEnvironments}
+        environmentView={vm.environmentView}
+        setEnvironmentView={vm.setEnvironmentView}
+        openEnvironment={vm.openEnvironment}
+        setMatrixValue={vm.setEnvironmentMatrixValue}
+        unsetMatrixValue={vm.unsetEnvironmentMatrixValue}
+        setVariableSecret={vm.setEnvironmentVariableSecret}
+        renameVariable={vm.renameEnvironmentVariable}
+        addVariable={vm.addEnvironmentVariable}
+        removeVariable={vm.removeEnvironmentVariable}
       />
       {/if}
     {:else if vm.topView === 'collection'}
@@ -633,6 +679,8 @@
       <lazy.CollectionWorkspaceComponent
         collection={vm.activeCollectionSettings}
         requestCount={vm.activeCollectionSettings ? vm.collectionRequestCount(vm.activeCollectionSettings.id) : 0}
+        lastRun={activeCollectionLastRun}
+        onOpenRunner={vm.openCollectionRunner}
         bind:collectionSettingsTab={vm.collectionSettingsTab}
         autosave={vm.autosave}
         saveState={vm.collectionSettingsSaveState}
@@ -656,9 +704,7 @@
         busy={vm.mockServerBusy}
         error={vm.mockServerError}
         log={vm.mockServerLog}
-        routesChanged={vm.mockServerRoutesChanged()}
         onToggle={vm.toggleMockServer}
-        onReload={vm.reloadMockServerRoutes}
         onSelectCollection={vm.selectMockServerCollection}
         onPortChange={vm.setMockServerPort}
         onSimulateLatencyChange={(value: boolean) => (vm.mockServerSimulateLatency = value)}
@@ -667,12 +713,30 @@
         onOpenExample={(exampleId: string) => void vm.openMockRouteExample(exampleId)}
       />
       {/if}
+    {:else if vm.topView === 'history' && vm.historyDetailEntry}
+      {@const historyEntry = vm.historyDetailEntry}
+      {@const sourceRequest = historyEntry.sourceRequestId ? vm.requests.find(request => request.id === historyEntry.sourceRequestId && !request.isDraft) : undefined}
+      <HistoryDetail
+        entry={historyEntry}
+        response={vm.historyDetailResponse}
+        loading={vm.historyDetailLoading}
+        error={vm.historyDetailError}
+        source={sourceRequest ? { id: sourceRequest.id, location: [vm.collectionNameById(sourceRequest.collectionId), ...(sourceRequest.folderPath ?? [])].filter(Boolean).join(' / ') || 'its request' } : null}
+        displayBody={historyDetailBody}
+        renderMode={historyDetailMode}
+        virtualized={historyDetailVirtualized}
+        canCopyCurl={requestSupportsCurl(historyEntry.request)}
+        workspaceBlocked={vm.workspaceBlocked}
+        onOpenInEditor={() => vm.openHistoryEntry(historyEntry.id)}
+        onGoToSource={(id) => vm.switchRequest(id)}
+        onCopyCurl={() => vm.copyHistoryEntryCurl(historyEntry.id)}
+        onDelete={() => vm.deleteHistoryEntry(historyEntry.id)}
+      />
     {:else if vm.topView === 'runner'}
       {#if lazy.CollectionRunnerWorkspaceComponent}
       <lazy.CollectionRunnerWorkspaceComponent
         collections={vm.collectionRunnerCollections}
         selectedCollectionId={vm.collectionRunnerEffectiveCollectionId}
-        requests={vm.collectionRunnerRequests}
         filteredRequests={vm.collectionRunnerFilteredRequests}
         selectedRequestIds={vm.collectionRunnerSelectedRequestIds}
         selectedCount={vm.collectionRunnerSelectedCount}
@@ -689,6 +753,7 @@
         title={vm.collectionRunnerTitle}
         results={vm.collectionRunnerResults}
         summary={vm.collectionRunnerSummary}
+        lastRunAt={vm.collectionRunnerShowingLastRun ? vm.collectionRunnerFinishedAt : 0}
         {methodColor}
         {requestTabLabel}
         {requestTransportLabel}
@@ -715,6 +780,15 @@
     {:else}
       <RequestBar
         requestName={vm.requestHeaderName()}
+        requestLocation={activeRequestLocation}
+        showSave={!vm.workspaceBlocked && !vm.autosave && vm.activeRequestId !== ''}
+        saveDirty={!vm.workspaceBlocked && vm.activeRequestIsDirty}
+        canRevert={!vm.workspaceBlocked && vm.activeRequestCanRevert}
+        saveShortcut={shortcutComboLabel(vm.shortcutCombo('save-request'), vm.appRuntime)}
+        sendShortcut={shortcutComboLabel(vm.shortcutCombo('send-request'), vm.appRuntime)}
+        sendShortcutInline={usesMacShortcutGlyphs(vm.appRuntime)}
+        onSave={vm.saveActiveRequest}
+        onRevert={vm.revertActiveRequestChanges}
         requestType={vm.requestType}
         bind:method={vm.method}
         bind:url={vm.url}
@@ -744,7 +818,8 @@
         onGrpcDiscover={vm.discoverGrpcServices}
       />
 
-      <div class="request-editor" style="height: {vm.requestPanelHeight}px; --request-panel-h: {vm.requestPanelHeight}px">
+      <div class="request-split" class:split-right={responseOnRight} bind:clientWidth={requestSplitWidth} style="--request-split: {vm.requestSplitRatio}">
+      <div class="request-editor" style={responseOnRight ? '' : `height: ${vm.requestPanelHeight}px; --request-panel-h: ${vm.requestPanelHeight}px`}>
         <RequestEditorTabs
           bind:requestTab={vm.requestTab}
           requestType={vm.requestType}
@@ -758,10 +833,11 @@
           listenEventCount={activeCount(vm.sioEvents)}
           metadataCount={activeCount(vm.grpcMetadata)}
           grpcMethodSelected={Boolean(vm.grpcMethod)}
+          mcpArgumentsHaveContent={Boolean(vm.mcpArguments.trim())}
           exampleCount={vm.requestExamples.length}
         />
 
-        {#if vm.requestTab === 'body' && vm.requestType !== 'ws' && vm.requestType !== 'socketio' && vm.requestType !== 'graphql' && vm.requestType !== 'grpc'}
+        {#if vm.requestTab === 'body' && vm.requestType !== 'ws' && vm.requestType !== 'socketio' && vm.requestType !== 'graphql' && vm.requestType !== 'grpc' && vm.requestType !== 'mcp'}
           <BodyModeSelector
             bind:rawTypeMenuOpen={vm.rawTypeMenuOpen}
             rawBodyType={vm.rawBodyType}
@@ -777,7 +853,7 @@
           />
         {/if}
 
-        <div class="tab-content" class:body-editor-mode={(vm.requestTab === 'body' && (vm.requestType === 'ws' || vm.requestType === 'socketio' || vm.requestType === 'grpc' || !['none', 'form', 'urlencoded', 'binary'].includes(vm.bodyType))) || (vm.requestType === 'graphql' && (vm.requestTab === 'query' || vm.requestTab === 'schema'))}>
+        <div class="tab-content" class:body-editor-mode={(vm.requestTab === 'body' && (vm.requestType === 'ws' || vm.requestType === 'socketio' || vm.requestType === 'grpc' || vm.requestType === 'mcp' || !['none', 'form', 'urlencoded', 'binary'].includes(vm.bodyType))) || (vm.requestType === 'graphql' && (vm.requestTab === 'query' || vm.requestTab === 'schema'))}>
           {#if vm.requestTab === 'docs'}
             {#if lazy.DocsTabComponent}<lazy.DocsTabComponent />{/if}
           {:else if vm.requestTab === 'query'}
@@ -797,6 +873,8 @@
               {#if lazy.SocketIOMessageTabComponent}<lazy.SocketIOMessageTabComponent />{/if}
             {:else if vm.requestType === 'grpc'}
               {#if lazy.GrpcMessageTabComponent}<lazy.GrpcMessageTabComponent />{/if}
+            {:else if vm.requestType === 'mcp'}
+              {#if lazy.McpCallTabComponent}<lazy.McpCallTabComponent />{/if}
             {:else if lazy.BodyTabComponent}
               <lazy.BodyTabComponent />
             {/if}
@@ -824,13 +902,23 @@
         </div>
       </div>
 
-      <button
-        class="panel-divider"
-        type="button"
-        onmousedown={vm.startPanelResize}
-        onkeydown={vm.onPanelDividerKeydown}
-        aria-label="Resize panels"
-      ></button>
+      {#if responseOnRight}
+        <button
+          class="panel-divider panel-divider-vertical"
+          type="button"
+          onmousedown={vm.startSplitResize}
+          onkeydown={vm.onSplitDividerKeydown}
+          aria-label="Resize panels"
+        ></button>
+      {:else}
+        <button
+          class="panel-divider"
+          type="button"
+          onmousedown={vm.startPanelResize}
+          onkeydown={vm.onPanelDividerKeydown}
+          aria-label="Resize panels"
+        ></button>
+      {/if}
 
       {#if vm.requestType === 'ws'}
         {#if lazy.WebSocketPanelComponent}
@@ -883,6 +971,10 @@
         {#if lazy.GrpcResponsePanelComponent}
           <lazy.GrpcResponsePanelComponent />
         {/if}
+      {:else if vm.requestType === 'mcp'}
+        {#if lazy.McpResponsePanelComponent}
+          <lazy.McpResponsePanelComponent />
+        {/if}
       {:else if lazy.ResponsePanelComponent}
         <lazy.ResponsePanelComponent
           loading={vm.loading}
@@ -926,6 +1018,7 @@
           clearResponseDiffBaseline={() => vm.clearResponseDiffBaseline()}
         />
       {/if}
+      </div>
     {/if}
 
   </div>

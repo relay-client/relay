@@ -1,6 +1,7 @@
 <script lang="ts">
   import { vm } from '../stores/app.svelte';
   import { AUTH_OPTIONS } from '../constants';
+  import Select from './Select.svelte';
   import { decodeJwt, formatJwtClaimValue, formatJwtNumericDate, jwtClaimRows, jwtHeaderRows, jwtTokenState } from '../jwt';
 
   let jwtInspectorOpen = $state(false);
@@ -16,12 +17,24 @@
     { value: 'none', label: 'No Auth' },
   ] as const;
   let authOptions = $derived(vm.requestType === 'grpc' ? GRPC_AUTH_OPTIONS : AUTH_OPTIONS);
+  const OAUTH2_GRANT_OPTIONS = [
+    { value: 'client_credentials', label: 'Client credentials' },
+    { value: 'authorization_code', label: 'Authorization code' },
+    { value: 'device_code', label: 'Device code' },
+    { value: 'password', label: 'Password' },
+  ];
+  const OAUTH2_CLIENT_AUTH_OPTIONS = [
+    { value: 'basic', label: 'Send as Basic auth header' },
+    { value: 'body', label: 'Send client credentials in body' },
+    { value: 'client_secret_jwt', label: 'Client secret JWT (HS256)' },
+    { value: 'private_key_jwt', label: 'Private key JWT (RS256 / ES256)' },
+  ];
 
   let oauth2ActionLabel = $derived.by(() => {
     switch (vm.oauth2GrantType) {
       case 'authorization_code': return 'Authorize in browser';
       case 'device_code': return vm.oauth2Loading ? 'Waiting for approval…' : 'Start device sign-in';
-      default: return 'Get Access Token';
+      default: return 'Get access token';
     }
   });
 
@@ -43,9 +56,9 @@
 
 <div class="auth-section">
   <div class="auth-type-column">
-    <span class="field-label">Auth Type</span>
+    <span class="field-label">Auth type</span>
     <div class="auth-select">
-      <button class="auth-select-trigger" type="button" onclick={vm.toggleAuthMenu} aria-label="Auth Type" aria-expanded={vm.authMenuOpen}>
+      <button class="auth-select-trigger" type="button" onclick={vm.toggleAuthMenu} aria-label="Auth type" aria-expanded={vm.authMenuOpen}>
         <span>{vm.authLabel()}</span>
         <svg width="10" height="7" viewBox="0 0 10 7" fill="none" aria-hidden="true">
           <path d="M1.5 2L5 5.5L8.5 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -53,7 +66,7 @@
       </button>
       {#if vm.authMenuOpen}
         <div class="auth-select-menu" class:grpc-auth-menu={vm.requestType === 'grpc'}>
-          {#each authOptions as option}
+          {#each authOptions as option, eachIndex (eachIndex)}
             <button class:active={vm.authType === option.value} class:auth-option-separated={vm.requestType === 'grpc' && option.value === 'none'} type="button" onclick={() => vm.selectAuthType(option.value)}>
               {#if vm.authType === option.value}<span class="auth-check">✓</span>{:else}<span class="auth-check"></span>{/if}
               <span>{option.label}</span>
@@ -109,7 +122,7 @@
               <section class="jwt-section">
                 <h3>Header</h3>
                 <div class="jwt-claims">
-                  {#each jwtHeaderRows(jwtDecoded.header) as [key, value]}
+                  {#each jwtHeaderRows(jwtDecoded.header) as [key, value], eachIndex (eachIndex)}
                     <div class="jwt-claim-row">
                       <span class="jwt-claim-key">{key}</span>
                       <span class="jwt-claim-value">{formatJwtClaimValue(value)}</span>
@@ -120,7 +133,7 @@
               <section class="jwt-section">
                 <h3>Claims</h3>
                 <div class="jwt-claims">
-                  {#each jwtClaimRows(jwtDecoded.payload) as [key, value]}
+                  {#each jwtClaimRows(jwtDecoded.payload) as [key, value], eachIndex (eachIndex)}
                     <div class="jwt-claim-row">
                       <span class="jwt-claim-key">{key}</span>
                       <span class="jwt-claim-value">
@@ -163,18 +176,13 @@
 
     {:else if vm.authType === 'oauth2'}
       <span class="field-label">Grant type</span>
-      <div class="radio-group">
-        <label class="radio-label"><input type="radio" bind:group={vm.oauth2GrantType} value="client_credentials" /> Client Credentials</label>
-        <label class="radio-label"><input type="radio" bind:group={vm.oauth2GrantType} value="authorization_code" /> Authorization Code</label>
-        <label class="radio-label"><input type="radio" bind:group={vm.oauth2GrantType} value="device_code" /> Device Code</label>
-        <label class="radio-label"><input type="radio" bind:group={vm.oauth2GrantType} value="password" /> Password</label>
-      </div>
+      <Select bind:value={vm.oauth2GrantType} options={OAUTH2_GRANT_OPTIONS} className="auth-field-select" ariaLabel="Grant type" />
       {#if vm.oauth2GrantType === 'authorization_code'}
         <label class="field-label" for="oauth2-auth-url">Authorization URL</label>
         <input id="oauth2-auth-url" class="field-input" bind:value={vm.oauth2AuthURL} placeholder="https://auth.example.com/oauth/authorize" spellcheck="false" />
       {/if}
       {#if vm.oauth2GrantType === 'device_code'}
-        <label class="field-label" for="oauth2-device-url">Device Authorization URL</label>
+        <label class="field-label" for="oauth2-device-url">Device authorization URL</label>
         <input id="oauth2-device-url" class="field-input" bind:value={vm.oauth2DeviceAuthURL} placeholder="https://auth.example.com/oauth/device/code" spellcheck="false" />
       {/if}
       <label class="field-label" for="oauth2-url">Token URL</label>
@@ -194,14 +202,9 @@
       <label class="field-label" for="oauth2-id">Client ID</label>
       <input id="oauth2-id" class="field-input" bind:value={vm.oauth2ClientID} spellcheck="false" />
       <span class="field-label">Client authentication</span>
-      <select class="field-input" bind:value={vm.oauth2ClientAuth} aria-label="Client authentication method">
-        <option value="basic">Send as Basic auth header</option>
-        <option value="body">Send client credentials in body</option>
-        <option value="client_secret_jwt">Client secret JWT (HS256)</option>
-        <option value="private_key_jwt">Private key JWT (RS256 / ES256)</option>
-      </select>
+      <Select bind:value={vm.oauth2ClientAuth} options={OAUTH2_CLIENT_AUTH_OPTIONS} className="auth-field-select" ariaLabel="Client authentication method" />
       {#if vm.oauth2ClientAuth !== 'private_key_jwt'}
-        <label class="field-label" for="oauth2-secret">Client Secret{#if vm.oauth2GrantType === 'authorization_code'} <span class="field-label-hint">(optional with PKCE)</span>{/if}</label>
+        <label class="field-label" for="oauth2-secret">Client secret{#if vm.oauth2GrantType === 'authorization_code'} <span class="field-label-hint">(optional with PKCE)</span>{/if}</label>
         <input id="oauth2-secret" class="field-input" bind:value={vm.oauth2Secret} type="password" />
       {/if}
       {#if vm.oauth2ClientAuth === 'private_key_jwt'}
@@ -237,7 +240,7 @@
         </div>
       {/if}
       <div class="oauth2-token-row">
-        <button class="btn-primary btn-sm" type="button" disabled={vm.oauth2Loading} onclick={vm.fetchOAuth2Token}>
+        <button class="btn-secondary btn-sm" type="button" disabled={vm.oauth2Loading} onclick={vm.fetchOAuth2Token}>
           {#if vm.oauth2Loading}<span class="spinner-sm"></span>{/if}
           {oauth2ActionLabel}
         </button>
@@ -255,11 +258,11 @@
     {:else if vm.authType === 'aws'}
       <div class="auth-grid-2">
         <div>
-          <label class="field-label" for="aws-key">Access Key ID</label>
+          <label class="field-label" for="aws-key">Access key ID</label>
           <input id="aws-key" class="field-input field-mono" bind:value={vm.awsAccessKey} spellcheck="false" />
         </div>
         <div>
-          <label class="field-label" for="aws-secret">Secret Access Key</label>
+          <label class="field-label" for="aws-secret">Secret access key</label>
           <input id="aws-secret" class="field-input field-mono" bind:value={vm.awsSecretKey} type="password" />
         </div>
         <div class="auth-grid-span">

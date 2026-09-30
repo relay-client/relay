@@ -44,9 +44,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  height: 52px;
-  padding: 8px 12px;
+  gap: 8px;
+  height: 45px;
+  padding: 0 8px 0 10px;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
   flex-shrink: 0;
@@ -60,19 +60,18 @@
 .snippet-select-trigger {
   display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  height: 36px;
-  min-width: 160px;
-  max-width: min(260px, calc(var(--code-w, 330px) - 56px));
-  padding: 0 10px 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--elevated);
+  gap: 7px;
+  height: 28px;
+  max-width: calc(var(--code-w, 330px) - 96px);
+  padding: 0 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
   color: var(--text);
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 500;
   line-height: 1;
-  transition: border-color 0.15s, background 0.15s;
+  transition: background 0.12s, color 0.12s;
 }
 
 .snippet-select-trigger span {
@@ -86,17 +85,16 @@
 
 .snippet-select-trigger:hover,
 .snippet-select-trigger[aria-expanded="true"] {
-  border-color: var(--accent-hover);
   background: var(--hover);
 }
 
 .snippet-select-menu {
   position: absolute;
   z-index: 70;
-  top: 42px;
+  top: 34px;
   left: 0;
   width: 210px;
-  padding: 6px;
+  padding: 5px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--elevated);
@@ -124,8 +122,14 @@
 
 .code-panel-toolbar .btn-icon,
 .code-panel-toolbar .code-copy-btn {
-  border-color: var(--border);
-  color: var(--text-2);
+  height: 28px;
+  padding: 0 9px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-3);
+  font-size: 12.5px;
+  font-weight: 500;
 }
 .code-panel-toolbar .btn-icon:hover,
 .code-panel-toolbar .code-copy-btn:hover {
@@ -139,25 +143,15 @@
   white-space: nowrap;
 }
 
-.code-panel-title {
-  color: var(--text);
-  font-size: 12px;
-  font-weight: 800;
-  line-height: 1.2;
-}
-
-.code-panel-title {
-  display: flex;
-  align-items: center;
-  min-height: 30px;
-  padding: 7px 14px 8px;
+.code-panel-toolbar .code-copy-btn.feedback-ok {
+  color: var(--s2xx);
 }
 
 .curl-preview {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 4px 0 18px;
+  padding: 10px 0 18px;
   background: var(--surface);
   font-family: var(--font-mono);
   font-size: 12px;

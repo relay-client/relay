@@ -38,7 +38,6 @@ function makeHost(variables: KVRow[] = []) {
     guardWorkspaceWritable: () => true,
     persistRequestStore: vi.fn().mockResolvedValue(true),
     applyCollectionVariableUpdates: collectionDefaultsFeature.applyCollectionVariableUpdates,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
 }
 

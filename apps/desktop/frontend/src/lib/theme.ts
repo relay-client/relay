@@ -54,7 +54,7 @@ export const THEME_VARIANTS: ThemeVariant[] = [
     id: 'light',
     mode: 'light',
     name: 'Light',
-    preview: { background: '#ffffff', surface: '#f8f8f8', rail: '#f1f1f1', border: '#cccccc', accent: '#4a55d4', text: '#343434' },
+    preview: { background: '#ffffff', surface: '#f7f7f8', rail: '#ececef', border: '#dfdfe4', accent: '#4f5be8', text: '#17171a' },
   },
   {
     id: 'light-monochrome',
@@ -84,7 +84,7 @@ export const THEME_VARIANTS: ThemeVariant[] = [
     id: 'dark',
     mode: 'dark',
     name: 'Dark',
-    preview: { background: '#1a1a1a', surface: '#222224', rail: '#333333', border: '#444444', accent: '#5865f2', text: '#cccccc' },
+    preview: { background: '#111113', surface: '#0c0c0e', rail: '#1f1f23', border: '#2d2d32', accent: '#5865f2', text: '#ececef' },
   },
   {
     id: 'dark-monochrome',

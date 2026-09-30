@@ -39,7 +39,7 @@
       {#if !autosave}
         <button class="btn-primary btn-sm" type="button" onclick={save} disabled={saveState === 'saving'}>Save</button>
       {/if}
-      <button class="btn-secondary btn-sm" type="button" onclick={clearAll} disabled={!filled}>Clear all</button>
+      <button class="btn-ghost btn-sm" type="button" onclick={clearAll} disabled={!filled}>Clear all</button>
     </div>
   </header>
 
@@ -54,6 +54,7 @@
       <div class="globals-row" role="row">
         <span role="cell" class="globals-col-toggle">
           <input
+            class="kv-check"
             type="checkbox"
             checked={row.enabled}
             aria-label={`Enable ${row.key || 'variable'}`}
@@ -116,22 +117,23 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 20px;
-    padding: 16px;
-    border-bottom: 1px solid var(--border-subtle);
+    padding: 36px 48px 0;
   }
 
   .globals-heading h2 {
     margin: 0;
     color: var(--text);
-    font-size: 13px;
-    font-weight: 800;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
   }
 
   .globals-heading p {
-    margin: 5px 0 0;
-    max-width: 62ch;
-    color: var(--text-3);
-    font-size: 12px;
+    margin: 6px 0 0;
+    max-width: 70ch;
+    color: var(--text-2);
+    font-size: 13px;
     line-height: 1.5;
   }
 
@@ -156,7 +158,8 @@
   .globals-table {
     display: flex;
     flex-direction: column;
-    padding: 8px 16px 24px;
+    margin: 28px 48px 48px;
+    border-top: 1px solid var(--border-subtle);
   }
 
   .globals-row {
@@ -170,14 +173,11 @@
 
   .globals-row-head {
     color: var(--text-3);
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    font-size: 12px;
+    font-weight: 500;
   }
 
   .globals-col-toggle { display: grid; place-items: center; }
-  .globals-col-toggle input { accent-color: var(--accent); }
 
   .globals-col-actions {
     display: flex;
@@ -204,19 +204,21 @@
   .globals-input-mono { font-family: var(--font-mono); font-size: 11px; }
 
   .globals-secret-toggle {
-    height: 22px;
+    height: 24px;
     padding: 0 8px;
-    border: 1px solid var(--border);
+    border: none;
     border-radius: 5px;
     background: transparent;
     color: var(--text-3);
-    font-size: 10px;
-    font-weight: 700;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .globals-secret-toggle:hover {
+    background: var(--hover);
+    color: var(--text);
   }
   .globals-secret-toggle.active {
-    border-color: var(--accent);
-    background: var(--accent-dim);
-    color: var(--text);
+    color: var(--accent-hover);
   }
 
   .globals-remove {
@@ -230,7 +232,6 @@
     line-height: 1;
   }
   .globals-remove:hover {
-    border-color: var(--border);
     color: var(--text);
     background: var(--hover);
   }

@@ -1,11 +1,11 @@
 <script lang="ts">
   import { onMount, onDestroy, untrack } from 'svelte';
-  import { Decoration, EditorView, ViewPlugin, keymap, placeholder as cmPlaceholder, lineNumbers, highlightActiveLine, highlightActiveLineGutter, type DecorationSet, type ViewUpdate } from '@codemirror/view';
+  import { Decoration, EditorView, ViewPlugin, hoverTooltip, keymap, placeholder as cmPlaceholder, lineNumbers, highlightActiveLine, highlightActiveLineGutter, type DecorationSet, type ViewUpdate } from '@codemirror/view';
   import { EditorState, Compartment, RangeSetBuilder, type Extension } from '@codemirror/state';
   import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
   import { syntaxHighlighting, HighlightStyle, indentOnInput, bracketMatching, foldGutter, foldKeymap, StreamLanguage } from '@codemirror/language';
   import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap, type CompletionContext } from '@codemirror/autocomplete';
-  import { linter, type Diagnostic } from '@codemirror/lint';
+  import { forEachDiagnostic, linter, type Diagnostic } from '@codemirror/lint';
   import { tags } from '@lezer/highlight';
   import { selectedLineNumbersForComment } from './editorSelection';
   import { formatJsonDocument, validateJsonDocument } from './jsonEditing';
@@ -53,7 +53,7 @@
   let lastPlaceholder = '';
   const languageCompartment = new Compartment();
   const placeholderCompartment = new Compartment();
-  const languageExtensions = new Map<Lang, Extension>();
+  const languageExtensions: Partial<Record<Lang, Extension>> = {};
   const singleLinePlaceholder = $derived(placeholder.replace(/\s+/g, ' ').trim());
 
   function relayTheme() {
@@ -66,19 +66,13 @@
       height: fillHeight ? '100%' : 'auto',
     },
     '.cm-content': {
-      padding: '0',
+      padding: compact ? '7px 0' : '10px 0',
       caretColor: 'var(--accent)',
       minHeight: minHeight,
     },
     '.cm-line': {
       padding: '0 12px',
       minHeight: compact ? '1.42em' : '1.65em',
-    },
-    '.cm-line:first-child': {
-      paddingTop: compact ? '7px' : '10px',
-    },
-    '.cm-line:last-child': {
-      paddingBottom: compact ? '7px' : '10px',
     },
     '.cm-scroller': {
       overflow: 'auto',
@@ -97,8 +91,8 @@
     },
     '&.cm-focused .cm-matchingBracket': { backgroundColor: 'var(--accent-dim)', outline: '1px solid var(--accent)' },
     '.cm-gutters': {
-      backgroundColor: 'var(--surface)',
-      borderRight: '1px solid var(--border-subtle)',
+      backgroundColor: 'transparent',
+      borderRight: 'none',
       color: 'var(--text-3)',
       userSelect: 'none',
     },
@@ -230,11 +224,11 @@
   });
 
   function immediateLangExtension(lang: Lang): Extension {
-    return languageExtensions.get(lang) ?? (lang === 'graphql' ? graphQLLanguage : []);
+    return languageExtensions[lang] ?? (lang === 'graphql' ? graphQLLanguage : []);
   }
 
   async function loadLangExtension(lang: Lang): Promise<Extension> {
-    const cached = languageExtensions.get(lang);
+    const cached = languageExtensions[lang];
     if (cached) return cached;
 
     let extension: Extension;
@@ -257,7 +251,7 @@
       default:
         extension = [];
     }
-    languageExtensions.set(lang, extension);
+    languageExtensions[lang] = extension;
     return extension;
   }
 
@@ -448,7 +442,48 @@
     }];
   }
 
-  const relayLinter = linter(relayDiagnostics, { delay: 300 });
+  const relayLinter = linter(relayDiagnostics, {
+    delay: 300,
+    tooltipFilter: () => null as unknown as Diagnostic[],
+  });
+
+  const relayLintTooltip = hoverTooltip((hoverView, pos, side) => {
+    const found: Diagnostic[] = [];
+    let start = -1;
+    let end = -1;
+    forEachDiagnostic(hoverView.state, (diagnostic, from, to) => {
+      if (pos < from || pos > to || (pos === from && side < 0 && from !== to) || (pos === to && side > 0 && from !== to)) return;
+      found.push(diagnostic);
+      start = start < 0 ? from : Math.min(start, from);
+      end = Math.max(end, to);
+    });
+    if (!found.length) return null;
+    return {
+      pos: start,
+      end,
+      above: false,
+      create() {
+        const dom = document.createElement('ul');
+        dom.className = 'cm-tooltip-lint';
+        for (const diagnostic of found) {
+          const item = document.createElement('li');
+          item.className = `cm-diagnostic cm-diagnostic-${diagnostic.severity}`;
+          const text = document.createElement('span');
+          text.className = 'cm-diagnosticText';
+          text.textContent = diagnostic.message;
+          item.append(text);
+          if (diagnostic.source) {
+            const source = document.createElement('div');
+            source.className = 'cm-diagnosticSource';
+            source.textContent = diagnostic.source;
+            item.append(source);
+          }
+          dom.append(item);
+        }
+        return { dom };
+      },
+    };
+  }, { hideOnChange: true });
 
   function toggleSelectedLineComments() {
     if (!view || readonly) return false;
@@ -508,6 +543,7 @@
       autocompletion({ override: [variableCompletionSource] }),
       commentDecorationPlugin,
       relayLinter,
+      relayLintTooltip,
       keymap.of([
         { key: 'Mod-/', run: toggleSelectedLineComments },
         { key: 'Mod-Shift-f', run: () => { format(); return true; } },

@@ -45,10 +45,16 @@ type HistoryHost = {
   activeSecretEnvironmentValues: () => string[];
   requestError: string;
   collectionImportToast: string;
+  historyDetailId: string;
+  historyDetailResponse: HttpResponse | null;
+  historyDetailLoading: boolean;
+  historyDetailError: string;
+  closeHistoryDetail: () => void;
 };
 
 const HISTORY_RETENTION_MS = 14 * 24 * 60 * 60 * 1000;
 const HISTORY_LIMIT = 1000;
+export const HISTORY_RESPONSE_MAX_BYTES = 2 * 1024 * 1024;
 
 function historyResponseSnapshot(response: HttpResponse): HttpResponse {
   return {
@@ -60,11 +66,77 @@ function historyResponseSnapshot(response: HttpResponse): HttpResponse {
   };
 }
 
+function utf8Length(text: string): number {
+  return new TextEncoder().encode(text).length;
+}
+
+export function historyResponsePayload(response: HttpResponse, maxBytes = HISTORY_RESPONSE_MAX_BYTES): { payload: string; truncated: boolean } {
+  const snapshot = historyResponseSnapshot(response);
+  let payload = JSON.stringify(snapshot);
+  let size = utf8Length(payload);
+  if (size <= maxBytes) return { payload, truncated: false };
+  let body = snapshot.body ?? '';
+  for (let attempt = 0; attempt < 8 && size > maxBytes && body; attempt += 1) {
+    body = body.slice(0, Math.floor(body.length * (maxBytes / size) * 0.97));
+    payload = JSON.stringify({ ...snapshot, body });
+    size = utf8Length(payload);
+  }
+  if (size > maxBytes) payload = JSON.stringify({ ...snapshot, body: '' });
+  return { payload, truncated: true };
+}
+
 export function historyContentType(response: HttpResponse): string {
   return (response.headers ?? []).find(header => header.key.toLowerCase() === 'content-type')?.value ?? '';
 }
 
+let historyDetailToken = 0;
+
 export const historyFeature = {
+  get historyDetailEntry(): RequestHistoryEntry | null {
+    const host = this as unknown as HistoryHost;
+    if (!host.historyDetailId) return null;
+    return host.requestHistory.find(entry => entry.id === host.historyDetailId) ?? null;
+  },
+
+  async openHistoryDetail(this: HistoryHost, historyId: string) {
+    const entry = this.requestHistory.find(candidate => candidate.id === historyId);
+    if (!entry) return;
+    this.openHistoryMenuId = '';
+    this.historyDetailId = historyId;
+    this.historyDetailResponse = null;
+    this.historyDetailError = '';
+    this.topView = 'history';
+    if (!entry.responseStored) {
+      this.historyDetailLoading = false;
+      return;
+    }
+    const token = ++historyDetailToken;
+    this.historyDetailLoading = true;
+    let response: HttpResponse | null = null;
+    let error = '';
+    try {
+      const result = await loadHistoryResponse(historyId);
+      if (result.error) error = `Could not read the stored response: ${result.error}`;
+      else if (result.stored && result.payload) response = JSON.parse(result.payload) as HttpResponse;
+      else error = 'The response for this entry is no longer stored.';
+    } catch (caught) {
+      error = caught instanceof Error ? caught.message : String(caught);
+    }
+    if (token !== historyDetailToken || this.historyDetailId !== historyId) return;
+    this.historyDetailResponse = response;
+    this.historyDetailError = error;
+    this.historyDetailLoading = false;
+  },
+
+  closeHistoryDetail(this: HistoryHost) {
+    historyDetailToken += 1;
+    this.historyDetailId = '';
+    this.historyDetailResponse = null;
+    this.historyDetailError = '';
+    this.historyDetailLoading = false;
+    if (this.topView === 'history') this.topView = this.activeRequestId ? 'request' : 'overview';
+  },
+
   pruneHistory(this: HistoryHost, entries = this.requestHistory): RequestHistoryEntry[] {
     const cutoff = Date.now() - HISTORY_RETENTION_MS;
     return entries
@@ -109,6 +181,7 @@ export const historyFeature = {
     const entry: RequestHistoryEntry = {
       id: newEntityId('history'),
       request: snapshot,
+      ...(baseRequest.id ? { sourceRequestId: baseRequest.id } : {}),
       statusCode: httpResponse.statusCode,
       status: httpResponse.status,
       duration: httpResponse.duration,
@@ -118,9 +191,10 @@ export const historyFeature = {
     };
 
     try {
-      const result = await saveHistoryResponse(entry.id, JSON.stringify(historyResponseSnapshot(httpResponse)));
+      const { payload, truncated } = historyResponsePayload(httpResponse);
+      const result = await saveHistoryResponse(entry.id, payload);
       entry.responseStored = result.stored;
-      entry.responseTruncated = result.truncated;
+      entry.responseTruncated = truncated || result.truncated;
     } catch {
       entry.responseStored = false;
     }
@@ -240,6 +314,7 @@ export const historyFeature = {
     if (!this.guardWorkspaceWritable('Deleting history')) return;
     this.requestHistory = this.requestHistory.filter(entry => entry.id !== historyId);
     this.openHistoryMenuId = '';
+    if (this.historyDetailId === historyId) this.closeHistoryDetail();
     await this.persistRequestStore();
     void this.pruneStoredResponses();
   },
@@ -249,6 +324,7 @@ export const historyFeature = {
     if (!confirmed) return;
     this.requestHistory = [];
     this.historyHeaderMenuOpen = false;
+    if (this.historyDetailId) this.closeHistoryDetail();
     await this.persistRequestStore();
     try { await clearHistoryResponses(); } catch {  }
   },

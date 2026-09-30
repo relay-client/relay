@@ -4,10 +4,11 @@
   import type { RequestType } from '../types/models';
 
   type RequestTab = 'docs' | 'params' | 'query' | 'auth' | 'headers' | 'metadata' | 'body' | 'schema' | 'service' | 'scripts' | 'settings' | 'events' | 'examples';
-  type BadgeKind = 'default' | 'on' | 'script';
+  type BadgeKind = 'default' | 'on';
   type TabItem = {
     id: RequestTab;
     label: string;
+    short?: string;
     badge?: string;
     badgeKind?: BadgeKind;
   };
@@ -25,6 +26,7 @@
     listenEventCount = 0,
     metadataCount = 0,
     grpcMethodSelected = false,
+    mcpArgumentsHaveContent = false,
     exampleCount = 0,
   }: {
     requestTab: RequestTab;
@@ -39,6 +41,7 @@
     listenEventCount?: number;
     metadataCount?: number;
     grpcMethodSelected?: boolean;
+    mcpArgumentsHaveContent?: boolean;
     exampleCount?: number;
   } = $props();
 
@@ -50,9 +53,9 @@
   function buildTabItems(): TabItem[] {
     const docs: TabItem = { id: 'docs', label: 'Docs' };
     const params: TabItem = { id: 'params', label: 'Params', badge: paramsCount > 0 ? String(paramsCount) : undefined };
-    const auth: TabItem = { id: 'auth', label: 'Authorization', badge: authConfigured ? 'On' : undefined, badgeKind: 'on' };
+    const auth: TabItem = { id: 'auth', label: 'Authorization', short: 'Auth', badge: authConfigured ? 'On' : undefined, badgeKind: 'on' };
     const headers: TabItem = { id: 'headers', label: 'Headers', badge: headerCount > 0 ? String(headerCount) : undefined };
-    const scripts: TabItem = { id: 'scripts', label: 'Scripts', badge: scriptLineCount > 0 ? `${scriptLineCount}L` : undefined, badgeKind: 'script' };
+    const scripts: TabItem = { id: 'scripts', label: 'Scripts', badge: scriptLineCount > 0 ? `${scriptLineCount} lines` : undefined, badgeKind: 'on' };
     const settings: TabItem = { id: 'settings', label: 'Settings' };
     const examples: TabItem = {
       id: 'examples',
@@ -68,6 +71,18 @@
         headers,
         { id: 'schema', label: 'Schema' },
         scripts,
+        examples,
+      ];
+    }
+
+    if (requestType === 'mcp') {
+      return [
+        docs,
+        { id: 'body', label: 'Arguments', badge: mcpArgumentsHaveContent ? 'On' : undefined, badgeKind: 'on' },
+        auth,
+        headers,
+        scripts,
+        settings,
         examples,
       ];
     }
@@ -186,7 +201,7 @@
   use:observeTabsWidth
 >
   <div class="tabs" role="tablist" use:tabListKeyboard bind:this={tabsEl}>
-    {#each tabItems as item}
+    {#each tabItems as item, eachIndex (eachIndex)}
       <button
         role="tab"
         class:active={requestTab === item.id}
@@ -194,10 +209,11 @@
         tabindex={requestTab === item.id ? 0 : -1}
         onclick={() => selectTab(item.id)}
         type="button"
+        aria-label={item.short ? `${item.label}${item.badge ? ` ${item.badge}` : ''}` : undefined}
       >
-        {item.label}
+        {item.short ?? item.label}
         {#if item.badge}
-          <span class="badge" class:badge-on={item.badgeKind === 'on'} class:badge-script={item.badgeKind === 'script'}>{item.badge}</span>
+          <span class="badge" class:badge-on={item.badgeKind === 'on'}>{item.badge}</span>
         {/if}
       </button>
     {/each}
@@ -215,7 +231,7 @@
     >
       <span class="request-tab-compact-label">{activeTabItem.label}</span>
       {#if activeTabItem.badge}
-        <span class="badge" class:badge-on={activeTabItem.badgeKind === 'on'} class:badge-script={activeTabItem.badgeKind === 'script'}>{activeTabItem.badge}</span>
+        <span class="badge" class:badge-on={activeTabItem.badgeKind === 'on'}>{activeTabItem.badge}</span>
       {/if}
       <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
         <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -224,7 +240,7 @@
 
     {#if compactMenuOpen}
       <div class="request-tab-compact-list" role="listbox" aria-label="Request sections">
-        {#each tabItems as item}
+        {#each tabItems as item, eachIndex (eachIndex)}
           <button
             class:active={requestTab === item.id}
             role="option"
@@ -235,7 +251,7 @@
             <span class="request-tab-compact-check">{requestTab === item.id ? '✓' : ''}</span>
             <span>{item.label}</span>
             {#if item.badge}
-              <span class="badge" class:badge-on={item.badgeKind === 'on'} class:badge-script={item.badgeKind === 'script'}>{item.badge}</span>
+              <span class="badge" class:badge-on={item.badgeKind === 'on'}>{item.badge}</span>
             {/if}
           </button>
         {/each}

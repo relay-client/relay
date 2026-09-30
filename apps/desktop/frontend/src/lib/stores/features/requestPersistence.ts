@@ -12,6 +12,7 @@ import type {
 } from '../../types/models';
 import { cloneRowsForStore } from '../../utils';
 import type { CookieJarEntry } from '../../backend';
+import type { CollectionRunRecord } from '../../collectionRuns';
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -44,6 +45,7 @@ type RequestPersistenceHost = {
   savedRequestSnapshots: Map<string, SavedRequest>;
   workspaceBlocked: boolean;
   workspaceCookies: Record<string, CookieJarEntry[]>;
+  collectionLastRuns: Record<string, CollectionRunRecord>;
   workspacePersistTimer: ReturnType<typeof setTimeout> | null;
   workspaces: Workspace[];
   applySavedRequest: (request: SavedRequest) => void;
@@ -164,6 +166,9 @@ export const requestPersistenceFeature = {
       history: this.pruneHistory(nextHistory),
       globals: cloneRowsForStore(this.globalVariables),
       workspaceCookies: storeWorkspaceCookies,
+      collectionRuns: Object.fromEntries(
+        Object.entries(this.collectionLastRuns).filter(([collectionId]) => storeCollections.some(collection => collection.id === collectionId)),
+      ),
     };
   },
 

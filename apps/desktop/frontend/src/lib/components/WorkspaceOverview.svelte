@@ -1,13 +1,18 @@
 <script lang="ts">
-  import type { Workspace } from '../types/models';
+  import RequestTypeBadge from './RequestTypeBadge.svelte';
+  import { requestTabLabel, statusClass } from '../utils';
+  import type { CollectionGroup, FolderGroup, RequestHistoryEntry, SavedRequest, Workspace } from '../types/models';
   import type { SettingsTab } from '../stores/ui';
 
   let {
     activeWorkspace,
     workspaceBlocked = false,
     defaultWorkspace,
-    workspaceRequestCount,
-    collectionCount,
+    collectionGroups,
+    history,
+    environmentCount,
+    storedInGit = false,
+    shortcutLabel,
     updateWorkspaceDescription,
     renameWorkspace,
     createWorkspace,
@@ -15,15 +20,20 @@
     createCollection,
     createNewRequest,
     createEnvironment,
-    codePanelAvailable = true,
-    onOpenCodePanel,
-    onOpenGit,
+    openImport,
+    openGlobalSearch,
+    openCollectionRunner,
+    openCollection,
+    switchRequest,
   }: {
     activeWorkspace: Workspace | undefined;
     workspaceBlocked?: boolean;
     defaultWorkspace: string;
-    workspaceRequestCount: () => number;
-    collectionCount: number;
+    collectionGroups: CollectionGroup[];
+    history: RequestHistoryEntry[];
+    environmentCount: number;
+    storedInGit?: boolean;
+    shortcutLabel: (id: 'new-request' | 'search' | 'shortcut-help') => string;
     updateWorkspaceDescription: (value: string) => void;
     renameWorkspace: () => void;
     createWorkspace: () => void;
@@ -31,10 +41,68 @@
     createCollection: () => void;
     createNewRequest: () => void;
     createEnvironment: () => void;
-    codePanelAvailable?: boolean;
-    onOpenCodePanel: () => void;
-    onOpenGit: () => void;
+    openImport: () => void;
+    openGlobalSearch: () => void;
+    openCollectionRunner: () => void;
+    openCollection: (collectionId: string) => void;
+    switchRequest: (requestId: string) => void;
   } = $props();
+
+  const RECENT_LIMIT = 6;
+
+  type RecentRow = { request: SavedRequest; location: string; statusCode: number; createdAt: number };
+
+  function countFolders(folders: FolderGroup[]): number {
+    return folders.reduce((total, folder) => total + 1 + countFolders(folder.children), 0);
+  }
+
+  function folderPathFor(request: SavedRequest): string {
+    return (request.folderPath ?? []).join(' / ');
+  }
+
+  let requestCount = $derived(collectionGroups.reduce((total, group) => total + group.requests.length, 0));
+
+  let recentRows = $derived.by((): RecentRow[] => {
+    const byId = new Map<string, { request: SavedRequest; collectionName: string }>(
+      collectionGroups.flatMap(group => group.requests.map(request => [request.id, { request, collectionName: group.collection.name }] as const)),
+    );
+    const rows: RecentRow[] = [];
+    for (const entry of [...history].sort((a, b) => b.createdAt - a.createdAt)) {
+      const sourceId = entry.sourceRequestId;
+      const found = sourceId ? byId.get(sourceId) : undefined;
+      if (!sourceId || !found || rows.some(row => row.request.id === sourceId)) continue;
+      const folder = folderPathFor(found.request);
+      rows.push({
+        request: found.request,
+        location: folder ? `${found.collectionName} / ${folder}` : found.collectionName,
+        statusCode: entry.statusCode,
+        createdAt: entry.createdAt,
+      });
+      if (rows.length >= RECENT_LIMIT) break;
+    }
+    return rows;
+  });
+
+  let summary = $derived([
+    `${collectionGroups.length} ${collectionGroups.length === 1 ? 'collection' : 'collections'}`,
+    `${requestCount} ${requestCount === 1 ? 'request' : 'requests'}`,
+    `${environmentCount} ${environmentCount === 1 ? 'environment' : 'environments'}`,
+  ].join(' · '));
+
+  let isEmpty = $derived(collectionGroups.length === 0 && requestCount === 0);
+
+  function relativeTime(timestamp: number): string {
+    const seconds = Math.max(0, Math.round((Date.now() - timestamp) / 1000));
+    if (seconds < 60) return 'Just now';
+    const minutes = Math.round(seconds / 60);
+    if (minutes < 60) return `${minutes} min ago`;
+    const hours = Math.round(minutes / 60);
+    if (hours < 24) return `${hours} h ago`;
+    const days = Math.round(hours / 24);
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return `${days} days ago`;
+    return new Date(timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
 
   function inputValue(event: Event): string {
     const target = event.currentTarget;
@@ -43,53 +111,117 @@
 </script>
 
 <section class="workspace-overview">
-  <div class="workspace-overview-header">
-    <div>
-      <span class="overview-eyebrow">Workspace</span>
+  <header class="workspace-overview-header">
+    <div class="overview-title">
       <h1>{activeWorkspace?.name ?? defaultWorkspace}</h1>
-      <p>{workspaceRequestCount()} requests · {collectionCount} collections</p>
+      <p>{summary}. {storedInGit ? 'Stored in a Git repository.' : 'Stored on this machine.'}</p>
     </div>
     <div class="overview-actions">
-      <button class="btn-secondary btn-sm" type="button" onclick={renameWorkspace} disabled={workspaceBlocked}>Rename workspace</button>
-      <button class="btn-secondary btn-sm" type="button" onclick={createWorkspace}>New workspace</button>
-      <button class="btn-primary btn-sm" type="button" onclick={createCollection} disabled={workspaceBlocked}>New collection</button>
+      <button class="overview-text-btn" type="button" onclick={renameWorkspace} disabled={workspaceBlocked}>Rename</button>
+      <button class="overview-text-btn" type="button" onclick={createWorkspace}>New workspace</button>
     </div>
-  </div>
-  {#if collectionCount === 0 && workspaceRequestCount() === 0}
-    <div class="overview-empty-hero">
-      <svg width="44" height="44" viewBox="0 0 32 32" fill="none" aria-hidden="true" opacity="0.5">
-        <path d="M5 9h6l2 2h14v15a2 2 0 01-2 2H5a2 2 0 01-2-2V11a2 2 0 012-2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-        <path d="M11 18h12M11 22h8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-      </svg>
-      <h2>Start by creating a collection</h2>
-      <p>Collections group related API requests together. You can also import from Bruno/OpenCollection, Postman, Insomnia, OpenAPI, or HAR to get going in seconds.</p>
-      <div class="overview-empty-actions">
-        <button class="btn-primary btn-sm" type="button" onclick={createCollection} disabled={workspaceBlocked}>Create collection</button>
-        <button class="btn-secondary btn-sm" type="button" onclick={() => createNewRequest()} disabled={workspaceBlocked}>New request</button>
+  </header>
+
+  {#if isEmpty}
+    <div class="overview-first-run">
+      <h2>Send your first request</h2>
+      <p>Open a new request and paste a URL or a whole cURL command — Relay fills in the method, headers and body. Or bring in what you already have.</p>
+      <div class="overview-first-run-actions">
+        <button class="btn-primary btn-sm" type="button" onclick={() => createNewRequest()} disabled={workspaceBlocked}>New request</button>
+        <button class="btn-secondary btn-sm" type="button" onclick={openImport} disabled={workspaceBlocked}>Import collection</button>
+        <button class="btn-secondary btn-sm" type="button" onclick={createCollection} disabled={workspaceBlocked}>New collection</button>
       </div>
+      <p class="overview-first-run-note">Import reads Postman, Insomnia, OpenAPI, Bruno / OpenCollection and HAR.</p>
     </div>
   {/if}
-  <div class="workspace-overview-grid">
-    <div class="overview-panel">
-      <span class="overview-panel-title">Workspace notes</span>
-      <textarea
-        value={activeWorkspace?.description ?? ''}
-        oninput={(event) => updateWorkspaceDescription(inputValue(event))}
-        placeholder="Write workspace notes, API conventions, auth hints, links, or anything useful for this workspace…"
-        spellcheck="false"
-        disabled={workspaceBlocked}
-      ></textarea>
+
+  <div class="overview-columns">
+    <div class="overview-main">
+      {#if recentRows.length}
+        <section class="overview-section" aria-labelledby="overview-recent-title">
+          <h2 id="overview-recent-title">Continue where you left off</h2>
+          <div class="overview-list">
+            {#each recentRows as row (row.request.id)}
+              <button class="overview-row" type="button" onclick={() => switchRequest(row.request.id)} disabled={workspaceBlocked}>
+                <RequestTypeBadge request={row.request} variant="sidebar" />
+                <span class="overview-row-name">{requestTabLabel(row.request)}</span>
+                <span class="overview-row-meta">{row.location}</span>
+                <span class="overview-row-status {row.statusCode ? statusClass(row.statusCode) : ''}">{row.statusCode || '—'}</span>
+                <span class="overview-row-time">{relativeTime(row.createdAt)}</span>
+              </button>
+            {/each}
+          </div>
+        </section>
+      {/if}
+
+      {#if collectionGroups.length}
+        <section class="overview-section" aria-labelledby="overview-collections-title">
+          <h2 id="overview-collections-title">Collections</h2>
+          <div class="overview-list">
+            {#each collectionGroups as group (group.collection.id)}
+              {@const folders = countFolders(group.folders)}
+              <button class="overview-row overview-collection-row" type="button" onclick={() => openCollection(group.collection.id)} disabled={workspaceBlocked || group.collection.isInvalid}>
+                <svg class="overview-row-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                </svg>
+                <span class="overview-row-name">{group.collection.name}</span>
+                <span class="overview-row-meta">
+                  {#if group.collection.isInvalid}
+                    Needs fixing — open it from the sidebar
+                  {:else}
+                    {group.requests.length} {group.requests.length === 1 ? 'request' : 'requests'}{folders ? ` · ${folders} ${folders === 1 ? 'folder' : 'folders'}` : ''}
+                  {/if}
+                </span>
+              </button>
+            {/each}
+          </div>
+        </section>
+      {/if}
     </div>
-    <div class="overview-panel">
-      <span class="overview-panel-title">Quick actions</span>
-      <div class="overview-action-list">
-        <button type="button" onclick={createCollection} disabled={workspaceBlocked}>Create collection</button>
-        <button type="button" onclick={() => createNewRequest()} disabled={workspaceBlocked}>Create request</button>
-        <button type="button" onclick={createEnvironment} disabled={workspaceBlocked}>Create environment</button>
-        <button type="button" onclick={onOpenGit}>Open Git sync</button>
-        {#if codePanelAvailable}<button type="button" onclick={onOpenCodePanel} disabled={workspaceBlocked}>Open code snippet drawer</button>{/if}
-        <button type="button" onclick={() => openSettings('shortcuts')}>Manage keyboard shortcuts</button>
-      </div>
-    </div>
+
+    <aside class="overview-side">
+      <section class="overview-section" aria-labelledby="overview-start-title">
+        <h2 id="overview-start-title">Start</h2>
+        <div class="overview-list">
+          <button class="overview-row overview-action-row" type="button" onclick={() => createNewRequest()} disabled={workspaceBlocked}>
+            <span class="overview-row-name">New request</span>
+            {#if shortcutLabel('new-request')}<kbd>{shortcutLabel('new-request')}</kbd>{/if}
+          </button>
+          <button class="overview-row overview-action-row" type="button" onclick={openGlobalSearch} disabled={workspaceBlocked}>
+            <span class="overview-row-name">Search and run commands</span>
+            {#if shortcutLabel('search')}<kbd>{shortcutLabel('search')}</kbd>{/if}
+          </button>
+          <button class="overview-row overview-action-row" type="button" onclick={openImport} disabled={workspaceBlocked}>
+            <span class="overview-row-name">Import a collection</span>
+          </button>
+          <button class="overview-row overview-action-row" type="button" onclick={createCollection} disabled={workspaceBlocked}>
+            <span class="overview-row-name">New collection</span>
+          </button>
+          <button class="overview-row overview-action-row" type="button" onclick={createEnvironment} disabled={workspaceBlocked}>
+            <span class="overview-row-name">New environment</span>
+          </button>
+          <button class="overview-row overview-action-row" type="button" onclick={openCollectionRunner} disabled={workspaceBlocked}>
+            <span class="overview-row-name">Run a collection</span>
+          </button>
+          <button class="overview-row overview-action-row" type="button" onclick={() => openSettings('shortcuts')}>
+            <span class="overview-row-name">Keyboard shortcuts</span>
+            {#if shortcutLabel('shortcut-help')}<kbd>{shortcutLabel('shortcut-help')}</kbd>{/if}
+          </button>
+        </div>
+      </section>
+
+      <section class="overview-section">
+        <h2><label for="overview-notes">Notes</label></h2>
+        <textarea
+          id="overview-notes"
+          class="overview-notes"
+          value={activeWorkspace?.description ?? ''}
+          oninput={(event) => updateWorkspaceDescription(inputValue(event))}
+          placeholder="Conventions, auth hints, links — anything the next person opening this workspace should know."
+          spellcheck="false"
+          disabled={workspaceBlocked}
+        ></textarea>
+      </section>
+    </aside>
   </div>
 </section>

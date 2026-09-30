@@ -2,6 +2,7 @@
   import { MAX_FOLDER_DEPTH, MAX_FOLDER_REQUESTS } from '../constants';
   import SidebarFolderNode from './SidebarFolderNode.svelte';
   import SidebarRequestRow from './SidebarRequestRow.svelte';
+  import MenuIcon from './MenuIcon.svelte';
   import type { FolderGroup, SavedRequest, WorkspaceDiagnostic } from '../types/models';
   import type { TopView } from '../stores/ui';
 
@@ -67,7 +68,7 @@
 </script>
 
 <div class="collection-tree-node" style={`--tree-depth: ${depth}`}>
-  <div class="collection-subfolder">
+  <div class="collection-subfolder" role="presentation" oncontextmenu={(event) => { event.preventDefault(); toggleFolderMenu(folder.key, event); }}>
     <button class="subfolder-collapse" type="button" onclick={() => toggleFolderCollapsed(collectionId, folder.path)} aria-label={folder.collapsed ? 'Expand folder' : 'Collapse folder'}>
       <svg class:collapsed={folder.collapsed} width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
         <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -84,16 +85,18 @@
           disabled={!folderCanAcceptRequest(folder)}
           title={folderCanAcceptRequest(folder) ? 'Add request' : `Limit: ${MAX_FOLDER_REQUESTS} requests in one folder`}
           onclick={() => createRequestInFolder(collectionId, folder.path)}
-        >Add request</button>
-        <button type="button" onclick={() => runFolder(collectionId, folder.path)}>Run folder</button>
+        ><MenuIcon name="request" />Add request</button>
         <button
           type="button"
           disabled={!folderCanAcceptSubfolder(folder)}
           title={folderCanAcceptSubfolder(folder) ? 'Add subfolder' : `Limit: ${MAX_FOLDER_DEPTH} folder levels`}
           onclick={() => createSubfolder(collectionId, folder.path)}
-        >Add subfolder</button>
-        <button type="button" onclick={() => renameFolder(collectionId, folder.path)}>Rename</button>
-        <button class="danger" type="button" onclick={() => deleteFolder(collectionId, folder.path)}>Delete folder</button>
+        ><MenuIcon name="folder" />Add subfolder</button>
+        <div class="menu-sep" role="separator"></div>
+        <button type="button" onclick={() => runFolder(collectionId, folder.path)}><MenuIcon name="play" />Run folder</button>
+        <button type="button" onclick={() => renameFolder(collectionId, folder.path)}><MenuIcon name="rename" />Rename</button>
+        <div class="menu-sep" role="separator"></div>
+        <button class="danger" type="button" onclick={() => deleteFolder(collectionId, folder.path)}><MenuIcon name="trash" />Delete folder</button>
       </div>
     {/if}
   </div>
@@ -139,7 +142,7 @@
           {openWorkspaceDiagnostic}
         />
       {/each}
-      {#each folder.requests as req}
+      {#each folder.requests as req, eachIndex (eachIndex)}
         <SidebarRequestRow
           {req}
           depth={depth + 1}

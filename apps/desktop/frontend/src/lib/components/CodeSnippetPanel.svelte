@@ -58,13 +58,13 @@
         aria-expanded={snippetMenuOpen}
       >
         <span>{SNIPPET_LABELS[snippetLanguage]}</span>
-        <svg width="12" height="8" viewBox="0 0 12 8" fill="none" aria-hidden="true">
-          <path d="M1.5 1.5L6 6l4.5-4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+          <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
       {#if snippetMenuOpen}
         <div class="snippet-select-menu">
-          {#each SNIPPET_LANGUAGES as language}
+          {#each SNIPPET_LANGUAGES as language, eachIndex (eachIndex)}
             <button
               class:active={snippetLanguage === language}
               type="button"
@@ -76,7 +76,7 @@
         </div>
       {/if}
     </div>
-    <button class="btn-secondary btn-sm code-copy-btn" class:feedback-ok={copiedSnippet} title={copiedSnippet ? 'Copied snippet' : 'Copy snippet'} onclick={onCopy} type="button">
+    <button class="code-copy-btn" class:feedback-ok={copiedSnippet} title={copiedSnippet ? 'Copied snippet' : 'Copy snippet'} onclick={onCopy} type="button">
       {#if copiedSnippet}
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5l3 3 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Copied
@@ -87,9 +87,8 @@
     </button>
   </div>
 
-  <div class="code-panel-title">Code snippet</div>
   <div class="curl-preview">
-    {#each lines as line}
+    {#each lines as line, eachIndex (eachIndex)}
       <div class="curl-line">
         <span class="curl-line-no">{line.number}</span>
         <!-- eslint-disable-next-line svelte/no-at-html-tags -->

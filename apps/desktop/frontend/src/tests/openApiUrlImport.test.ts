@@ -50,9 +50,6 @@ describe('parseOpenApiResponse', () => {
     expect(parseOpenApiResponse(yaml, 'text/yaml')).toMatchObject({ openapi: '3.0.0' });
   });
 
-  // The single most common mistake: pasting the Swagger UI page rather than the
-  // document it renders. "Could not parse" would send someone looking at the
-  // wrong end of the problem.
   it('names the Swagger UI page for what it is', () => {
     const page = '<!DOCTYPE html><html><head><title>Swagger UI</title></head><body></body></html>';
     expect(() => parseOpenApiResponse(page, 'text/html; charset=utf-8')).toThrow(/web page, not a spec/);
@@ -73,9 +70,6 @@ describe('parseOpenApiResponse', () => {
       .toThrow(/no "openapi" or "swagger" version field/);
   });
 
-  // The YAML parser answers {} for most junk rather than throwing, so the
-  // version field is what actually decides. Either way the user is told the
-  // document is not a spec, which is the fact they need.
   it('rejects junk that no parser makes sense of', () => {
     expect(() => parseOpenApiResponse('{ this is not: valid ]', 'application/json'))
       .toThrow(/not a spec Relay can import/);
@@ -95,7 +89,6 @@ describe('openApiNameFromUrl', () => {
     expect(openApiNameFromUrl('https://api.example.test/specs/billing.yaml')).toBe('billing');
   });
 
-  // These segments name the format, not the API, so the host is the better label.
   it('falls back to the host for a generic segment', () => {
     expect(openApiNameFromUrl('https://api.example.test/v3/api-docs')).toBe('api.example.test');
     expect(openApiNameFromUrl('https://api.example.test/openapi.json')).toBe('api.example.test');
