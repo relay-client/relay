@@ -62,8 +62,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev build-essential pkg-config
           npm install
-          # main.go embeds frontend/dist (//go:embed), so the frontend has to
-          # exist before the Go packages will compile.
           npm run frontend:build
           go build ./apps/desktop/...
 
