@@ -177,10 +177,22 @@ func checkForUpdate(ctx context.Context) (*model.UpdateInfo, error) {
 }
 
 func updateInfoFromManifest(manifest *updateManifest) (*model.UpdateInfo, error) {
-	target := platformKey()
-	platform, ok := manifest.Platforms[target]
+	return updateInfoFromManifestFor(manifest, updatePlatformKeys(goruntime.GOOS, runningAppBundle(), platformKey()))
+}
+
+func updateInfoFromManifestFor(manifest *updateManifest, keys []string) (*model.UpdateInfo, error) {
+	target := keys[len(keys)-1]
+	var platform updatePlatform
+	found := false
+	for _, key := range keys {
+		candidate, ok := manifest.Platforms[key]
+		if ok && strings.TrimSpace(candidate.URL) != "" {
+			target, platform, found = key, candidate, true
+			break
+		}
+	}
 	downloadURL := strings.TrimSpace(platform.URL)
-	if !ok || downloadURL == "" {
+	if !found {
 		return nil, fmt.Errorf("no release asset found for %s", target)
 	}
 	checksum := strings.TrimSpace(platform.SHA256)
@@ -288,55 +300,27 @@ func resolveTrustedUpdateInfo(ctx context.Context) (*model.UpdateInfo, error) {
 }
 
 func downloadAndApply(ctx context.Context, info *model.UpdateInfo) error {
-	parsed, err := url.Parse(info.DownloadURL)
-	if err != nil {
-		return fmt.Errorf("invalid download url: %w", err)
-	}
-	if !isTrustedReleaseURL(parsed) {
-		return errUpdateURLNotTrusted
-	}
 	if !isDevBuild() && !semverIsNewer(info.Version, appVersion) {
 		return errUpdateVersionRollback
 	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, info.DownloadURL, nil)
+	tmpPath, err := downloadUpdateAsset(ctx, info.DownloadURL)
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Accept", "application/octet-stream")
-
-	resp, err := updateDownloadHTTPClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("download returned %d", resp.StatusCode)
-	}
-
-	tmp, err := os.CreateTemp("", "relay-update-*")
-	if err != nil {
-		return err
-	}
-	tmpPath := tmp.Name()
 	defer os.Remove(tmpPath)
 
-	if _, err := io.Copy(tmp, io.LimitReader(resp.Body, maxUpdateDownloadSize+1)); err != nil {
-		_ = tmp.Close()
-		return err
-	}
-	if err := tmp.Close(); err != nil {
-		return err
-	}
-	if fi, statErr := os.Stat(tmpPath); statErr == nil && fi.Size() > maxUpdateDownloadSize {
-		return fmt.Errorf("update download exceeds %d bytes", maxUpdateDownloadSize)
-	}
 	if err := verifySHA256(tmpPath, info.SHA256); err != nil {
 		return err
 	}
 	if err := verifyUpdateSignature(ctx, tmpPath, info.SignatureURL, updatePublicKey); err != nil {
 		return err
+	}
+	if isBundleArchive(info.AssetName) {
+		bundle := runningAppBundle()
+		if bundle == "" {
+			return errUpdateBundleInvalid
+		}
+		return applyBundleUpdate(tmpPath, bundle, info.Version)
 	}
 	file, err := os.Open(tmpPath)
 	if err != nil {
@@ -349,6 +333,52 @@ func downloadAndApply(ctx context.Context, info *model.UpdateInfo) error {
 		opts.Checksum = checksum
 	}
 	return selfupdate.Apply(file, opts)
+}
+
+func downloadUpdateAsset(ctx context.Context, downloadURL string) (string, error) {
+	parsed, err := url.Parse(downloadURL)
+	if err != nil {
+		return "", fmt.Errorf("invalid download url: %w", err)
+	}
+	if !isTrustedReleaseURL(parsed) {
+		return "", errUpdateURLNotTrusted
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Accept", "application/octet-stream")
+
+	resp, err := updateDownloadHTTPClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("download returned %d", resp.StatusCode)
+	}
+
+	tmp, err := os.CreateTemp("", "relay-update-*")
+	if err != nil {
+		return "", err
+	}
+	tmpPath := tmp.Name()
+	if _, err := io.Copy(tmp, io.LimitReader(resp.Body, maxUpdateDownloadSize+1)); err != nil {
+		_ = tmp.Close()
+		_ = os.Remove(tmpPath)
+		return "", err
+	}
+	if err := tmp.Close(); err != nil {
+		_ = os.Remove(tmpPath)
+		return "", err
+	}
+	if fi, statErr := os.Stat(tmpPath); statErr == nil && fi.Size() > maxUpdateDownloadSize {
+		_ = os.Remove(tmpPath)
+		return "", fmt.Errorf("update download exceeds %d bytes", maxUpdateDownloadSize)
+	}
+	return tmpPath, nil
 }
 
 func relaunchSelf() {

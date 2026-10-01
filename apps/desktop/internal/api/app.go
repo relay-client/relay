@@ -67,6 +67,7 @@ func NewApp() *App {
 
 func (a *App) Startup(ctx context.Context) {
 	a.ctx = ctx
+	repairStaleBundleInBackground(ctx)
 }
 
 func (a *App) DiagnosticsReport() string {

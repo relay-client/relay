@@ -12,7 +12,7 @@ Usage:
         --tag v0.1.5 \
         --repo relay-client/relay \
         --notes-file release-notes.md \
-        [--platforms darwin-universal,windows-amd64,linux-amd64]
+        [--platforms darwin-universal,darwin-universal-app,windows-amd64,linux-amd64]
 
 If --platforms is omitted, every entry from the default platform table is
 included. Missing assets cause an error UNLESS --platforms restricts the set.
@@ -28,6 +28,7 @@ from pathlib import Path
 
 DEFAULT_ASSETS = {
     "darwin-universal": "relay-darwin-universal",
+    "darwin-universal-app": "relay-darwin-universal.app.zip",
     "windows-amd64": "relay-windows-amd64.exe",
     "linux-amd64": "relay-linux-amd64",
 }

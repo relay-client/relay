@@ -103,8 +103,10 @@ make release-mac-local NOTES="Fix A + Fix B"
 This builds the universal binary locally, packages the `.app` as a `.zip` (or a `.dmg`
 when `create-dmg` is installed — `brew install create-dmg`), signs everything with
 minisign if `update-signing-key` is present in the repo root, generates a macOS-only
-`latest.json`, and uploads the result via `gh release create`. The updater downloads the
-raw binary directly, so no DMG or zip is needed for existing users.
+`latest.json`, and uploads the result via `gh release create`. Existing installs update from
+`relay-darwin-universal.app.zip` — the whole signed app, so the icon and `Info.plist` change
+with the program — while builds older than 2.0.1 only know the raw `relay-darwin-universal`
+binary; both are signed and listed in `latest.json`.
 
 Users on Windows and Linux stay on their current version until a full cross-platform
 release lands; the updater ignores platforms missing from the manifest.

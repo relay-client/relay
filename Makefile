@@ -243,6 +243,7 @@ _exec-release-mac-local:
 	$(MAKE) -s build-macos VERSION="$(_NEXT)"; \
 	printf '\033[1m[4/7]\033[0m Packaging raw binary + installer\n'; \
 	cp "$(DESKTOP_DIR)/build/bin/Relay.app/Contents/MacOS/relay" "$$WORK_DIR/relay-darwin-universal"; \
+	(cd "$(DESKTOP_DIR)/build/bin" && ditto -c -k --keepParent Relay.app "$$WORK_DIR/relay-darwin-universal.app.zip"); \
 	if command -v create-dmg >/dev/null 2>&1; then \
 	  "$(DESKTOP_DIR)/build/darwin/make-dmg.sh" \
 	    "$(DESKTOP_DIR)/build/bin/Relay.app" \
@@ -258,6 +259,10 @@ _exec-release-mac-local:
 	    -t "relay v$(_NEXT) relay-darwin-universal" \
 	    -m "$$WORK_DIR/relay-darwin-universal"; \
 	  test -f "$$WORK_DIR/relay-darwin-universal.minisig"; \
+	  minisign -S -s "$(ROOT_DIR)/update-signing-key" \
+	    -t "relay v$(_NEXT) relay-darwin-universal.app.zip" \
+	    -m "$$WORK_DIR/relay-darwin-universal.app.zip"; \
+	  test -f "$$WORK_DIR/relay-darwin-universal.app.zip.minisig"; \
 	  printf '       \033[32m✓\033[0m minisign signature created\n'; \
 	else \
 	  printf '       \033[90mskipped — no update-signing-key in repo root\033[0m\n'; \
@@ -268,7 +273,7 @@ _exec-release-mac-local:
 	  --tag "v$(_NEXT)" \
 	  --repo "$(UPDATE_REPO)" \
 	  --notes-file "$$NOTES_FILE" \
-	  --platforms darwin-universal; \
+	  --platforms darwin-universal,darwin-universal-app; \
 	(cd "$$WORK_DIR" && shasum -a 256 * | grep -v 'SHA256SUMS.txt' > SHA256SUMS.txt); \
 	printf '\033[1m[7/7]\033[0m Publishing to github.com/$(UPDATE_REPO)\n'; \
 	if gh release view "v$(_NEXT)" --repo "$(UPDATE_REPO)" >/dev/null 2>&1; then \

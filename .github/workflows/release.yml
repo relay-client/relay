@@ -148,6 +148,7 @@ jobs:
         run: |
           mkdir -p release
           cp apps/desktop/build/bin/Relay.app/Contents/MacOS/relay release/relay-darwin-universal
+          (cd apps/desktop/build/bin && ditto -c -k --keepParent Relay.app "$GITHUB_WORKSPACE/release/relay-darwin-universal.app.zip")
 
       - name: Package macOS DMG
         if: runner.os == 'macOS'
@@ -232,6 +233,15 @@ jobs:
             *) echo "::error::built binary reports '$output', expected version $VERSION"; exit 1 ;;
           esac
           release/relay-darwin-universal --diagnostics
+          bundle_dir="$(mktemp -d)"
+          ditto -x -k release/relay-darwin-universal.app.zip "$bundle_dir"
+          bundle_version="$(plutil -extract CFBundleShortVersionString raw -o - "$bundle_dir/Relay.app/Contents/Info.plist")"
+          if [ "$bundle_version" != "$VERSION" ]; then
+            echo "::error::the app bundle reports version '$bundle_version', expected $VERSION"
+            exit 1
+          fi
+          test -f "$bundle_dir/Relay.app/Contents/Resources/iconfile.icns"
+          test -x "$bundle_dir/Relay.app/Contents/MacOS/relay"
 
       - name: Smoke test the Windows binary
         if: runner.os == 'Windows'
@@ -332,7 +342,7 @@ jobs:
           key_file="$(mktemp)"
           printf '%s\n' "$UPDATE_SIGNING_KEY" > "$key_file"
           trap 'rm -f "$key_file"' EXIT
-          for asset in release/relay-darwin-universal release/relay-windows-amd64.exe release/relay-linux-amd64; do
+          for asset in release/relay-darwin-universal release/relay-darwin-universal.app.zip release/relay-windows-amd64.exe release/relay-linux-amd64; do
             if [ ! -f "$asset" ]; then
               echo "::error::missing asset for signing: $asset"
               exit 1
@@ -353,7 +363,7 @@ jobs:
             --tag "$GITHUB_REF_NAME"
             --repo "$UPDATE_REPOSITORY"
             --notes-file release-notes.md
-            --platforms darwin-universal,windows-amd64,linux-amd64
+            --platforms darwin-universal,darwin-universal-app,windows-amd64,linux-amd64
             --require-signature
           )
           python3 scripts/make-latest-json.py "${args[@]}"
