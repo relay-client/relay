@@ -1,5 +1,5 @@
 import sharp from 'sharp';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -27,6 +27,46 @@ for (const { path, size } of derived) {
   await sharp(tile).resize(size, size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toFile(path);
   console.log('wrote', path);
 }
+
+const windowsDir = join(root, 'apps', 'desktop', 'build', 'windows');
+const windowsTileScale = 0.96;
+const windowsIcon = async (size) => {
+  const inner = Math.round(size * windowsTileScale);
+  const pad = Math.floor((size - inner) / 2);
+  return sharp(tile)
+    .resize(inner, inner, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .extend({ top: pad, left: pad, bottom: size - inner - pad, right: size - inner - pad, background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .png()
+    .toBuffer();
+};
+
+mkdirSync(windowsDir, { recursive: true });
+const windowsPng = join(windowsDir, 'appicon.png');
+await sharp(await windowsIcon(1024)).toFile(windowsPng);
+console.log('wrote', windowsPng);
+
+const icoSizes = [16, 20, 24, 32, 40, 48, 64, 128, 256];
+const icoImages = await Promise.all(icoSizes.map(windowsIcon));
+const icoHeader = Buffer.alloc(6 + 16 * icoSizes.length);
+icoHeader.writeUInt16LE(0, 0);
+icoHeader.writeUInt16LE(1, 2);
+icoHeader.writeUInt16LE(icoSizes.length, 4);
+let icoOffset = icoHeader.length;
+icoSizes.forEach((size, index) => {
+  const entry = 6 + 16 * index;
+  icoHeader.writeUInt8(size >= 256 ? 0 : size, entry);
+  icoHeader.writeUInt8(size >= 256 ? 0 : size, entry + 1);
+  icoHeader.writeUInt8(0, entry + 2);
+  icoHeader.writeUInt8(0, entry + 3);
+  icoHeader.writeUInt16LE(1, entry + 4);
+  icoHeader.writeUInt16LE(32, entry + 6);
+  icoHeader.writeUInt32LE(icoImages[index].length, entry + 8);
+  icoHeader.writeUInt32LE(icoOffset, entry + 12);
+  icoOffset += icoImages[index].length;
+});
+const windowsIco = join(windowsDir, 'icon.ico');
+writeFileSync(windowsIco, Buffer.concat([icoHeader, ...icoImages]));
+console.log('wrote', windowsIco);
 
 const ogSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <defs>

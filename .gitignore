@@ -38,3 +38,7 @@ update-signing-key.pub
 *.pfx
 
 apps/desktop/wails.json.relay.bak
+apps/desktop/build/windows/info.json
+apps/desktop/build/windows/wails.exe.manifest
+apps/desktop/build/windows/installer/wails_tools.nsh
+apps/desktop/build/windows/installer/tmp/
