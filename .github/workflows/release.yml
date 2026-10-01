@@ -72,7 +72,7 @@ jobs:
       - name: Set version
         shell: bash
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          export VERSION="${GITHUB_REF_NAME#v}"
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           node -e "
             const fs = require('fs');
