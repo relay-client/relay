@@ -1,6 +1,7 @@
 <script lang="ts">
   import MenuIcon from './MenuIcon.svelte';
   import { tabListKeyboard } from '../a11y';
+  import { middleClick } from '../middleClick';
   import RequestTypeBadge from './RequestTypeBadge.svelte';
   import WindowControls from './WindowControls.svelte';
   import { MAX_WORKSPACES } from '../constants';
@@ -246,7 +247,7 @@
         </button>
       </div>
       {#if collectionRunnerOpen}
-        <div class="saved-request-tab runner-tab" class:active={topView === 'runner'} class:dirty={collectionRunnerRunning}>
+        <div class="saved-request-tab runner-tab" class:active={topView === 'runner'} class:dirty={collectionRunnerRunning} use:middleClick={workspaceBlocked ? undefined : closeCollectionRunner}>
           <button role="tab" type="button" aria-selected={topView === 'runner'} tabindex={topView === 'runner' ? 0 : -1} onclick={() => (topView = 'runner')} disabled={workspaceBlocked}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <circle cx="14.5" cy="4.5" r="2" stroke="currentColor" stroke-width="1.8"/>
@@ -258,7 +259,7 @@
         </div>
       {/if}
       {#if gitTabOpen}
-        <div class="saved-request-tab runner-tab git-workspace-tab" class:active={topView === 'git'} class:dirty={gitChangeCount > 0}>
+        <div class="saved-request-tab runner-tab git-workspace-tab" class:active={topView === 'git'} class:dirty={gitChangeCount > 0} use:middleClick={closeGitTab}>
           <button role="tab" type="button" aria-selected={topView === 'git'} tabindex={topView === 'git' ? 0 : -1} onclick={openGitTab}>
             <svg width="14" height="14" viewBox="0 0 15 15" fill="none" aria-hidden="true">
               <path d="M4 12.2V4.8a2 2 0 114 0v5.4a2 2 0 104 0V3" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
@@ -272,7 +273,7 @@
         </div>
       {/if}
       {#if mockTabOpen}
-        <div class="saved-request-tab runner-tab" class:active={topView === 'mock'}>
+        <div class="saved-request-tab runner-tab" class:active={topView === 'mock'} use:middleClick={closeMockTab}>
           <button role="tab" type="button" aria-selected={topView === 'mock'} tabindex={topView === 'mock' ? 0 : -1} onclick={openMockTab}>
             <svg width="14" height="14" viewBox="0 0 15 15" fill="none" aria-hidden="true">
               <rect x="2" y="3" width="11" height="9" rx="1.6" stroke="currentColor" stroke-width="1.35"/>
@@ -287,7 +288,7 @@
         </div>
       {/if}
       {#if activeCollectionSettings}
-        <div class="saved-request-tab runner-tab" class:active={topView === 'collection'}>
+        <div class="saved-request-tab runner-tab" class:active={topView === 'collection'} use:middleClick={workspaceBlocked ? undefined : closeCollectionSettings}>
           <button role="tab" type="button" aria-selected={topView === 'collection'} tabindex={topView === 'collection' ? 0 : -1} onclick={() => (topView = 'collection')} disabled={workspaceBlocked}>
             <svg width="14" height="14" viewBox="0 0 15 15" fill="none" aria-hidden="true">
               <path d="M2.2 4h3.3l1.2 1.2h6.1v6.1a1.2 1.2 0 01-1.2 1.2H3.4a1.2 1.2 0 01-1.2-1.2V4z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
@@ -299,7 +300,7 @@
         </div>
       {/if}
       {#if historyDetailOpen}
-        <div class="saved-request-tab runner-tab" class:active={topView === 'history'}>
+        <div class="saved-request-tab runner-tab" class:active={topView === 'history'} use:middleClick={closeHistoryDetail}>
           <button role="tab" type="button" aria-selected={topView === 'history'} tabindex={topView === 'history' ? 0 : -1} onclick={() => (topView = 'history')}>
             <svg width="14" height="14" viewBox="0 0 15 15" fill="none" aria-hidden="true">
               <circle cx="7.5" cy="7.5" r="5.5" stroke="currentColor" stroke-width="1.35"/>
@@ -312,7 +313,7 @@
       {/if}
       {#each openRequests as req, eachIndex (eachIndex)}
         {@const unsaved = req.isDraft ? 'Unsaved draft' : !autosave && dirtyRequestIdSet.has(req.id) ? 'Unsaved changes' : ''}
-        <div class="saved-request-tab" class:active={req.id === activeRequestId && topView === 'request'} class:draft={req.isDraft} class:dirty={!autosave && !req.isDraft && dirtyRequestIdSet.has(req.id)} class:unsaved={Boolean(unsaved)} title={unsaved || undefined}>
+        <div class="saved-request-tab" class:active={req.id === activeRequestId && topView === 'request'} class:draft={req.isDraft} class:dirty={!autosave && !req.isDraft && dirtyRequestIdSet.has(req.id)} class:unsaved={Boolean(unsaved)} title={unsaved || undefined} use:middleClick={workspaceBlocked ? undefined : () => closeRequestTab(req.id)}>
           <button role="tab" type="button" aria-selected={req.id === activeRequestId && topView === 'request'} tabindex={req.id === activeRequestId && topView === 'request' ? 0 : -1} onclick={() => switchRequest(req.id)} disabled={workspaceBlocked}>
             <RequestTypeBadge request={req} variant="tab" />
             <span class="tab-title">{requestTabLabel(req)}</span>
