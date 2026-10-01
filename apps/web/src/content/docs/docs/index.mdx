@@ -1,23 +1,81 @@
 ---
 title: Documentation
-description: Guides and reference for Relay — the local-first desktop API client.
+description: Everything you need to send, test, mock and ship API requests with Relay.
 ---
 
-Welcome to the Relay docs. If you're new, start with **[Installation](/docs/getting-started/installation/)** and the **[first-request walkthrough](/docs/getting-started/first-request/)** — that's about ten minutes end-to-end.
+New here? Install Relay and send your first request — about ten minutes end to end.
 
-## What's in here
+<div class="relay-tiles">
+  <a class="relay-tile" href="/docs/getting-started/installation/">
+    <span class="relay-tile-title">Install Relay</span>
+    <span class="relay-tile-text">macOS, Windows and Linux builds, first-run notes and verifying the download.</span>
+  </a>
+  <a class="relay-tile" href="/docs/getting-started/first-request/">
+    <span class="relay-tile-title">Send your first request</span>
+    <span class="relay-tile-text">A request, a collection, an environment and a test, in five minutes.</span>
+  </a>
+  <a class="relay-tile" href="/docs/getting-started/migrating/">
+    <span class="relay-tile-title">Move from Postman or Insomnia</span>
+    <span class="relay-tile-text">Bring your collections, environments and pm.* scripts with you.</span>
+  </a>
+</div>
 
-- **Getting started** — install, send a request, save it to a collection.
-- **Guides** — task-oriented walkthroughs for app settings, workspaces and collection defaults, request types, auth, environments, cookies and cookie sync, browser security, proxies, backups, scripting, runner workflows, Git workspaces, imports/exports, responses, saved examples, the local mock server, history, and code generation.
-- **Reference** — the full `pm.*` scripting API, Git/YAML workspace contract, performance fixtures, and keyboard shortcuts.
-- **FAQ** — quick answers to the most common questions.
+## Beyond the basics
+
+<div class="relay-tiles">
+  <a class="relay-tile" href="/docs/guides/browser-security/">
+    <span class="relay-tile-title">Browser security emulation</span>
+    <span class="relay-tile-text">See the CORS, credentials and CSP failures your frontend will hit — before it does.</span>
+  </a>
+  <a class="relay-tile" href="/docs/guides/mock-server/">
+    <span class="relay-tile-title">Mock server</span>
+    <span class="relay-tile-text">Serve a collection's saved examples on localhost while the real endpoint is still being built.</span>
+  </a>
+  <a class="relay-tile" href="/docs/guides/cookies/">
+    <span class="relay-tile-title">Cookies from your browser</span>
+    <span class="relay-tile-text">Send with the session you already have in Chrome, Edge, Brave or Firefox.</span>
+  </a>
+  <a class="relay-tile" href="/docs/guides/git-workspaces/">
+    <span class="relay-tile-title">Git-backed workspaces</span>
+    <span class="relay-tile-text">Reviewable YAML in your repository, with secrets kept on your machine.</span>
+  </a>
+  <a class="relay-tile" href="/docs/guides/cli-runner/">
+    <span class="relay-tile-title">relay run in CI</span>
+    <span class="relay-tile-text">The same requests and test scripts from the terminal, with JUnit and JSON reports.</span>
+  </a>
+  <a class="relay-tile" href="/docs/guides/request-types/">
+    <span class="relay-tile-title">Every protocol</span>
+    <span class="relay-tile-text">HTTP, SSE, GraphQL, gRPC, WebSocket, Socket.IO and MCP in one client.</span>
+  </a>
+</div>
+
+## Reference
+
+<div class="relay-tiles">
+  <a class="relay-tile" href="/docs/reference/scripting-api/">
+    <span class="relay-tile-title">Scripting API</span>
+    <span class="relay-tile-text">The full pm.* surface for pre-request and test scripts.</span>
+  </a>
+  <a class="relay-tile" href="/docs/reference/relay-yaml-format/">
+    <span class="relay-tile-title">Relay YAML format</span>
+    <span class="relay-tile-text">The public contract for Git-backed workspace files.</span>
+  </a>
+  <a class="relay-tile" href="/docs/reference/keyboard-shortcuts/">
+    <span class="relay-tile-title">Keyboard shortcuts</span>
+    <span class="relay-tile-text">Every default binding, and how to rebind them.</span>
+  </a>
+  <a class="relay-tile" href="/docs/troubleshooting/">
+    <span class="relay-tile-title">Troubleshooting</span>
+    <span class="relay-tile-text">Gatekeeper, SmartScreen, proxies, corporate CAs and the other usual suspects.</span>
+  </a>
+</div>
 
 ## Conventions
 
-- `Cmd/Ctrl` means Command on macOS and Ctrl on Windows/Linux.
-- Commands prefixed `$` run in your terminal. Commands without a prefix run inside Relay (the global command palette, `Cmd/Ctrl K`).
-- Screenshots use the light theme unless a guide says otherwise; dark theme behaves identically.
+- `Cmd/Ctrl` means Command on macOS and Ctrl on Windows and Linux.
+- Commands prefixed `$` run in your terminal. Commands without a prefix run inside Relay, usually from the command palette (`Cmd/Ctrl K`).
+- Screenshots use the light theme unless a guide says otherwise; the dark theme behaves identically.
 
 ## Need something the docs don't cover?
 
-File an issue or start a discussion on [GitHub](https://github.com/relay-client/relay/issues). Bug reports with steps to reproduce and the version string from **About → Version** get triaged fastest.
+Open an issue or start a discussion on [GitHub](https://github.com/relay-client/relay/issues). Reports with steps to reproduce and the version from **Settings → About** get triaged fastest.

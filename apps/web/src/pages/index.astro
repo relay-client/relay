@@ -1,0 +1,339 @@
+---
+import '@fontsource-variable/geist';
+import '@fontsource-variable/geist-mono';
+import '../styles/landing.css';
+import { Image } from 'astro:assets';
+import logo from '../assets/logo.png';
+import requestEditor from '../assets/screenshots/request-editor.png';
+import mockServer from '../assets/landing/mock-server.png';
+import gitWorkspace from '../assets/landing/git-workspace.png';
+
+const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+const site = Astro.site ? new URL(base, Astro.site).toString() : base;
+const href = (path: string) => `${base}${path.replace(/^\//, '')}`;
+
+const title = 'Relay — the API client that knows what the browser will block';
+const description = 'A free, local-first desktop API client for HTTP, GraphQL, gRPC, WebSocket and MCP that can replay requests the way a browser would: CORS preflight, credentials, CSP connect-src. No account, no telemetry.';
+const releases = 'https://github.com/relay-client/relay/releases/latest';
+const github = 'https://github.com/relay-client/relay';
+
+const protocols = ['HTTP', 'SSE', 'GraphQL', 'gRPC', 'WebSocket', 'Socket.IO', 'MCP'];
+const imports = ['Postman', 'Insomnia', 'Bruno', 'OpenAPI', 'HAR', 'curl'];
+
+const checks = [
+  { title: 'CORS preflight', text: 'Sent when the method or headers are not safelisted. Status, methods, headers and Max-Age are validated — no redirects, no cookies.' },
+  { title: 'Credentials mode', text: 'Cookies are held back cross-origin unless you include them, and a wildcard origin is rejected the moment you do.' },
+  { title: 'CSP connect-src', text: 'Paste the page’s policy. Relay blocks the request before it connects and checks every redirect again.' },
+  { title: 'Origin and fetch metadata', text: 'A browser User-Agent, Origin and Sec-Fetch-Site, -Mode and -Dest, worked out from scheme, host and port.' },
+];
+
+const features = [
+  { icon: 'mock', title: 'A mock server from your examples', text: 'Save a response as an example and serve the whole collection on localhost. Edit an example and the running mock reloads.', link: 'docs/guides/mock-server/' },
+  { icon: 'cookie', title: 'Your browser’s session, in Relay', text: 'Pair the extension and send with the cookies you already have in Chrome, Edge, Brave or Firefox. Loopback only, approved by a matching code.', link: 'docs/guides/cookies/' },
+  { icon: 'git', title: 'Git is the sync', text: 'Workspaces are reviewable YAML in your repo. Secrets stay on your machine as placeholders; conflicts get a helper, not a mystery.', link: 'docs/guides/git-workspaces/' },
+  { icon: 'mcp', title: 'MCP, by hand', text: 'Point Relay at a Model Context Protocol server, list its tools, fill in the arguments and read the raw exchange.', link: 'docs/guides/request-types/' },
+  { icon: 'matrix', title: 'Every environment, side by side', text: 'One matrix of every variable across every environment. The token missing from staging is a glance away.', link: 'docs/guides/environments/' },
+  { icon: 'keys', title: 'Keyboard-first, on any layout', text: 'A command palette and shortcuts you can rebind. They follow the physical key, so they keep working on non-Latin layouts.', link: 'docs/reference/keyboard-shortcuts/' },
+];
+
+const ldJson = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Relay',
+  description,
+  applicationCategory: 'DeveloperApplication',
+  operatingSystem: 'macOS, Windows, Linux',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  url: site,
+  downloadUrl: releases,
+  sameAs: [github],
+});
+---
+
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  <link rel="canonical" href={site} />
+  <link rel="icon" href={href('favicon-32.png')} type="image/png" />
+  <link rel="apple-touch-icon" href={href('apple-touch-icon.png')} />
+  <link rel="sitemap" href={href('sitemap-index.xml')} />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:url" content={site} />
+  <meta property="og:image" content={`${site}og.png`} />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content={`${site}og.png`} />
+  <meta name="color-scheme" content="light dark" />
+  <script is:inline>
+    (() => {
+      let stored = null;
+      try { stored = localStorage.getItem('starlight-theme'); } catch {}
+      const theme = stored === 'light' || stored === 'dark'
+        ? stored
+        : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+  <script is:inline type="application/ld+json" set:html={ldJson} />
+</head>
+<body class="landing">
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="nav" data-nav>
+    <div class="wrap nav-row">
+      <a class="brand" href={base} aria-label="Relay home">
+        <img src={logo.src} alt="" width="28" height="28" />
+        <span>Relay</span>
+      </a>
+      <nav class="nav-links" aria-label="Site">
+        <a href="#browser">Browser emulation</a>
+        <a href="#features">Features</a>
+        <a href={href('docs/getting-started/installation/')}>Docs</a>
+        <a href={href('changelog/')}>Changelog</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-quiet nav-github" href={github}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12 12 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          GitHub
+        </a>
+        <a class="btn btn-primary btn-sm" href={href('download/')}>Download</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="wrap hero-inner">
+        <p class="pill"><span class="pill-dot" aria-hidden="true"></span>Free and open source · macOS, Windows, Linux</p>
+        <h1 id="hero-title">An API client that knows what the browser will block.</h1>
+        <p class="lead">Relay sends real HTTP, GraphQL, gRPC, WebSocket and MCP requests — and can replay them the way Chrome would: Origin, credentials, CORS preflight, CSP connect-src. Catch the bug before your frontend does. No account, and nothing leaves your machine.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary btn-lg" href={href('download/')} data-os-download>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v11m0 0 4.5-4.5M12 15l-4.5-4.5M5 19h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span data-os-label>Download Relay</span>
+          </a>
+          <a class="btn btn-quiet btn-lg" href={href('docs/getting-started/first-request/')}>Send your first request</a>
+        </div>
+        <p class="hero-meta">no sign-up · no telemetry · imports Postman, Insomnia, Bruno, OpenAPI</p>
+        <figure class="window hero-shot">
+          <div class="window-bar" aria-hidden="true"><span></span><span></span><span></span></div>
+          <Image src={requestEditor} alt="Relay with a saved request, its JSON body and the response it came back with" widths={[800, 1200, 1800, 2400]} sizes="(max-width: 1200px) 100vw, 1120px" loading="eager" fetchpriority="high" />
+        </figure>
+      </div>
+    </section>
+
+    <section class="protocols" aria-label="Supported protocols">
+      <div class="wrap protocols-row">
+        <span class="protocols-label">One client for every wire</span>
+        <ul>
+          {protocols.map(protocol => <li>{protocol}</li>)}
+        </ul>
+      </div>
+    </section>
+
+    <section id="browser" class="band" aria-labelledby="browser-title">
+      <div class="wrap band-inner">
+        <div class="split-head">
+          <h2 id="browser-title">200 OK in your API client. Blocked in Chrome.</h2>
+          <p>API clients are not browsers, so they skip the checks that break your frontend. Give Relay the page’s origin and it sends the preflight, applies the credentials rules and checks the response the way the Fetch spec says — then tells you, in one line, why the browser would refuse.</p>
+        </div>
+
+        <div class="compare">
+          <article class="console">
+            <header><span>Any API client</span><code>no origin</code></header>
+            <div class="console-body">
+              <p><b class="m-get">GET</b> https://api.example.com/me</p>
+              <p><span class="status-ok">200 OK</span> <span class="dim">142 ms · 1.2 KB</span></p>
+              <p class="dim">{'{ "id": 42, "email": "ada@example.com" }'}</p>
+            </div>
+            <footer>Looks fine. Ships Friday.</footer>
+          </article>
+          <article class="console console-relay">
+            <header><span>Relay · browser emulation</span><code>https://app.example.com · credentials</code></header>
+            <ol class="console-body">
+              <li><b class="m-options">OPTIONS</b> /me <span class="ok">→ 204</span> <span class="dim">preflight ok</span></li>
+              <li><b class="m-get">GET</b> /me <span class="ok">→ 200</span></li>
+              <li class="console-error">CORS error: response uses Access-Control-Allow-Origin: * but credentials require the exact origin https://app.example.com</li>
+            </ol>
+            <footer>What your users actually get — found before they do.</footer>
+          </article>
+        </div>
+
+        <ul class="checks">
+          {checks.map(check => (
+            <li>
+              <h3>{check.title}</h3>
+              <p>{check.text}</p>
+            </li>
+          ))}
+        </ul>
+
+        <div class="band-foot">
+          <code>CSP error: request to https://api.stripe.com violates connect-src 'self' https://api.example.com for origin https://app.example.com</code>
+          <a href={href('docs/guides/browser-security/')}>How browser emulation works →</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="section" aria-labelledby="features-title">
+      <div class="wrap">
+        <div class="section-head">
+          <h2 id="features-title">Built for the parts other clients skip.</h2>
+          <p>Everything runs on your machine. Nothing here needs a team plan.</p>
+        </div>
+        <ul class="features">
+          {features.map(feature => (
+            <li>
+              <a href={href(feature.link)}>
+                <span class="feature-icon" aria-hidden="true">
+                  {feature.icon === 'mock' && <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2.4" stroke="currentColor" stroke-width="1.7"/><path d="M3 10h18" stroke="currentColor" stroke-width="1.7"/><circle cx="6.6" cy="7.5" r="0.9" fill="currentColor"/></svg>}
+                  {feature.icon === 'cookie' && <svg viewBox="0 0 24 24" fill="none"><path d="M20.5 12.5A8.5 8.5 0 1 1 11.5 3.5a3 3 0 0 0 4 3.5 3 3 0 0 0 5 5.5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="9" cy="11" r="1.1" fill="currentColor"/><circle cx="13.5" cy="15" r="1.1" fill="currentColor"/><circle cx="8.5" cy="16" r="0.9" fill="currentColor"/></svg>}
+                  {feature.icon === 'git' && <svg viewBox="0 0 24 24" fill="none"><circle cx="6" cy="6" r="2.2" stroke="currentColor" stroke-width="1.7"/><circle cx="6" cy="18" r="2.2" stroke="currentColor" stroke-width="1.7"/><circle cx="18" cy="9" r="2.2" stroke="currentColor" stroke-width="1.7"/><path d="M6 8.2v7.6M18 11.2c0 3-3 3.8-6 4.3-2.2.4-4.4 1-5.4 2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>}
+                  {feature.icon === 'mcp' && <svg viewBox="0 0 24 24" fill="none"><path d="M8 4 4 8l4 4M16 12l4 4-4 4M4 8h11a5 5 0 0 1 5 5M20 16H9a5 5 0 0 1-5-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>}
+                  {feature.icon === 'matrix' && <svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="4" width="17" height="16" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M3.5 9.5h17M9.5 4v16M15 4v16" stroke="currentColor" stroke-width="1.7"/></svg>}
+                  {feature.icon === 'keys' && <svg viewBox="0 0 24 24" fill="none"><rect x="2.5" y="6" width="19" height="12" rx="2.2" stroke="currentColor" stroke-width="1.7"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7.5 14h9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>}
+                </span>
+                <span class="feature-text">
+                  <span class="feature-title">{feature.title}</span>
+                  <span class="feature-body">{feature.text}</span>
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+
+    <section class="section showcase" aria-labelledby="mock-title">
+      <div class="wrap showcase-row">
+        <figure class="window">
+          <div class="window-bar" aria-hidden="true"><span></span><span></span><span></span></div>
+          <Image src={mockServer} alt="The Mock server panel serving a collection’s examples on localhost" widths={[700, 1100, 1600]} sizes="(max-width: 900px) 100vw, 600px" />
+        </figure>
+        <div class="showcase-copy">
+          <h2 id="mock-title">Build the frontend before the endpoint exists.</h2>
+          <p>Capture real responses as examples, pick a port and start serving. Path templates and query values decide which example answers, and every call your app makes shows up in the log beside it.</p>
+          <a class="text-link" href={href('docs/guides/mock-server/')}>How the mock matches requests →</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section showcase" aria-labelledby="git-title">
+      <div class="wrap showcase-row showcase-flip">
+        <div class="showcase-copy">
+          <h2 id="git-title">Your API workspace, reviewed like code.</h2>
+          <p>Requests live as readable YAML next to the service they call. Commit, pull and switch branches from the app; tokens never land in the diff.</p>
+          <a class="text-link" href={href('docs/reference/relay-yaml-format/')}>The Relay YAML format →</a>
+        </div>
+        <figure class="window">
+          <div class="window-bar" aria-hidden="true"><span></span><span></span><span></span></div>
+          <Image src={gitWorkspace} alt="A Git-backed workspace with its changes listed in Relay" widths={[700, 1100, 1600]} sizes="(max-width: 900px) 100vw, 600px" />
+        </figure>
+      </div>
+    </section>
+
+    <section id="ci" class="section tinted" aria-labelledby="ci-title">
+      <div class="wrap showcase-row">
+        <div class="showcase-copy">
+          <h2 id="ci-title">The same tests, in CI. No second tool.</h2>
+          <p>The desktop app is the CLI. <code>relay run</code> executes the workspace from your repo with the same requests, <code>pm.*</code> scripts and collection auth — and a failed assertion fails the build. JUnit and JSON reporters included.</p>
+          <a class="text-link" href={href('docs/guides/cli-runner/')}>Run Relay in CI →</a>
+        </div>
+        <figure class="terminal" aria-label="relay run output">
+          <div class="window-bar" aria-hidden="true"><span></span><span></span><span></span></div>
+          <pre><code><span class="dim">$</span> relay run ./api --env CI --reporters cli,junit
+<span class="ok">✓</span> GET  https://api.example.com/health <span class="dim">→</span> 200  <span class="dim">42ms</span>  [2/2 tests]
+<span class="ok">✓</span> POST https://api.example.com/login  <span class="dim">→</span> 200  <span class="dim">88ms</span>  [1/1 tests]
+<span class="dim">2 requests, 2 passed, 0 failed · 3/3 assertions · 131ms</span></code></pre>
+        </figure>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="privacy-title">
+      <div class="wrap">
+        <div class="section-head">
+          <h2 id="privacy-title">Nothing to sign up for. Nothing phoning home.</h2>
+        </div>
+        <ul class="facts">
+          <li><h3>No account</h3><p>Open it and send. There is no Relay backend to log in to, and no seat to pay for.</p></li>
+          <li><h3>No telemetry</h3><p>No analytics, no crash reports. The network carries your requests, Git, OAuth and update checks — nothing else.</p></li>
+          <li><h3>Encrypted at rest</h3><p>Your profile and secrets use AES-256-GCM, keyed through the operating system’s credential store.</p></li>
+        </ul>
+        <div class="migrate">
+          <div>
+            <h3>Moving from Postman?</h3>
+            <p>Drop in your export and keep going — your <code>pm.*</code> scripts keep running.</p>
+          </div>
+          <ul>
+            {imports.map(item => <li>{item}</li>)}
+          </ul>
+          <a class="text-link" href={href('docs/getting-started/migrating/')}>Migration guide →</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta" aria-labelledby="cta-title">
+      <div class="wrap cta-inner">
+        <img src={logo.src} alt="" width="64" height="64" />
+        <h2 id="cta-title">Send your first request in under a minute.</h2>
+        <p>Free and open source. Signed updates install themselves.</p>
+        <div class="platforms">
+          <a class="platform" href={releases} data-platform="mac">
+            <span class="platform-name">macOS</span>
+            <span class="platform-meta">Universal · .dmg</span>
+          </a>
+          <a class="platform" href={releases} data-platform="windows">
+            <span class="platform-name">Windows</span>
+            <span class="platform-meta">x64 · Arm64 · no admin</span>
+          </a>
+          <a class="platform" href={releases} data-platform="linux">
+            <span class="platform-name">Linux</span>
+            <span class="platform-meta">x64 · .AppImage</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap foot-row">
+      <span>© 2026 Relay Client · MIT licensed</span>
+      <nav aria-label="Footer">
+        <a href={href('docs/getting-started/installation/')}>Docs</a>
+        <a href={href('download/')}>Download</a>
+        <a href={href('changelog/')}>Changelog</a>
+        <a href={href('privacy/')}>Privacy</a>
+        <a href={github}>GitHub</a>
+      </nav>
+    </div>
+  </footer>
+
+  <script is:inline>
+    (() => {
+      const ua = navigator.userAgent || '';
+      const platform = (navigator.userAgentData && navigator.userAgentData.platform) || '';
+      const os = /Win/i.test(platform) || /Windows/i.test(ua) ? 'windows'
+        : (/mac/i.test(platform) || /Macintosh/i.test(ua)) && !/iPhone|iPad/i.test(ua) ? 'mac'
+        : (/linux/i.test(platform) || /Linux|X11/i.test(ua)) && !/Android/i.test(ua) ? 'linux'
+        : '';
+      const names = { mac: 'macOS', windows: 'Windows', linux: 'Linux' };
+      if (os) {
+        const label = document.querySelector('[data-os-label]');
+        if (label) label.textContent = `Download for ${names[os]}`;
+        document.querySelector(`.platform[data-platform="${os}"]`)?.classList.add('platform-current');
+      }
+      const nav = document.querySelector('[data-nav]');
+      const mark = () => nav && nav.classList.toggle('nav-scrolled', scrollY > 8);
+      mark();
+      addEventListener('scroll', mark, { passive: true });
+    })();
+  </script>
+</body>
+</html>

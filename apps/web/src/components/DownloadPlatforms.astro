@@ -1,0 +1,182 @@
+---
+const releases = 'https://github.com/relay-client/relay/releases/latest';
+const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+
+const platforms = [
+  {
+    id: 'mac',
+    name: 'macOS',
+    requirement: 'macOS 12 Monterey or later · Apple Silicon and Intel',
+    files: [{ label: 'Universal disk image', file: 'relay-<version>-darwin-universal.dmg' }],
+    note: 'Not Apple-notarized yet: on first launch, right-click Relay.app and choose Open.',
+  },
+  {
+    id: 'windows',
+    name: 'Windows',
+    requirement: 'Windows 10 1903+ or Windows 11 · x64 and Arm64',
+    files: [
+      { label: 'Installer, no admin rights', file: 'relay-<version>-windows-amd64-installer.exe' },
+      { label: 'MSIX package', file: 'relay-<version>-windows-amd64.msix' },
+    ],
+    note: 'Use the arm64 files on a Snapdragon PC. SmartScreen may warn: the installer is not Authenticode-signed yet.',
+  },
+  {
+    id: 'linux',
+    name: 'Linux',
+    requirement: 'glibc 2.31+ · x64 · libgtk-3 and libwebkit2gtk-4.0',
+    files: [{ label: 'Portable AppImage', file: 'relay-<version>-linux-amd64.AppImage' }],
+    note: 'Make it executable with chmod +x, then run it. Nothing to install.',
+  },
+];
+---
+
+<div class="relay-platforms not-content">
+  {platforms.map(platform => (
+    <section class="relay-platform" data-platform={platform.id} aria-labelledby={`platform-${platform.id}`}>
+      <header>
+        <h2 id={`platform-${platform.id}`}>{platform.name}</h2>
+        <span class="relay-platform-yours">Your system</span>
+      </header>
+      <p class="relay-platform-req">{platform.requirement}</p>
+      <ul>
+        {platform.files.map(item => (
+          <li>
+            <span>{item.label}</span>
+            <code>{item.file}</code>
+          </li>
+        ))}
+      </ul>
+      <p class="relay-platform-note">{platform.note}</p>
+      <a class="relay-platform-cta" href={releases}>Download for {platform.name}</a>
+    </section>
+  ))}
+</div>
+<p class="relay-platforms-after not-content">
+  Every file is on the <a href={releases}>latest release</a>. First-run steps for each system are in <a href={`${base}docs/getting-started/installation/`}>Installation</a>.
+</p>
+
+<script is:inline>
+  (() => {
+    const ua = navigator.userAgent || '';
+    const platform = (navigator.userAgentData && navigator.userAgentData.platform) || '';
+    const os = /Win/i.test(platform) || /Windows/i.test(ua) ? 'windows'
+      : (/mac/i.test(platform) || /Macintosh/i.test(ua)) && !/iPhone|iPad/i.test(ua) ? 'mac'
+      : (/linux/i.test(platform) || /Linux|X11/i.test(ua)) && !/Android/i.test(ua) ? 'linux'
+      : '';
+    if (os) document.querySelector(`.relay-platform[data-platform="${os}"]`)?.classList.add('relay-platform-current');
+  })();
+</script>
+
+<style>
+  .relay-platforms {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+  .relay-platform {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding: 1.25rem;
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 14px;
+    background: var(--sl-color-black);
+  }
+  .relay-platform header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .relay-platform h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    color: var(--sl-color-white);
+  }
+  .relay-platform-yours {
+    display: none;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--sl-color-accent) 14%, transparent);
+    color: var(--sl-color-accent-high);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  :global(:root[data-theme='light']) .relay-platform-yours {
+    color: var(--sl-color-accent);
+  }
+  .relay-platform-req,
+  .relay-platform-note {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.55;
+    color: var(--sl-color-gray-2);
+  }
+  .relay-platform-note {
+    color: var(--sl-color-gray-3);
+  }
+  .relay-platform ul {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .relay-platform li {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.875rem;
+    color: var(--sl-color-white);
+  }
+  .relay-platform code {
+    font-family: var(--sl-font-mono);
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-3);
+    overflow-wrap: anywhere;
+  }
+  .relay-platform-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 2.5rem;
+    margin-top: auto;
+    border-radius: 10px;
+    border: 1px solid var(--sl-color-hairline);
+    background: var(--relay-surface);
+    color: var(--sl-color-white);
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .relay-platform-cta:hover {
+    border-color: color-mix(in srgb, var(--sl-color-accent) 50%, var(--sl-color-hairline));
+  }
+  .relay-platform-current {
+    border-color: color-mix(in srgb, var(--sl-color-accent) 55%, var(--sl-color-hairline));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--sl-color-accent) 12%, transparent);
+  }
+  .relay-platform-current .relay-platform-yours {
+    display: inline-flex;
+  }
+  .relay-platform-current .relay-platform-cta {
+    background: var(--sl-color-accent);
+    border-color: var(--sl-color-accent);
+    color: #ffffff;
+  }
+  .relay-platforms-after {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: var(--sl-color-gray-3);
+  }
+  .relay-platforms-after a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+</style>

@@ -3,11 +3,13 @@ title: Request types
 description: HTTP, GraphQL, SSE, WebSocket, Socket.IO, gRPC, and MCP requests in Relay.
 ---
 
-Relay has separate request modes for protocols that behave differently on the wire. Pick the type when creating a request; Relay changes the editor tabs, send/connect controls, response panel, and export behavior to match.
+Relay has separate request modes for protocols that behave differently on the wire. Each mode changes the editor tabs, send/connect controls, response panel, and export behavior to match.
 
-![New request dialog with request type choices](../../../../assets/screenshots/new-request-dialog.png)
+A new request always starts as HTTP — the `+` in the tab bar, `Cmd/Ctrl N`, and **Add request** in the sidebar open it straight away, with no dialog. To use another protocol, pick it from the menu at the start of the address bar, or run **New GraphQL request**, **New WebSocket request**, **New Socket.IO request**, **New gRPC request**, or **New MCP request** from the command palette.
 
-The picker at the start of the address bar holds both decisions: the HTTP methods on top, the other protocols below. While a request is still a draft you can switch it there — pick `POST` on a GraphQL draft and it becomes an HTTP request. Once the request is saved its protocol is fixed; the picker still changes an HTTP request's method, and a request of any other type shows its protocol without a menu.
+![Method and protocol picker in the address bar](../../../../assets/screenshots/request-protocol-picker.png)
+
+The picker holds both decisions: the HTTP methods on top, the other protocols below. A draft can switch protocol at any time — pick `POST` on a GraphQL draft and it becomes an HTTP request. A saved request can switch until it has a URL; after that its protocol is fixed, the picker still changes an HTTP request's method, and a request of any other type shows its protocol without a menu.
 
 ## At a glance
 

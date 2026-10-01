@@ -2,7 +2,7 @@
 
 Astro Starlight project that powers the public Relay site:
 
-- `/` — splash landing with hero, features, scripting demo, CTAs.
+- `/` — the marketing landing, a standalone Astro page (`src/pages/index.astro`, styles in `src/styles/landing.css`) outside Starlight. Its cropped showcase images in `src/assets/landing/` come from `node scripts/gen-landing-images.mjs`.
 - `/download/` — installer matrix for macOS / Windows / Linux.
 - `/docs/...` — full documentation: getting started, guides, reference, FAQ.
 - `/changelog/` — notable changes plus a link to tag-specific release notes.

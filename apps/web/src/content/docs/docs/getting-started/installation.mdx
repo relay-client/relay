@@ -1,45 +1,65 @@
 ---
 title: Installation
-description: Install Relay on macOS, Windows, or Linux.
+description: Install Relay on macOS, Windows or Linux, and get past the first-run prompts.
 ---
 
-Relay publishes release artifacts for each supported platform on the [releases page](https://github.com/relay-client/relay/releases/latest). Code-signing status differs by platform and artifact, so follow the first-run notes below.
+import { Steps } from '@astrojs/starlight/components';
+
+Relay publishes a build for each platform on the [releases page](https://github.com/relay-client/relay/releases/latest). Code signing differs by platform and file, so each section below ends with what to expect on the first launch.
 
 ## macOS
 
 **Requirements:** macOS 12 (Monterey) or later, with system updates installed — Relay draws its window with the system WebKit and needs the version that ships with Safari 16.2 or newer. Apple Silicon and Intel are both supported.
 
-1. Download `relay-<version>-darwin-universal.dmg`.
-2. Open the DMG, drag **Relay.app** to `/Applications`.
-3. Launch from Spotlight or the Applications folder.
+<Steps>
 
-Current DMGs are not Apple-notarized. On first launch, right-click **Relay.app** and choose **Open**, or use *System Settings → Privacy & Security → Open Anyway*. See the [troubleshooting guide](/docs/troubleshooting/#macos-relay-cant-be-opened-because-apple-cannot-check-it-for-malicious-software).
+1. Download `relay-<version>-darwin-universal.dmg`.
+
+2. Open the disk image and drag **Relay.app** to `/Applications`.
+
+3. Launch Relay from Spotlight or the Applications folder.
+
+</Steps>
+
+Current builds are not Apple-notarized. On the first launch, right-click **Relay.app** and choose **Open**, or use *System Settings → Privacy & Security → Open Anyway*. See the [troubleshooting guide](/docs/troubleshooting/#macos-relay-cant-be-opened-because-apple-cannot-check-it-for-malicious-software).
 
 ## Windows
 
-**Requirements:** Windows 10 1903+ or Windows 11, on x64 or Arm64. Pick the files whose name ends in `amd64` for an Intel or AMD processor and `arm64` for a Snapdragon or other Arm processor; *Settings → System → About → System type* says which one you have.
+**Requirements:** Windows 10 1903+ or Windows 11, on x64 or Arm64. Pick the files ending in `amd64` for an Intel or AMD processor and `arm64` for a Snapdragon or other Arm processor; *Settings → System → About → System type* says which one you have.
 
-You have two options:
+<div class="relay-tiles">
+  <div class="relay-tile">
+    <span class="relay-tile-title">Installer (recommended)</span>
+    <span class="relay-tile-text"><code>relay-&lt;version&gt;-windows-amd64-installer.exe</code> installs for you alone into <code>%LOCALAPPDATA%\Programs\Relay</code>. No administrator rights, and the in-app updater can replace the app later.</span>
+  </div>
+  <div class="relay-tile">
+    <span class="relay-tile-title">MSIX package</span>
+    <span class="relay-tile-text"><code>relay-&lt;version&gt;-windows-amd64.msix</code> installs through App Installer, which lists one permission — <em>Uses all system resources</em> — that every packaged desktop app needs.</span>
+  </div>
+</div>
 
-- **NSIS installer** (`relay-<version>-windows-amd64-installer.exe` or `relay-<version>-windows-arm64-installer.exe`) — classic Windows installer. SmartScreen may warn because this artifact is not currently Authenticode-signed.
-- **MSIX package** (`relay-<version>-windows-amd64.msix` or `relay-<version>-windows-arm64.msix`) — packaged Windows install. Release automation signs it only when the release job is supplied with the configured publisher certificate; an unsigned package cannot be installed without additional trust setup.
+If an older copy installed for all users in Program Files is found, the installer offers to remove it; Windows asks for permission once for that, and your data is kept. SmartScreen may warn because the installer is not Authenticode-signed yet. The MSIX package is signed only when the release job had the publisher certificate; an unsigned package needs extra trust setup before Windows installs it.
 
 ## Linux
 
-**Requirements:** glibc 2.31+ (Ubuntu 20.04+, Fedora 33+, Debian 11+). x64 only.
+**Requirements:** glibc 2.31+ (Ubuntu 20.04+, Fedora 33+, Debian 11+), x64, and `libgtk-3` plus `libwebkit2gtk-4.0` from your distribution's package manager.
 
-Download `relay-<version>-linux-amd64.AppImage`, make it executable, and run:
+<Steps>
 
-```sh
-chmod +x relay-*.AppImage
-./relay-*.AppImage
-```
+1. Download `relay-<version>-linux-amd64.AppImage`.
 
-You'll need `libgtk-3` and `libwebkit2gtk-4.0` from your distro's package manager.
+2. Make it executable and run it:
+
+   ```sh
+   chmod +x relay-*.AppImage
+   ./relay-*.AppImage
+   ```
+
+</Steps>
 
 ## Verify the download
 
-SHA256 checksums are published in `SHA256SUMS.txt`; auto-updates use the values embedded in `latest.json`. Verify before running:
+SHA-256 checksums are published in `SHA256SUMS.txt`; auto-updates use the values embedded in `latest.json`. Verify before running:
 
 ```sh
 shasum -a 256 relay-*.dmg
@@ -48,6 +68,6 @@ shasum -a 256 relay-*.dmg
 
 ## Auto-updates
 
-Relay checks `latest.json` from `relay-client/relay` after launch. Open **Settings → Updates** to check and install manually. **Settings → About → Automatically install updates** controls whether a discovered update is installed in the background.
+Relay checks `latest.json` from `relay-client/relay` after launch. Open **Settings → Updates** to check and install by hand. **Settings → About → Automatically install updates** controls whether a discovered update installs in the background.
 
-Updater binaries are verified against both the SHA-256 value and minisign signature from the manifest before installation.
+Updates are verified against both the SHA-256 value and the minisign signature from the manifest before they install.
