@@ -5,6 +5,19 @@ description: Notable Relay changes and links to the exact notes for each publish
 
 This page summarizes the notable-change log maintained in the source repository. For the exact notes and artifacts attached to every published tag, use the [Relay releases page](https://github.com/relay-client/relay/releases).
 
+## 2.0.2
+
+### Added
+
+- **Relay runs on Windows on Arm.** Releases now carry an Arm64 installer and MSIX package beside the x64 ones; the x64 installer refused to start on Arm machines. See [Installation](/docs/getting-started/installation/#windows). ([#34](https://github.com/relay-client/relay/issues/34))
+- **A middle click closes a tab**, as in a browser — request tabs and the Runner, Git, Mock, collection and History tabs. A tab with unsaved changes still asks first.
+
+### Fixed
+
+- **Enter in the URL field did nothing.** It now sends the request, or connects a WebSocket, Socket.IO or SSE request. It never cancels a request in flight or drops a live connection, and it still picks a suggestion while the variable list is open.
+
+---
+
 ## 2.0.1
 
 ### Fixed
