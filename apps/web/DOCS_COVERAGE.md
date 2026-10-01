@@ -2,7 +2,7 @@
 
 This matrix keeps documentation work honest. Update it whenever a feature ships or a guide changes.
 
-Last factual audit: **2026-10-01**, against desktop tag **v2.0.0** — the Graphite release: activity rail, tabs in the title bar, response beside the editor, MCP, the environment matrix, the command palette, history entry pages and last runs.
+Last factual audit: **2026-10-01**, against desktop tag **v2.0.1** — the Graphite release (activity rail, tabs in the title bar, response beside the editor, MCP, the environment matrix, the command palette, history entry pages and last runs) plus the macOS updater fix, which changes nothing the guides describe.
 Last design and screenshot pass: **2026-09-30** — every screenshot retaken from the redesigned app. Every guide that shows a Relay window now has one; `cli-runner` is terminal-only, and the reference pages carry code rather than pictures.
 
 | Area | User docs | Reference / source of truth | Screenshot status | Notes |
