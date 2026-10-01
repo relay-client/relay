@@ -174,7 +174,9 @@
   let updateError = $state('');
   let manualUpdateInstalling = $state(false);
   let currentVersion = $state('');
+  let packagedInstall = $state(false);
   let isDevBuild = $derived(currentVersion === 'dev');
+  let manualUpdateURL = $derived(updateInfo?.manualInstallUrl ?? '');
 
 
   let settingsQuery = $state('');
@@ -230,8 +232,9 @@
     return 'userAgentData' in nav;
   }
 
-  function rememberCurrentVersion(version: string) {
+  function rememberCurrentVersion(version: string, packaged = false) {
     currentVersion = version;
+    packagedInstall = packaged;
     const pendingReadyVersion = localStorage.getItem(UPDATE_READY_KEY);
     if (pendingReadyVersion && pendingReadyVersion === version) {
       localStorage.removeItem(UPDATE_READY_KEY);
@@ -241,12 +244,12 @@
 
   $effect(() => {
     if ((settingsTab === 'updates' || settingsTab === 'about') && !currentVersion) {
-      void getAppInfo().then(info => { rememberCurrentVersion(info.version); });
+      void getAppInfo().then(info => { rememberCurrentVersion(info.version, info.packaged); });
     }
     if (settingsTab === 'about' && !aboutInfo) {
       void (async () => {
         const info = await getAppInfo();
-        rememberCurrentVersion(info.version);
+        rememberCurrentVersion(info.version, info.packaged);
         const platformKey = document.documentElement.dataset.platform ?? '';
         const platformLabel: Record<string, string> = { darwin: 'macOS', windows: 'Windows', linux: 'Linux' };
         let arch = 'unknown';
@@ -315,9 +318,13 @@
     }
   }
 
+  function handleDownload() {
+    if (manualUpdateURL) openExternalURL(manualUpdateURL);
+  }
+
   async function handleInstall() {
     if (isDevBuild) return;
-    if (!updateInfo) return;
+    if (!updateInfo || updateInfo.manualInstallUrl) return;
     manualUpdateInstalling = true;
     updateState = 'installing';
     updateError = '';
@@ -347,7 +354,7 @@
   function handleAutoUpdateToggle(event: Event) {
     const enabled = inputChecked(event);
     setAutoUpdateInstall(enabled);
-    if (enabled && updateState === 'available' && updateInfo && !isDevBuild) {
+    if (enabled && updateState === 'available' && updateInfo && !updateInfo.manualInstallUrl && !isDevBuild) {
       void handleInstall();
     }
   }
@@ -706,6 +713,8 @@
                 <button class="btn-secondary btn-sm" type="button" onclick={handleCheck}>Check for updates</button>
               {:else if updateState === 'up-to-date'}
                 <button class="btn-secondary btn-sm" type="button" onclick={handleCheck}>Check again</button>
+              {:else if updateState === 'available' && updateInfo && manualUpdateURL}
+                <button class="btn-primary btn-sm" type="button" onclick={handleDownload}>Download update</button>
               {:else if updateState === 'available' && updateInfo}
                 <button class="btn-primary btn-sm" type="button" onclick={handleInstall}>Install update</button>
               {:else if updateState === 'ready'}
@@ -720,11 +729,18 @@
             <p class="updates-dev-notice">
               Updates aren't available when Relay runs from a local <code>make dev</code> or <code>go run</code> build. Install a release build from the <a href="https://github.com/relay-client/relay/releases/latest" onclick={(e) => { e.preventDefault(); openExternalURL('https://github.com/relay-client/relay/releases/latest'); }}>releases page</a> to receive them.
             </p>
-          {:else if updateState === 'available' && updateInfo && cleanReleaseNotes(updateInfo.releaseNotes)}
-            <div class="updates-notes">
-              <p class="settings-section-label">What's new in {updateInfo.version}</p>
-              <ReleaseNotes body={cleanReleaseNotes(updateInfo.releaseNotes)} />
-            </div>
+          {:else if updateState === 'available' && updateInfo}
+            {#if manualUpdateURL}
+              <p class="updates-dev-notice">
+                Relay is installed from the Windows app package, which Windows keeps read-only, so it can't update itself. Download the new <code>.msix</code> package and open it to upgrade Relay in place.
+              </p>
+            {/if}
+            {#if cleanReleaseNotes(updateInfo.releaseNotes)}
+              <div class="updates-notes">
+                <p class="settings-section-label">What's new in {updateInfo.version}</p>
+                <ReleaseNotes body={cleanReleaseNotes(updateInfo.releaseNotes)} />
+              </div>
+            {/if}
           {/if}
         </div>
       {/if}
@@ -1064,17 +1080,19 @@
               <label class="switch-control" aria-label="Automatically install updates">
                 <input
                   type="checkbox"
-                  checked={autoUpdateInstall}
-                  disabled={isDevBuild || updateState === 'installing'}
+                  checked={autoUpdateInstall && !packagedInstall}
+                  disabled={isDevBuild || packagedInstall || updateState === 'installing'}
                   onchange={handleAutoUpdateToggle}
                 />
                 <span class="switch-track"></span>
-                <span class="switch-state">{autoUpdateInstall ? 'ON' : 'OFF'}</span>
+                <span class="switch-state">{autoUpdateInstall && !packagedInstall ? 'ON' : 'OFF'}</span>
               </label>
             </div>
           </div>
           {#if isDevBuild}
             <p class="about-update-note">Auto-updates are available in release builds.</p>
+          {:else if packagedInstall}
+            <p class="about-update-note">Relay is installed from the Windows app package, so it can't install updates itself. When a new version is out, download it from Updates.</p>
           {:else if autoUpdateInstall && updateState === 'installing'}
             <p class="about-update-note">Downloading and installing the update…</p>
           {:else if autoUpdateInstall && updateState === 'ready'}

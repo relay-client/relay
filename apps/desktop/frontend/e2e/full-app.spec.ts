@@ -2710,3 +2710,58 @@ test.describe('README screenshot', () => {
     await page.screenshot({ path: readmeScreenshotPath });
   });
 });
+
+test.describe('Windows app package updates', () => {
+  test('offers the MSIX download instead of replacing a packaged install', async ({ page }) => {
+    const msixUrl = 'https://github.com/relay-client/relay/releases/download/v2.1.0/relay-2.1.0-windows-amd64.msix';
+    await installRelayBridge(page, '', 'windows/e2e', false);
+    await page.addInitScript((msixUrl) => {
+      const state = (window as any).__relayE2E;
+      const app = (window as any).go.api.App;
+      localStorage.setItem('relay:auto-update-install', 'true');
+      app.AppInfo = async () => ({ name: 'Relay', version: '2.0.2', runtime: 'windows/e2e', goVersion: 'e2e', packaged: true });
+      app.CheckForUpdate = async () => ({
+        info: {
+          version: '2.1.0',
+          releaseNotes: '### Fixed\n- Packaged installs update cleanly',
+          publishedAt: '2026-10-01T10:00:00Z',
+          downloadUrl: 'https://github.com/relay-client/relay/releases/download/v2.1.0/relay-windows-amd64.exe',
+          assetName: 'relay-windows-amd64.exe',
+          sha256: 'abc123',
+          signatureUrl: '',
+          manualInstallUrl: msixUrl,
+        },
+        error: '',
+      });
+      app.ApplyUpdate = async () => {
+        state.calls.push('ApplyUpdate');
+        return '';
+      };
+    }, msixUrl);
+    await page.goto('/');
+
+    const banner = page.locator('.update-notif');
+    await expect(banner).toContainText('Relay 2.1.0 is available');
+    await banner.getByRole('button', { name: 'Download' }).click();
+    await expect.poll(() => page.evaluate(() => window.__relayE2E.calls)).toContain(`open:${msixUrl}`);
+
+    await page.getByLabel('Settings', { exact: true }).click();
+    await page.getByRole('tab', { name: 'Updates', exact: true }).click();
+    const updates = page.locator('#settings-panel-updates');
+    await expect(updates).toContainText('Version 2.1.0 is available');
+    await expect(updates).toContainText('Windows app package');
+    await expect(updates).toContainText('Packaged installs update cleanly');
+    await expect(updates.getByRole('button', { name: 'Install update' })).toHaveCount(0);
+    await updates.getByRole('button', { name: 'Download update' }).click();
+    await expect.poll(async () => (await page.evaluate(() => window.__relayE2E.calls)).filter((call: string) => call === `open:${msixUrl}`).length).toBe(2);
+
+    await page.getByRole('tab', { name: 'About', exact: true }).click();
+    const autoInstall = page.getByLabel('Automatically install updates').locator('input');
+    await expect(autoInstall).toBeDisabled();
+    await expect(autoInstall).not.toBeChecked();
+    await expect(page.locator('#settings-panel-about')).toContainText('installed from the Windows app package');
+
+    const calls = await page.evaluate(() => window.__relayE2E.calls);
+    expect(calls).not.toContain('ApplyUpdate');
+  });
+});

@@ -7,6 +7,7 @@
     installing = false,
     onDismiss,
     onOpen,
+    onDownload,
     onRestart,
   }: {
     info: UpdateInfo;
@@ -14,11 +15,13 @@
     installing?: boolean;
     onDismiss: () => void;
     onOpen: () => void;
+    onDownload: (info: UpdateInfo) => void;
     onRestart: () => void;
   } = $props();
 
-  let actionLabel = $derived(installing ? 'Installing…' : (ready ? 'Restart' : 'View'));
-  let handleAction = $derived(ready ? onRestart : onOpen);
+  let manualInstall = $derived(Boolean(info.manualInstallUrl) && !ready);
+  let actionLabel = $derived(installing ? 'Installing…' : (ready ? 'Restart' : (manualInstall ? 'Download' : 'View')));
+  let handleAction = $derived(ready ? onRestart : (manualInstall ? () => onDownload(info) : onOpen));
   let statusLabel = $derived(installing ? 'is installing' : (ready ? 'is ready — restart to apply' : 'is available'));
 </script>
 
