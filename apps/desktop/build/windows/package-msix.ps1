@@ -9,7 +9,7 @@ param(
   [string]$DisplayName = "Relay",
   [string]$Description = "Cross-platform desktop API client",
   [string]$ExecutablePath = "build/bin/relay.exe",
-  [string]$IconPath = "build/appicon.png",
+  [string]$IconPath = "build/windows/appicon.png",
   [string]$OutputPath = "",
   [string]$CertificatePath = "",
   [string]$CertificatePassword = "",
@@ -200,8 +200,6 @@ $manifest = @"
     </Application>
   </Applications>
   <Capabilities>
-    <Capability Name="internetClient" />
-    <Capability Name="privateNetworkClientServer" />
     <rescap:Capability Name="runFullTrust" />
   </Capabilities>
 </Package>
