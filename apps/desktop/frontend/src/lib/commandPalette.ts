@@ -1,5 +1,5 @@
 import type { AppThemeMode } from './theme';
-import type { ShortcutId, SidebarView } from './types/models';
+import type { RequestType, ShortcutId, SidebarView } from './types/models';
 import type { ResponseLayout } from './stores/features/uiShell';
 import type { SettingsTab } from './stores/ui';
 
@@ -32,6 +32,7 @@ export type PaletteContext = {
   openCookies: () => unknown;
   openSettings: (tab: SettingsTab) => unknown;
   runShortcut: (id: ShortcutId) => unknown;
+  createRequest: (type: RequestType) => unknown;
   createCollection: () => unknown;
   createEnvironment: () => unknown;
   importCollection: () => unknown;
@@ -56,7 +57,12 @@ export function buildPaletteCommands(ctx: PaletteContext): PaletteCommand[] {
     { id: 'go-settings', group: 'Go to', label: 'Settings', keywords: 'preferences options', shortcut: 'settings', run: () => ctx.runShortcut('settings') },
     { id: 'go-shortcuts', group: 'Go to', label: 'Keyboard shortcuts', keywords: 'keys bindings hotkeys', shortcut: 'shortcut-help', run: () => ctx.runShortcut('shortcut-help') },
     { id: 'go-proxy', group: 'Go to', label: 'Proxy settings', keywords: 'network http socks', run: () => ctx.openSettings('proxy') },
-    { id: 'create-request', group: 'Create', label: 'New request…', keywords: 'http graphql grpc websocket sse socket.io mcp', shortcut: 'new-request', run: () => ctx.runShortcut('new-request') },
+    { id: 'create-request', group: 'Create', label: 'New request', keywords: 'http rest sse', shortcut: 'new-request', run: () => ctx.runShortcut('new-request') },
+    { id: 'create-request-graphql', group: 'Create', label: 'New GraphQL request', keywords: 'gql query', run: () => ctx.createRequest('graphql') },
+    { id: 'create-request-ws', group: 'Create', label: 'New WebSocket request', keywords: 'ws realtime socket', run: () => ctx.createRequest('ws') },
+    { id: 'create-request-socketio', group: 'Create', label: 'New Socket.IO request', keywords: 'sio realtime socket', run: () => ctx.createRequest('socketio') },
+    { id: 'create-request-grpc', group: 'Create', label: 'New gRPC request', keywords: 'protobuf rpc', run: () => ctx.createRequest('grpc') },
+    { id: 'create-request-mcp', group: 'Create', label: 'New MCP request', keywords: 'model context protocol tools', run: () => ctx.createRequest('mcp') },
     { id: 'create-collection', group: 'Create', label: 'New collection', run: ctx.createCollection },
     { id: 'create-environment', group: 'Create', label: 'New environment', keywords: 'variables', run: ctx.createEnvironment },
     { id: 'import-collection', group: 'Create', label: 'Import collection…', keywords: 'postman insomnia bruno openapi har curl opencollection', run: ctx.importCollection },

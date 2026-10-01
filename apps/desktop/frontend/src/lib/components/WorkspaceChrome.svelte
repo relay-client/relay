@@ -1,11 +1,12 @@
 <script lang="ts">
+  import { vm } from '../stores/app.svelte';
+  import Keycaps from './Keycaps.svelte';
   import MenuIcon from './MenuIcon.svelte';
   import { tabListKeyboard } from '../a11y';
   import { middleClick } from '../middleClick';
   import RequestTypeBadge from './RequestTypeBadge.svelte';
   import WindowControls from './WindowControls.svelte';
   import { MAX_WORKSPACES } from '../constants';
-  import { shortcutComboLabel } from '../stores/features/preferences';
   import type { Collection, Environment, SavedRequest, SidebarView, Workspace } from '../types/models';
   import type { TopView } from '../stores/ui';
 
@@ -116,7 +117,6 @@
   let dirtyRequestIdSet = $derived(new Set(dirtyRequestIds));
   let workspaceLimitReached = $derived(workspaces.length >= MAX_WORKSPACES);
   let filteredWorkspaces = $derived(workspaces.filter(workspace => !workspaceSearch.trim() || workspace.name.toLowerCase().includes(workspaceSearch.trim().toLowerCase())));
-  let globalSearchShortcut = $derived(shortcutComboLabel('Meta+K', appRuntime));
 
   let tabListEl = $state<HTMLDivElement>();
   let tabsOverflowing = $state(false);
@@ -377,8 +377,8 @@
       <circle cx="11" cy="11" r="7.5" stroke="currentColor" stroke-width="2"/>
       <path d="m16.5 16.5 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
     </svg>
-    <span>Search requests…</span>
-    <kbd>{globalSearchShortcut}</kbd>
+    <span class="global-search-label">Search requests…</span>
+    {#if vm.shortcutCombo('search')}<Keycaps combo={vm.shortcutCombo('search')} runtime={appRuntime} />{/if}
   </button>
   <div class="searchbar-right">
     <div class="environment-switcher">

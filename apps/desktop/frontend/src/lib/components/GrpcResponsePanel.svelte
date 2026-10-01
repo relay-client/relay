@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Keycaps from './Keycaps.svelte';
   import { tabListKeyboard } from '../a11y';
   import { renderResponseBodyLines } from '../response-render';
   import { vm } from '../stores/app.svelte';
@@ -26,7 +27,6 @@
 
   let response = $derived(vm.grpcResponse);
   let responseSearchInput = $state<HTMLInputElement | undefined>();
-  let invokeShortcut = $derived(vm.shortcutKeycaps(vm.shortcutCombo('send-request')).join(' '));
   let expandedIds = $state<Set<string>>(new Set());
   let hasScripts = $derived(Boolean(
     response?.testResult?.tests?.length ||
@@ -446,7 +446,7 @@
         <path d="M12 16h8M16 12l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
       <span class="response-placeholder-text">Invoke a method to see the response</span>
-      <span class="response-placeholder-hint">{invokeShortcut} to invoke</span>
+      {#if vm.shortcutCombo('send-request')}<span class="response-placeholder-hint"><Keycaps combo={vm.shortcutCombo('send-request')} runtime={vm.appRuntime} /> to invoke</span>{/if}
     </div>
   {/if}
 </div>

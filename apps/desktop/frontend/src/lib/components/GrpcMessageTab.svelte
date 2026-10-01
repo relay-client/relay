@@ -8,8 +8,9 @@
   let selectedMethod = $derived(vm.grpcServiceDefinition.methods.find(method => method.fullName === vm.grpcMethod));
 
   function onKeydown(event: KeyboardEvent) {
-    if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+    if (vm.shortcutForEvent(event) === 'send-request') {
       event.preventDefault();
+      event.stopPropagation();
       void vm.invokeGrpc();
     }
   }

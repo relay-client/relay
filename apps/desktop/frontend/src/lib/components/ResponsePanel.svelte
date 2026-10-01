@@ -1,8 +1,9 @@
 <script lang="ts">
+  import { vm } from '../stores/app.svelte';
+  import Keycaps from './Keycaps.svelte';
   import { tabListKeyboard } from '../a11y';
   import type { ResponseRenderMode } from '../response-render';
   import type { HttpResponse } from '../backend';
-  import { shortcutComboLabel } from '../stores/features/preferences';
   import ResponseBodyViewer from './ResponseBodyViewer.svelte';
   import ResponseTimeTooltip from './ResponseTimeTooltip.svelte';
   import ResponseTimelinePanel from './ResponseTimelinePanel.svelte';
@@ -96,7 +97,6 @@
   } = $props();
 
   let responseSearchInput = $state<HTMLInputElement | undefined>();
-  let sendShortcut = $derived(shortcutComboLabel('Meta+Enter', appRuntime));
   let responsePreview = $derived(responsePreviewFor(response));
   let binaryBodyDescription = $derived.by(() => {
     const type = response?.bodySniffedType || responseMediaType(response as HttpResponse);
@@ -386,7 +386,7 @@
         <path d="M12 16h8M16 12l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
       <span class="response-placeholder-text">Send a request to see the response</span>
-      <span class="response-placeholder-hint">{sendShortcut} to send</span>
+      {#if vm.shortcutCombo('send-request')}<span class="response-placeholder-hint"><Keycaps combo={vm.shortcutCombo('send-request')} runtime={appRuntime} /> to send</span>{/if}
       <button class="btn-secondary btn-sm response-load-file" type="button" onclick={loadResponseFromFile}>
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
           <path d="M6.5 9V2M4 4.5L6.5 2 9 4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>

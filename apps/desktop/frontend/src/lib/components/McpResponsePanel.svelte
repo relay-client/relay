@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Keycaps from './Keycaps.svelte';
   import { tabListKeyboard } from '../a11y';
   import { vm } from '../stores/app.svelte';
   import { formatSize, statusClass } from '../utils';
@@ -10,7 +11,6 @@
   const response = $derived(vm.mcpResponse);
   const http = $derived(response?.http ?? null);
   const notificationCount = $derived(response?.notifications.length ?? 0);
-  const sendShortcut = $derived(vm.shortcutKeycaps(vm.shortcutCombo('send-request')).join(' '));
   const hasResult = $derived(Boolean(
     response && (
       response.content.length ||
@@ -201,7 +201,7 @@
         <path d="M12 16h8M16 12l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
       <span class="response-placeholder-text">Send a call to see what the server answers</span>
-      <span class="response-placeholder-hint">{sendShortcut} to send</span>
+      {#if vm.shortcutCombo('send-request')}<span class="response-placeholder-hint"><Keycaps combo={vm.shortcutCombo('send-request')} runtime={vm.appRuntime} /> to send</span>{/if}
     </div>
   {/if}
 </div>

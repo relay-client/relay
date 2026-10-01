@@ -428,7 +428,7 @@
     mockRunning={vm.mockServer.running}
     gitChangeCount={vm.gitStatus.files?.length ?? 0}
     cookieCount={vm.cookies.length}
-    settingsShortcut={shortcutComboLabel('Meta+,', vm.appRuntime)}
+    settingsShortcut={shortcutComboLabel(vm.shortcutCombo('settings'), vm.appRuntime)}
     workspaceBlocked={vm.workspaceBlocked}
     openCollectionRunner={vm.openCollectionRunner}
     openMockTab={vm.openMockServerTab}
@@ -574,7 +574,8 @@
         history={vm.requestHistory}
         environmentCount={vm.activeWorkspaceEnvironments.length}
         storedInGit={vm.gitStatus.isRepo}
-        shortcutLabel={(id) => shortcutComboLabel(vm.shortcutCombo(id), vm.appRuntime)}
+        shortcutCombo={(id) => vm.shortcutCombo(id)}
+        appRuntime={vm.appRuntime}
         updateWorkspaceDescription={vm.updateWorkspaceDescription}
         renameWorkspace={vm.renameWorkspace}
         createWorkspace={vm.createWorkspace}

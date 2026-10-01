@@ -1796,7 +1796,7 @@
   background: var(--elevated);
 }
 
-.global-search span {
+.global-search-label {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -1945,7 +1945,7 @@
   height: 26px;
   padding: 0 12px;
   border-radius: 5px;
-  color: var(--text-3);
+  color: var(--text-2);
   font-size: 12.5px;
   font-weight: 500;
   cursor: pointer;
@@ -1979,4 +1979,9 @@
 
 .proxy-radio:has(input:disabled) {
   cursor: default;
+}
+
+.shortcut-unassigned {
+  color: var(--text-3);
+  font-size: 11.5px;
 }

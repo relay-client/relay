@@ -103,21 +103,84 @@ export function usesMacShortcutGlyphs(runtime = ''): boolean {
   return shortcutPlatform(runtime) === 'darwin';
 }
 
+const SHORTCUT_MODIFIER_ORDER = ['Ctrl', 'Alt', 'Shift', 'Meta'];
+
+export function canonicalShortcutCombo(combo: string): string {
+  if (!combo) return combo;
+  const parts = combo.split('+');
+  const key = parts.pop() ?? '';
+  const modifiers = SHORTCUT_MODIFIER_ORDER.filter(modifier => parts.includes(modifier));
+  return [...modifiers, key].join('+');
+}
+
 export function platformShortcutCombo(combo: string, runtime = ''): string {
-  if (!combo || usesMacShortcutGlyphs(runtime)) return combo;
-  return combo.split('+').map(part => (part === 'Meta' ? 'Ctrl' : part)).join('+');
+  if (!combo) return combo;
+  if (usesMacShortcutGlyphs(runtime)) return canonicalShortcutCombo(combo);
+  return canonicalShortcutCombo(combo.split('+').map(part => (part === 'Meta' ? 'Ctrl' : part)).join('+'));
+}
+
+const SHORTCUT_CODE_KEYS: Record<string, string> = {
+  Minus: '-', Equal: '=', BracketLeft: '[', BracketRight: ']', Backslash: '\\', IntlBackslash: '\\',
+  Semicolon: ';', Quote: "'", Comma: ',', Period: '.', Slash: '/', Backquote: '`',
+};
+
+export function shortcutKeyFromEvent(event: Pick<KeyboardEvent, 'key' | 'code'>): string {
+  const key = event.key;
+  if (key === ' ' || key === 'Spacebar') return 'Space';
+  if (key === 'Esc') return 'Escape';
+  if (key.length === 1 && key >= '!' && key <= '~') return key.toUpperCase();
+  const code = event.code ?? '';
+  if (/^Key[A-Z]$/.test(code)) return code.slice(3);
+  if (/^Digit[0-9]$/.test(code)) return code.slice(5);
+  if (SHORTCUT_CODE_KEYS[code]) return SHORTCUT_CODE_KEYS[code];
+  return key.length === 1 ? key.toUpperCase() : key;
+}
+
+export type ShortcutKeycap = { key: string; label: string; title: string; icon?: 'windows' };
+
+const MAC_KEY_LABELS: Record<string, string> = {
+  Meta: '⌘', Shift: '⇧', Alt: '⌥', Ctrl: '⌃', Enter: '↵', Backspace: '⌫', Delete: '⌦', Escape: 'esc', Tab: '⇥',
+  ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', Space: 'Space', ' ': 'Space',
+};
+const PC_KEY_LABELS: Record<string, string> = {
+  Shift: '⇧ Shift', Alt: 'Alt', Ctrl: 'Ctrl', Enter: '↵ Enter', Backspace: '⌫', Delete: 'Del', Escape: 'Esc', Tab: '⇥ Tab',
+  ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', Space: 'Space', ' ': 'Space',
+};
+const KEY_TITLES: Record<string, string> = {
+  Meta: 'Command', Shift: 'Shift', Alt: 'Option', Ctrl: 'Control', Enter: 'Enter', Backspace: 'Backspace', Delete: 'Delete',
+  Escape: 'Escape', Tab: 'Tab', ArrowUp: 'Up arrow', ArrowDown: 'Down arrow', ArrowLeft: 'Left arrow', ArrowRight: 'Right arrow', Space: 'Space',
+};
+
+export function shortcutKeycap(key: string, runtime = ''): ShortcutKeycap {
+  const platform = shortcutPlatform(runtime);
+  if (platform === 'darwin') {
+    return { key, label: MAC_KEY_LABELS[key] ?? key.toUpperCase(), title: KEY_TITLES[key] ?? key.toUpperCase() };
+  }
+  if (key === 'Meta') {
+    return platform === 'windows'
+      ? { key, label: 'Win', title: 'Windows key', icon: 'windows' }
+      : { key, label: 'Super', title: 'Super key' };
+  }
+  const title = key === 'Alt' ? 'Alt' : key === 'Ctrl' ? 'Ctrl' : KEY_TITLES[key] ?? key.toUpperCase();
+  return { key, label: PC_KEY_LABELS[key] ?? key.toUpperCase(), title };
+}
+
+export function shortcutKeycaps(combo: string, runtime = ''): ShortcutKeycap[] {
+  const canonical = canonicalShortcutCombo(combo);
+  return canonical ? canonical.split('+').map(key => shortcutKeycap(key, runtime)) : [];
 }
 
 export function shortcutKeyLabelForPlatform(key: string, runtime = ''): string {
-  const map = usesMacShortcutGlyphs(runtime)
-    ? { Meta: '⌘', Shift: '⇧', Alt: '⌥', Ctrl: '⌃', Enter: '↵', Backspace: '⌫', Delete: '⌦', ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', ' ': 'Space', Space: 'Space' }
-    : { Meta: 'Win', Shift: 'Shift', Alt: 'Alt', Ctrl: 'Ctrl', Enter: 'Enter', Backspace: 'Backspace', Delete: 'Del', ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', ' ': 'Space', Space: 'Space' };
-  return (map as Record<string, string>)[key] ?? key.toUpperCase();
+  if (usesMacShortcutGlyphs(runtime)) return shortcutKeycap(key, runtime).label;
+  const keycap = shortcutKeycap(key, runtime);
+  return keycap.label.replace(/^[⇧↵⇥] /, '');
 }
 
 export function shortcutComboLabel(combo: string, runtime = ''): string {
-  const platformCombo = platformShortcutCombo(combo, runtime);
-  return platformCombo ? platformCombo.split('+').map(key => shortcutKeyLabelForPlatform(key, runtime)).join(' ') : 'Unassigned';
+  const canonical = canonicalShortcutCombo(combo);
+  if (!canonical) return 'Unassigned';
+  const labels = canonical.split('+').map(key => shortcutKeyLabelForPlatform(key, runtime));
+  return usesMacShortcutGlyphs(runtime) ? labels.join('') : labels.join('+');
 }
 
 function persistProxyConfigSansPassword(config: ProxyConfig): void {
@@ -265,7 +328,7 @@ export const preferencesFeature = {
   },
   shortcutCombo(this: PreferencesHost, id: ShortcutId) {
     const override = this.shortcutOverrides[id];
-    if (override !== undefined) return override;
+    if (override !== undefined) return canonicalShortcutCombo(override);
     const defaultCombo = SHORTCUT_DEFINITIONS.find(definition => definition.id === id)?.defaultCombo ?? '';
     return platformShortcutCombo(defaultCombo, this.appRuntime);
   },
@@ -284,18 +347,12 @@ export const preferencesFeature = {
   shortcutKeyLabel(this: PreferencesHost, key: string) {
     return shortcutKeyLabelForPlatform(key, this.appRuntime);
   },
-  shortcutKeycaps(this: PreferencesHost, combo: string) {
-    return combo ? combo.split('+').map(key => this.shortcutKeyLabel(key)) : ['Unassigned'];
-  },
   normalizeShortcutKey(this: PreferencesHost, key: string) {
-    if (key === ' ') return 'Space';
-    if (key === 'Esc') return 'Escape';
-    if (key.length === 1) return key.toUpperCase();
-    return key;
+    return shortcutKeyFromEvent({ key, code: '' });
   },
   eventToCombo(this: PreferencesHost, event: KeyboardEvent) {
-    const key = this.normalizeShortcutKey(event.key);
-    if (['Meta', 'Control', 'Shift', 'Alt'].includes(event.key)) return '';
+    if (['Meta', 'Control', 'Shift', 'Alt', 'AltGraph', 'OS'].includes(event.key)) return '';
+    const key = shortcutKeyFromEvent(event);
     const parts: string[] = [];
     if (event.ctrlKey) parts.push('Ctrl');
     if (event.altKey) parts.push('Alt');

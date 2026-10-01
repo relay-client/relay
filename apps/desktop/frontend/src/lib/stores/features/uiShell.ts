@@ -9,6 +9,7 @@ import {
   requestTransportLabel,
 } from '../../utils';
 import type { SettingsTab, TopView } from '../ui';
+import { shortcutComboLabel } from './preferences';
 
 const SIDEBAR_MIN_WIDTH = 260;
 const SIDEBAR_MAX_WIDTH = 460;
@@ -122,7 +123,6 @@ type UiShellHost = {
   saveEnvironment: () => Promise<unknown>;
   setShortcut: (id: ShortcutId, combo: string) => void;
   shortcutForEvent: (event: KeyboardEvent) => ShortcutId | null;
-  shortcutKeycaps: (combo: string) => string[];
   showWorkspaceBlockedToast: (action?: string, workspaceId?: string) => void;
   guardWorkspaceWritable: (action?: string) => boolean;
   buildGlobalSearchResults: () => SavedRequest[];
@@ -130,6 +130,7 @@ type UiShellHost = {
   switchOpenTabAt: (index: number) => Promise<unknown>;
   switchOpenTabByOffset: (offset: number) => Promise<unknown>;
   switchSidebarItem: (offset: number) => Promise<unknown>;
+  appRuntime: string;
 };
 
 export const uiShellFeature = {
@@ -422,7 +423,7 @@ export const uiShellFeature = {
       const combo = this.eventToCombo(e);
       if (!combo) return;
       this.setShortcut(this.shortcutEditingId, combo);
-      this.shortcutCaptureMessage = `${this.shortcutKeycaps(combo).join(' ')} assigned`;
+      this.shortcutCaptureMessage = `${shortcutComboLabel(combo, this.appRuntime)} assigned`;
       this.shortcutEditingId = '';
       setTimeout(() => (this.shortcutCaptureMessage = ''), 1500);
       return;

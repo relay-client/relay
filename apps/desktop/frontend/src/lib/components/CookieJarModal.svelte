@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { openExternalURL } from '../externalLinks';
   import { tabListKeyboard, trapFocus } from '../a11y';
   import type { CookieJarEntry, CookieSyncStatus } from '../backend';
   import {
@@ -147,8 +148,7 @@
   }
 
   function openSyncGuide() {
-    if (window.runtime?.BrowserOpenURL) window.runtime.BrowserOpenURL(COOKIE_SYNC_GUIDE_URL);
-    else window.open(COOKIE_SYNC_GUIDE_URL, '_blank');
+    openExternalURL(COOKIE_SYNC_GUIDE_URL);
   }
 
   $effect(() => {

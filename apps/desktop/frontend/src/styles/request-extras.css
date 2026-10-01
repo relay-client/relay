@@ -1244,7 +1244,7 @@
   border: none;
   border-radius: 8px;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   font-weight: 600;
   font-size: 12px;
   display: inline-flex;
@@ -1287,8 +1287,8 @@
 .spinner-sm {
   width: 11px;
   height: 11px;
-  border: 1.5px solid rgba(255,255,255,0.3);
-  border-top-color: #fff;
+  border: 1.5px solid color-mix(in srgb, var(--on-accent) 30%, transparent);
+  border-top-color: var(--on-accent);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }

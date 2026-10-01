@@ -105,7 +105,7 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
   { id: 'request-url', group: 'Request', label: 'Request URL', defaultCombo: 'Meta+L' },
   { id: 'send-request', group: 'Request', label: 'Send request', defaultCombo: 'Meta+Enter' },
   { id: 'save-request', group: 'Request', label: 'Save request', defaultCombo: 'Meta+S' },
-  { id: 'new-request', group: 'Window and modals', label: 'New...', defaultCombo: 'Meta+N' },
+  { id: 'new-request', group: 'Window and modals', label: 'New request', defaultCombo: 'Meta+N' },
   { id: 'settings', group: 'Window and modals', label: 'Settings', defaultCombo: 'Meta+,' },
   { id: 'shortcut-help', group: 'Window and modals', label: 'Open shortcut help', defaultCombo: 'Meta+/' },
   { id: 'search', group: 'Window and modals', label: 'Search', defaultCombo: 'Meta+K' },

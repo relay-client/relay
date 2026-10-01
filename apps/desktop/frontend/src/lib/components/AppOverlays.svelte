@@ -3,7 +3,6 @@
   import type { SavedRequest, ShortcutId } from '../types/models';
   import { requestSupportsCurl, requestTabLabel } from '../utils';
   import { buildPaletteCommands } from '../commandPalette';
-  import { shortcutComboLabel } from '../stores/features/preferences';
   import { vm } from '../stores/app.svelte';
   import { appLazyComponents as lazy } from '../stores/lazyComponents.svelte';
   import AppDialog from './AppDialog.svelte';
@@ -55,6 +54,7 @@
     openCookies: () => vm.openCookieJar(),
     openSettings: (tab) => vm.openSettings(tab),
     runShortcut: (id) => vm.runShortcut(id),
+    createRequest: (type) => vm.createNewRequest(undefined, type),
     createCollection: () => vm.createCollection(),
     createEnvironment: () => vm.createEnvironment(),
     importCollection: vm.openPostmanImport,
@@ -92,7 +92,6 @@
       setScriptEngine={vm.setScriptEngine}
       shortcutGroups={vm.shortcutGroups}
       shortcutCombo={vm.shortcutCombo}
-      shortcutKeycaps={vm.shortcutKeycaps}
       startShortcutCapture={vm.startShortcutCapture}
       resetShortcut={vm.resetShortcut}
       resetAllShortcuts={vm.resetAllShortcuts}
@@ -126,7 +125,7 @@
       bind:query={vm.globalSearchQuery}
       results={vm.globalSearchResults}
       commands={paletteCommands}
-      shortcutLabel={(id: ShortcutId) => shortcutComboLabel(vm.shortcutCombo(id), appRuntime)}
+      shortcutCombo={(id: ShortcutId) => vm.shortcutCombo(id)}
       activeRequestId={vm.activeRequestId}
       {requestTabLabel}
       collectionLabel={(request: SavedRequest) => vm.collectionNameById(request.collectionId) || request.collection}
