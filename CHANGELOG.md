@@ -7,6 +7,17 @@ All notable changes to Relay are documented here. This project follows
 
 ## [Unreleased]
 
+## [2.0.2] - 2026-10-01
+
+### Added
+
+- **Relay runs on Windows on Arm.** Releases now carry an Arm64 installer and MSIX package beside the x64 ones — `relay-<version>-windows-arm64-installer.exe` and `relay-<version>-windows-arm64.msix`. The x64 installer refused to start on a Snapdragon laptop with *This product can't be installed on the current Windows architecture*; the Arm64 build runs natively rather than under emulation, and updates itself from its own signed `windows-arm64` package. ([#34](https://github.com/relay-client/relay/issues/34))
+- **A middle click closes a tab**, as in a browser. It works on request tabs and on the Runner, Git, Mock, collection and History tabs; the Overview tab stays put. A tab with unsaved changes still asks first.
+
+### Fixed
+
+- **Enter in the URL field did nothing.** The address bar swallowed the key — it is a multi-line field, so the newline was blocked — without sending anything, and only `Cmd/Ctrl Enter` worked. Enter now sends the request, or connects a WebSocket, Socket.IO or SSE request. It does not cancel a request already in flight or drop a live connection, and it still picks a suggestion while the variable list is open.
+
 ## [2.0.1] - 2026-10-01
 
 ### Fixed

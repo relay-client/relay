@@ -34,6 +34,8 @@ Every shortcut is rebindable from **Settings → Shortcuts**. Click any shortcut
 | `Cmd/Ctrl 9` | Switch to the last tab, whichever number it is |
 | `Shift Cmd/Ctrl [` / `Shift Cmd/Ctrl ]` | Previous / next tab |
 
+Two more work without a binding and cannot be remapped: `Enter` in the URL field sends the request — or connects a WebSocket, Socket.IO or SSE request — and a middle click on a tab closes it.
+
 ## Sidebar
 
 | Shortcut | Action |
