@@ -661,6 +661,7 @@ export namespace model {
 	    version: string;
 	    runtime: string;
 	    goVersion: string;
+	    packaged: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new AppInfo(source);
@@ -672,6 +673,7 @@ export namespace model {
 	        this.version = source["version"];
 	        this.runtime = source["runtime"];
 	        this.goVersion = source["goVersion"];
+	        this.packaged = source["packaged"];
 	    }
 	}
 	export class AuthConfig {
@@ -1973,6 +1975,7 @@ export namespace model {
 	    assetName: string;
 	    sha256: string;
 	    signatureUrl: string;
+	    manualInstallUrl: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new UpdateInfo(source);
@@ -1987,6 +1990,7 @@ export namespace model {
 	        this.assetName = source["assetName"];
 	        this.sha256 = source["sha256"];
 	        this.signatureUrl = source["signatureUrl"];
+	        this.manualInstallUrl = source["manualInstallUrl"];
 	    }
 	}
 	export class UpdateCheckResult {

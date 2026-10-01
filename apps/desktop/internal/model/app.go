@@ -5,4 +5,5 @@ type AppInfo struct {
 	Version   string `json:"version"`
 	Runtime   string `json:"runtime"`
 	GoVersion string `json:"goVersion"`
+	Packaged  bool   `json:"packaged"`
 }

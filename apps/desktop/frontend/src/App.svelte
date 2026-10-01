@@ -147,7 +147,7 @@
   }
 
   async function installUpdateAutomatically(info: UpdateInfo): Promise<boolean> {
-    if (!autoUpdateInstall || autoUpdateInstalling || localStorage.getItem(UPDATE_READY_KEY)) return false;
+    if (info.manualInstallUrl || !autoUpdateInstall || autoUpdateInstalling || localStorage.getItem(UPDATE_READY_KEY)) return false;
     autoUpdateInstalling = true;
     try {
       const err = await applyUpdate(info);
@@ -163,6 +163,14 @@
       return false;
     } finally {
       autoUpdateInstalling = false;
+    }
+  }
+
+  function downloadPackagedUpdate(info: UpdateInfo) {
+    if (window.runtime?.BrowserOpenURL) {
+      window.runtime.BrowserOpenURL(info.manualInstallUrl);
+    } else {
+      window.open(info.manualInstallUrl, '_blank');
     }
   }
 
@@ -372,6 +380,7 @@
     installing={autoUpdateInstalling}
     onDismiss={() => (updateInfo = null)}
     onOpen={() => { vm.openSettings('updates'); }}
+    onDownload={downloadPackagedUpdate}
     onRestart={restartForInstalledUpdate}
   />
 {/if}

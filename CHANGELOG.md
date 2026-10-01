@@ -7,6 +7,10 @@ All notable changes to Relay are documented here. This project follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **Updating the MSIX install of Relay failed with a permission error.** Windows keeps a packaged app read-only under `WindowsApps`, so the in-app updater could never replace it and reported *Relay does not have permission to replace the app*. Relay now recognises that it runs from the Windows app package and, instead of trying to replace itself, offers the new `.msix` for this machine's architecture — *Download* in the update notice and *Download update* in Settings open it, and App Installer upgrades Relay in place. Automatic installs stay off for the packaged app.
+
 ## [2.0.2] - 2026-10-01
 
 ### Added

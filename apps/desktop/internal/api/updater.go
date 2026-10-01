@@ -177,7 +177,11 @@ func checkForUpdate(ctx context.Context) (*model.UpdateInfo, error) {
 }
 
 func updateInfoFromManifest(manifest *updateManifest) (*model.UpdateInfo, error) {
-	return updateInfoFromManifestFor(manifest, updatePlatformKeys(goruntime.GOOS, runningAppBundle(), platformKey()))
+	info, err := updateInfoFromManifestFor(manifest, updatePlatformKeys(goruntime.GOOS, runningAppBundle(), platformKey()))
+	if err != nil {
+		return nil, err
+	}
+	return withPackagedInstall(info, runningAsPackagedApp(), goruntime.GOARCH), nil
 }
 
 func updateInfoFromManifestFor(manifest *updateManifest, keys []string) (*model.UpdateInfo, error) {
@@ -300,6 +304,9 @@ func resolveTrustedUpdateInfo(ctx context.Context) (*model.UpdateInfo, error) {
 }
 
 func downloadAndApply(ctx context.Context, info *model.UpdateInfo) error {
+	if runningAsPackagedApp() {
+		return errUpdateManagedByPackage
+	}
 	if !isDevBuild() && !semverIsNewer(info.Version, appVersion) {
 		return errUpdateVersionRollback
 	}
@@ -423,6 +430,8 @@ func friendlyUpdateError(err error, action string) string {
 		return base + " The update server returned an unexpected location. Please try again later."
 	case errors.Is(err, errUpdateVersionRollback):
 		return base + " The available update is not newer than the installed version."
+	case errors.Is(err, errUpdateManagedByPackage):
+		return base + " Relay is installed from the Windows app package, which Windows keeps read-only. Download the new package and open it to update."
 	}
 	lower := strings.ToLower(err.Error())
 	switch {

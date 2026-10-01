@@ -131,6 +131,7 @@ func (a *App) AppInfo() model.AppInfo {
 		Version:   appVersion,
 		Runtime:   goruntime.GOOS + "/" + goruntime.GOARCH,
 		GoVersion: goruntime.Version(),
+		Packaged:  runningAsPackagedApp(),
 	}
 }
 
@@ -397,6 +398,9 @@ func (a *App) CheckForUpdate() model.UpdateCheckResult {
 func (a *App) ApplyUpdate(info model.UpdateInfo) string {
 	if isDevBuild() {
 		return "Updates are disabled in development builds. Install a release build to receive updates."
+	}
+	if runningAsPackagedApp() {
+		return friendlyUpdateError(errUpdateManagedByPackage, "install the update")
 	}
 	ctx, cancel := context.WithTimeout(updateBaseContext(a.ctx), updateDownloadTimeout)
 	defer cancel()

@@ -20,7 +20,7 @@ export * from './wire';
 export async function getAppInfo(): Promise<AppInfo> {
   const app = window.go?.api?.App;
   if (!app?.AppInfo) {
-    return { name: 'Relay', version: 'dev', runtime: 'browser', goVersion: 'unavailable' };
+    return { name: 'Relay', version: 'dev', runtime: 'browser', goVersion: 'unavailable', packaged: false };
   }
   return app.AppInfo();
 }
