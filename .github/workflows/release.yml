@@ -28,6 +28,11 @@ jobs:
           - os: windows-latest
             platform: windows/amd64
             artifact: windows
+            arch: amd64
+          - os: windows-11-arm
+            platform: windows/arm64
+            artifact: windows-arm64
+            arch: arm64
           - os: ubuntu-22.04
             platform: linux/amd64
             artifact: linux
@@ -129,7 +134,8 @@ jobs:
 
           ./build/windows/package-msix.ps1 `
             -Version "$env:VERSION" `
-            -OutputPath "build/bin/relay-$env:VERSION-windows-amd64.msix" `
+            -Architecture "${{ matrix.arch }}" `
+            -OutputPath "build/bin/relay-$env:VERSION-windows-${{ matrix.arch }}.msix" `
             -CertificatePath "$certificatePath" `
             -CertificatePassword "$env:MSIX_CERTIFICATE_PASSWORD"
         working-directory: apps/desktop
@@ -168,14 +174,14 @@ jobs:
           New-Item -ItemType Directory -Force release | Out-Null
           $installer = Get-ChildItem apps\desktop\build\bin\*installer.exe -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $installer) { throw "NSIS installer not found in build\bin — check that NSIS is installed and wails build -nsis succeeded" }
-          Copy-Item $installer.FullName "release\relay-$env:VERSION-windows-amd64-installer.exe"
+          Copy-Item $installer.FullName "release\relay-$env:VERSION-windows-${{ matrix.arch }}-installer.exe"
           $msix = Get-ChildItem apps\desktop\build\bin\*.msix -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $msix) { throw "MSIX package not found in build\bin — check that package-msix.ps1 succeeded" }
-          Copy-Item $msix.FullName "release\relay-$env:VERSION-windows-amd64.msix"
+          Copy-Item $msix.FullName "release\relay-$env:VERSION-windows-${{ matrix.arch }}.msix"
 
           $raw = Get-ChildItem apps\desktop\build\bin\*.exe -Exclude *installer* -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $raw) { throw "Raw Windows binary not found in build\bin — auto-update artifact is required" }
-          Copy-Item $raw.FullName "release\relay-windows-amd64.exe"
+          Copy-Item $raw.FullName "release\relay-windows-${{ matrix.arch }}.exe"
 
       - name: Package Linux raw binary
         if: runner.os == 'Linux'
@@ -248,7 +254,7 @@ jobs:
         shell: pwsh
         run: |
           $out = Join-Path $env:RUNNER_TEMP "relay-version.txt"
-          $process = Start-Process -FilePath "release\relay-windows-amd64.exe" `
+          $process = Start-Process -FilePath "release\relay-windows-${{ matrix.arch }}.exe" `
             -ArgumentList "--version" -Wait -PassThru -NoNewWindow -RedirectStandardOutput $out
           if ($process.ExitCode -ne 0) {
             throw "built binary exited with $($process.ExitCode)"
@@ -342,7 +348,7 @@ jobs:
           key_file="$(mktemp)"
           printf '%s\n' "$UPDATE_SIGNING_KEY" > "$key_file"
           trap 'rm -f "$key_file"' EXIT
-          for asset in release/relay-darwin-universal release/relay-darwin-universal.app.zip release/relay-windows-amd64.exe release/relay-linux-amd64; do
+          for asset in release/relay-darwin-universal release/relay-darwin-universal.app.zip release/relay-windows-amd64.exe release/relay-windows-arm64.exe release/relay-linux-amd64; do
             if [ ! -f "$asset" ]; then
               echo "::error::missing asset for signing: $asset"
               exit 1
@@ -363,7 +369,7 @@ jobs:
             --tag "$GITHUB_REF_NAME"
             --repo "$UPDATE_REPOSITORY"
             --notes-file release-notes.md
-            --platforms darwin-universal,darwin-universal-app,windows-amd64,linux-amd64
+            --platforms darwin-universal,darwin-universal-app,windows-amd64,windows-arm64,linux-amd64
             --require-signature
           )
           python3 scripts/make-latest-json.py "${args[@]}"

@@ -18,8 +18,9 @@ LDFLAGS := -X 'github.com/relay-client/relay/apps/desktop/internal/api.appVersio
 
 MAC_APP   := $(DESKTOP_DIR)/build/bin/$(APP_NAME).app
 LINUX_BIN := $(DESKTOP_DIR)/build/bin/relay
-WIN_EXE   := $(DESKTOP_DIR)/build/bin/relay-amd64-installer.exe
-WIN_MSIX  := $(DESKTOP_DIR)/build/bin/relay-$(VERSION)-windows-amd64.msix
+WIN_ARCH  ?= amd64
+WIN_EXE   := $(DESKTOP_DIR)/build/bin/relay-$(WIN_ARCH)-installer.exe
+WIN_MSIX  := $(DESKTOP_DIR)/build/bin/relay-$(VERSION)-windows-$(WIN_ARCH).msix
 
 HOST_OS := $(shell uname -s 2>/dev/null || echo Windows_NT)
 POWERSHELL := $(shell command -v pwsh 2>/dev/null || command -v powershell.exe 2>/dev/null || command -v powershell 2>/dev/null || printf '%s' 'pwsh')
@@ -59,7 +60,7 @@ help:
 	@printf '  %-24s %s\n' 'make check' 'Run frontend typecheck and Go tests'
 	@printf '  %-24s %s\n' 'make test-extension' 'Drive the cookie sync extension in a real browser'
 	@printf '  %-24s %s\n' 'make build' 'Build desktop app for the current platform'
-	@printf '  %-24s %s\n' 'make build-windows' 'Build Windows NSIS installer and MSIX package'
+	@printf '  %-24s %s\n' 'make build-windows' 'Build Windows NSIS installer and MSIX package (WIN_ARCH=amd64|arm64)'
 	@printf '%s\n' ''
 	@printf '%s\n' 'Release targets (current: $(_LAST_TAG)):'
 	@printf '  %-24s %s\n' 'make release' 'Bump patch and release  ($(_LAST_TAG) → v$(_V_MAJOR).$(_V_MINOR).$(_NEXT_PATCH))'
@@ -379,12 +380,13 @@ build-macos:
 	cd $(DESKTOP_DIR) && $(GO_ENV) $(WAILS_CMD) build -platform darwin/universal -ldflags "$(LDFLAGS)"
 
 build-windows:
-	cd $(DESKTOP_DIR) && $(GO_ENV) $(WAILS_CMD) build -platform windows/amd64 -nsis -ldflags "$(LDFLAGS)"
+	cd $(DESKTOP_DIR) && $(GO_ENV) $(WAILS_CMD) build -platform windows/$(WIN_ARCH) -nsis -ldflags "$(LDFLAGS)"
 	$(MAKE) build-windows-msix
 
 build-windows-msix:
 	cd $(DESKTOP_DIR) && "$(POWERSHELL)" -NoProfile -ExecutionPolicy Bypass -File build/windows/package-msix.ps1 \
 		-Version "$(VERSION)" \
+		-Architecture "$(WIN_ARCH)" \
 		-IdentityName "$(MSIX_IDENTITY_NAME)" \
 		-Publisher "$(MSIX_PUBLISHER)" \
 		-PublisherDisplayName "$(MSIX_PUBLISHER_DISPLAY_NAME)" \

@@ -17,12 +17,12 @@ Current DMGs are not Apple-notarized. On first launch, right-click **Relay.app**
 
 ## Windows
 
-**Requirements:** Windows 10 1903+ or Windows 11. x64 only.
+**Requirements:** Windows 10 1903+ or Windows 11, on x64 or Arm64. Pick the files whose name ends in `amd64` for an Intel or AMD processor and `arm64` for a Snapdragon or other Arm processor; *Settings → System → About → System type* says which one you have.
 
 You have two options:
 
-- **NSIS installer** (`relay-<version>-windows-amd64-installer.exe`) — classic Windows installer. SmartScreen may warn because this artifact is not currently Authenticode-signed.
-- **MSIX package** (`relay-<version>-windows-amd64.msix`) — packaged Windows install. Release automation signs it only when the release job is supplied with the configured publisher certificate; an unsigned package cannot be installed without additional trust setup.
+- **NSIS installer** (`relay-<version>-windows-amd64-installer.exe` or `relay-<version>-windows-arm64-installer.exe`) — classic Windows installer. SmartScreen may warn because this artifact is not currently Authenticode-signed.
+- **MSIX package** (`relay-<version>-windows-amd64.msix` or `relay-<version>-windows-arm64.msix`) — packaged Windows install. Release automation signs it only when the release job is supplied with the configured publisher certificate; an unsigned package cannot be installed without additional trust setup.
 
 ## Linux
 
