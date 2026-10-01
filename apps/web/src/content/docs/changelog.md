@@ -10,6 +10,7 @@ This page summarizes the notable-change log maintained in the source repository.
 ### Fixed
 
 - **An update on macOS left the old icon behind.** The in-app updater replaced only the program inside `Relay.app`, so the icon and the version Finder shows stayed from the day Relay was first installed. Updates now replace the whole signed app, and a copy that was updated the old way repairs itself on its next start — the new icon appears from the launch after that.
+- **Every release called itself 1.0.0 to the operating system.** The release build stamped its real version into the program but never into the app's own description, so Finder and *About This Mac* on macOS, and the file properties and *Apps & features* on Windows, showed 1.0.0 whatever version was installed. They show the actual version now.
 
 ---
 
