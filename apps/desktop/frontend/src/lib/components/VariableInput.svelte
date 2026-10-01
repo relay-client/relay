@@ -27,6 +27,7 @@
     onclick,
     ondblclick,
     onpaste,
+    onenter,
   }: {
     value: string;
     inputRef?: VariableInputElement;
@@ -47,6 +48,7 @@
     onclick?: (event: MouseEvent) => void;
     ondblclick?: (event: MouseEvent) => void;
     onpaste?: (event: ClipboardEvent) => void;
+    onenter?: () => void;
   } = $props();
 
   let wrap: HTMLDivElement;
@@ -339,8 +341,11 @@
       return;
     }
 
-    if (multiline && event.key === 'Enter' && !event.metaKey && !event.ctrlKey && !event.altKey) {
+    if (event.key !== 'Enter' || event.metaKey || event.ctrlKey || event.altKey) return;
+    if (multiline) event.preventDefault();
+    if (onenter && !event.shiftKey && !event.isComposing) {
       event.preventDefault();
+      onenter();
     }
   }
 

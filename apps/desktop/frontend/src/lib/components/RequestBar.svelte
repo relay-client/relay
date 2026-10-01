@@ -96,6 +96,16 @@
   let isSIO = $derived(requestType === 'socketio');
   let sioConnected = $derived(sioStatus === 'connected');
   let sioConnecting = $derived(sioStatus === 'connecting' || sioStatus === 'reconnecting');
+  let sendBusy = $derived(
+    loading
+    || (isSIO && (sioConnected || sioConnecting))
+    || (isWS && (wsConnected || wsConnecting))
+    || (sseConnected || sseConnecting),
+  );
+
+  function sendFromUrl() {
+    if (!sendBusy) onSend();
+  }
 
   let methodMenuOpen = $state(false);
   let grpcMethodMenuOpen = $state(false);
@@ -323,6 +333,7 @@
         ariaLabel={requestType === 'grpc' ? 'gRPC target' : 'Request URL'}
         oninput={onUrlInput}
         onpaste={(event) => { onUrlPaste(event); keepHostVisible(); }}
+        onenter={sendFromUrl}
       />
     </div>
 
