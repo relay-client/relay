@@ -2,7 +2,7 @@
 
 This matrix keeps documentation work honest. Update it whenever a feature ships or a guide changes.
 
-Last factual audit: **2026-10-01**, against desktop tag **v2.0.2** — the Graphite release (activity rail, tabs in the title bar, response beside the editor, MCP, the environment matrix, the command palette, history entry pages and last runs), the macOS updater fix, and 2.0.2's Windows Arm64 build, Enter-to-send in the URL field and middle-click to close a tab — installation and keyboard shortcuts updated for those.
+Last factual audit: **2026-10-01**, against desktop tag **v2.0.3** — the Graphite release (activity rail, tabs in the title bar, response beside the editor, MCP, the environment matrix, the command palette, history entry pages and last runs), the 2.0.1–2.0.2 fixes, and 2.0.3: new requests open as HTTP with the protocol picker (request types and first request updated, the protocol-picker screenshot replaces the new-request dialog), shortcuts drawn as keys and following the physical key (keyboard shortcuts updated), and the per-user Windows install and MSIX updates (installation and download updated). All screenshots were regenerated from this build.
 Last design and screenshot pass: **2026-09-30** — every screenshot retaken from the redesigned app. Every guide that shows a Relay window now has one; `cli-runner` is terminal-only, and the reference pages carry code rather than pictures.
 
 | Area | User docs | Reference / source of truth | Screenshot status | Notes |
