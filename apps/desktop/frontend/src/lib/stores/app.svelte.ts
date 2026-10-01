@@ -492,7 +492,6 @@ class AppVM {
   declare setRequestHeaderName: typeof requestCrudFeature.setRequestHeaderName;
   declare commitRequestHeaderName: typeof requestCrudFeature.commitRequestHeaderName;
   declare selectRequestType: typeof requestCrudFeature.selectRequestType;
-  declare chooseNewRequestType: typeof requestCrudFeature.chooseNewRequestType;
   declare createNewRequest: typeof requestCrudFeature.createNewRequest;
   declare createDraftRequest: typeof requestCrudFeature.createDraftRequest;
   declare saveDraftToCollection: typeof requestCrudFeature.saveDraftToCollection;
@@ -763,7 +762,6 @@ class AppVM {
   declare shortcutCombo: typeof preferencesFeature.shortcutCombo;
   declare shortcutGroups: typeof preferencesFeature.shortcutGroups;
   declare shortcutKeyLabel: typeof preferencesFeature.shortcutKeyLabel;
-  declare shortcutKeycaps: typeof preferencesFeature.shortcutKeycaps;
   declare normalizeShortcutKey: typeof preferencesFeature.normalizeShortcutKey;
   declare eventToCombo: typeof preferencesFeature.eventToCombo;
   declare shortcutForEvent: typeof preferencesFeature.shortcutForEvent;

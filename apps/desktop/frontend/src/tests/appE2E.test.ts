@@ -495,7 +495,6 @@ describe('full application e2e smoke', () => {
     await app.createFolderInCollection(collection.id);
     expect(app.collections[0].folderPaths).toEqual([['Auth']]);
 
-    app.selects.push('http');
     await app.createRequestInFolder(collection.id, ['Auth']);
     await settleMicrotasks();
     const loginId = app.activeRequestId;
@@ -995,6 +994,56 @@ describe('importing a spec from a URL', () => {
   });
 });
 
+describe('creating a request', () => {
+  it('starts every new request as HTTP without asking for a protocol', async () => {
+    backend.state.savedStores = [];
+    const app = new TestApp() as TestApp & Record<string, any>;
+    const selectDialog = vi.spyOn(app, 'openSelectDialog');
+
+    app.prompts.push('Quick');
+    await app.createCollection();
+    const collection = app.collections[0];
+
+    await app.createNewRequest(collection.id);
+    expect(app.requestType).toBe('http');
+    await app.createDraftRequest();
+    expect(app.requestType).toBe('http');
+    app.prompts.push('Auth');
+    await app.createFolderInCollection(collection.id);
+    await app.createRequestInFolder(collection.id, ['Auth']);
+    expect(app.requestType).toBe('http');
+    expect(selectDialog).not.toHaveBeenCalled();
+  });
+
+  it('lets a saved request change protocol until it has a URL', async () => {
+    backend.state.savedStores = [];
+    const app = new TestApp() as TestApp & Record<string, any>;
+
+    app.prompts.push('Protocols');
+    await app.createCollection();
+    const collection = app.collections[0];
+
+    await app.createNewRequest(collection.id);
+    app.setRequestHeaderName('Schema');
+    app.method = 'POST';
+    await app.saveActiveRequest();
+    expect(app.requestTypeEditable).toBe(true);
+    app.selectRequestType('grpc');
+    expect(app.requestType).toBe('grpc');
+    expect(app.requestTypeEditable).toBe(true);
+    app.selectRequestType('graphql');
+    expect(app.requestType).toBe('graphql');
+    expect(app.requestTab).toBe('query');
+
+    app.url = 'https://api.example.test/graphql';
+    expect(app.requestTypeEditable).toBe(false);
+    await app.saveActiveRequest();
+    app.selectRequestType('http');
+    expect(app.requestType).toBe('graphql');
+    expect(app.requests.find(req => req.id === app.activeRequestId)?.requestType).toBe('graphql');
+  });
+});
+
 describe('opening a saved request', () => {
   it('does not mark it dirty', async () => {
     backend.state.savedStores = [];
@@ -1004,7 +1053,6 @@ describe('opening a saved request', () => {
     await app.createCollection();
     const collection = app.collections[0];
 
-    app.selects.push('http');
     await app.createNewRequest(collection.id, 'http');
     await settleMicrotasks();
     const first = app.activeRequestId;
@@ -1027,7 +1075,6 @@ describe('opening a saved request', () => {
     await app.saveActiveRequest();
     expect(app.isRequestDirty(first)).toBe(false);
 
-    app.selects.push('http');
     await app.createNewRequest(collection.id, 'http');
     await settleMicrotasks();
     const second = app.activeRequestId;
@@ -1060,14 +1107,12 @@ describe('opening a saved request', () => {
     app.prompts.push('Older store');
     await app.createCollection();
     const collection = app.collections[0];
-    app.selects.push('http');
     await app.createNewRequest(collection.id, 'http');
     await settleMicrotasks();
     const first = app.activeRequestId;
     app.url = 'https://api.example.test/market';
     await app.saveActiveRequest();
 
-    app.selects.push('http');
     await app.createNewRequest(collection.id, 'http');
     await settleMicrotasks();
     app.url = 'https://api.example.test/other';
@@ -1102,7 +1147,6 @@ describe('opening a saved request', () => {
     await app.createCollection();
     const collection = app.collections[0];
 
-    app.selects.push('http');
     await app.createNewRequest(collection.id, 'http');
     await settleMicrotasks();
     const id = app.activeRequestId;

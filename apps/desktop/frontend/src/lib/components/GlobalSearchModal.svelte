@@ -1,8 +1,8 @@
 <script lang="ts">
+  import Keycaps from './Keycaps.svelte';
   import { onMount, tick } from 'svelte';
   import { trapFocus } from '../a11y';
   import RequestTypeBadge from './RequestTypeBadge.svelte';
-  import { shortcutComboLabel } from '../stores/features/preferences';
   import { filterPaletteCommands, parsePaletteQuery, type PaletteCommand } from '../commandPalette';
   import type { SavedRequest, ShortcutId } from '../types/models';
 
@@ -16,7 +16,7 @@
     activeRequestId,
     requestTabLabel,
     collectionLabel,
-    shortcutLabel,
+    shortcutCombo,
     appRuntime = '',
     onSwitchRequest,
     onClose,
@@ -27,7 +27,7 @@
     activeRequestId: string;
     requestTabLabel: (request: SavedRequest) => string;
     collectionLabel: (request: SavedRequest) => string;
-    shortcutLabel: (id: ShortcutId) => string;
+    shortcutCombo: (id: ShortcutId) => string;
     appRuntime?: string;
     onSwitchRequest: (id: string) => void;
     onClose: () => void;
@@ -40,7 +40,6 @@
   let input: HTMLInputElement;
   let list: HTMLDivElement;
   let selectedIndex = $state(0);
-  let searchShortcut = $derived(shortcutComboLabel('Meta+K', appRuntime));
   let parsed = $derived(parsePaletteQuery(query));
   let requestItems = $derived<Item[]>(parsed.commandsOnly
     ? []
@@ -170,8 +169,8 @@
             onclick={() => run(item)}
           >
             <span class="palette-command-label">{item.command.label}</span>
-            {#if item.command.shortcut && shortcutLabel(item.command.shortcut)}
-              <kbd>{shortcutLabel(item.command.shortcut)}</kbd>
+            {#if item.command.shortcut && shortcutCombo(item.command.shortcut)}
+              <Keycaps combo={shortcutCombo(item.command.shortcut)} runtime={appRuntime} />
             {/if}
           </button>
         {/if}
@@ -181,10 +180,10 @@
       {/if}
     </div>
     <div class="global-search-footer">
-      <span><kbd>↑</kbd><kbd>↓</kbd> move</span>
-      <span><kbd>↵</kbd> open</span>
-      <span><kbd>&gt;</kbd> commands only</span>
-      <span class="palette-footer-end"><kbd>{searchShortcut}</kbd> palette</span>
+      <span><Keycaps combo="ArrowUp" runtime={appRuntime} /><Keycaps combo="ArrowDown" runtime={appRuntime} /> move</span>
+      <span><Keycaps combo="Enter" runtime={appRuntime} /> open</span>
+      <span><kbd class="keycap-literal">&gt;</kbd> commands only</span>
+      {#if shortcutCombo('search')}<span class="palette-footer-end"><Keycaps combo={shortcutCombo('search')} runtime={appRuntime} /> palette</span>{/if}
     </div>
   </div>
 </div>

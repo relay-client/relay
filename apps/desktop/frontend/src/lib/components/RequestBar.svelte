@@ -271,7 +271,7 @@
           aria-haspopup={pickerInteractive ? 'listbox' : undefined}
           aria-expanded={pickerInteractive ? methodMenuOpen : undefined}
           aria-disabled={!pickerInteractive}
-          title={pickerInteractive ? undefined : 'The protocol can only be changed while the request is a draft'}
+          title={pickerInteractive ? undefined : 'The protocol can only be changed while the request is a draft or has no URL'}
           onclick={() => { if (pickerInteractive) methodMenuOpen = !methodMenuOpen; }}
         >
           <span>{pickerLabel}</span>
@@ -316,7 +316,7 @@
                   </button>
                 {/each}
               {:else}
-                <p class="method-menu-note">The protocol is fixed once a request is saved. Create a new request to use GraphQL, WebSocket, Socket.IO, gRPC or MCP.</p>
+                <p class="method-menu-note">The protocol is fixed once a saved request has a URL. Create a new request to use GraphQL, WebSocket, Socket.IO, gRPC or MCP.</p>
               {/if}
             </div>
           </div>

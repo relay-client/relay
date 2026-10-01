@@ -2,6 +2,7 @@
   import { trapFocus } from '../a11y';
   import type { ChangelogSection } from '../whatsNew';
   import ReleaseNotes from './ReleaseNotes.svelte';
+  import { openExternalURL } from '../externalLinks';
 
   let {
     section,
@@ -17,6 +18,8 @@
     if (Number.isNaN(parsed.getTime())) return value;
     return parsed.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
   }
+
+  let releaseURL = $derived(`https://github.com/relay-client/relay/releases/tag/v${section.version}`);
 </script>
 
 <div class="dialog-backdrop" role="presentation" onmousedown={(event) => event.target === event.currentTarget && onDismiss()}>
@@ -42,9 +45,8 @@
     <div class="dialog-actions whats-new-actions">
       <a
         class="whats-new-full-link"
-        href="https://github.com/relay-client/relay/releases/tag/v{section.version}"
-        target="_blank"
-        rel="noreferrer noopener"
+        href={releaseURL}
+        onclick={(event) => { event.preventDefault(); openExternalURL(releaseURL); }}
       >
         Full release notes
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">

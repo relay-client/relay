@@ -802,11 +802,11 @@ async function chooseAppSelect(page: Page, select: Locator, optionLabel: string)
 }
 
 async function chooseRequestType(page: Page, label: string) {
-  const dialog = page.getByRole('dialog', { name: 'New request' });
-  await expect(dialog).toBeVisible();
-  await dialog.getByRole('radio', { name: new RegExp(label, 'i') }).click();
-  await dialog.getByRole('button', { name: 'Create' }).click();
-  await expect(dialog).toBeHidden();
+  await expect(page.getByRole('dialog', { name: 'New request' })).toHaveCount(0);
+  const protocol = label.replace(/\s+request$/i, '');
+  if (/^http$/i.test(protocol)) return;
+  await page.getByLabel('Method and protocol').click();
+  await page.getByRole('option', { name: protocol, exact: true }).click();
 }
 
 async function fillCodeEditor(page: Page, testId: string, value: string) {
@@ -950,7 +950,7 @@ test.describe('Relay desktop browser E2E', () => {
       requestAnimationFrame(sample);
     }));
     expect(Math.max(...toolbarOpenFrames) - Math.min(...toolbarOpenFrames)).toBeLessThanOrEqual(0.1);
-    await expect(page.locator('.global-search span')).toBeHidden();
+    await expect(page.locator('.global-search-label')).toBeHidden();
     const searchIcon = page.locator('.global-search > svg');
     await expect.poll(async () => (await searchIcon.boundingBox())?.width ?? 0).toBeGreaterThanOrEqual(13);
     await page.getByLabel('Code snippet', { exact: true }).click();
@@ -991,11 +991,12 @@ test.describe('Relay desktop browser E2E', () => {
         && createBox.right <= stripBox.right
         && createBox.width >= 32;
     })).toBe(true);
+    await page.mouse.move(0, 0);
     await expect(newRequestButton).toHaveCSS('border-left-color', 'rgba(0, 0, 0, 0)');
     await expect(newRequestButton).toHaveCSS('border-radius', '7px');
 
     await page.setViewportSize({ width: 900, height: 800 });
-    await expect(page.locator('.global-search span')).toBeHidden();
+    await expect(page.locator('.global-search-label')).toBeHidden();
     await expect(searchIcon).toHaveAttribute('viewBox', '0 0 24 24');
     await expect.poll(async () => page.locator('.global-search').evaluate((search) => {
       const icon = search.querySelector<SVGElement>(':scope > svg');
@@ -1161,7 +1162,7 @@ test.describe('Relay desktop browser E2E', () => {
     for (let index = 0; index < 12; index += 1) await panelDivider.press('ArrowDown');
 
     await page.setViewportSize({ width: 1024, height: 800 });
-    await expect(page.locator('.global-search span')).toBeHidden();
+    await expect(page.locator('.global-search-label')).toBeHidden();
 
     const codePanelResizer = page.getByLabel('Resize code snippet panel');
     await expect(codePanelResizer).toHaveCSS('cursor', 'col-resize');
@@ -1341,19 +1342,22 @@ test.describe('Relay desktop browser E2E', () => {
 
     await folderRow(page, 'Auth').getByLabel('Folder menu').click();
     await folderRow(page, 'Auth').locator('.folder-menu').getByRole('button', { name: 'Add request' }).click();
-    if (docsScreenshotDir) {
-      try { await captureDocsScreenshot(page, 'new-request-dialog'); } catch (err) { console.log('docs screenshot new-request-dialog skipped:', err); }
-    }
     await chooseRequestType(page, 'HTTP Request');
     await expect(page.getByLabel('Request name')).toBeVisible();
 
     await page.getByLabel('Request name').fill('Login user');
     await page.getByLabel('Request name').press('Enter');
     await page.getByLabel('Method and protocol').click();
-    await expect(page.getByText('The protocol is fixed once a request is saved.', { exact: false })).toBeVisible();
-    await expect(page.getByRole('option', { name: 'GraphQL' })).toHaveCount(0);
+    await expect(page.getByRole('option', { name: 'GraphQL' })).toHaveCount(1);
+    if (docsScreenshotDir) {
+      try { await captureDocsScreenshot(page, 'request-protocol-picker'); } catch (err) { console.log('docs screenshot request-protocol-picker skipped:', err); }
+    }
     await page.getByRole('option', { name: 'POST' }).click();
     await page.getByLabel('Request URL').fill('{{baseUrl}}/login');
+    await page.getByLabel('Method and protocol').click();
+    await expect(page.getByText('The protocol is fixed once a saved request has a URL.', { exact: false })).toBeVisible();
+    await expect(page.getByRole('option', { name: 'GraphQL' })).toHaveCount(0);
+    await page.getByRole('option', { name: 'POST' }).click();
 
     await chooseRequestSection(page, 'Params');
     await page.getByTestId('params-row').first().locator('input[placeholder="Key"]').fill('scope');
@@ -1889,6 +1893,87 @@ test.describe('Relay desktop browser E2E', () => {
     expect(alignment.offset).toBeGreaterThanOrEqual(0);
     expect(alignment.offset).toBeLessThan(1);
     expect(alignment.gutterOnTop).toBe(true);
+  });
+
+  test('creates requests of each protocol without a chooser dialog', async ({ page }) => {
+    await installRelayBridge(page);
+    await page.goto('/');
+
+    await page.getByLabel('New unsaved request').click();
+    await expect(page.getByRole('dialog', { name: 'New request' })).toHaveCount(0);
+    await expect(page.getByLabel('Method and protocol')).toHaveText('GET');
+
+    const palette = page.getByRole('dialog', { name: 'Search requests and commands' });
+    const input = palette.getByRole('combobox', { name: 'Search requests and commands' });
+    await page.locator('.global-search').click();
+    await input.fill('> new websocket');
+    await expect(palette.getByRole('option').first()).toHaveAttribute('data-command-id', 'create-request-ws');
+    await input.press('Enter');
+    await expect(page.getByRole('dialog', { name: 'New request' })).toHaveCount(0);
+    await expect(page.getByLabel('Method and protocol')).toHaveText('WS');
+  });
+
+  test('runs default and rebound shortcuts on Windows and Linux, and shows their keycaps', async ({ page }) => {
+    for (const runtime of ['windows/e2e', 'linux/e2e']) {
+      await installRelayBridge(page, '', runtime);
+      await page.goto('/');
+      await page.getByLabel('New unsaved request').click();
+      await page.getByLabel('Request URL').click();
+      await page.keyboard.press('Control+Alt+\\');
+      await expect(page.locator('.code-snippet-panel')).toBeVisible();
+      await page.keyboard.press('Control+Alt+\\');
+      await expect(page.locator('.code-snippet-panel')).toBeHidden();
+      await page.keyboard.press('Control+w');
+      await expect(page.getByLabel('Request URL')).toHaveCount(0);
+
+      const searchKeys = page.locator('.global-search .keycaps');
+      await expect(searchKeys).toHaveAttribute('aria-label', 'Ctrl+K');
+
+      await page.keyboard.press('Control+,');
+      const settings = page.getByRole('dialog', { name: 'Settings' });
+      await settings.getByRole('tab', { name: 'Shortcuts', exact: true }).click();
+      const searchRow = settings.locator('.shortcut-row').filter({ has: page.getByText('Search', { exact: true }) });
+      await searchRow.locator('.shortcut-combo').click();
+      await page.keyboard.press('Control+Alt+P');
+      await expect(searchRow.locator('.keycaps')).toHaveAttribute('aria-label', 'Ctrl+Alt+P');
+      await page.keyboard.press('Escape');
+      await expect(settings).toBeHidden();
+      await expect(searchKeys).toHaveAttribute('aria-label', 'Ctrl+Alt+P');
+      await page.keyboard.press('Control+Alt+P');
+      await expect(page.getByRole('dialog', { name: 'Search requests and commands' })).toBeVisible();
+      await page.keyboard.press('Escape');
+    }
+  });
+
+  test('sends a WebSocket message with the send shortcut and stays connected', async ({ page }) => {
+    await installRelayBridge(page, '', 'windows/e2e');
+    await page.goto('/');
+    await page.getByLabel('New unsaved request').click();
+    await chooseRequestType(page, 'WebSocket Request');
+    await page.getByLabel('Request URL').fill('wss://ws.relay.test/socket');
+    await page.getByRole('button', { name: 'Connect', exact: true }).click();
+    await expect(page.locator('.ws-panel')).toContainText('Connected');
+    await fillCodeEditor(page, 'websocket-message-editor', JSON.stringify({ hello: 'shortcut' }));
+    await page.keyboard.press('Control+Enter');
+    await expect(page.locator('.ws-message-list')).toContainText('shortcut');
+    await expect(page.getByRole('button', { name: 'Disconnect', exact: true })).toBeVisible();
+  });
+
+  test('opens the full release notes in the system browser', async ({ page }) => {
+    await installRelayBridge(page);
+    await page.goto('/');
+
+    const palette = page.getByRole('dialog', { name: 'Search requests and commands' });
+    await page.locator('.global-search').click();
+    await palette.getByRole('combobox', { name: 'Search requests and commands' }).fill("> what's new");
+    await palette.getByRole('combobox', { name: 'Search requests and commands' }).press('Enter');
+    const whatsNew = page.getByRole('dialog', { name: /What's new in Relay/ });
+    await expect(whatsNew).toBeVisible();
+    await whatsNew.getByRole('link', { name: 'Full release notes' }).click();
+    await expect.poll(() => page.evaluate(() => window.__relayE2E.calls.filter(call => call.startsWith('open:')))).toEqual([
+      expect.stringMatching(/^open:https:\/\/github\.com\/relay-client\/relay\/releases\/tag\/v\d/),
+    ]);
+    await expect(page).toHaveURL(/127\.0\.0\.1/);
   });
 
   test('runs commands from the command palette', async ({ page }) => {

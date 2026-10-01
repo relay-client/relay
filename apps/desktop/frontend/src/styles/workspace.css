@@ -521,8 +521,8 @@
 }
 
 @container search (max-width: 150px) {
-  .workspace-searchbar .global-search span,
-  .workspace-searchbar .global-search kbd {
+  .workspace-searchbar .global-search-label,
+  .workspace-searchbar .global-search .keycaps {
     display: none;
   }
 }
@@ -1385,12 +1385,12 @@
 .git-tool-btn.primary {
   border-color: color-mix(in srgb, var(--accent) 60%, transparent);
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .git-tool-btn.primary:hover:not(:disabled) {
   background: var(--accent-hover);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .git-tool-btn.icon-only {
@@ -1417,8 +1417,8 @@
   height: 16px;
   padding: 0 5px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.22);
-  color: #fff;
+  background: color-mix(in srgb, var(--on-accent) 22%, transparent);
+  color: var(--on-accent);
   font-size: 10px;
   font-weight: 800;
   font-family: var(--font-mono);
@@ -1630,12 +1630,12 @@
 .git-action-btn.primary {
   border-color: color-mix(in srgb, var(--accent) 56%, transparent);
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .git-action-btn.primary:hover:not(:disabled) {
   background: var(--accent-hover);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .git-action-btn.primary-soft {
@@ -3919,7 +3919,7 @@
 .git-action-btn.primary {
   border-color: transparent;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .git-action-btn.primary:hover:not(:disabled) {
@@ -4991,7 +4991,7 @@
   border: 1px solid color-mix(in srgb, var(--accent) 58%, transparent);
   border-radius: 8px;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 24%, transparent);
   transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.15s;
 }
@@ -4999,7 +4999,7 @@
 .runner-selection-actions .runner-report-btn:hover:not(:disabled) {
   border-color: var(--accent-hover);
   background: var(--accent-hover);
-  color: #fff;
+  color: var(--on-accent);
   transform: translateY(-1px);
 }
 

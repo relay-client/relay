@@ -20,6 +20,7 @@ function context(overrides: Partial<PaletteContext> = {}): PaletteContext {
     openCookies: vi.fn(),
     openSettings: vi.fn(),
     runShortcut: vi.fn(),
+    createRequest: vi.fn(),
     createCollection: vi.fn(),
     createEnvironment: vi.fn(),
     importCollection: vi.fn(),
@@ -32,6 +33,19 @@ function context(overrides: Partial<PaletteContext> = {}): PaletteContext {
 }
 
 const ids = (ctx: PaletteContext) => buildPaletteCommands(ctx).map(command => command.id);
+
+describe('request creation commands', () => {
+  it('creates an HTTP request from New request and other protocols from their own commands', () => {
+    const ctx = context();
+    const commands = buildPaletteCommands(ctx);
+    commands.find(command => command.id === 'create-request')!.run();
+    expect(ctx.runShortcut).toHaveBeenCalledWith('new-request');
+    for (const type of ['graphql', 'ws', 'socketio', 'grpc', 'mcp'] as const) {
+      commands.find(command => command.id === `create-request-${type}`)!.run();
+      expect(ctx.createRequest).toHaveBeenCalledWith(type);
+    }
+  });
+});
 
 describe('parsePaletteQuery', () => {
   it('treats a leading > as commands only', () => {

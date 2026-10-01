@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { vm } from '../stores/app.svelte';
+  import { openExternalURL } from '../externalLinks';
   import type { GitWorkspaceStatus } from '../backend';
   import type { TopView } from '../stores/ui';
   import { shortcutComboLabel } from '../stores/features/preferences';
@@ -54,15 +56,7 @@
   const RELAY_UPDATES_URL = 'https://github.com/relay-client/relay/releases';
   let themeVariantList = $derived(resolvedAppTheme === 'light' ? LIGHT_THEME_VARIANTS : DARK_THEME_VARIANTS);
   let activeVariantId = $derived(resolvedAppTheme === 'light' ? appTheme.light : appTheme.dark);
-  let toggleSidebarShortcut = $derived(shortcutComboLabel('Meta+\\', appRuntime));
-
-  function openExternalURL(url: string) {
-    if (window.runtime?.BrowserOpenURL) {
-      window.runtime.BrowserOpenURL(url);
-    } else {
-      window.open(url, '_blank');
-    }
-  }
+  let toggleSidebarShortcut = $derived(shortcutComboLabel(vm.shortcutCombo('toggle-left-sidebar'), appRuntime));
 
   function branchNameOnly(value: string) {
     const branch = (value || '').trim();

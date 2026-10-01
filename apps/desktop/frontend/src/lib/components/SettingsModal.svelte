@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Keycaps from './Keycaps.svelte';
+  import { openExternalURL } from '../externalLinks';
   import { untrack } from 'svelte';
   import { tabListKeyboard, trapFocus } from '../a11y';
   import type { SettingsTab } from '../stores/ui';
@@ -47,14 +49,6 @@
     }
   }
 
-  function openExternalURL(url: string) {
-    if (window.runtime?.BrowserOpenURL) {
-      window.runtime.BrowserOpenURL(url);
-    } else {
-      window.open(url, '_blank');
-    }
-  }
-
   type ShortcutGroup = {
     name: string;
     items: Array<{ id: ShortcutId; label: string }>;
@@ -96,7 +90,6 @@
     setScriptEngine,
     shortcutGroups,
     shortcutCombo,
-    shortcutKeycaps,
     startShortcutCapture,
     resetShortcut,
     resetAllShortcuts,
@@ -133,7 +126,6 @@
     setScriptEngine: (value: ScriptEngine) => void;
     shortcutGroups: () => ShortcutGroup[];
     shortcutCombo: (id: ShortcutId) => string;
-    shortcutKeycaps: (combo: string) => string[];
     startShortcutCapture: (id: ShortcutId) => void;
     resetShortcut: (id: ShortcutId) => void;
     resetAllShortcuts: () => void;
@@ -180,7 +172,7 @@
 
 
   let settingsQuery = $state('');
-  let saveShortcut = $derived(shortcutComboLabel('Meta+S', appRuntime));
+  let saveShortcut = $derived(shortcutComboLabel(shortcutCombo('save-request'), appRuntime));
   let normalizedQuery = $derived(settingsQuery.trim().toLowerCase());
   let filteredNav = $derived(
     !normalizedQuery
@@ -502,9 +494,11 @@
                         {#if shortcutEditingId === shortcut.id}
                           <span class="shortcut-recording">Recording...</span>
                         {:else}
-                          {#each shortcutKeycaps(shortcutCombo(shortcut.id)) as keycap, eachIndex (eachIndex)}
-                            <kbd>{keycap}</kbd>
-                          {/each}
+                          {#if shortcutCombo(shortcut.id)}
+                            <Keycaps combo={shortcutCombo(shortcut.id)} runtime={appRuntime} size="md" />
+                          {:else}
+                            <span class="shortcut-unassigned">Unassigned</span>
+                          {/if}
                         {/if}
                       </button>
                       <button class="shortcut-reset" type="button" onclick={() => resetShortcut(shortcut.id)} aria-label="Reset shortcut">↺</button>
@@ -807,7 +801,7 @@
                 </div>
                 {#if !autosave}
                   <p class="general-save-hint">
-                    Unsaved changes are shown with a dot on the tab. Press <kbd>{saveShortcut}</kbd> or click the Save button to save.
+                    Unsaved changes are shown with a dot on the tab. Press <Keycaps combo={shortcutCombo('save-request')} runtime={appRuntime} /> or click the Save button to save.
                   </p>
                 {/if}
               </div>
@@ -1397,7 +1391,7 @@
     border: none;
     border-radius: 6px;
     background: transparent;
-    color: var(--text-3);
+    color: var(--text-2);
     font-size: 12.5px;
     font-weight: 500;
     transition: background 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
@@ -1508,7 +1502,7 @@
     height: 16px;
     border-radius: 999px;
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
     opacity: 0;
     transform: scale(0.6);
     transition: opacity 0.14s ease, transform 0.14s ease;
@@ -1924,22 +1918,12 @@
   .general-save-hint {
     margin: 0;
     font-size: 12px;
-    color: var(--text-3);
+    color: var(--text-2);
     line-height: 1.5;
     padding: 10px 12px;
     background: var(--hover);
     border-radius: 8px;
     border: 1px solid var(--border-subtle);
-  }
-
-  .general-save-hint kbd {
-    display: inline-block;
-    padding: 1px 5px;
-    background: var(--elevated);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    font-size: 11px;
-    font-family: var(--font-mono, monospace);
   }
 
   .default-location-field {

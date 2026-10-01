@@ -101,7 +101,7 @@
     border: none;
     border-radius: 6px;
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;

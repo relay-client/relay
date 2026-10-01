@@ -75,7 +75,6 @@ type RequestCrudHost = {
   activeCollectionId: () => string;
   applySavedRequest: (request: SavedRequest) => void;
   blankSavedRequest: (collectionId?: string, requestType?: RequestType) => SavedRequest;
-  chooseNewRequestType: () => Promise<RequestType | null>;
   closeCollectionRunnerTab: () => void;
   closeCollectionSettingsTab: () => void;
   closeFloatingMenus: () => void;
@@ -158,7 +157,9 @@ export const requestCrudFeature = {
 
   get requestTypeEditable(): boolean {
     const host = this as unknown as RequestCrudHost;
-    return Boolean(host.activeRequest?.isDraft);
+    const active = host.activeRequest;
+    if (!active) return false;
+    return Boolean(active.isDraft) || !host.url.trim();
   },
 
   get pinnedRequests(): SavedRequest[] {
@@ -236,6 +237,7 @@ export const requestCrudFeature = {
 
   selectRequestType(this: RequestCrudHost, type: RequestType) {
     if (!this.requestTypeEditable) return;
+    const blank = !this.url.trim();
     const previousType = this.requestType;
     const wasGraphQL = previousType === 'graphql';
     const graphQLBody = wasGraphQL ? this.graphQLBodyContentForStore() : '';
@@ -333,26 +335,13 @@ export const requestCrudFeature = {
       this.graphqlSchemaStatus = '';
       this.graphqlSchemaError = '';
     }
-  },
-
-  async chooseNewRequestType(this: RequestCrudHost): Promise<RequestType | null> {
-    const selected = await this.openSelectDialog('New request', 'Choose the transport for this request:', [
-      { value: 'http', label: 'HTTP request', icon: 'http', description: 'REST, SSE, and regular request/response flows.' },
-      { value: 'graphql', label: 'GraphQL request', icon: 'graphql', description: 'Endpoint query with variables, auth, headers, scripts, and schema.' },
-      { value: 'ws', label: 'WebSocket request', icon: 'ws', description: 'Persistent connection for sending and receiving messages.' },
-      { value: 'socketio', label: 'Socket.IO request', icon: 'sio', description: 'Socket.IO protocol with namespaces, events, and reconnection.' },
-      { value: 'grpc', label: 'gRPC request', icon: 'grpc', description: 'Protobuf RPCs with metadata, reflection, proto files, and streaming responses.' },
-      { value: 'mcp', label: 'MCP request', icon: 'mcp', description: 'Call a Model Context Protocol server by hand — list its tools, fill the arguments, and read the raw exchange.' },
-    ], 'Create', 'Cancel');
-    if (!selected) return null;
-    return selected === 'http' || selected === 'graphql' || selected === 'ws' || selected === 'socketio' || selected === 'grpc' || selected === 'mcp' ? selected : null;
+    if (blank) this.requestTab = this.blankSavedRequest('', this.requestType).requestTab;
   },
 
   async createNewRequest(this: RequestCrudHost, collectionId?: string, requestType?: RequestType) {
     if (!this.guardWorkspaceWritable('Creating requests')) return;
     const resolvedCollectionId = typeof collectionId === 'string' ? collectionId : this.activeCollectionId();
-    const selectedType = this.isRequestType(requestType) ? requestType : await this.chooseNewRequestType();
-    if (!selectedType) return;
+    const selectedType = this.isRequestType(requestType) ? requestType : 'http';
     this.closeFloatingMenus();
     await this.persistActiveRequestNow();
     let resolved = resolvedCollectionId || this.defaultCollectionForWorkspace(this.activeWorkspaceId)?.id || '';
@@ -377,8 +366,7 @@ export const requestCrudFeature = {
 
   async createDraftRequest(this: RequestCrudHost, requestType?: RequestType) {
     if (!this.guardWorkspaceWritable('Creating drafts')) return;
-    const selectedType = this.isRequestType(requestType) ? requestType : await this.chooseNewRequestType();
-    if (!selectedType) return;
+    const selectedType = this.isRequestType(requestType) ? requestType : 'http';
     this.closeFloatingMenus();
     await this.persistActiveRequestNow();
     const next: SavedRequest = { ...this.blankSavedRequest('', selectedType), isDraft: true, collectionId: '', collection: '' };

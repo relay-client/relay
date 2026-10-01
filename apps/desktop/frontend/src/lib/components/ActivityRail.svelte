@@ -218,7 +218,7 @@
     border: 1.5px solid var(--surface);
     border-radius: 8px;
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
     font-size: 9.5px;
     font-weight: 600;
     line-height: 12px;

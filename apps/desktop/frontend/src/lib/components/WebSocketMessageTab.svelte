@@ -12,8 +12,9 @@
   let editorRef = $state<CodeEditor>();
 
   function onKeydown(event: KeyboardEvent) {
-    if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+    if (vm.shortcutForEvent(event) === 'send-request') {
       event.preventDefault();
+      event.stopPropagation();
       void vm.webSocketSendCurrentMessage();
     }
   }

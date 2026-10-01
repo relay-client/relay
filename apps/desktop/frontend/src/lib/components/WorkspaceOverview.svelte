@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Keycaps from './Keycaps.svelte';
   import RequestTypeBadge from './RequestTypeBadge.svelte';
   import { requestTabLabel, statusClass } from '../utils';
   import type { CollectionGroup, FolderGroup, RequestHistoryEntry, SavedRequest, Workspace } from '../types/models';
@@ -12,7 +13,8 @@
     history,
     environmentCount,
     storedInGit = false,
-    shortcutLabel,
+    shortcutCombo,
+    appRuntime = '',
     updateWorkspaceDescription,
     renameWorkspace,
     createWorkspace,
@@ -33,7 +35,8 @@
     history: RequestHistoryEntry[];
     environmentCount: number;
     storedInGit?: boolean;
-    shortcutLabel: (id: 'new-request' | 'search' | 'shortcut-help') => string;
+    shortcutCombo: (id: 'new-request' | 'search' | 'shortcut-help') => string;
+    appRuntime?: string;
     updateWorkspaceDescription: (value: string) => void;
     renameWorkspace: () => void;
     createWorkspace: () => void;
@@ -185,11 +188,11 @@
         <div class="overview-list">
           <button class="overview-row overview-action-row" type="button" onclick={() => createNewRequest()} disabled={workspaceBlocked}>
             <span class="overview-row-name">New request</span>
-            {#if shortcutLabel('new-request')}<kbd>{shortcutLabel('new-request')}</kbd>{/if}
+            {#if shortcutCombo('new-request')}<Keycaps combo={shortcutCombo('new-request')} runtime={appRuntime} />{/if}
           </button>
           <button class="overview-row overview-action-row" type="button" onclick={openGlobalSearch} disabled={workspaceBlocked}>
             <span class="overview-row-name">Search and run commands</span>
-            {#if shortcutLabel('search')}<kbd>{shortcutLabel('search')}</kbd>{/if}
+            {#if shortcutCombo('search')}<Keycaps combo={shortcutCombo('search')} runtime={appRuntime} />{/if}
           </button>
           <button class="overview-row overview-action-row" type="button" onclick={openImport} disabled={workspaceBlocked}>
             <span class="overview-row-name">Import a collection</span>
@@ -205,7 +208,7 @@
           </button>
           <button class="overview-row overview-action-row" type="button" onclick={() => openSettings('shortcuts')}>
             <span class="overview-row-name">Keyboard shortcuts</span>
-            {#if shortcutLabel('shortcut-help')}<kbd>{shortcutLabel('shortcut-help')}</kbd>{/if}
+            {#if shortcutCombo('shortcut-help')}<Keycaps combo={shortcutCombo('shortcut-help')} runtime={appRuntime} />{/if}
           </button>
         </div>
       </section>

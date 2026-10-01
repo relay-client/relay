@@ -18,7 +18,6 @@ type FolderHost = {
   topView: TopView;
   applySavedRequest: (request: SavedRequest) => void;
   blankSavedRequest: (collectionId?: string, requestType?: RequestType) => SavedRequest;
-  chooseNewRequestType: () => Promise<RequestType | null>;
   closeFloatingMenus: () => void;
   disposeRealtimeSession: (id: string) => void;
   guardWorkspaceWritable: (action?: string) => boolean;
@@ -33,7 +32,7 @@ type FolderHost = {
   folderPathEquals: (path?: string[], target?: string[]) => boolean;
   folderPathMatches: (path?: string[], prefix?: string[]) => boolean;
   folderRequestCount: (collectionId: string, folderPath: string[]) => number;
-  createRequestInFolder: (collectionId: string, folderPath: string[]) => Promise<void>;
+  createRequestInFolder: (collectionId: string, folderPath: string[], requestType?: RequestType) => Promise<void>;
 };
 
 export const folderFeature = {
@@ -60,10 +59,8 @@ export const folderFeature = {
     this.folderCollapseState = { ...this.folderCollapseState, [key]: !collapsed };
     this.scheduleRequestStorePersist();
   },
-  async createRequestInFolder(this: FolderHost, collectionId: string, folderPath: string[]) {
+  async createRequestInFolder(this: FolderHost, collectionId: string, folderPath: string[], requestType: RequestType = 'http') {
     if (!this.guardWorkspaceWritable('Creating requests')) return;
-    const selectedType = await this.chooseNewRequestType();
-    if (!selectedType) return;
     this.closeFloatingMenus();
     await this.persistActiveRequestNow();
     if (folderPath.length > MAX_FOLDER_DEPTH) {
@@ -77,7 +74,7 @@ export const folderFeature = {
     this.collections = this.collections.map(collection =>
       collection.id === collectionId ? addCollectionFolderPath(collection, folderPath) : collection
     );
-    const next = { ...this.blankSavedRequest(collectionId, selectedType), folderPath };
+    const next = { ...this.blankSavedRequest(collectionId, requestType), folderPath };
     this.requests = [...this.requests, next];
     this.openRequestIds = [...new Set([...this.openRequestIds, next.id])];
     const wsId = this.workspaceIdForCollection(collectionId);
