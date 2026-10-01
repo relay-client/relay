@@ -7,6 +7,10 @@ All notable changes to Relay are documented here. This project follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **An update on macOS left the old icon behind.** The updater replaced only the program inside `Relay.app`, so the icon, the version Finder and *About This Mac* show, and the app's declared macOS requirement stayed as they were on the day Relay was first installed — restarting the Dock could not help, because the old icon was still the one in the app. Releases now publish the whole signed app as well, and an update swaps the app's contents in one step, keeping the previous version if anything goes wrong. A copy that was updated the old way repairs itself the next time it starts: it fetches the signed app for its own version and puts the missing pieces back, so the new icon appears from the following launch.
+
 ## [2.0.0] - 2026-10-01
 
 Relay 2.0 is a new look — the Graphite design, from the window chrome to every screen, menu and dialog — plus MCP requests, a command palette, a page for each history entry, the last run of each collection, and environments side by side. It needs macOS 12 or later.
