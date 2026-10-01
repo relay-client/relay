@@ -1,6 +1,8 @@
 [CmdletBinding()]
 param(
   [string]$Version = "0.0.0",
+  [ValidateSet("amd64", "arm64")]
+  [string]$Architecture = "amd64",
   [string]$IdentityName = "com.relayclient.relay",
   [string]$Publisher = "CN=Relay Client",
   [string]$PublisherDisplayName = "Relay Client",
@@ -63,6 +65,7 @@ function Resolve-WindowsSdkTool {
     return $command.Source
   }
 
+  $archPreference = if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { @("arm64", "x64") } else { @("x64") }
   $roots = @()
   $programFilesX86 = [Environment]::GetEnvironmentVariable("ProgramFiles(x86)")
   if ($programFilesX86) {
@@ -77,13 +80,16 @@ function Resolve-WindowsSdkTool {
       continue
     }
 
-    $candidate = Get-ChildItem -LiteralPath $root -Recurse -Filter $Name -File -ErrorAction SilentlyContinue |
-      Where-Object { $_.FullName -match '\\x64\\' } |
-      Sort-Object FullName -Descending |
-      Select-Object -First 1
+    $found = @(Get-ChildItem -LiteralPath $root -Recurse -Filter $Name -File -ErrorAction SilentlyContinue)
+    foreach ($arch in $archPreference) {
+      $candidate = $found |
+        Where-Object { $_.FullName -match "\\$arch\\" } |
+        Sort-Object FullName -Descending |
+        Select-Object -First 1
 
-    if ($candidate) {
-      return $candidate.FullName
+      if ($candidate) {
+        return $candidate.FullName
+      }
     }
   }
 
@@ -132,18 +138,19 @@ function New-LogoAsset {
 }
 
 $msixVersion = ConvertTo-MsixVersion $Version
+$processorArchitecture = if ($Architecture -eq "arm64") { "arm64" } else { "x64" }
 $executable = Resolve-DesktopPath $ExecutablePath
 $icon = Resolve-DesktopPath $IconPath
 
 if (-not (Test-Path -LiteralPath $executable -PathType Leaf)) {
-  throw "Windows executable was not found: $executable. Run 'wails build -platform windows/amd64 -nsis' first."
+  throw "Windows executable was not found: $executable. Run 'wails build -platform windows/$Architecture -nsis' first."
 }
 if (-not (Test-Path -LiteralPath $icon -PathType Leaf)) {
   throw "Application icon was not found: $icon."
 }
 
 if ([string]::IsNullOrWhiteSpace($OutputPath)) {
-  $OutputPath = "build/bin/relay-$msixVersion-windows-amd64.msix"
+  $OutputPath = "build/bin/relay-$msixVersion-windows-$Architecture.msix"
 }
 $output = Resolve-DesktopPath $OutputPath
 $outputDir = Split-Path -Parent $output
@@ -175,7 +182,7 @@ $manifest = @"
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
   IgnorableNamespaces="uap rescap">
-  <Identity Name="$(Escape-Xml $IdentityName)" Publisher="$(Escape-Xml $Publisher)" Version="$msixVersion" ProcessorArchitecture="x64" />
+  <Identity Name="$(Escape-Xml $IdentityName)" Publisher="$(Escape-Xml $Publisher)" Version="$msixVersion" ProcessorArchitecture="$processorArchitecture" />
   <Properties>
     <DisplayName>$(Escape-Xml $DisplayName)</DisplayName>
     <PublisherDisplayName>$(Escape-Xml $PublisherDisplayName)</PublisherDisplayName>

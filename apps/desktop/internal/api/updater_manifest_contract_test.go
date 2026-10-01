@@ -42,6 +42,7 @@ func buildFakeRelease(t *testing.T, withSignatures bool) (dir string, checksums 
 		"darwin-universal":     "relay-darwin-universal",
 		"darwin-universal-app": "relay-darwin-universal.app.zip",
 		"windows-amd64":        "relay-windows-amd64.exe",
+		"windows-arm64":        "relay-windows-arm64.exe",
 		"linux-amd64":          "relay-linux-amd64",
 	}
 	for platform, asset := range assets {
@@ -70,7 +71,7 @@ func generateManifest(t *testing.T, releaseDir string, extraArgs ...string) *upd
 		"--release-dir", releaseDir,
 		"--tag", "v9.9.9",
 		"--repo", "relay-client/relay",
-		"--platforms", "darwin-universal,darwin-universal-app,windows-amd64,linux-amd64",
+		"--platforms", "darwin-universal,darwin-universal-app,windows-amd64,windows-arm64,linux-amd64",
 	}, extraArgs...)
 
 	output, err := exec.Command(python, args...).CombinedOutput()

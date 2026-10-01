@@ -56,6 +56,8 @@ Check the run itself before touching a machine:
 - [ ] Uninstall from *Apps & features* removes the app and leaves the user's
       workspace folder alone.
 - [ ] If MSIX was signed this release, it installs too.
+- [ ] On an Arm64 machine, the `windows-arm64` installer completes and
+      *Copy diagnostics* reports `windows/arm64`.
 
 ### Linux
 
