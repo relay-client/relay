@@ -7,8 +7,24 @@ All notable changes to Relay are documented here. This project follows
 
 ## [Unreleased]
 
+## [2.0.3] - 2026-10-01
+
+### Changed
+
+- **A new request opens straight away as HTTP.** The `+` in the tab bar, `Cmd/Ctrl N` and **Add request** no longer stop at a dialog asking for the protocol — almost every new request is HTTP. Other protocols are in the picker at the start of the address bar, which now also works on a saved request until it has a URL, and in the command palette as **New GraphQL request**, **New WebSocket request**, **New Socket.IO request**, **New gRPC request** and **New MCP request**.
+- **Shortcuts are drawn as keys.** Settings, the command palette, the workspace overview and the hints show each shortcut as keycaps — `⌘ ⇧ ⌥` on macOS; `Ctrl`, `Alt`, `⇧ Shift`, `↵ Enter` and the Windows logo on Windows.
+- **The Windows installer no longer asks for administrator rights.** Relay installs for the current user into `%LOCALAPPDATA%\Programs\Relay`, so there is no UAC prompt, and the in-app updater can replace the app — an install in Program Files could not update itself without elevation. If an older all-users copy is found, the installer offers to remove it; your data is kept. The MSIX package drops the network capabilities it declared, which a full-trust desktop app does not use, so App Installer lists only the one it needs.
+- **The Windows icon fills its space.** The program, installer and MSIX package used the macOS artwork, whose tile sits inside a wide transparent margin, so Relay looked noticeably smaller than other apps on the taskbar and in the Start menu. Windows builds now carry their own edge-to-edge icon.
+
 ### Fixed
 
+- **Some text kept the previous theme's colour.** Text that inherited its colour from the page — the *Mock server* heading among it — stayed the colour of the theme Relay started with, so switching from a light theme to Nord left it black on a dark background. It follows the current theme now.
+- **Buttons on light accents were hard to read.** Nord, the dark Catppuccin flavours, Dark Pastel and Dark Monochrome drew white text on their pale accent colour — *Send*, *Create*, *Start server* and the like. Those themes now use dark text on accent buttons, and muted text in Light Monochrome, Catppuccin and VS Code Dark, as well as the inactive choices in Settings, is easier to read.
+- **Some shortcuts never fired on Windows and Linux.** Defaults with two modifiers — *Reopen closed tab* (`Ctrl+Shift+T`), *Toggle right sidebar* (`Ctrl+Alt+\`), *Switch to next/previous tab*, *Force close tab* — were stored with the modifiers in a different order than the keyboard reports them, so pressing them did nothing. They work now, and Windows and Linux list modifiers in the usual `Ctrl` → `Alt` → `Shift` order.
+- **Shortcuts stopped working on a non-Latin keyboard layout.** With a Russian or other Cyrillic layout active, `Ctrl+N`, `Ctrl+K` and every other letter shortcut did nothing, because the key arrived as `т` or `л`. Shortcuts now follow the physical key on any layout, and Option-letter shortcuts on macOS work the same way.
+- **`Cmd/Ctrl+Enter` in a WebSocket or Socket.IO message dropped the connection.** It sent the message and then also ran *Send request*, which disconnects a live socket; in a gRPC message it invoked the method twice. It now sends once, and follows the send shortcut if you rebind it.
+- **Shortcut hints ignored your own bindings.** The search box, palette footer, response placeholder, Settings and tooltips kept showing the default keys after a shortcut was rebound. They show the current binding now, and a Windows-key or Super-key binding is shown as such instead of as `Ctrl`.
+- **Full release notes did nothing.** The link in *What's new* never opened; it opens the release page in the default browser now.
 - **Updating the MSIX install of Relay failed with a permission error.** Windows keeps a packaged app read-only under `WindowsApps`, so the in-app updater could never replace it and reported *Relay does not have permission to replace the app*. Relay now recognises that it runs from the Windows app package and, instead of trying to replace itself, offers the new `.msix` for this machine's architecture — *Download* in the update notice and *Download update* in Settings open it, and App Installer upgrades Relay in place. Automatic installs stay off for the packaged app.
 
 ## [2.0.2] - 2026-10-01
@@ -423,7 +439,9 @@ this repository.
 - Configurable keyboard shortcuts throughout, global search (`⌘K`), quick send (`⌘Enter`), and tab switching (`⌘1`–`⌘9`).
 - Settings search and full keyboard navigation, theme previews, and onboarding empty states.
 
-[Unreleased]: https://github.com/relay-client/relay/compare/v2.0.1...HEAD
+[Unreleased]: https://github.com/relay-client/relay/compare/v2.0.3...HEAD
+[2.0.3]: https://github.com/relay-client/relay/compare/v2.0.2...v2.0.3
+[2.0.2]: https://github.com/relay-client/relay/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/relay-client/relay/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/relay-client/relay/compare/v1.8.1...v2.0.0
 [1.8.1]: https://github.com/relay-client/relay/compare/v1.8.0...v1.8.1

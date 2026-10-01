@@ -5,6 +5,26 @@ description: Notable Relay changes and links to the exact notes for each publish
 
 This page summarizes the notable-change log maintained in the source repository. For the exact notes and artifacts attached to every published tag, use the [Relay releases page](https://github.com/relay-client/relay/releases).
 
+## 2.0.3
+
+### Changed
+
+- **A new request opens straight away as HTTP.** The `+` in the tab bar, `Cmd/Ctrl N` and **Add request** no longer ask for a protocol first. Switch protocol in the picker at the start of the address bar — on a saved request until it has a URL — or run **New GraphQL request**, **New WebSocket request** and the rest from the command palette. See [Request types](/docs/guides/request-types/).
+- **Shortcuts are drawn as keys** in Settings, the command palette and the hints — `⌘ ⇧ ⌥` on macOS; `Ctrl`, `Alt`, `⇧ Shift` and the Windows logo on Windows.
+- **The Windows installer no longer asks for administrator rights.** It installs for the current user, so there is no UAC prompt and the in-app updater can replace the app. It offers to remove an older all-users copy; your data is kept. See [Installation](/docs/getting-started/installation/#windows).
+- **The Windows icon fills its space** on the taskbar and in the Start menu instead of sitting inside the macOS margin.
+
+### Fixed
+
+- **Updating the MSIX install failed with a permission error.** Relay now recognises the packaged install and offers the new `.msix` for this machine instead of trying to replace itself.
+- **Some shortcuts never fired on Windows and Linux** — *Reopen closed tab*, *Toggle right sidebar*, *Switch to next/previous tab* and *Force close tab*. Shortcuts also follow the physical key now, so they work on Cyrillic and other non-Latin layouts.
+- **`Cmd/Ctrl+Enter` in a WebSocket or Socket.IO message dropped the connection**, and in a gRPC message invoked the method twice. It sends once now.
+- **Shortcut hints ignored your own bindings**; they show the current binding now.
+- **Some text kept the previous theme's colour** — the *Mock server* heading stayed black after switching to Nord — and **buttons on light accents were hard to read** in Nord, the dark Catppuccin flavours, Dark Pastel and Dark Monochrome.
+- **Full release notes did nothing** in *What's new*; it opens the release page now.
+
+---
+
 ## 2.0.2
 
 ### Added
