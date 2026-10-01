@@ -3,7 +3,7 @@ title: Keyboard shortcuts
 description: Default key bindings for Relay. All shortcuts can be remapped in Settings → Shortcuts.
 ---
 
-On macOS Relay displays `Cmd` shortcuts with `⌘`. On Windows and Linux the same defaults display and run as `Ctrl`.
+On macOS Relay displays `Cmd` shortcuts with `⌘`. On Windows and Linux the same defaults display and run as `Ctrl`, with modifiers in the usual `Ctrl` → `Alt` → `Shift` order. Shortcuts follow the physical key, so they keep working on a Cyrillic, Greek or any other non-Latin layout.
 
 Every shortcut is rebindable from **Settings → Shortcuts**. Click any shortcut chip, press the new combo, done. Reset all to factory defaults with the *Reset all* button.
 
@@ -23,7 +23,7 @@ Every shortcut is rebindable from **Settings → Shortcuts**. Click any shortcut
 
 | Shortcut | Action |
 |----------|--------|
-| `Cmd/Ctrl N` | New request / collection / environment dialog |
+| `Cmd/Ctrl N` | New HTTP request |
 | `Cmd/Ctrl L` | Focus the request URL |
 | `Cmd/Ctrl W` | Close current tab |
 | `Alt Cmd/Ctrl W` | Force close current tab |
@@ -51,4 +51,6 @@ Two more work without a binding and cannot be remapped: `Enter` in the URL field
 
 ## Remapping
 
-**Settings → Shortcuts** lists every action with its current binding. Click a shortcut, press the desired key combination, and the new binding is saved immediately. Assigning an existing combination unassigns it from the previous action. **Reset all** restores the default table.
+**Settings → Shortcuts** lists every action with its current binding. Click a shortcut, press the desired key combination, and the new binding is saved immediately. Assigning an existing combination unassigns it from the previous action. **Reset all** restores the default table. On Windows a binding can use the Windows key, and on Linux the Super key; they show as their own keys rather than as `Ctrl`.
+
+The send shortcut also sends the message from the WebSocket, Socket.IO and gRPC message editors, and a rebound send shortcut works there too.

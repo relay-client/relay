@@ -16,11 +16,11 @@ Workspaces are top-level containers — think one per project or per client. On 
 
 ## 2. Send an ad-hoc request
 
-- Press `Cmd/Ctrl N` and choose **HTTP Request**, or use the request type picker in the sidebar.
+- Press `Cmd/Ctrl N` or click `+` in the tab bar — a new HTTP request opens right away. Other protocols live in the picker at the start of the address bar.
 - Paste `https://httpbin.org/get?lang=go&runtime=wails` into the URL bar.
 - Hit `Cmd/Ctrl Enter` (or click **Send**).
 
-![New request dialog](../../../../assets/screenshots/new-request-dialog.png)
+![Method and protocol picker in the address bar](../../../../assets/screenshots/request-protocol-picker.png)
 
 The response panel shows the JSON body with syntax highlighting, response headers, timing, and size.
 
