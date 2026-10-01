@@ -2213,6 +2213,45 @@ test.describe('Relay desktop browser E2E', () => {
     await expect(page.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true');
   });
 
+  test('closes a tab with the middle mouse button', async ({ page }) => {
+    await installRelayBridge(page);
+    await page.goto('/');
+
+    const requestTabs = page.locator('.saved-request-tab:not(.overview-request-tab)');
+    const initial = await requestTabs.count();
+    for (let index = 0; index < 2; index += 1) {
+      await page.getByLabel('New unsaved request').click();
+      await chooseRequestType(page, 'HTTP Request');
+    }
+    await expect(requestTabs).toHaveCount(initial + 2);
+
+    await requestTabs.last().getByRole('tab').click({ button: 'middle' });
+    await expect(requestTabs).toHaveCount(initial + 1);
+
+    await page.getByRole('tab', { name: 'Overview' }).click({ button: 'middle' });
+    await expect(page.getByRole('tab', { name: 'Overview' })).toBeVisible();
+    await expect(requestTabs).toHaveCount(initial + 1);
+  });
+
+  test('sends the request when Enter is pressed in the URL field', async ({ page }) => {
+    await installRelayBridge(page);
+    await page.goto('/');
+
+    await page.getByLabel('New unsaved request').click();
+    await chooseRequestType(page, 'HTTP Request');
+    const url = page.getByLabel('Request URL');
+    await url.fill('https://api.relay.test/orders/8123');
+    await url.press('Enter');
+
+    await expect(page.getByText('200 OK')).toBeVisible();
+    await expect.poll(() => page.evaluate(() => window.__relayE2E.sentRequests.length)).toBe(1);
+    await expect(url).toHaveValue('https://api.relay.test/orders/8123');
+
+    await url.press('Shift+Enter');
+    await page.waitForTimeout(300);
+    expect(await page.evaluate(() => window.__relayE2E.sentRequests.length)).toBe(1);
+  });
+
   test('compares and edits variables across environments in the matrix', async ({ page }) => {
     if (docsScreenshotDir) await page.setViewportSize(DOCS_VIEWPORT);
     await installRelayBridge(page);
