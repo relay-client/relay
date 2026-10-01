@@ -91,3 +91,13 @@ await sharp(Buffer.from(avatarBackground))
 
 console.log('wrote', avatarPath);
 
+
+const profileLogos = [
+  { path: join(root, '.github', 'assets', 'profile-logo-light.png'), background: '#ffffff' },
+  { path: join(root, '.github', 'assets', 'profile-logo-dark.png'), background: '#0d1117' },
+];
+
+for (const { path, background } of profileLogos) {
+  await sharp(tile).resize(240, 240, { fit: 'contain', background }).flatten({ background }).png().toFile(path);
+  console.log('wrote', path);
+}
