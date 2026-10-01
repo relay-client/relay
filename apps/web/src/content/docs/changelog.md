@@ -5,6 +5,14 @@ description: Notable Relay changes and links to the exact notes for each publish
 
 This page summarizes the notable-change log maintained in the source repository. For the exact notes and artifacts attached to every published tag, use the [Relay releases page](https://github.com/relay-client/relay/releases).
 
+## 2.0.1
+
+### Fixed
+
+- **An update on macOS left the old icon behind.** The in-app updater replaced only the program inside `Relay.app`, so the icon and the version Finder shows stayed from the day Relay was first installed. Updates now replace the whole signed app, and a copy that was updated the old way repairs itself on its next start — the new icon appears from the launch after that.
+
+---
+
 ## 2.0.0
 
 Relay 2.0 is a new look — the Graphite design, from the window chrome to every screen, menu and dialog — plus MCP requests, a command palette, a page for each history entry and the last run of each collection. It needs macOS 12 or later.

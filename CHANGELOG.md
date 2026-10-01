@@ -7,6 +7,8 @@ All notable changes to Relay are documented here. This project follows
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-10-01
+
 ### Fixed
 
 - **An update on macOS left the old icon behind.** The updater replaced only the program inside `Relay.app`, so the icon, the version Finder and *About This Mac* show, and the app's declared macOS requirement stayed as they were on the day Relay was first installed — restarting the Dock could not help, because the old icon was still the one in the app. Releases now publish the whole signed app as well, and an update swaps the app's contents in one step, keeping the previous version if anything goes wrong. A copy that was updated the old way repairs itself the next time it starts: it fetches the signed app for its own version and puts the missing pieces back, so the new icon appears from the following launch.
@@ -405,7 +407,8 @@ this repository.
 - Configurable keyboard shortcuts throughout, global search (`⌘K`), quick send (`⌘Enter`), and tab switching (`⌘1`–`⌘9`).
 - Settings search and full keyboard navigation, theme previews, and onboarding empty states.
 
-[Unreleased]: https://github.com/relay-client/relay/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/relay-client/relay/compare/v2.0.1...HEAD
+[2.0.1]: https://github.com/relay-client/relay/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/relay-client/relay/compare/v1.8.1...v2.0.0
 [1.8.1]: https://github.com/relay-client/relay/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/relay-client/relay/compare/v1.7.0...v1.8.0
