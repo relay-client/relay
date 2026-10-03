@@ -62,7 +62,7 @@
     onSyncPortChange: (port: number) => void;
   } = $props();
 
-  const COOKIE_SYNC_GUIDE_URL = 'https://relayclient.dev/docs/guides/cookies/';
+  const COOKIE_SYNC_GUIDE_URL = 'https://relayclient.dev/docs/guides/cookies/#connecting-a-browser';
 
   let tab = $state<'manage' | 'sync'>('manage');
   let syncDomainInput = $state('');
