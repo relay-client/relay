@@ -470,7 +470,7 @@ func (m *mockServer) handle(w http.ResponseWriter, r *http.Request) {
 
 func mockHeaderIsForwardable(name string) bool {
 	switch strings.ToLower(strings.TrimSpace(name)) {
-	case "content-length", "transfer-encoding", "connection", "keep-alive", "upgrade", "trailer", "te":
+	case "content-length", "content-encoding", "transfer-encoding", "connection", "keep-alive", "upgrade", "trailer", "te":
 		return false
 	case "access-control-allow-origin", "access-control-allow-credentials",
 		"access-control-allow-methods", "access-control-allow-headers":

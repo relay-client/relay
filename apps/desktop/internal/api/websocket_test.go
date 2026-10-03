@@ -625,3 +625,51 @@ func TestWebSocketKeepAliveDisabledByNegativeInterval(t *testing.T) {
 	case <-time.After(600 * time.Millisecond):
 	}
 }
+
+func TestWebSocketIdleDeadlineFollowsKeepAlive(t *testing.T) {
+	cases := map[int]time.Duration{
+		-1:     0,
+		0:      90 * time.Second,
+		100:    90 * time.Second,
+		120000: 250 * time.Second,
+	}
+	for intervalMs, want := range cases {
+		got := websocketReadIdleTimeout(model.HttpRequest{WebSocketKeepAliveIntervalMs: intervalMs})
+		if got != want {
+			t.Errorf("keep-alive %d ms: idle deadline = %s, want %s", intervalMs, got, want)
+		}
+	}
+}
+
+func TestWebSocketIgnoresHandshakeHeadersCopiedFromABrowser(t *testing.T) {
+	server := idleWSServer(t, make(chan struct{}, 1))
+	defer server.Close()
+
+	manager := newWebSocketManager(nil)
+	em := newWSTestEmitter()
+	manager.connectWithCallbacks(context.Background(), "copied", model.HttpRequest{
+		URL:                   wsURLFromHTTP(server.URL),
+		EnableSSLVerification: true,
+		Headers: []model.KeyValue{
+			{Key: "Sec-WebSocket-Key", Value: "dGhlIHNhbXBsZSBub25jZQ==", Enabled: true},
+			{Key: "sec-websocket-version", Value: "13", Enabled: true},
+			{Key: "Sec-WebSocket-Extensions", Value: "permessage-deflate", Enabled: true},
+			{Key: "X-Kept", Value: "1", Enabled: true},
+		},
+	}, em.callbacks())
+	defer manager.disconnect("copied")
+
+	notice := waitWSEvent(t, em.events, "notice")
+	if !strings.Contains(notice.Message, "Sec-WebSocket-Key, Sec-WebSocket-Version, Sec-WebSocket-Extensions") {
+		t.Fatalf("unexpected notice %q", notice.Message)
+	}
+	open := waitWSOpen(t, em.opens)
+	if headerValue(open.RequestHeaders, "X-Kept") != "1" {
+		t.Fatalf("expected other headers to be sent, got %v", open.RequestHeaders)
+	}
+	select {
+	case ev := <-em.errors:
+		t.Fatalf("unexpected error %q", ev.Message)
+	default:
+	}
+}

@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -37,10 +38,36 @@ func runJS(src string, ctx *Context, hasResponse bool) string {
 	})
 	defer timer.Stop()
 
-	if _, err := vm.RunString(src); err != nil {
-		return jsErrorMessage(err)
+	_, runErr := vm.RunString(src)
+	var interrupted *goja.InterruptedError
+	if !errors.As(runErr, &interrupted) {
+		func() {
+			defer func() { _ = recover() }()
+			recordLegacyTests(vm, ctx)
+		}()
+	}
+	if runErr != nil {
+		return jsErrorMessage(runErr)
 	}
 	return ""
+}
+
+func recordLegacyTests(vm *goja.Runtime, ctx *Context) {
+	tests, ok := vm.Get("tests").(*goja.Object)
+	if !ok || tests == nil {
+		return
+	}
+	for _, name := range tests.Keys() {
+		if len(ctx.Tests) >= jsMaxTestEntries {
+			return
+		}
+		passed := tests.Get(name).ToBoolean()
+		message := ""
+		if !passed {
+			message = "expected the test to be truthy"
+		}
+		ctx.Tests = append(ctx.Tests, model.TestResult{Name: limitJSHostString(name), Passed: passed, Error: message})
+	}
 }
 
 func limitJSHostString(s string) string {
@@ -385,6 +412,15 @@ func buildJSHost(vm *goja.Runtime, ctx *Context, hasResponse bool) map[string]in
 			return vm.ToValue(out)
 		},
 
+		"replaceIn": func(value string) string { return limitJSHostString(ctx.ReplaceIn(value)) },
+		"xml2Json": func(source string) goja.Value {
+			encoded, err := xmlToJSON(source)
+			if err != nil {
+				return goja.Null()
+			}
+			return vm.ToValue(encoded)
+		},
+
 		"hasResponse": hasResponse && ctx.Response != nil,
 		"canSend":     ctx.Send != nil,
 	}
@@ -417,6 +453,16 @@ func buildJSHost(vm *goja.Runtime, ctx *Context, hasResponse bool) map[string]in
 		host["resTime"] = func() int64 { return resp.Duration }
 		host["resSize"] = func() int64 { return resp.Size }
 		host["resBody"] = func() string { return resp.Body }
+		host["resHeadersJSON"] = func() string {
+			headers := map[string]string{}
+			for _, h := range resp.Headers {
+				if _, seen := headers[h.Key]; !seen {
+					headers[h.Key] = h.Value
+				}
+			}
+			encoded, _ := json.Marshal(headers)
+			return string(encoded)
+		}
 		host["resHeaderGet"] = func(k string) goja.Value {
 			for _, h := range resp.Headers {
 				if strings.EqualFold(h.Key, k) {
@@ -861,6 +907,34 @@ var __relayAPI = (function (host) {
 
   var console = { log: pm.log, info: pm.log, warn: pm.log, error: pm.log, debug: pm.log };
 
+  pm.variables.replaceIn = function (value) { return host.replaceIn(valStr(value)); };
+
+  function xml2Json(xml) {
+    var encoded = host.xml2Json(valStr(xml));
+    return encoded === null ? null : JSON.parse(encoded);
+  }
+
+  var postman = {
+    setEnvironmentVariable: function (k, v) { pm.environment.set(k, v); },
+    getEnvironmentVariable: function (k) { return pm.environment.get(k); },
+    clearEnvironmentVariable: function (k) { pm.environment.unset(k); },
+    clearEnvironmentVariables: function () { pm.environment.clear(); },
+    setGlobalVariable: function (k, v) { pm.globals.set(k, v); },
+    getGlobalVariable: function (k) { return pm.globals.get(k); },
+    clearGlobalVariable: function (k) { pm.globals.unset(k); },
+    clearGlobalVariables: function () { pm.globals.clear(); },
+    getResponseHeader: function (k) { return pm.response ? pm.response.headers.get(k) : undefined; },
+    setNextRequest: function () { throw new Error("postman.setNextRequest is not supported — Relay's Collection Runner runs requests in their declared order"); }
+  };
+
+  var legacy = { tests: {}, postman: postman, xml2Json: xml2Json };
+  if (host.hasResponse) {
+    legacy.responseBody = host.resBody();
+    legacy.responseCode = { code: host.resCode(), name: host.resStatus(), detail: host.resStatus() };
+    legacy.responseHeaders = JSON.parse(host.resHeadersJSON());
+    legacy.responseTime = host.resTime();
+  }
+
   function wordArray(hex) {
     return {
       __relayDigestHex: hex,
@@ -1188,7 +1262,7 @@ var __relayAPI = (function (host) {
   function atob(encoded) { return host.cryptoBase64Decode(valStr(encoded)); }
   function btoa(raw) { return host.cryptoBase64Encode(valStr(raw)); }
 
-  return { pm: pm, expect: expect, console: console, CryptoJS: CryptoJS, require: require, _: lodashModule, tv4: tv4, Ajv: Ajv, atob: atob, btoa: btoa };
+  return { pm: pm, expect: expect, console: console, CryptoJS: CryptoJS, require: require, _: lodashModule, tv4: tv4, Ajv: Ajv, atob: atob, btoa: btoa, legacy: legacy };
 })(__relayHost);
 
 (function (globalScope) {
@@ -1202,6 +1276,7 @@ var __relayAPI = (function (host) {
   globalScope.Ajv = __relayAPI.Ajv;
   globalScope.atob = __relayAPI.atob;
   globalScope.btoa = __relayAPI.btoa;
+  for (var name in __relayAPI.legacy) globalScope[name] = __relayAPI.legacy[name];
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 __relayHost = undefined;
 __relayAPI = undefined;

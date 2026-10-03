@@ -274,12 +274,12 @@ func TestJoinScripts(t *testing.T) {
 func TestMergeCollectionSettingsFillsOnlyUnset(t *testing.T) {
 	yes := true
 	no := false
-	defaults := cliSettings{HTTPVersion: "2", TimeoutMs: 5000, EnableSSLVerification: &yes, MaxRedirects: 3}
-	req := cliSettings{TimeoutMs: 1000, EnableSSLVerification: &no}
+	defaults := cliSettings{HTTPVersion: "2", TimeoutMs: intPointer(5000), EnableSSLVerification: &yes, MaxRedirects: 3}
+	req := cliSettings{TimeoutMs: intPointer(1000), EnableSSLVerification: &no}
 
 	merged := mergeCollectionSettings(defaults, req)
-	if merged.TimeoutMs != 1000 {
-		t.Errorf("request timeout should win, got %d", merged.TimeoutMs)
+	if merged.TimeoutMs == nil || *merged.TimeoutMs != 1000 {
+		t.Errorf("request timeout should win, got %v", merged.TimeoutMs)
 	}
 	if merged.EnableSSLVerification == nil || *merged.EnableSSLVerification {
 		t.Error("an explicit false on the request must not be overwritten by the default")
@@ -297,5 +297,46 @@ func TestApplyCollectionDefaultsWithoutCollection(t *testing.T) {
 	got := applyCollectionDefaults(req, nil)
 	if got.Auth.Type != "none" {
 		t.Errorf("a missing collection should resolve inherit to none, got %q", got.Auth.Type)
+	}
+}
+
+func intPointer(value int) *int {
+	return &value
+}
+
+func TestCLIRequestTimeoutFromSavedFiles(t *testing.T) {
+	cases := []struct {
+		name       string
+		collection string
+		request    string
+		want       int
+	}{
+		{"default when neither sets it", "    settings: {}", "  settings: {}", defaultCLIRequestTimeoutMs},
+		{"explicit zero turns it off", "    settings: {}", "  settings:\n    timeoutMs: 0", 0},
+		{"collection default fills an unset request", "    settings:\n      timeoutMs: 5000", "  settings: {}", 5000},
+		{"request zero beats the collection default", "    settings:\n      timeoutMs: 5000", "  settings:\n    timeoutMs: 0", 0},
+		{"request value beats the collection default", "    settings:\n      timeoutMs: 5000", "  settings:\n    timeoutMs: 750", 750},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			root := writeDefaultsWorkspace(t, "http://127.0.0.1:1", tc.collection, strings.Join([]string{
+				"  auth:",
+				"    type: none",
+				"  bodyType: none",
+				"  bodyContent: \"\"",
+				tc.request,
+			}, "\n"))
+			_, collections, requests, _, err := loadCLIWorkspace(root)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(collections) != 1 || len(requests) != 1 {
+				t.Fatalf("expected one collection and one request, got %d and %d", len(collections), len(requests))
+			}
+			built := buildHTTPRequest(applyCollectionDefaults(requests[0], &collections[0]), nil, nil, 0)
+			if built.TimeoutMs != tc.want {
+				t.Fatalf("timeoutMs = %d, want %d", built.TimeoutMs, tc.want)
+			}
+		})
 	}
 }

@@ -1,6 +1,7 @@
 package script
 
 import (
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -100,6 +101,8 @@ type Context struct {
 
 	Send SendFunc
 
+	DynamicVariable func(name string) (string, bool)
+
 	SkipRequest bool
 
 	Tests []model.TestResult
@@ -171,6 +174,37 @@ func (c *Context) ResolveVariable(key string) (string, bool) {
 	}
 	v, ok := c.Variables[key]
 	return v, ok
+}
+
+var replaceInPattern = regexp.MustCompile(`\{\{([^{}]*)\}\}`)
+
+func (c *Context) ReplaceIn(value string) string {
+	substitute := func(input string) string {
+		return replaceInPattern.ReplaceAllStringFunc(input, func(match string) string {
+			key := strings.TrimSpace(match[2 : len(match)-2])
+			if key == "" {
+				return match
+			}
+			if v, ok := c.ResolveVariable(key); ok {
+				return v
+			}
+			if c.DynamicVariable != nil {
+				if v, ok := c.DynamicVariable(key); ok {
+					return v
+				}
+			}
+			return match
+		})
+	}
+	resolved := value
+	for depth := 0; depth < 20 && strings.Contains(resolved, "{{"); depth++ {
+		next := substitute(resolved)
+		if next == resolved {
+			break
+		}
+		resolved = next
+	}
+	return resolved
 }
 
 func RunPreRequest(engine, src string, ctx *Context) model.ScriptResult {

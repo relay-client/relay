@@ -2,6 +2,7 @@ package api
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -264,6 +265,9 @@ func (m *sseManager) runStreamAttempt(
 	if msg := validateBrowserCSP(req, u, browserCtx); msg != "" {
 		return fail("CSP error: "+msg, false)
 	}
+	if msg := blockedBrowserNetworkAccess(u, browserCtx); msg != "" {
+		return fail("Browser error: "+msg, false)
+	}
 
 	sseReq := req
 	sseReq.Method = http.MethodGet
@@ -275,8 +279,20 @@ func (m *sseManager) runStreamAttempt(
 	var jar http.CookieJar
 	if !sseReq.DisableCookieJar {
 		jar = m.jars.jar(sseReq.WorkspaceID)
+		if browserCtx.active && !browserCtx.withCredentials {
+			jar = browserCredentialsJar{jar: jar, state: &browserCtx}
+		}
 	}
-	client := &http.Client{Transport: buildHTTPRoundTripper(sseReq, transport), Jar: jar}
+	client := &http.Client{
+		Transport: buildHTTPRoundTripper(sseReq, transport),
+		Jar:       jar,
+		CheckRedirect: func(next *http.Request, via []*http.Request) error {
+			if len(via) >= 10 {
+				return errors.New("stopped after 10 redirects")
+			}
+			return browserCtx.followRedirect(sseReq, next, via, nil)
+		},
+	}
 	traceCtx, timings := withResponseTiming(httpReq.Context(), start)
 	httpReq = httpReq.WithContext(traceCtx)
 	timings.markPrepared()
@@ -284,6 +300,10 @@ func (m *sseManager) runStreamAttempt(
 	if err != nil {
 		if sseCtx.Err() != nil {
 			return closed("Disconnected", false)
+		}
+		var blocked browserBlockedError
+		if errors.As(err, &blocked) {
+			return fail(blocked.Error(), false)
 		}
 		return fail(formatRequestError(err, u, effectiveRequestTimeout(req)), true)
 	}
@@ -324,9 +344,12 @@ func (m *sseManager) runStreamAttempt(
 	const sseMaxEventDataSize = 16 * 1024 * 1024
 	scanner := bufio.NewScanner(resp.Body)
 	scanner.Buffer(make([]byte, 0, 64*1024), sseMaxLineSize)
+	scanner.Split(newSSELineSplitter())
 
-	var currentID, currentEvent, dataLines string
+	var currentEvent, dataLines string
+	hasData := false
 	dataTruncated := false
+	firstLine := true
 
 	for scanner.Scan() {
 		if sseCtx.Err() != nil {
@@ -334,13 +357,17 @@ func (m *sseManager) runStreamAttempt(
 		}
 
 		line := scanner.Text()
+		if firstLine {
+			line = strings.TrimPrefix(line, "\uFEFF")
+			firstLine = false
+		}
 
 		if line == "" {
-			if dataLines != "" || currentEvent != "" {
+			if hasData || currentEvent != "" {
 				ev := model.SSEEvent{
-					ID:        currentID,
+					ID:        result.lastEventID,
 					Event:     currentEvent,
-					Data:      strings.TrimSuffix(dataLines, "\n"),
+					Data:      dataLines,
 					Timestamp: time.Now().UnixMilli(),
 				}
 				if ev.Event == "" {
@@ -348,9 +375,9 @@ func (m *sseManager) runStreamAttempt(
 				}
 				onEvent(ev)
 			}
-			currentID = ""
 			currentEvent = ""
 			dataLines = ""
+			hasData = false
 			dataTruncated = false
 			continue
 		}
@@ -359,17 +386,13 @@ func (m *sseManager) runStreamAttempt(
 			continue
 		}
 
-		colonIdx := strings.Index(line, ":")
-		if colonIdx < 0 {
-			continue
+		field, value, found := strings.Cut(line, ":")
+		if found {
+			value = strings.TrimPrefix(value, " ")
 		}
-
-		field := line[:colonIdx]
-		value := strings.TrimPrefix(line[colonIdx+1:], " ")
 
 		switch field {
 		case "id":
-			currentID = value
 			if !strings.ContainsRune(value, '\x00') {
 				result.lastEventID = value
 			}
@@ -384,13 +407,13 @@ func (m *sseManager) runStreamAttempt(
 				continue
 			}
 			extra := len(value)
-			if dataLines != "" {
+			if hasData {
 				extra++
 			}
 			if len(dataLines)+extra > sseMaxEventDataSize {
 				remaining := sseMaxEventDataSize - len(dataLines)
 				if remaining > 0 {
-					if dataLines != "" {
+					if hasData {
 						dataLines += "\n"
 						remaining--
 					}
@@ -400,13 +423,15 @@ func (m *sseManager) runStreamAttempt(
 						dataLines += value
 					}
 				}
+				hasData = true
 				dataTruncated = true
 				continue
 			}
-			if dataLines != "" {
+			if hasData {
 				dataLines += "\n"
 			}
 			dataLines += value
+			hasData = true
 		}
 	}
 
@@ -421,4 +446,28 @@ func (m *sseManager) runStreamAttempt(
 		return fail(fmt.Sprintf("Stream error: %s", scanErr), status2xx)
 	}
 	return closed("Connection closed by server", status2xx)
+}
+
+func newSSELineSplitter() bufio.SplitFunc {
+	skipLF := false
+	return func(data []byte, atEOF bool) (int, []byte, error) {
+		start := 0
+		if skipLF && len(data) > 0 {
+			skipLF = false
+			if data[0] == '\n' {
+				start = 1
+			}
+		}
+		if i := bytes.IndexAny(data[start:], "\r\n"); i >= 0 {
+			end := start + i
+			if data[end] == '\r' {
+				skipLF = true
+			}
+			return end + 1, data[start:end], nil
+		}
+		if atEOF && len(data) > start {
+			return len(data), data[start:], nil
+		}
+		return start, nil, nil
+	}
 }

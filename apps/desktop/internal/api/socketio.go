@@ -1,14 +1,17 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -34,6 +37,8 @@ const (
 	sioEvent        = byte('2')
 	sioAck          = byte('3')
 	sioConnectError = byte('4')
+	sioBinaryEvent  = byte('5')
+	sioBinaryAck    = byte('6')
 )
 
 type eioOpenData struct {
@@ -391,6 +396,9 @@ func (m *socketIOManager) runConnectionOnce(ctx context.Context, sessionID strin
 		headers.Set("User-Agent", "Relay/"+appVersion)
 	}
 	_, _ = applyUserHeaders(headers, req.Headers)
+	if notice := websocketHandshakeHeaderNotice(dropWebSocketHandshakeHeaders(headers)); notice != "" {
+		callbacks.onEvent(newSysMsg(false, notice))
+	}
 	httpReq := &http.Request{Method: http.MethodGet, URL: cloneURL(baseURL), Header: headers}
 	if err := auth.Apply(httpReq, req.Auth); err != nil {
 		emitError("auth error: " + err.Error())
@@ -406,6 +414,13 @@ func (m *socketIOManager) runConnectionOnce(ctx context.Context, sessionID strin
 	if msg := validateBrowserCSP(req, wsURLProbe, browserCtx); msg != "" {
 		emitError("CSP error: " + msg)
 		return false
+	}
+	if msg := blockedBrowserNetworkAccess(wsURLProbe, browserCtx); msg != "" {
+		emitError("Browser error: " + msg)
+		return false
+	}
+	for _, warning := range browserNetworkAccessWarnings(wsURLProbe, "", false, browserCtx) {
+		callbacks.onEvent(newSysMsg(false, warning))
 	}
 	if isV2 {
 		pollingTarget := socketIOPollingURL(baseURL, sioPath)
@@ -473,7 +488,7 @@ func (m *socketIOManager) runConnectionOnce(ctx context.Context, sessionID strin
 			emitClose("Disconnected")
 			return false
 		}
-		errMsg := err.Error()
+		var errMsg string
 		var hs *model.SocketIOHandshake
 		if resp != nil {
 			errMsg = fmt.Sprintf("Unexpected server response: %d", resp.StatusCode)
@@ -599,6 +614,43 @@ func (m *socketIOManager) runConnectionOnce(ctx context.Context, sessionID strin
 	connected := false
 	readDeadline := pingInterval + pingTimeout
 
+	handleEvent := func(ns string, rest []byte) {
+		eventName, args := parseSIOEvent(rest)
+		if allowedEvents == nil || allowedEvents[eventName] {
+			callbacks.onEvent(newEventMsg("incoming", ns, eventName, args))
+		}
+	}
+	handleAck := func(ns string, rest []byte) {
+		ackIDVal, args := parseSIOAck(rest)
+		eventNameStr := ""
+		var ackCh chan model.SocketIOAckEvent
+		m.ackMu.Lock()
+		if pending, ok := m.pendingAcks[sessionID][ackIDVal]; ok {
+			eventNameStr = pending.eventName
+			ackCh = pending.ch
+			delete(m.pendingAcks[sessionID], ackIDVal)
+		}
+		m.ackMu.Unlock()
+		ev := model.SocketIOAckEvent{SessionID: sessionID, EventName: eventNameStr, Args: args, AckID: ackIDVal, Namespace: ns, Timestamp: time.Now().UnixMilli()}
+		if callbacks.onAck != nil {
+			callbacks.onAck(ev)
+		}
+		if ackCh != nil {
+			ackCh <- ev
+		}
+	}
+	var binary *sioBinaryPacket
+	finishBinary := func() {
+		packet := binary
+		binary = nil
+		rest := fillSIOPlaceholders(packet.rest, packet.attachments)
+		if packet.ack {
+			handleAck(packet.namespace, rest)
+		} else {
+			handleEvent(packet.namespace, rest)
+		}
+	}
+
 	for {
 		if !isV2 {
 			_ = conn.SetReadDeadline(time.Now().Add(readDeadline))
@@ -617,6 +669,18 @@ func (m *socketIOManager) runConnectionOnce(ctx context.Context, sessionID strin
 			}
 			emitError("read error: " + err.Error())
 			return websocketReadErrorShouldReconnect(req, err)
+		}
+		if msgType == websocket.BinaryMessage {
+			if binary != nil {
+				if isV2 && len(data) > 0 && data[0] == 4 {
+					data = data[1:]
+				}
+				binary.attachments = append(binary.attachments, append([]byte(nil), data...))
+				if len(binary.attachments) >= binary.expected {
+					finishBinary()
+				}
+			}
+			continue
 		}
 		if msgType != websocket.TextMessage || len(data) == 0 {
 			continue
@@ -669,35 +733,20 @@ func (m *socketIOManager) runConnectionOnce(ctx context.Context, sessionID strin
 
 			case sioEvent:
 				ns, rest := parseSIONamespace(sioData[1:])
-				if ns == "" {
-					ns = namespace
-				}
-				eventName, args := parseSIOEvent(rest)
-				if allowedEvents == nil || allowedEvents[eventName] {
-					callbacks.onEvent(newEventMsg("incoming", ns, eventName, args))
-				}
+				handleEvent(ns, rest)
 
 			case sioAck:
 				ns, rest := parseSIONamespace(sioData[1:])
-				if ns == "" {
-					ns = namespace
+				handleAck(ns, rest)
+
+			case sioBinaryEvent, sioBinaryAck:
+				packet, ok := parseSIOBinaryHeader(sioData)
+				if !ok {
+					continue
 				}
-				ackIDVal, args := parseSIOAck(rest)
-				eventNameStr := ""
-				var ackCh chan model.SocketIOAckEvent
-				m.ackMu.Lock()
-				if pending, ok := m.pendingAcks[sessionID][ackIDVal]; ok {
-					eventNameStr = pending.eventName
-					ackCh = pending.ch
-					delete(m.pendingAcks[sessionID], ackIDVal)
-				}
-				m.ackMu.Unlock()
-				ev := model.SocketIOAckEvent{SessionID: sessionID, EventName: eventNameStr, Args: args, AckID: ackIDVal, Namespace: ns, Timestamp: time.Now().UnixMilli()}
-				if callbacks.onAck != nil {
-					callbacks.onAck(ev)
-				}
-				if ackCh != nil {
-					ackCh <- ev
+				binary = packet
+				if binary.expected == 0 {
+					finishBinary()
 				}
 
 			case sioConnectError:
@@ -1024,6 +1073,69 @@ func parseSIOAck(data []byte) (ackID int, args []string) {
 		args[i] = string(raw)
 	}
 	return ackID, args
+}
+
+type sioBinaryPacket struct {
+	ack         bool
+	namespace   string
+	rest        []byte
+	expected    int
+	attachments [][]byte
+}
+
+func parseSIOBinaryHeader(data []byte) (*sioBinaryPacket, bool) {
+	if len(data) < 2 {
+		return nil, false
+	}
+	dash := bytes.IndexByte(data, '-')
+	if dash < 2 {
+		return nil, false
+	}
+	expected, err := strconv.Atoi(string(data[1:dash]))
+	if err != nil || expected < 0 {
+		return nil, false
+	}
+	ns, rest := parseSIONamespace(data[dash+1:])
+	return &sioBinaryPacket{ack: data[0] == sioBinaryAck, namespace: ns, rest: rest, expected: expected}, true
+}
+
+func fillSIOPlaceholders(rest []byte, attachments [][]byte) []byte {
+	digits := 0
+	for digits < len(rest) && rest[digits] >= '0' && rest[digits] <= '9' {
+		digits++
+	}
+	var payload any
+	if err := json.Unmarshal(rest[digits:], &payload); err != nil {
+		return rest
+	}
+	filled, err := json.Marshal(replaceSIOPlaceholders(payload, attachments))
+	if err != nil {
+		return rest
+	}
+	return append(append([]byte(nil), rest[:digits]...), filled...)
+}
+
+func replaceSIOPlaceholders(value any, attachments [][]byte) any {
+	switch typed := value.(type) {
+	case []any:
+		for i, item := range typed {
+			typed[i] = replaceSIOPlaceholders(item, attachments)
+		}
+		return typed
+	case map[string]any:
+		if placeholder, _ := typed["_placeholder"].(bool); placeholder {
+			if num, ok := typed["num"].(float64); ok && int(num) >= 0 && int(num) < len(attachments) {
+				attachment := attachments[int(num)]
+				return map[string]any{"_binary": base64.StdEncoding.EncodeToString(attachment), "size": len(attachment)}
+			}
+		}
+		for key, item := range typed {
+			typed[key] = replaceSIOPlaceholders(item, attachments)
+		}
+		return typed
+	default:
+		return value
+	}
 }
 
 func parseSIOConnectError(data []byte) string {

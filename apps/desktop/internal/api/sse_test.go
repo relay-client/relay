@@ -559,3 +559,60 @@ func TestSSEReconnectDelay(t *testing.T) {
 		t.Errorf("default delay = %v, want 3s", d)
 	}
 }
+
+func sseEventsFor(t *testing.T, payload string) []model.SSEEvent {
+	t.Helper()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, payload)
+	}))
+	defer srv.Close()
+	em := &testEmitter{}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	runStreamWithEmitter(ctx, model.HttpRequest{URL: srv.URL, EnableSSLVerification: true}, em)
+	return em.events
+}
+
+func TestSSEStream_FollowsTheEventStreamSpec(t *testing.T) {
+	cases := map[string]struct {
+		payload string
+		want    []model.SSEEvent
+	}{
+		"empty data still dispatches":    {"data:\n\ndata\n\n", []model.SSEEvent{{Event: "message", Data: ""}, {Event: "message", Data: ""}}},
+		"blank data line adds a newline": {"data: a\ndata:\ndata: b\n\n", []model.SSEEvent{{Event: "message", Data: "a\n\nb"}}},
+		"id carries over":                {"id: 7\ndata: a\n\ndata: b\n\nid:\ndata: c\n\n", []model.SSEEvent{{ID: "7", Event: "message", Data: "a"}, {ID: "7", Event: "message", Data: "b"}, {ID: "", Event: "message", Data: "c"}}},
+		"bare CR line endings":           {"event: x\rdata: a\r\rdata: b\r\n\r\n", []model.SSEEvent{{Event: "x", Data: "a"}, {Event: "message", Data: "b"}}},
+		"leading BOM":                    {"\uFEFFdata: first\n\n", []model.SSEEvent{{Event: "message", Data: "first"}}},
+		"value without space":            {"data:tight\n\n", []model.SSEEvent{{Event: "message", Data: "tight"}}},
+	}
+	for name, tc := range cases {
+		got := sseEventsFor(t, tc.payload)
+		if len(got) != len(tc.want) {
+			t.Errorf("%s: got %d events %+v, want %d", name, len(got), got, len(tc.want))
+			continue
+		}
+		for i := range got {
+			if got[i].ID != tc.want[i].ID || got[i].Event != tc.want[i].Event || got[i].Data != tc.want[i].Data {
+				t.Errorf("%s: event %d = %+v, want %+v", name, i, got[i], tc.want[i])
+			}
+		}
+	}
+}
+
+func TestSSELineSplitterHandlesACarriageReturnAtTheChunkEdge(t *testing.T) {
+	split := newSSELineSplitter()
+	advance, token, _ := split([]byte("a\r"), false)
+	if advance != 2 || string(token) != "a" {
+		t.Fatalf("expected the line before a trailing CR at once, got advance=%d token=%q", advance, token)
+	}
+	advance, token, _ = split([]byte("\nb\n"), false)
+	if advance != 3 || string(token) != "b" {
+		t.Fatalf("expected the LF of a split CRLF to be skipped, got advance=%d token=%q", advance, token)
+	}
+	advance, token, _ = split([]byte("\n"), false)
+	if advance != 1 || string(token) != "" || token == nil {
+		t.Fatalf("expected a lone LF to be an empty line again, got advance=%d token=%q", advance, token)
+	}
+}

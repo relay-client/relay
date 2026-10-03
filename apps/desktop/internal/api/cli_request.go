@@ -60,7 +60,7 @@ type cliSettings struct {
 	EncodeURLAutomatically *bool  `json:"encodeUrlAutomatically"`
 	DisableCookieJar       bool   `json:"disableCookieJar"`
 	MaxRedirects           int    `json:"maxRedirects"`
-	TimeoutMs              int    `json:"timeoutMs"`
+	TimeoutMs              *int   `json:"timeoutMs"`
 	ScriptTimeoutMs        int    `json:"scriptTimeoutMs"`
 	AllowSendRequest       bool   `json:"allowSendRequest"`
 	ProxyURL               string `json:"proxyUrl"`
@@ -163,8 +163,9 @@ func isGraphQLRequest(req cliSavedRequest) bool {
 	return strings.EqualFold(req.RequestType, "graphql") || req.BodyType == "graphql"
 }
 
+const defaultCLIRequestTimeoutMs = 30000
+
 func buildHTTPRequest(req cliSavedRequest, values map[string]string, secretValues []string, timeoutOverrideMs int) model.HttpRequest {
-	resolve := func(v string) string { return resolveTemplateValue(v, values) }
 	graphql := isGraphQLRequest(req)
 
 	method := strings.ToUpper(strings.TrimSpace(req.Method))
@@ -179,24 +180,24 @@ func buildHTTPRequest(req cliSavedRequest, values map[string]string, secretValue
 	params := make([]model.KeyValue, 0, len(req.Params))
 	for _, p := range req.Params {
 		if p.Enabled && strings.TrimSpace(p.Key) != "" {
-			params = append(params, model.KeyValue{Key: resolve(p.Key), Value: resolve(p.Value), Enabled: true})
+			params = append(params, model.KeyValue{Key: p.Key, Value: p.Value, Enabled: true})
 		}
 	}
 	headers := make([]model.KeyValue, 0, len(req.Headers))
 	for _, h := range req.Headers {
 		if h.Enabled && strings.TrimSpace(h.Key) != "" {
-			headers = append(headers, model.KeyValue{Key: resolve(h.Key), Value: resolve(h.Value), Enabled: true})
+			headers = append(headers, model.KeyValue{Key: h.Key, Value: h.Value, Enabled: true})
 		}
 	}
 	formData := make([]model.KeyValue, 0, len(req.FormRows))
 	for _, f := range req.FormRows {
 		if f.Enabled && strings.TrimSpace(f.Key) != "" {
-			formData = append(formData, model.KeyValue{Key: resolve(f.Key), Value: resolve(f.Value), Enabled: true, IsFile: f.IsFile, FileName: f.FileName, ContentType: f.ContentType})
+			formData = append(formData, model.KeyValue{Key: f.Key, Value: f.Value, Enabled: true, IsFile: f.IsFile, FileName: f.FileName, ContentType: f.ContentType})
 		}
 	}
 
 	bodyType := req.BodyType
-	body := resolve(req.BodyContent)
+	body := req.BodyContent
 	if graphql {
 		bodyType = "graphql"
 	}
@@ -206,7 +207,10 @@ func buildHTTPRequest(req cliSavedRequest, values map[string]string, secretValue
 		token = req.Auth.OAuth2Token
 	}
 
-	timeoutMs := req.Settings.TimeoutMs
+	timeoutMs := defaultCLIRequestTimeoutMs
+	if req.Settings.TimeoutMs != nil {
+		timeoutMs = *req.Settings.TimeoutMs
+	}
 	if timeoutOverrideMs > 0 {
 		timeoutMs = timeoutOverrideMs
 	}
@@ -214,42 +218,42 @@ func buildHTTPRequest(req cliSavedRequest, values map[string]string, secretValue
 	return model.HttpRequest{
 		RequestID: req.ID,
 		Method:    method,
-		URL:       resolve(strings.TrimSpace(req.URL)),
+		URL:       strings.TrimSpace(req.URL),
 		Params:    params,
 		Headers:   headers,
 		Auth: model.AuthConfig{
 			Type:                      req.Auth.Type,
-			Token:                     resolve(token),
-			Username:                  resolve(req.Auth.BasicUser),
-			Password:                  resolve(req.Auth.BasicPass),
-			KeyName:                   resolve(req.Auth.APIKeyName),
-			KeyValue:                  resolve(req.Auth.APIKeyValue),
+			Token:                     token,
+			Username:                  req.Auth.BasicUser,
+			Password:                  req.Auth.BasicPass,
+			KeyName:                   req.Auth.APIKeyName,
+			KeyValue:                  req.Auth.APIKeyValue,
 			KeyIn:                     req.Auth.APIKeyIn,
 			OAuth2GrantType:           req.Auth.OAuth2GrantType,
-			OAuth2TokenURL:            resolve(req.Auth.OAuth2TokenURL),
-			OAuth2AuthURL:             resolve(req.Auth.OAuth2AuthURL),
-			OAuth2DeviceAuthURL:       resolve(req.Auth.OAuth2DeviceAuthURL),
-			OAuth2ClientID:            resolve(req.Auth.OAuth2ClientID),
-			OAuth2Secret:              resolve(req.Auth.OAuth2Secret),
-			OAuth2Scope:               resolve(req.Auth.OAuth2Scope),
-			OAuth2Audience:            resolve(req.Auth.OAuth2Audience),
-			OAuth2RefreshToken:        resolve(req.Auth.OAuth2RefreshToken),
-			OAuth2Username:            resolve(req.Auth.OAuth2Username),
-			OAuth2Password:            resolve(req.Auth.OAuth2Password),
+			OAuth2TokenURL:            req.Auth.OAuth2TokenURL,
+			OAuth2AuthURL:             req.Auth.OAuth2AuthURL,
+			OAuth2DeviceAuthURL:       req.Auth.OAuth2DeviceAuthURL,
+			OAuth2ClientID:            req.Auth.OAuth2ClientID,
+			OAuth2Secret:              req.Auth.OAuth2Secret,
+			OAuth2Scope:               req.Auth.OAuth2Scope,
+			OAuth2Audience:            req.Auth.OAuth2Audience,
+			OAuth2RefreshToken:        req.Auth.OAuth2RefreshToken,
+			OAuth2Username:            req.Auth.OAuth2Username,
+			OAuth2Password:            req.Auth.OAuth2Password,
 			OAuth2ClientAuth:          req.Auth.OAuth2ClientAuth,
 			OAuth2AssertionAlgorithm:  req.Auth.OAuth2AssertionAlgorithm,
-			OAuth2AssertionPrivateKey: resolve(req.Auth.OAuth2AssertionPrivateKey),
-			OAuth2AssertionKeyID:      resolve(req.Auth.OAuth2AssertionKeyID),
-			OAuth2AssertionAudience:   resolve(req.Auth.OAuth2AssertionAudience),
-			AWSAccessKey:              resolve(req.Auth.AWSAccessKey),
-			AWSSecretKey:              resolve(req.Auth.AWSSecretKey),
-			AWSSessionToken:           resolve(req.Auth.AWSSessionToken),
-			AWSRegion:                 resolve(req.Auth.AWSRegion),
-			AWSService:                resolve(req.Auth.AWSService),
+			OAuth2AssertionPrivateKey: req.Auth.OAuth2AssertionPrivateKey,
+			OAuth2AssertionKeyID:      req.Auth.OAuth2AssertionKeyID,
+			OAuth2AssertionAudience:   req.Auth.OAuth2AssertionAudience,
+			AWSAccessKey:              req.Auth.AWSAccessKey,
+			AWSSecretKey:              req.Auth.AWSSecretKey,
+			AWSSessionToken:           req.Auth.AWSSessionToken,
+			AWSRegion:                 req.Auth.AWSRegion,
+			AWSService:                req.Auth.AWSService,
 		},
 		BodyType:                bodyType,
 		Body:                    body,
-		BodyFilePath:            resolve(req.BodyFilePath),
+		BodyFilePath:            req.BodyFilePath,
 		FormData:                formData,
 		PreRequestScript:        cliPreScript(req),
 		TestScript:              cliTestScript(req),
@@ -262,11 +266,13 @@ func buildHTTPRequest(req cliSavedRequest, values map[string]string, secretValue
 		EncodeURLAutomatically:  boolOr(req.Settings.EncodeURLAutomatically, true),
 		DisableCookieJar:        req.Settings.DisableCookieJar,
 		MaxRedirects:            req.Settings.MaxRedirects,
-		ProxyURL:                resolve(req.Settings.ProxyURL),
-		ClientCertPath:          resolve(req.Settings.ClientCertPath),
-		ClientKeyPath:           resolve(req.Settings.ClientKeyPath),
-		ClientKeyPassword:       resolve(req.Settings.ClientKeyPassword),
+		ProxyURL:                req.Settings.ProxyURL,
+		ClientCertPath:          req.Settings.ClientCertPath,
+		ClientKeyPath:           req.Settings.ClientKeyPath,
+		ClientKeyPassword:       req.Settings.ClientKeyPassword,
 		SecretEnvironmentValues: secretValues,
+		ResolveTemplates:        true,
+		TemplateValues:          values,
 	}
 }
 

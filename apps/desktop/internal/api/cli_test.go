@@ -117,11 +117,18 @@ func TestBuildHTTPRequestResolvesVariablesAndScripts(t *testing.T) {
 		URL:              "{{base}}/users/{{id}}",
 		TestScriptJs:     `pm.test("ok", () => true)`,
 		PreRequestScript: "legacy",
-		Settings:         cliSettings{TimeoutMs: 1000},
+		Settings:         cliSettings{TimeoutMs: intPointer(1000)},
 	}
 	built := buildHTTPRequest(req, map[string]string{"base": "https://api.test", "id": "42"}, nil, 0)
-	if built.URL != "https://api.test/users/42" {
-		t.Fatalf("url = %q", built.URL)
+	if !built.ResolveTemplates || built.URL != "{{base}}/users/{{id}}" {
+		t.Fatalf("expected the request to carry its templates to the executor, got resolve=%v url=%q", built.ResolveTemplates, built.URL)
+	}
+	resolved, err := resolveHTTPRequestTemplates(built, built.TemplateValues)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resolved.URL != "https://api.test/users/42" {
+		t.Fatalf("url = %q", resolved.URL)
 	}
 	if built.Method != "GET" {
 		t.Fatalf("method = %q", built.Method)
@@ -135,7 +142,7 @@ func TestBuildHTTPRequestResolvesVariablesAndScripts(t *testing.T) {
 }
 
 func TestBuildHTTPRequestTimeoutOverride(t *testing.T) {
-	built := buildHTTPRequest(cliSavedRequest{Method: "GET", Settings: cliSettings{TimeoutMs: 1000}}, nil, nil, 250)
+	built := buildHTTPRequest(cliSavedRequest{Method: "GET", Settings: cliSettings{TimeoutMs: intPointer(1000)}}, nil, nil, 250)
 	if built.TimeoutMs != 250 {
 		t.Fatalf("expected the override to win, got %d", built.TimeoutMs)
 	}

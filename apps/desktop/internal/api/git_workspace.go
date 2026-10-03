@@ -1661,7 +1661,10 @@ func gitForcePushWorkspaceForRoot(root, remoteName string) GitOperationResult {
 	if status.Upstream == "" {
 		return GitOperationResult{Ok: false, Git: status, Error: "Cannot force push without an upstream. Push normally first to establish tracking before force pushing."}
 	}
-	output, err := runGit(status.Root, "push", "--force-with-lease")
+	output, err := runGit(status.Root, "push", "--force-with-lease", "--force-if-includes")
+	if err != nil && strings.Contains(output, "force-if-includes") && strings.Contains(strings.ToLower(output), "unknown option") {
+		output, err = runGit(status.Root, "push", "--force-with-lease")
+	}
 	if err != nil {
 		failed := gitStatusForWorkspace(root)
 		message := friendlyGitError("force push", output, err)

@@ -9,6 +9,15 @@ import (
 	"github.com/relay-client/relay/apps/desktop/internal/model"
 )
 
+func requestUsesProxy(req model.HttpRequest, httpReq *http.Request) bool {
+	proxy := proxyForRequest(req)
+	if proxy == nil || httpReq == nil {
+		return false
+	}
+	proxyURL, err := proxy(httpReq)
+	return err == nil && proxyURL != nil
+}
+
 func proxyForRequest(req model.HttpRequest) func(*http.Request) (*url.URL, error) {
 	switch strings.ToLower(strings.TrimSpace(req.ProxyMode)) {
 	case "off":

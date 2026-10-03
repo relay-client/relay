@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"mime/multipart"
 	"net"
 	"net/http"
@@ -59,6 +60,14 @@ func runRequestWithBodySink(requestCtx context.Context, req model.HttpRequest, s
 	if jars != nil {
 		jar = jars.jar(req.WorkspaceID)
 	}
+	template := req
+	if template.ResolveTemplates {
+		resolved, err := resolveHTTPRequestTemplates(template, template.TemplateValues)
+		if err != nil {
+			return model.HttpResponse{Error: err.Error()}
+		}
+		req = resolved
+	}
 	scope := beginScriptScope(sm, req.CollectionVariables)
 	ctx := scope.ctx
 	populateScriptRequestContext(ctx, req)
@@ -69,7 +78,26 @@ func runRequestWithBodySink(requestCtx context.Context, req model.HttpRequest, s
 	if req.PreRequestScript != "" {
 		preResult = script.RunPreRequest(req.ScriptEngine, req.PreRequestScript, ctx)
 		preResult = redactScriptResult(preResult, req.SecretEnvironmentValues)
-		mergeScriptURL(ctx, &req)
+		scriptedURL := ctx.RequestURL
+		urlChanged := scriptedURL != "" && scriptedURL != req.URL
+		if template.ResolveTemplates && preResult.Error == "" {
+			if changed := scriptVariableChanges(scope, template.CollectionVariables); len(changed) > 0 {
+				values := overlayScriptVariables(template.TemplateValues, ctx, changed)
+				resolved, err := resolveHTTPRequestTemplates(template, values)
+				if err != nil {
+					scope.commit(sm)
+					resp := model.HttpResponse{Error: err.Error(), PreRequestResult: preResult}
+					resp.CollectionVariableUpdates, resp.CollectionVariablesRemoved = mergeCollectionVariableResults(preResult)
+					return resp
+				}
+				resolved.SecretEnvironmentValues = append(resolved.SecretEnvironmentValues, revealedSecretValues(changed, template.SecretEnvironmentKeys, values)...)
+				req = resolved
+				preResult = redactScriptResult(preResult, req.SecretEnvironmentValues)
+			}
+		}
+		if urlChanged {
+			req.URL = scriptedURL
+		}
 		mergeScriptHeaders(ctx, &req)
 		mergeScriptParams(ctx, &req)
 		mergeScriptBody(ctx, &req)
@@ -153,6 +181,7 @@ func beginScriptScope(sm *state.Manager, collectionVariables map[string]string) 
 	beforeVars := util.CloneMap(vars)
 	beforeEnv := util.CloneMap(env)
 	ctx := script.NewContext(vars, env)
+	ctx.DynamicVariable = resolveDynamicCLIVariable
 	for key, value := range collectionVariables {
 		ctx.CollectionVariables[key] = value
 	}
@@ -317,6 +346,7 @@ func doRequestWithBodySink(ctx context.Context, req model.HttpRequest, jar http.
 	if hostOverride != "" {
 		httpReq.Host = hostOverride
 	}
+	multipartNotice := reconcileMultipartContentType(httpReq.Header, body.contentType)
 	explicitCookieHeader := httpReq.Header.Get("Cookie") != ""
 
 	beforeAuth := userHeaderSnapshot(req.Headers, httpReq.Header)
@@ -331,6 +361,9 @@ func doRequestWithBodySink(ctx context.Context, req model.HttpRequest, jar http.
 	if msg := validateBrowserCSP(req, u, browserCtx); msg != "" {
 		return earlyError("CSP error: " + msg)
 	}
+	if msg := blockedBrowserNetworkAccess(u, browserCtx); msg != "" {
+		return earlyError("Browser error: " + msg)
+	}
 	if browserCtx.active && browserCtx.crossOrigin && !browserCtx.withCredentials {
 		req.DisableCookieJar = true
 		httpReq.Header.Del("Cookie")
@@ -341,7 +374,11 @@ func doRequestWithBodySink(ctx context.Context, req model.HttpRequest, jar http.
 	if explicitCookieHeader && !req.DisableCookieJar {
 		requestJar = receiveOnlyCookieJar{jar: jar}
 	}
-	client, sentRequests := buildHTTPClient(req, requestJar, effectiveTimeout, browserCtx)
+	if browserCtx.active && !browserCtx.withCredentials && requestJar != nil && !req.DisableCookieJar {
+		requestJar = browserCredentialsJar{jar: requestJar, state: &browserCtx}
+	}
+	client, sentRequests := buildHTTPClient(req, requestJar, effectiveTimeout, &browserCtx, cache)
+	var browserHiddenHeaders, browserWarnings []string
 	withTrace := func(resp model.HttpResponse) model.HttpResponse {
 		resp.SentRequests = sentRequests.snapshot()
 		resp.Connection = timings.connectionInfo()
@@ -352,50 +389,52 @@ func doRequestWithBodySink(ctx context.Context, req model.HttpRequest, jar http.
 		if notice := overriddenHeaderNotice(overriddenHeaders); notice != "" {
 			resp.Warnings = append(resp.Warnings, notice)
 		}
+		if multipartNotice != "" {
+			resp.Warnings = append(resp.Warnings, multipartNotice)
+		}
+		resp.Warnings = append(resp.Warnings, browserWarnings...)
+		resp.BrowserHiddenHeaders = browserHiddenHeaders
 		return resp
 	}
 	timings.markPrepared()
 	if browserCtx.enforceCORS && corsPreflightRequired(httpReq) {
-		requestHeaders := corsUnsafeRequestHeaderNames(httpReq.Header)
-		cacheKey := preflightCacheKey(browserCtx.origin, urlWithoutFragment(u), browserCtx.withCredentials)
-		cached, ok := cache.lookup(cacheKey)
-		if !ok || !preflightCacheCovers(cached, httpReq.Method, requestHeaders, browserCtx) {
-			preflightResp, corsMsg, networkErr := runCORSPreflight(traceCtx, client, httpReq, u, browserCtx)
-			if networkErr != nil {
-				finish := time.Now()
-				return withTrace(model.HttpResponse{
-					Duration: finish.Sub(start).Milliseconds(),
-					Timings:  timings.snapshot(finish),
-					Error:    formatRequestError(fmt.Errorf("CORS preflight failed: %w", networkErr), u, effectiveTimeout),
-				})
-			}
-			if corsMsg != "" {
-				finish := time.Now()
-				resp := model.HttpResponse{
-					Duration: finish.Sub(start).Milliseconds(),
-					Timings:  timings.snapshot(finish),
-					Error:    "CORS error: " + corsMsg,
-				}
-				if preflightResp != nil {
-					resp.StatusCode = preflightResp.StatusCode
-					resp.Status = preflightResp.Status
-					resp.Headers = httpHeadersToKeyValues(preflightResp.Header)
-				}
-				return withTrace(resp)
+		preflightResp, corsMsg, networkErr := ensureCORSPreflight(traceCtx, client, httpReq, browserCtx, cache)
+		if networkErr != nil {
+			finish := time.Now()
+			return withTrace(model.HttpResponse{
+				Duration: finish.Sub(start).Milliseconds(),
+				Timings:  timings.snapshot(finish),
+				Error:    formatRequestError(fmt.Errorf("CORS preflight failed: %w", networkErr), u, effectiveTimeout),
+			})
+		}
+		if corsMsg != "" {
+			finish := time.Now()
+			resp := model.HttpResponse{
+				Duration: finish.Sub(start).Milliseconds(),
+				Timings:  timings.snapshot(finish),
+				Error:    "CORS error: " + corsMsg,
 			}
 			if preflightResp != nil {
-				cachePreflightResponse(cache, cacheKey, preflightResp)
+				resp.StatusCode = preflightResp.StatusCode
+				resp.Status = preflightResp.Status
+				resp.Headers = httpHeadersToKeyValues(preflightResp.Header)
 			}
+			return withTrace(resp)
 		}
 	}
 	httpResp, err := client.Do(httpReq)
 	if err != nil {
 		finish := time.Now()
-		return withTrace(model.HttpResponse{
+		resp := model.HttpResponse{
 			Duration: finish.Sub(start).Milliseconds(),
 			Timings:  timings.snapshot(finish),
 			Error:    formatRequestError(err, u, effectiveTimeout),
-		})
+		}
+		var blocked browserBlockedError
+		if errors.As(err, &blocked) {
+			resp.Error = blocked.Error()
+		}
+		return withTrace(resp)
 	}
 	defer httpResp.Body.Close()
 
@@ -413,8 +452,10 @@ func doRequestWithBodySink(ctx context.Context, req model.HttpRequest, jar http.
 			})
 		}
 	}
+	browserHiddenHeaders = corsUnexposedResponseHeaders(httpResp.Header, browserCtx)
+	browserWarnings = browserNetworkAccessWarnings(httpResp.Request.URL, timings.connectionInfo().RemoteAddr, requestUsesProxy(req, httpResp.Request), browserCtx)
 
-	if isEventStreamResponse(httpResp.Header) && !requestReadsEventStream(req) {
+	if isEventStreamResponse(httpResp.Header) && !requestReadsEventStream(req) && strings.EqualFold(req.Method, http.MethodGet) {
 		finish := time.Now()
 		return withTrace(model.HttpResponse{
 			StatusCode: httpResp.StatusCode,
@@ -866,10 +907,10 @@ func effectiveRequestTimeout(req model.HttpRequest) time.Duration {
 	if req.TimeoutMs > 0 {
 		return time.Duration(req.TimeoutMs) * time.Millisecond
 	}
-	return 30 * time.Second
+	return 0
 }
 
-func buildHTTPClient(req model.HttpRequest, jar http.CookieJar, timeout time.Duration, browserCtx browserSecurityContext) (*http.Client, *sentRequestRecorder) {
+func buildHTTPClient(req model.HttpRequest, jar http.CookieJar, timeout time.Duration, browserCtx *browserSecurityContext, cache *preflightCache) (*http.Client, *sentRequestRecorder) {
 	maxRedirects := req.MaxRedirects
 	if maxRedirects <= 0 {
 		maxRedirects = 10
@@ -882,12 +923,22 @@ func buildHTTPClient(req model.HttpRequest, jar http.CookieJar, timeout time.Dur
 		jar = nil
 	}
 
-	return &http.Client{
-		Timeout:       timeout,
-		Transport:     recorder,
-		Jar:           jar,
-		CheckRedirect: buildRedirectPolicy(req, maxRedirects, browserCtx),
-	}, recorder
+	client := &http.Client{
+		Timeout:   timeout,
+		Transport: recorder,
+		Jar:       jar,
+	}
+	client.CheckRedirect = buildRedirectPolicy(req, maxRedirects, browserCtx, func(ctx context.Context, next *http.Request) error {
+		_, corsMsg, err := ensureCORSPreflight(ctx, client, next, *browserCtx, cache)
+		if err != nil {
+			return fmt.Errorf("CORS preflight failed: %w", err)
+		}
+		if corsMsg != "" {
+			return browserBlockedError{label: "CORS", msg: corsMsg}
+		}
+		return nil
+	})
+	return client, recorder
 }
 
 func buildHTTPRoundTripper(req model.HttpRequest, transport *http.Transport) http.RoundTripper {
@@ -898,7 +949,7 @@ func buildHTTPRoundTripper(req model.HttpRequest, transport *http.Transport) htt
 	return roundTripper
 }
 
-func buildRedirectPolicy(req model.HttpRequest, maxRedirects int, browserCtx browserSecurityContext) func(*http.Request, []*http.Request) error {
+func buildRedirectPolicy(req model.HttpRequest, maxRedirects int, browserCtx *browserSecurityContext, preflight corsRedirectPreflight) func(*http.Request, []*http.Request) error {
 	return func(next *http.Request, via []*http.Request) error {
 		if !req.FollowRedirects {
 			return http.ErrUseLastResponse
@@ -909,50 +960,30 @@ func buildRedirectPolicy(req model.HttpRequest, maxRedirects int, browserCtx bro
 		prev := via[len(via)-1]
 		if req.FollowOriginalMethod {
 			next.Method = prev.Method
-			if prev.GetBody != nil {
-				if bodyCopy, err := prev.GetBody(); err == nil {
-					next.Body = bodyCopy
-					next.GetBody = prev.GetBody
-					next.ContentLength = prev.ContentLength
-				}
-			} else if prev.Body != nil && prev.Body != http.NoBody {
-				return fmt.Errorf("cannot replay request body through redirect: body is not reusable")
+			if err := replayRedirectBody(next, prev); err != nil {
+				return err
 			}
 		}
-		if req.FollowAuthorizationHeader {
-			if authorization := prev.Header.Get("Authorization"); authorization != "" {
-				if sameHostAndScheme(prev.URL, next.URL) {
-					next.Header.Set("Authorization", authorization)
-				} else {
-					next.Header.Del("Authorization")
-				}
-			}
+		if authorization := prev.Header.Get("Authorization"); authorization != "" && redirectKeepsAuthorization(prev.URL, next.URL, req.FollowAuthorizationHeader) {
+			next.Header.Set("Authorization", authorization)
 		} else {
 			next.Header.Del("Authorization")
 		}
 		if req.RemoveRefererHeader {
 			next.Header.Del("Referer")
 		}
-		if browserCtx.active && browserCtx.origin != "" {
-			nextOrigin := &url.URL{Scheme: next.URL.Scheme, Host: next.URL.Host}
-			if browserCtx.originURL != nil && sameOrigin(browserCtx.originURL, nextOrigin) {
-				next.Header.Set("Sec-Fetch-Site", "same-origin")
-			} else {
-				next.Header.Set("Sec-Fetch-Site", "cross-site")
-			}
-			if msg := validateBrowserCSP(req, next.URL, browserCtx); msg != "" {
-				return errors.New(msg)
-			}
-		}
-		return nil
+		return browserCtx.followRedirect(req, next, via, preflight)
 	}
 }
 
-func sameHostAndScheme(a, b *url.URL) bool {
-	if a == nil || b == nil {
+func redirectKeepsAuthorization(prev, next *url.URL, followAcrossHosts bool) bool {
+	if prev == nil || next == nil {
 		return false
 	}
-	return strings.EqualFold(a.Scheme, b.Scheme) && strings.EqualFold(a.Host, b.Host)
+	if strings.EqualFold(prev.Scheme, "https") && !strings.EqualFold(next.Scheme, "https") {
+		return false
+	}
+	return followAcrossHosts || strings.EqualFold(prev.Hostname(), next.Hostname())
 }
 
 func applyQueryParams(u *url.URL, req model.HttpRequest) {
@@ -1001,6 +1032,25 @@ func applyUserHeaders(headers http.Header, rows []model.KeyValue) (hostOverride 
 		headers.Add(key, h.Value)
 	}
 	return hostOverride, dropped
+}
+
+func reconcileMultipartContentType(headers http.Header, generated string) string {
+	if !strings.HasPrefix(generated, "multipart/form-data") {
+		return ""
+	}
+	current := headers.Get("Content-Type")
+	if current == generated {
+		return ""
+	}
+	mediaType, params, err := mime.ParseMediaType(current)
+	if err != nil || mediaType != "multipart/form-data" {
+		return ""
+	}
+	headers.Set("Content-Type", generated)
+	if params["boundary"] == "" {
+		return ""
+	}
+	return "Content-Type boundary replaced: the form body is built by Relay, so it is sent with the boundary Relay generated for it."
 }
 
 func isReservedFramingHeader(name string) bool {
@@ -1115,6 +1165,9 @@ func formatRequestError(err error, target *url.URL, timeout time.Duration) strin
 	}
 	var urlErr *url.Error
 	if errors.Is(err, context.DeadlineExceeded) || errors.As(err, &urlErr) && urlErr.Timeout() {
+		if timeout <= 0 {
+			return "Error: request timed out"
+		}
 		return fmt.Sprintf("Error: request timed out after %d ms", timeout.Milliseconds())
 	}
 
@@ -1215,12 +1268,6 @@ func encodeQueryPairs(pairs []queryPair) string {
 		}
 	}
 	return out.String()
-}
-
-func mergeScriptURL(ctx *script.Context, req *model.HttpRequest) {
-	if ctx.RequestURL != "" && ctx.RequestURL != req.URL {
-		req.URL = ctx.RequestURL
-	}
 }
 
 func mergeScriptBody(ctx *script.Context, req *model.HttpRequest) {

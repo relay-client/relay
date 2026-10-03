@@ -342,12 +342,14 @@ func runCLIRequest(sm *state.Manager, jars *cookieJarRegistry, cache *preflightC
 		httpReq.EnableSSLVerification = false
 	}
 	base.Method = httpReq.Method
-	base.URL = httpReq.URL
+	base.URL = resolveTemplateValue(httpReq.URL, values)
 
-	if err := tokens.resolveOAuth2Token(&httpReq.Auth); err != nil {
+	resolvedAuth := resolveAuthTemplates(httpReq.Auth, values)
+	if err := tokens.resolveOAuth2Token(&resolvedAuth); err != nil {
 		base.Error = err.Error()
 		return base
 	}
+	httpReq.Auth.Token = resolvedAuth.Token
 
 	resp := sendRequest(context.Background(), httpReq, sm, jars, cache)
 

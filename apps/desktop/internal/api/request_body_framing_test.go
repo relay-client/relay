@@ -358,3 +358,28 @@ func TestAwsHostIsNotReportedAsOverridden(t *testing.T) {
 		t.Errorf("Host was reported as overridden; warnings = %v", resp.Warnings)
 	}
 }
+
+func TestMultipartBodyKeepsItsBoundaryWhenTheUserSetsContentType(t *testing.T) {
+	for _, header := range []string{"multipart/form-data", "multipart/form-data; boundary=copied-from-browser"} {
+		var field string
+		var parseErr error
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			parseErr = r.ParseMultipartForm(1 << 20)
+			field = r.FormValue("name")
+		}))
+		req := traceTestRequest(server.URL)
+		req.Method = http.MethodPost
+		req.BodyType = "form"
+		req.FormData = []model.KeyValue{{Key: "name", Value: "ada", Enabled: true}}
+		req.Headers = []model.KeyValue{{Key: "content-type", Value: header, Enabled: true}}
+		resp := sendRequest(t.Context(), req, state.New(), newCookieJarRegistry(), newPreflightCache())
+		server.Close()
+		if resp.Error != "" || parseErr != nil || field != "ada" {
+			t.Fatalf("%q: expected a parseable form, got error=%q parse=%v field=%q", header, resp.Error, parseErr, field)
+		}
+		warned := strings.Contains(strings.Join(resp.Warnings, " "), "boundary replaced")
+		if warned != strings.Contains(header, "boundary=") {
+			t.Fatalf("%q: unexpected warnings %v", header, resp.Warnings)
+		}
+	}
+}

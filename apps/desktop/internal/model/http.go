@@ -125,6 +125,9 @@ type HttpRequest struct {
 	SecretEnvironmentValues      []string          `json:"secretEnvironmentValues"`
 	CollectionVariables          map[string]string `json:"collectionVariables"`
 	IterationData                map[string]string `json:"iterationData,omitempty"`
+	ResolveTemplates             bool              `json:"resolveTemplates,omitempty"`
+	TemplateValues               map[string]string `json:"templateValues,omitempty"`
+	GraphQL                      *GraphQLPayload   `json:"graphql,omitempty"`
 	ProxyURL                     string            `json:"proxyUrl"`
 	ProxyMode                    string            `json:"proxyMode"`
 	ProxyBypass                  string            `json:"proxyBypass"`
@@ -160,6 +163,12 @@ type HttpRequest struct {
 	McpOutputSchema    string `json:"mcpOutputSchema"`
 }
 
+type GraphQLPayload struct {
+	Query         string `json:"query"`
+	Variables     string `json:"variables"`
+	OperationName string `json:"operationName"`
+}
+
 type HttpResponse struct {
 	StatusCode       int             `json:"statusCode"`
 	Status           string          `json:"status"`
@@ -179,6 +188,8 @@ type HttpResponse struct {
 	SkipReason string `json:"skipReason,omitempty"`
 
 	Warnings []string `json:"warnings,omitempty"`
+
+	BrowserHiddenHeaders []string `json:"browserHiddenHeaders,omitempty"`
 
 	PreviewImageBase64 string `json:"previewImageBase64,omitempty"`
 	PreviewMediaType   string `json:"previewMediaType,omitempty"`

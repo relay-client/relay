@@ -76,7 +76,7 @@ func mergeCollectionSettings(defaults, req cliSettings) cliSettings {
 	if req.MaxRedirects == 0 {
 		req.MaxRedirects = defaults.MaxRedirects
 	}
-	if req.TimeoutMs == 0 {
+	if req.TimeoutMs == nil {
 		req.TimeoutMs = defaults.TimeoutMs
 	}
 	if req.ScriptTimeoutMs == 0 {
