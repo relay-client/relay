@@ -5,6 +5,31 @@ description: Notable Relay changes and links to the exact notes for each publish
 
 This page summarizes the notable-change log maintained in the source repository. For the exact notes and artifacts attached to every published tag, use the [Relay releases page](https://github.com/relay-client/relay/releases).
 
+## 2.1.0
+
+### Added
+
+- **Relay opens on the request editor** — your tabs, or a new request when there are none. *Settings → General → On launch* can reopen **Where you left off** or always start on the **Workspace overview**. See [Settings](/docs/guides/settings/).
+- **Zoom.** `Cmd/Ctrl =`, `Cmd/Ctrl −` and `Cmd/Ctrl 0` scale the whole window from 80% to 150%, as in Postman; on macOS they are also in the new **View** menu. See [Keyboard shortcuts](/docs/reference/keyboard-shortcuts/).
+- **Browser emulation goes further.** The Headers tab marks the response headers page code cannot read under CORS, a page on HTTPS is checked for mixed content, and a request from a public page to a loopback or private address warns about Local Network Access. See [Browser security](/docs/guides/browser-security/).
+
+### Changed
+
+- **One look across the app.** Text, buttons, fields, menus, tabs, dialogs, checkboxes and empty states come from one set of sizes, weights, corners and spacing, so the same control looks the same on every screen. Destructive actions and status colours follow the theme, and the last system checkboxes and radio buttons are gone.
+
+### Fixed
+
+- **CORS follows every redirect** — the redirect must pass CORS, a new origin is preflighted, cookies and `Authorization` are dropped as a browser drops them — and header values are checked as the Fetch standard does. A redirect on the same host keeps `Authorization`.
+- **Variables resolve as expected.** Globals reach `{{...}}`, a value set by a pre-request script is used in the same send, names with non-Latin letters, spaces or colons resolve, the Collection Runner hands scripts the data row, and `relay run` resolves nested variables. See [Environments](/docs/guides/environments/).
+- **A timeout of `0` waits as long as the server takes**, in the app and in `relay run`. See [Request settings](/docs/guides/request-settings/#timeout).
+- **Large responses scroll without blank frames** on the scrollbar, the trackpad and the keyboard, and **response search** highlights matches across a key and its value.
+- **Arrow keys stay where you are.** In a response, a dialog or Settings they no longer switch the request in the sidebar, and `↓` in Settings no longer skips a section.
+- **Streaming and sockets:** a `POST` to an event-stream endpoint shows the stream, SSE follows the event-stream specification, a quiet WebSocket with keep-alive off stays open, handshake headers copied from DevTools no longer break connections, and Socket.IO shows binary events.
+- **Pasted cURL commands and generated snippets** keep the body — `-d`, `--json`, `$'...'` quoting, `-d @file` — and the snippets run as generated in every language. See [Code generation](/docs/guides/code-generation/).
+- **Also:** the mock server replays compressed examples, a hand-written multipart `Content-Type` no longer loses its boundary, force push refuses to overwrite commits it has not seen, common legacy Postman script helpers work, OpenAPI import honours servers on a path or operation, and the Runner's checkboxes stay checked during a run.
+
+---
+
 ## 2.0.3
 
 ### Changed
