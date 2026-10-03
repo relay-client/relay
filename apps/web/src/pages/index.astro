@@ -325,6 +325,7 @@ const ldJson = JSON.stringify({
         : '';
       const names = { mac: 'macOS', windows: 'Windows', linux: 'Linux' };
       if (os) {
+        document.documentElement.dataset.relayOs = os;
         const label = document.querySelector('[data-os-label]');
         if (label) label.textContent = `Download for ${names[os]}`;
         document.querySelector(`.platform[data-platform="${os}"]`)?.classList.add('platform-current');
@@ -334,6 +335,29 @@ const ldJson = JSON.stringify({
       mark();
       addEventListener('scroll', mark, { passive: true });
     })();
+  </script>
+
+  <script>
+    import { findAsset, latestRelease } from '../scripts/latest-release';
+
+    const SUFFIXES: Record<string, string> = {
+      mac: '-darwin-universal.dmg',
+      windows: '-windows-amd64-installer.exe',
+      linux: '-linux-amd64.AppImage',
+    };
+
+    const os = document.documentElement.dataset.relayOs ?? '';
+    const button = document.querySelector<HTMLAnchorElement>('[data-os-download]');
+    const suffix = SUFFIXES[os];
+
+    if (button && suffix) {
+      const release = await latestRelease();
+      const asset = release && findAsset(release, suffix);
+      if (asset) {
+        button.href = asset.browser_download_url;
+        button.setAttribute('download', '');
+      }
+    }
   </script>
 </body>
 </html>

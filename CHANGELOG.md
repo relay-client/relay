@@ -7,6 +7,21 @@ All notable changes to Relay are documented here. This project follows
 
 ## [Unreleased]
 
+### Added
+
+- **The download button downloads the file.** Both the landing page's button and the cards on `/download/` used to open the releases page on GitHub and leave you to pick the right one of eighteen files. They now resolve the newest release when the page loads and point straight at the artifact for your platform, labelled with its size — one click, no detour. Release artifacts carry their version in the filename, so a static link could never do this. Windows cards switch to the Arm64 installer when the browser reports an Arm machine, and without JavaScript, or if the lookup is rate-limited, every link still falls back to the releases page it pointed at before.
+
+### Changed
+
+- **The site has its own domain and its own server: `relayclient.dev`.** `relay-client.github.io` carried no brand, and the two links that pointed at it — in the README and in the cookie-sync dialog — used different bases, so one of them resolved to nothing. Every reference now reads from `apps/web/site.config.mjs`, which `astro.config.mjs`, the structured data and a generated `robots.txt` all share, so the host is stated once.
+- **Deployment moved from GitHub Pages to nginx on a VPS behind Cloudflare.** The site is built in CI, never on the server, then rsynced into a timestamped release directory before a symlink is flipped, so going live is atomic and rolling back is one command. The workflow names no host: the address, the deploy key and the pinned host key all come from Actions secrets, because an origin address published next to the site it serves would make proxying the domain pointless. Provisioning, the nginx site and TLS issuance live in a private infrastructure repository.
+
+### Fixed
+
+- **`robots.txt` advertised a sitemap at a hard-coded address**, which would have gone stale the moment the site moved. It is generated from the build's own `site` and base.
+- **The documentation sidebar's "Releases" link, and the `downloadUrl` in the site's structured data, pointed at the repository root rather than the releases page.**
+- **An unset `RELAY_SITE_URL` repository variable built the site with no canonical host at all.** GitHub Actions passes an unconfigured variable through as an empty string, which is not nullish, so the `??` fallback never fired and `site` became empty. Empty values now count as missing.
+
 ### Security
 
 - **The client key passphrase was stored in plain text by *Save as default*.** The default request settings live in the app's local web storage, and the passphrase of a client certificate key went there with them, although a workspace keeps the same passphrase out of its files. Defaults no longer include it, and a passphrase an earlier version stored is removed on the next launch.

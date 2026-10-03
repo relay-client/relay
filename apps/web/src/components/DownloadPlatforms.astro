@@ -2,12 +2,30 @@
 const releases = 'https://github.com/relay-client/relay/releases/latest';
 const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
 
-const platforms = [
+interface PlatformFile {
+  label: string;
+  file: string;
+  match: string;
+  arch?: 'x86' | 'arm';
+  primary?: boolean;
+}
+
+interface Platform {
+  id: string;
+  name: string;
+  requirement: string;
+  files: PlatformFile[];
+  note: string;
+}
+
+const platforms: Platform[] = [
   {
     id: 'mac',
     name: 'macOS',
     requirement: 'macOS 12 Monterey or later · Apple Silicon and Intel',
-    files: [{ label: 'Universal disk image', file: 'relay-<version>-darwin-universal.dmg' }],
+    files: [
+      { label: 'Universal disk image', file: 'relay-<version>-darwin-universal.dmg', match: '-darwin-universal.dmg', primary: true },
+    ],
     note: 'Not Apple-notarized yet: on first launch, right-click Relay.app and choose Open.',
   },
   {
@@ -15,16 +33,20 @@ const platforms = [
     name: 'Windows',
     requirement: 'Windows 10 1903+ or Windows 11 · x64 and Arm64',
     files: [
-      { label: 'Installer, no admin rights', file: 'relay-<version>-windows-amd64-installer.exe' },
-      { label: 'MSIX package', file: 'relay-<version>-windows-amd64.msix' },
+      { label: 'Installer, no admin rights', file: 'relay-<version>-windows-amd64-installer.exe', match: '-windows-amd64-installer.exe', arch: 'x86', primary: true },
+      { label: 'MSIX package', file: 'relay-<version>-windows-amd64.msix', match: '-windows-amd64.msix', arch: 'x86' },
+      { label: 'Installer, no admin rights', file: 'relay-<version>-windows-arm64-installer.exe', match: '-windows-arm64-installer.exe', arch: 'arm', primary: true },
+      { label: 'MSIX package', file: 'relay-<version>-windows-arm64.msix', match: '-windows-arm64.msix', arch: 'arm' },
     ],
-    note: 'Use the arm64 files on a Snapdragon PC. SmartScreen may warn: the installer is not Authenticode-signed yet.',
+    note: 'SmartScreen may warn: the installer is not Authenticode-signed yet.',
   },
   {
     id: 'linux',
     name: 'Linux',
     requirement: 'glibc 2.31+ · x64 · libgtk-3 and libwebkit2gtk-4.0',
-    files: [{ label: 'Portable AppImage', file: 'relay-<version>-linux-amd64.AppImage' }],
+    files: [
+      { label: 'Portable AppImage', file: 'relay-<version>-linux-amd64.AppImage', match: '-linux-amd64.AppImage', primary: true },
+    ],
     note: 'Make it executable with chmod +x, then run it. Nothing to install.',
   },
 ];
@@ -40,19 +62,24 @@ const platforms = [
       <p class="relay-platform-req">{platform.requirement}</p>
       <ul>
         {platform.files.map(item => (
-          <li>
-            <span>{item.label}</span>
-            <code>{item.file}</code>
+          <li data-arch={item.arch} hidden={item.arch === 'arm'}>
+            <a href={releases} data-asset={item.match} data-primary={item.primary ? '' : undefined}>
+              {item.label}
+            </a>
+            <code data-asset-name>{item.file}</code>
           </li>
         ))}
       </ul>
       <p class="relay-platform-note">{platform.note}</p>
-      <a class="relay-platform-cta" href={releases}>Download for {platform.name}</a>
+      <a class="relay-platform-cta" href={releases} data-cta>
+        <span data-cta-label>Download for {platform.name}</span>
+        <span class="relay-platform-size" data-cta-size></span>
+      </a>
     </section>
   ))}
 </div>
 <p class="relay-platforms-after not-content">
-  Every file is on the <a href={releases}>latest release</a>. First-run steps for each system are in <a href={`${base}docs/getting-started/installation/`}>Installation</a>.
+  <span data-release-line>Every file is on the <a href={releases}>latest release</a>.</span> First-run steps for each system are in <a href={`${base}docs/getting-started/installation/`}>Installation</a>.
 </p>
 
 <script is:inline>
@@ -63,8 +90,68 @@ const platforms = [
       : (/mac/i.test(platform) || /Macintosh/i.test(ua)) && !/iPhone|iPad/i.test(ua) ? 'mac'
       : (/linux/i.test(platform) || /Linux|X11/i.test(ua)) && !/Android/i.test(ua) ? 'linux'
       : '';
-    if (os) document.querySelector(`.relay-platform[data-platform="${os}"]`)?.classList.add('relay-platform-current');
+    if (!os) return;
+    document.documentElement.dataset.relayOs = os;
+    document.querySelector(`.relay-platform[data-platform="${os}"]`)?.classList.add('relay-platform-current');
   })();
+</script>
+
+<script>
+  import { findAsset, formatSize, latestRelease, type Release } from '../scripts/latest-release';
+
+  async function applyArchitecture() {
+    if (document.documentElement.dataset.relayOs !== 'windows') return;
+    const uaData = (navigator as Navigator & {
+      userAgentData?: { getHighEntropyValues?: (hints: string[]) => Promise<{ architecture?: string }> };
+    }).userAgentData;
+    if (!uaData?.getHighEntropyValues) return;
+    try {
+      const values = await uaData.getHighEntropyValues(['architecture']);
+      if (values?.architecture !== 'arm') return;
+      for (const item of document.querySelectorAll<HTMLElement>('.relay-platform li[data-arch]')) {
+        item.hidden = item.dataset.arch !== 'arm';
+      }
+    } catch {}
+  }
+
+  function render(release: Release) {
+    for (const link of document.querySelectorAll<HTMLAnchorElement>('[data-asset]')) {
+      const asset = findAsset(release, link.dataset.asset ?? '');
+      if (!asset) continue;
+      link.href = asset.browser_download_url;
+      const name = link.parentElement?.querySelector('[data-asset-name]');
+      if (name) name.textContent = `${asset.name} · ${formatSize(asset.size)}`;
+    }
+
+    for (const card of document.querySelectorAll('.relay-platform')) {
+      const primary = card.querySelector<HTMLElement>('li:not([hidden]) a[data-primary]');
+      const cta = card.querySelector<HTMLAnchorElement>('[data-cta]');
+      if (!primary || !cta) continue;
+      const asset = findAsset(release, primary.dataset.asset ?? '');
+      if (!asset) continue;
+      cta.href = asset.browser_download_url;
+      cta.setAttribute('download', '');
+      const size = cta.querySelector('[data-cta-size]');
+      if (size) size.textContent = formatSize(asset.size);
+    }
+
+    const line = document.querySelector('[data-release-line]');
+    const releasePage = line?.querySelector('a')?.href;
+    if (line && releasePage && release.tag_name) {
+      const published = release.published_at
+        ? new Date(release.published_at).toLocaleDateString('en', { year: 'numeric', month: 'short', day: 'numeric' })
+        : '';
+      line.textContent = `Relay ${release.tag_name}${published ? `, released ${published}` : ''}. Every file is on the `;
+      const anchor = document.createElement('a');
+      anchor.href = releasePage;
+      anchor.textContent = 'release page';
+      line.append(anchor, '.');
+    }
+  }
+
+  await applyArchitecture();
+  const release = await latestRelease();
+  if (release) render(release);
 </script>
 
 <style>
@@ -132,6 +219,25 @@ const platforms = [
     gap: 0.2rem;
     font-size: 0.875rem;
     color: var(--sl-color-white);
+  }
+  .relay-platform li[hidden] {
+    display: none;
+  }
+  .relay-platform li a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .relay-platform li a:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+  .relay-platform-size {
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+    opacity: 0.75;
+  }
+  .relay-platform-size:not(:empty)::before {
+    content: ' · ';
   }
   .relay-platform code {
     font-family: var(--sl-font-mono);
