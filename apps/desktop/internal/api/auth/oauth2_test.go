@@ -193,3 +193,15 @@ func TestAuthorizeCode_MissingConfig(t *testing.T) {
 		t.Fatal("expected error when authorization URL is missing")
 	}
 }
+
+func TestWriteCallbackPageEscapesTheProviderError(t *testing.T) {
+	rec := httptest.NewRecorder()
+	writeCallbackPage(rec, false, `<script>alert("x")</script> & 'quoted'`)
+	body := rec.Body.String()
+	if strings.Contains(body, "<script>") {
+		t.Fatalf("callback page rendered raw markup from the provider: %s", body)
+	}
+	if !strings.Contains(body, "&lt;script&gt;alert(&#34;x&#34;)&lt;/script&gt; &amp; &#39;quoted&#39;") {
+		t.Fatalf("callback page did not escape the detail: %s", body)
+	}
+}

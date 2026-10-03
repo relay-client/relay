@@ -7,6 +7,16 @@ All notable changes to Relay are documented here. This project follows
 
 ## [Unreleased]
 
+### Security
+
+- **The client key passphrase was stored in plain text by *Save as default*.** The default request settings live in the app's local web storage, and the passphrase of a client certificate key went there with them, although a workspace keeps the same passphrase out of its files. Defaults no longer include it, and a passphrase an earlier version stored is removed on the next launch.
+
+### Fixed
+
+- **Importing a `.env` file broke values with backslashes.** `"C:\\new\\tmp"` came in with a line break and a tab in place of `\n` and `\t`, because escapes were undone one kind at a time. Each escape is read once now, so Windows paths survive.
+- **`relay run` crashed on a very large `--iterations`.** It reserved memory for every result up front and failed before sending anything; it now stops normally, for example at the first failure with `--bail`.
+- **Swift snippets broke on a multipart field name with a backslash or quote.** Names and file names are now encoded as browsers encode them — `%22` for a quote, `%0D%0A` for a line break.
+
 ## [2.1.0] - 2026-10-03
 
 ### Added

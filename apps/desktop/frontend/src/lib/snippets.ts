@@ -307,6 +307,10 @@ function buildRubySnippet(req: SnippetRequest) {
   return lines.join('\n');
 }
 
+function multipartQuoted(value: string) {
+  return value.replace(/\r/g, '%0D').replace(/\n/g, '%0A').replace(/"/g, '%22');
+}
+
 function buildSwiftSnippet(req: SnippetRequest) {
   const headers = snippetHeaders(req);
   const kind = snippetBodyKind(req);
@@ -317,7 +321,7 @@ function buildSwiftSnippet(req: SnippetRequest) {
   if (kind === 'multipart') {
     lines.push('let boundary = UUID().uuidString', 'var body = Data()');
     for (const field of formFields(req)) {
-      const disposition = `Content-Disposition: form-data; name="${field.key.replace(/"/g, '\\"')}"${field.isFile ? `; filename="${field.fileName.replace(/"/g, '\\"')}"` : ''}\r\n\r\n`;
+      const disposition = `Content-Disposition: form-data; name="${multipartQuoted(field.key)}"${field.isFile ? `; filename="${multipartQuoted(field.fileName)}"` : ''}\r\n\r\n`;
       lines.push(`body.append(("--\\(boundary)\\r\\n" + ${swiftString(disposition)}).data(using: .utf8)!)`);
       lines.push(field.isFile
         ? `body.append(try Data(contentsOf: URL(fileURLWithPath: ${swiftString(field.value)})))`

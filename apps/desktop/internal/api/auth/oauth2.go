@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
 	"io"
 	"net"
 	"net/http"
@@ -361,10 +362,5 @@ func writeCallbackPage(w http.ResponseWriter, ok bool, detail string) {
   p{font-size:14px;line-height:1.5;color:#a0a0ab;margin:0;word-break:break-word}
 </style></head>
 <body><div class="card"><div class="dot"></div><h1>%s</h1><p>%s</p></div></body></html>`,
-		htmlEscape(title), accent, htmlEscape(title), htmlEscape(body))
-}
-
-func htmlEscape(s string) string {
-	r := strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", `"`, "&quot;", "'", "&#39;")
-	return r.Replace(s)
+		html.EscapeString(title), accent, html.EscapeString(title), html.EscapeString(body))
 }
