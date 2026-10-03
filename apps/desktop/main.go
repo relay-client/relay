@@ -36,6 +36,9 @@ func main() {
 	if len(os.Args) >= 2 && os.Args[1] == "run" {
 		os.Exit(api.RunCLI(os.Args[2:]))
 	}
+	if len(os.Args) >= 2 && os.Args[1] == "mcp" {
+		os.Exit(api.RunMCPServer(os.Args[2:]))
+	}
 
 	if path, err := api.InstallLogFile(); err != nil {
 		fmt.Fprintf(os.Stderr, "relay: could not open the log file at %s: %v\n", path, err)

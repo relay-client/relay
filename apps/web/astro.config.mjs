@@ -206,6 +206,7 @@ export default defineConfig({
             { label: 'Scripting (pre-request & tests)', link: '/docs/guides/scripting/' },
             { label: 'Collection Runner', link: '/docs/guides/collection-runner/' },
             { label: 'CLI runner (relay run)', link: '/docs/guides/cli-runner/' },
+            { label: 'MCP server (relay mcp)', link: '/docs/guides/mcp-server/' },
             { label: 'Git-backed workspaces', link: '/docs/guides/git-workspaces/' },
             { label: 'Import & export', link: '/docs/guides/import-export/' },
             { label: 'Backup & recovery', link: '/docs/guides/backup-recovery/' },

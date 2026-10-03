@@ -310,6 +310,11 @@ runLoop:
 }
 
 func runCLIRequest(sm *state.Manager, jars *cookieJarRegistry, cache *preflightCache, tokens *oauth2TokenCache, req cliSavedRequest, iteration int, dataRow map[string]string, opts cliOptions, secretValues []string) cliRunResult {
+	result, _ := executeCLIRequest(context.Background(), sm, jars, cache, tokens, req, iteration, dataRow, opts, secretValues)
+	return result
+}
+
+func executeCLIRequest(ctx context.Context, sm *state.Manager, jars *cookieJarRegistry, cache *preflightCache, tokens *oauth2TokenCache, req cliSavedRequest, iteration int, dataRow map[string]string, opts cliOptions, secretValues []string) (cliRunResult, model.HttpResponse) {
 	label := req.Name
 	if label == "" {
 		label = req.URL
@@ -347,16 +352,16 @@ func runCLIRequest(sm *state.Manager, jars *cookieJarRegistry, cache *preflightC
 	resolvedAuth := resolveAuthTemplates(httpReq.Auth, values)
 	if err := tokens.resolveOAuth2Token(&resolvedAuth); err != nil {
 		base.Error = err.Error()
-		return base
+		return base, model.HttpResponse{}
 	}
 	httpReq.Auth.Token = resolvedAuth.Token
 
-	resp := sendRequest(context.Background(), httpReq, sm, jars, cache)
+	resp := sendRequest(ctx, httpReq, sm, jars, cache)
 
 	if resp.Skipped {
 		base.Skipped = true
 		base.SkipReason = resp.SkipReason
-		return base
+		return base, resp
 	}
 
 	base.StatusCode = resp.StatusCode
@@ -381,7 +386,7 @@ func runCLIRequest(sm *state.Manager, jars *cookieJarRegistry, cache *preflightC
 			base.TestsPassed++
 		}
 	}
-	return base
+	return base, resp
 }
 
 func headerLookup(headers []model.KeyValue, key string) string {
@@ -564,10 +569,14 @@ func readVariableFile(path string) (map[string]string, error) {
 }
 
 func loadCLIWorkspace(root string) ([]map[string]any, []cliCollection, []cliSavedRequest, []cliEnvironment, error) {
+	return loadCLIWorkspaceWithSecrets(root, map[string]string{})
+}
+
+func loadCLIWorkspaceWithSecrets(root string, secrets map[string]string) ([]map[string]any, []cliCollection, []cliSavedRequest, []cliEnvironment, error) {
 	if !hasYAMLWorkspaceStore(root) {
 		return nil, nil, nil, nil, fmt.Errorf("%q is not a Relay YAML workspace (no relay.yml found)", root)
 	}
-	workspaces, collectionMaps, requestMaps, environmentMaps, _, diagnostics, err := loadFilesystemWorkspaceStoreWithDiagnostics(root, map[string]string{})
+	workspaces, collectionMaps, requestMaps, environmentMaps, _, diagnostics, err := loadFilesystemWorkspaceStoreWithDiagnostics(root, secrets)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}

@@ -85,6 +85,7 @@ pm.test("has an id", () => pm.response.to.have.jsonSchema({ type: "object", requ
 - Collection runner — sequential or parallel, data files, iterations, an HTML report, and the last run of every collection kept
 - Git-backed YAML workspaces with diagnostics, conflict helpers, and local-only secrets
 - **CLI runner** — `relay run ./workspace --env CI` executes requests and their test scripts for CI, with data-driven iterations (`--data`), pretty/JSON/JUnit reporters, variable export, and a non-zero exit code on failure
+- **MCP server** — `relay mcp` lets Claude, Cursor and other AI assistants list, inspect and run your saved requests and collections as tools, with secret environment values masked in everything they get back
 
 **Response examples** — save any response as a named example on its request: the status, headers and body it came back with, alongside the request that produced it. Secrets are redacted on capture, a clean body is stored byte for byte, and examples ride along through Postman, OpenCollection, HAR and OpenAPI imports and exports. A response can be diffed against an example instead of against the previous send.
 
