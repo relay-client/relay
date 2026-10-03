@@ -5,6 +5,30 @@ description: Notable Relay changes and links to the exact notes for each publish
 
 This page summarizes the notable-change log maintained in the source repository. For the exact notes and artifacts attached to every published tag, use the [Relay releases page](https://github.com/relay-client/relay/releases).
 
+## 2.1.1
+
+### Added
+
+- **AI assistants can use Relay as tools.** `relay mcp` runs the desktop binary as a Model Context Protocol server, so Claude, Cursor and other MCP clients can list your requests and environments, run a saved request or a whole collection, and send one-off calls with your `{{variables}}`. Values a script sets carry over to later calls, and secret values are masked in everything the assistant gets back. See [MCP server](/docs/guides/mcp-server/).
+
+### Changed
+
+- **The installers look like Relay.** The Windows installer is a modern wizard with Relay's artwork and a quieter install, and the macOS disk image has a branded background laid out for dragging the app to Applications.
+- **The site moved to [relayclient.dev](https://relayclient.dev)**, and its download button now downloads the right file for your platform instead of opening the releases page.
+
+### Fixed
+
+- **Importing a `.env` file keeps backslashes**, so Windows paths such as `C:\new\tmp` survive.
+- **`relay run` no longer crashes on a very large `--iterations`.**
+- **Swift snippets** encode multipart field names with a backslash or quote the way browsers do.
+- **The cookie-sync dialog's guide link** opens *Connecting a browser* instead of the top of the page.
+
+### Security
+
+- **The client key passphrase is no longer saved in plain text by *Save as default*.** A passphrase an earlier version stored is removed on the next launch.
+
+---
+
 ## 2.1.0
 
 ### Added
