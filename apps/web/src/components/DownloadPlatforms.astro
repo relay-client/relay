@@ -33,9 +33,9 @@ const platforms: Platform[] = [
     name: 'Windows',
     requirement: 'Windows 10 1903+ or Windows 11 · x64 and Arm64',
     files: [
-      { label: 'Installer, no admin rights', file: 'relay-<version>-windows-amd64-installer.exe', match: '-windows-amd64-installer.exe', arch: 'x86', primary: true },
+      { label: 'Installer', file: 'relay-<version>-windows-amd64-installer.exe', match: '-windows-amd64-installer.exe', arch: 'x86', primary: true },
       { label: 'MSIX package', file: 'relay-<version>-windows-amd64.msix', match: '-windows-amd64.msix', arch: 'x86' },
-      { label: 'Installer, no admin rights', file: 'relay-<version>-windows-arm64-installer.exe', match: '-windows-arm64-installer.exe', arch: 'arm', primary: true },
+      { label: 'Installer', file: 'relay-<version>-windows-arm64-installer.exe', match: '-windows-arm64-installer.exe', arch: 'arm', primary: true },
       { label: 'MSIX package', file: 'relay-<version>-windows-arm64.msix', match: '-windows-arm64.msix', arch: 'arm' },
     ],
     note: 'SmartScreen may warn: the installer is not Authenticode-signed yet.',
