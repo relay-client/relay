@@ -28,6 +28,18 @@ Choose one of two modes:
 
 In manual-save mode, an all-data export contains the last saved version of each request, not unsaved editor changes. Relay warns you before exporting when dirty requests exist.
 
+### On launch
+
+Choose the screen Relay opens on:
+
+| Option | What you see |
+|--------|--------------|
+| **Request editor** *(default)* | Your open tabs on the request editor. With no requests yet, a new unsaved HTTP request. |
+| **Where you left off** | The last screen of the previous session — Git, the runner, a collection, an environment or the overview. |
+| **Workspace overview** | Collections, recent history and storage for the active workspace. |
+
+Your open tabs come back in every mode; only the screen in front changes. A workspace that needs attention, such as a missing folder or broken YAML, opens where you can fix it whatever this is set to.
+
 ### Script engine
 
 Choose **JavaScript** for Postman-style scripts or **Tengo** for the legacy lightweight engine. The selection controls which script fields Relay displays and runs.
@@ -58,6 +70,8 @@ Choose **Light**, **Dark**, or **System**, then select separate light and dark v
 ![Theme settings with appearance and variant controls](../../../../assets/screenshots/settings-theme.png)
 
 Theme preferences apply only to Relay's UI; they do not change generated code, request headers, or response rendering.
+
+To make the whole interface larger or smaller, use zoom rather than a setting: `Cmd/Ctrl =` and `Cmd/Ctrl -` step from 80% to 150%, `Cmd/Ctrl 0` returns to 100%. On macOS the same commands are in the **View** menu, and the command palette has **Zoom in**, **Zoom out** and **Reset zoom**. The size is stored on this device.
 
 ## Proxy
 

@@ -9,13 +9,20 @@ Variables in Relay use the `{{name}}` template syntax. They expand in URLs, head
 
 ## Scopes
 
-Resolution combines two saved scopes plus runtime script state:
+A name is looked up in four scopes; when the same name exists in several, the later one in this list wins:
 
-1. **Collection variables** — defaults saved with the collection.
-2. **Active environment variables** — the selected environment for the workspace. These override collection variables with the same key.
-3. **Runtime variables** — values written with `pm.variables.set(...)` during scripts. These live in Relay's script runtime state and are useful for chained requests and assertions.
+1. **Globals** — **Environments → Globals**, plus values scripts write with `pm.globals.set(...)` or `pm.variables.set(...)`.
+2. **Collection variables** — defaults saved with the collection.
+3. **Active environment variables** — the selected environment for the workspace.
+4. **Data row** — the current row of a data file in the [Collection Runner](/docs/guides/collection-runner/) or [`relay run --data`](/docs/guides/cli-runner/#data-driven-runs).
 
 If nothing matches, the literal `{{name}}` is left untouched so the unresolved template is visible.
+
+A name may contain any character except `{` and `}` — letters from any alphabet, spaces and colons included — and spaces around it are ignored, so `{{токен}}`, `{{api key}}` and `{{ token }}` all work.
+
+### Values written by a pre-request script
+
+A pre-request script runs before the templates are filled in for good. When it stores a value — `pm.environment.set("token", ...)`, `pm.collectionVariables.set(...)`, `pm.globals.set(...)` — every `{{token}}` in the same request already uses the new value. The script itself still sees the request as it was resolved before it ran, and edits it makes through `pm.request` are kept.
 
 ### Variables built from other variables
 

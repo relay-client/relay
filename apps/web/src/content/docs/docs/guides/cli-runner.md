@@ -26,7 +26,7 @@ The first argument is the workspace directory (the folder that contains `relay.y
 
 - **HTTP and GraphQL requests**, in the order they load from the workspace.
 - **Pre-request and test scripts** — the same sandboxed JavaScript `pm.*` API as the app. Assertions become the pass/fail signal.
-- **Collection defaults** — a collection's auth, headers, scripts, and settings are applied exactly as they are in the app, so a request set to **Inherit Auth** authenticates in CI too.
+- **Collection defaults** — a collection's auth, headers, scripts, and settings are applied exactly as they are in the app, so a request set to **Inherit auth** authenticates in CI too.
 - **Variable chaining**: a value a test writes with `pm.environment.set(...)` is visible to later requests in the same run, so a login step can hand a token to the requests after it.
 
 Realtime request types (WebSocket, SSE, Socket.IO, gRPC) need a live session and are skipped. A request whose pre-request script calls `pm.execution.skipRequest()` is also skipped — reported as such, and it does not fail the run.

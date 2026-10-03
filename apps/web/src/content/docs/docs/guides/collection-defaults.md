@@ -41,7 +41,7 @@ Values marked **Secret** are masked in the UI and participate in Relay's local s
 
 ### Authentication
 
-A request uses collection auth only when its Auth type is **Inherit Auth**. Selecting **No Auth** or another explicit request auth type overrides the collection.
+A request uses collection auth only when its Auth type is **Inherit auth**. Selecting **No auth** or another explicit request auth type overrides the collection.
 
 See [Authentication](/docs/guides/authentication/) for each supported scheme.
 

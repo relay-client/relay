@@ -3,7 +3,7 @@ title: Authentication
 description: Configure Bearer, Basic, Digest, API Key, OAuth 2.0, and AWS Signature v4 auth.
 ---
 
-Auth is configured per request on the **Auth** tab. Collections can also define default auth; requests set to **Inherit Auth** use the collection default, while requests with an explicit auth type override it.
+Auth is configured per request on the **Auth** tab. Collections can also define default auth; requests set to **Inherit auth** use the collection default, while requests with an explicit auth type override it.
 
 ![Bearer authentication configured with a masked environment token](../../../../assets/screenshots/auth-bearer.png)
 
@@ -67,7 +67,7 @@ Relay computes the canonical request, derives the signing key, and adds `Authori
 
 ## Inheriting auth
 
-A request set to **Inherit Auth** uses the auth configured in the collection defaults. This is useful when an entire collection talks to the same API.
+A request set to **Inherit auth** uses the auth configured in the collection defaults. This is useful when an entire collection talks to the same API.
 
 Imported Postman/Insomnia/Bruno folders that have their own auth are flattened into request-level or collection-level settings where Relay can represent them. After a large import, spot-check the Auth tab for the most sensitive requests.
 
@@ -75,7 +75,7 @@ Imported Postman/Insomnia/Bruno folders that have their own auth are flattened i
 
 Auth is applied after your header rows, so a request that has both bearer auth configured **and** an `Authorization` header typed by hand sends the one from the Auth tab. The same goes for whatever header name an API key is configured under.
 
-That precedence has not changed, but Relay now says so: the response panel names the header that was replaced, instead of leaving you looking at a row that never went out. To send your own header, set Auth to **No Auth**.
+That precedence has not changed, but Relay now says so: the response panel names the header that was replaced, instead of leaving you looking at a row that never went out. To send your own header, set Auth to **No auth**.
 
 ## Secrets and storage
 
