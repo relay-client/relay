@@ -71,10 +71,7 @@ const platforms: Platform[] = [
         ))}
       </ul>
       <p class="relay-platform-note">{platform.note}</p>
-      <a class="relay-platform-cta" href={releases} data-cta>
-        <span data-cta-label>Download for {platform.name}</span>
-        <span class="relay-platform-size" data-cta-size></span>
-      </a>
+      <a class="relay-platform-cta" href={releases} data-cta>Download for {platform.name}</a>
     </section>
   ))}
 </div>
@@ -131,8 +128,6 @@ const platforms: Platform[] = [
       if (!asset) continue;
       cta.href = asset.browser_download_url;
       cta.setAttribute('download', '');
-      const size = cta.querySelector('[data-cta-size]');
-      if (size) size.textContent = formatSize(asset.size);
     }
 
     const line = document.querySelector('[data-release-line]');
@@ -230,14 +225,6 @@ const platforms: Platform[] = [
   .relay-platform li a:hover {
     text-decoration: underline;
     text-underline-offset: 0.2em;
-  }
-  .relay-platform-size {
-    font-variant-numeric: tabular-nums;
-    font-weight: 500;
-    opacity: 0.75;
-  }
-  .relay-platform-size:not(:empty)::before {
-    content: ' · ';
   }
   .relay-platform code {
     font-family: var(--sl-font-mono);
