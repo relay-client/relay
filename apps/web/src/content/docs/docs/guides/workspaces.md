@@ -86,7 +86,7 @@ Folders can nest up to **4 levels deep** (a cap to keep the tree usable). Empty 
 
 ## Collection defaults
 
-Open a collection workspace to configure reusable headers, variables, auth, scripts, tests, and transport settings. Requests can override headers and settings per field; auth is inherited only when the request uses **Inherit Auth**. Active environment values override collection variables with the same key.
+Open a collection workspace to configure reusable headers, variables, auth, scripts, tests, and transport settings. Requests can override headers and settings per field; auth is inherited only when the request uses **Inherit auth**. Active environment values override collection variables with the same key.
 
 Defaults exist at the collection level, not the folder level. See [Collection defaults](/docs/guides/collection-defaults/) for merge order, script order, reset behavior, and storage.
 

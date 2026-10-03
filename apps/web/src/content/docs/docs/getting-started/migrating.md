@@ -58,9 +58,11 @@ Most simple Postman scripts import with minimal edits:
 | `pm.execution.skipRequest()` | ✓ same |
 | `CryptoJS.HmacSHA256(...)` | ✓ works via the [CryptoJS shim](/docs/reference/scripting-api/#cryptojs), or use `pm.crypto.hmacSha256(...)` |
 | `pm.sendRequest(...)` | ✓ same, once **Allow pm.sendRequest** is enabled in the request's Settings tab |
-| `tests["name"] = ...` (legacy) | Rewrite to `pm.test(...)` |
+| `tests["name"] = ...`, `responseBody`, `postman.setEnvironmentVariable(...)` (legacy) | ✓ same; see [Postman legacy globals](/docs/reference/scripting-api/#postman-legacy-globals) |
+| `pm.variables.replaceIn("{{baseUrl}}/x")`, `xml2Json(...)` | ✓ same |
 | `postman.setNextRequest(...)` | Not supported — Relay's Collection Runner runs in declared order |
-| `require("...")` of a Node.js library (`xml2js`, `lodash`, …) | Not supported — the sandbox has no imports, `require`, filesystem, or process access. Hashing and HMAC are covered by `pm.crypto` / `CryptoJS`; HTTP calls by `pm.sendRequest`. |
+| `require("lodash")`, `ajv`, `tv4`, `uuid`, `crypto-js`, `chai` | ✓ works via Relay's [bundled stand-ins](/docs/reference/scripting-api/#require) |
+| `require("...")` of any other Node.js library (`xml2js`, `moment`, `cheerio`, …) | Not supported — the sandbox has no filesystem, process access or real npm modules. Hashing and HMAC are covered by `pm.crypto` / `CryptoJS`, XML by `xml2Json`, HTTP calls by `pm.sendRequest`. |
 | `setTimeout` / `async` / `await` | Not supported — the sandbox has no event loop. `pm.sendRequest` is synchronous, and its callback runs immediately. |
 
 After import, open the *Scripts* tab on a request and run a smoke request. If a script fails, the response panel shows a script-error block with the line number.

@@ -58,6 +58,8 @@ Relay adds `Accept: text/event-stream`, `Cache-Control: no-cache`, and `Connecti
 
 An SSE request has no Scripts tab: a subscription is opened rather than sent, and pre-request and test scripts do not run on that path. Reconnection is configurable — see [SSE-specific settings](/docs/guides/request-settings/#sse-specific-settings).
 
+The `SSE` method subscribes with a `GET` and no body. An endpoint that streams events back from a `POST` — the streaming mode of most LLM APIs — is sent as an ordinary `POST`: Relay reads the stream until the server closes it and shows the raw events as the response body, within the request timeout.
+
 The SSE event list keeps the latest events bounded for UI performance. Clear or restore visible events from the SSE panel while the session is open.
 
 ![SSE request connected with incoming stream events](../../../../assets/screenshots/request-sse.png)

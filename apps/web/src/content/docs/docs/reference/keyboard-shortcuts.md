@@ -17,6 +17,9 @@ Every shortcut is rebindable from **Settings → Shortcuts**. Click any shortcut
 | `Cmd/Ctrl ,` | Open settings |
 | `Cmd/Ctrl Backslash` | Toggle sidebar |
 | `Alt Cmd/Ctrl Backslash` | Toggle right sidebar / code snippet panel |
+| `Cmd/Ctrl =` | Zoom in — make the whole interface larger |
+| `Cmd/Ctrl -` | Zoom out |
+| `Cmd/Ctrl 0` | Reset zoom to 100% |
 | `Cmd/Ctrl /` | Open shortcut help |
 
 ## Requests
@@ -48,6 +51,8 @@ Two more work without a binding and cannot be remapped: `Enter` in the URL field
 | `Cmd/Ctrl D` | Duplicate selected item |
 | `Cmd/Ctrl C` / `Cmd/Ctrl V` | Copy / paste selected item |
 | `Backspace` | Delete selected item |
+
+The arrow keys and `Backspace` leave the sidebar alone while a text field, the response body, a dialog, a menu or a tab bar has focus — there they scroll, edit or move between choices instead.
 
 ## Remapping
 

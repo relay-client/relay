@@ -62,7 +62,7 @@ See [`pm.request.body`](/docs/reference/scripting-api/#pmrequest) for the detail
 
 ## Common patterns
 
-**Chained auth — fetch token in pre-request:** put the login call in a separate request, run it once, persist the token with `pm.environment.set("authToken", ...)`. Downstream requests reference `{{authToken}}`. To do it inline instead, turn on **Allow pm.sendRequest** in the request's Settings tab and call [`pm.sendRequest`](/docs/reference/scripting-api/#pmsendrequest).
+**Chained auth — fetch token in pre-request:** put the login call in a separate request, run it once, persist the token with `pm.environment.set("authToken", ...)`. Downstream requests reference `{{authToken}}`. To do it inline instead, turn on **Allow pm.sendRequest** in the request's Settings tab, call [`pm.sendRequest`](/docs/reference/scripting-api/#pmsendrequest) and store the token with `pm.environment.set("authToken", ...)` — a value a pre-request script stores is already used by `{{authToken}}` in the same request.
 
 **Conditional skip:** `pm.execution.skipRequest()` in a pre-request script skips the send. It is reported as a skip rather than a failure, so a conditional request does not fail a run or a CI exit code.
 

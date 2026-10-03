@@ -54,7 +54,7 @@ Page navigation buttons (or the keyboard shortcuts mapped to "next/prev response
 
 If the server returns more than **100 MB**, Relay stops reading after the first 100 MB and marks the response with a banner such as *"response truncated — showing 100 MB of 450 MB"*. The status code and headers are unaffected.
 
-The response-panel **Save response** action and **Send and Download** currently write the body Relay retained, so they do not recover bytes beyond this 100 MB cap.
+The response-panel **Save response** action and **Send and download** currently write the body Relay retained, so they do not recover bytes beyond this 100 MB cap.
 
 ## Headers view
 

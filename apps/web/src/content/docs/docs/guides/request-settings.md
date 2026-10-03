@@ -60,7 +60,7 @@ A missing file, a mismatched certificate/key pair, or a wrong passphrase fails t
 
 ## Timeout
 
-**Request timeout (ms)** caps the total time from connection start to body fully read. Default: **30 000 ms** (30 seconds). Set to `0` to disable.
+**Request timeout (ms)** caps the total time from connection start to body fully read. Default: **30 000 ms** (30 seconds). Set to `0` to wait as long as the server takes — useful for **Send and download** of a large file.
 
 The timeout includes:
 

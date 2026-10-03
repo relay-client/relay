@@ -109,6 +109,8 @@ They differ in which scope they touch:
 
 Relay has a single runtime variable scope, so `pm.globals` and `pm.variables.set` write to the same place — they are aliases, not two separate stores.
 
+**`pm.variables.replaceIn(text)`** fills every `{{name}}` in a string from the scopes above, plus `{{$guid}}` and the other [dynamic variables](/docs/guides/environments/#dynamic-variables) — handy for signing the URL a request will actually hit. A name nothing defines is left as written.
+
 Globals persist. They are saved with your data, survive a restart, and are shared across every workspace. Edit them under **Environments → Globals** in the sidebar; a value a script writes appears there after the send. In [`relay run`](/docs/guides/cli-runner/) they come from `--globals` / `--global-var` and can be written back with `--export-globals`.
 
 `pm.collectionVariables.set` persists: after the request finishes, the value is written onto the collection's variables (a Git-backed workspace records it in `collection.yml`). An existing row keeps its id, enabled state, secret flag, and description; only the value changes.
@@ -315,6 +317,21 @@ JavaScript scripts can `require` a small set of stand-ins so imported Postman co
 `_`, `tv4`, `Ajv`, `atob`, and `btoa` are also available as globals, and a script may shadow any of them (`const _ = require("lodash")` works).
 
 Anything outside that list fails with a message naming what was asked for — including an unsupported lodash member, so a missing helper surfaces as `lodash.debounce is not available in Relay's script sandbox` rather than a confusing `undefined is not a function`.
+
+## Postman legacy globals
+
+JavaScript scripts written for Postman's older API run unchanged:
+
+| Name | Meaning |
+|------|---------|
+| `tests["name"] = condition` | Records a test that passes when the value is truthy, alongside `pm.test` results |
+| `responseBody`, `responseCode.code`, `responseHeaders`, `responseTime` | The response, in test scripts |
+| `postman.setEnvironmentVariable` / `getEnvironmentVariable` / `clearEnvironmentVariable` | Same as `pm.environment` |
+| `postman.setGlobalVariable` / `getGlobalVariable` / `clearGlobalVariable` | Same as `pm.globals` |
+| `postman.getResponseHeader(name)` | Same as `pm.response.headers.get(name)` |
+| `xml2Json(xml)` | Parses XML into an object: attributes under `$`, text beside child elements under `_`, repeated elements as arrays; `null` when the input is not XML |
+
+`postman.setNextRequest` throws, because the Collection Runner always runs requests in their declared order.
 
 ## Logging
 
