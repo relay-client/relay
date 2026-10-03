@@ -1,38 +1,24 @@
 .tabbar-right-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   margin-left: auto;
-  padding-right: 4px;
+  padding-right: var(--space-1);
 }
 
 .layout-btns {
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 3px;
+  gap: var(--space-0-5);
+  padding: var(--space-1);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: var(--elevated);
 }
 
 .layout-btn {
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 22px;
-  border: none;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--text-3);
-  transition: background 0.12s, color 0.12s;
-}
-
-.layout-btn:hover { background: var(--hover); color: var(--text-2); }
-
-.layout-btn.active {
-  background: var(--accent-dim);
-  color: var(--accent-hover);
 }
 
 .github-link-btn {
@@ -47,15 +33,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-2);
   height: var(--status-bar-h);
-  padding: 0 8px;
   border-top: 1px solid var(--border-subtle);
-  background: var(--bg);
   position: relative;
   z-index: 45;
-  grid-column: 4;
-  grid-row: 2;
 }
 
 .status-bar-left {
@@ -67,26 +49,20 @@
 .status-bar-right {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   flex-shrink: 0;
 }
 
 .version-pill {
   display: inline-flex;
   align-items: center;
-  height: 20px;
-  padding: 0 8px;
-  margin-right: 4px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 5px;
+  margin-right: var(--space-1);
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-3);
-  font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
-  font-size: 10.5px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
+  font-weight: var(--weight-medium);
   cursor: pointer;
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  transition: background var(--dur-fast), color var(--dur-fast), border-color var(--dur-fast);
 }
 
 .version-pill:hover {
@@ -97,27 +73,11 @@
 
 .storage-status-btn {
   display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  max-width: min(360px, 42vw);
-  height: 22px;
-  padding: 0 7px;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text-3);
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  max-width: min(22.5rem, 42vw);
 }
 
-.storage-status-btn:hover,
 .storage-status-btn.active {
   border-color: var(--border);
-  background: var(--hover);
-  color: var(--text-2);
-}
-
-.storage-status-btn.git {
-  color: var(--text-2);
 }
 
 .storage-status-btn.missing {
@@ -126,8 +86,6 @@
 
 .storage-status-btn.git.active {
   border-color: color-mix(in srgb, var(--accent) 34%, var(--border));
-  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
-  color: var(--text);
 }
 
 .storage-status-btn.missing:hover,
@@ -141,9 +99,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--text-2);
-  font-size: 11px;
-  font-weight: 700;
 }
 
 .storage-status-mode,
@@ -151,13 +106,13 @@
 .storage-change-count {
   display: grid;
   place-items: center;
-  height: 16px;
-  padding: 0 6px;
-  border-radius: 4px;
+  height: 1rem;
+  padding: 0 var(--space-1-5);
+  border-radius: var(--radius-sm);
   font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 850;
-  line-height: 1;
+  font-size: var(--text-micro);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-none);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -186,27 +141,20 @@
 }
 
 .storage-change-count {
-  min-width: 18px;
-  border-radius: 999px;
-  background: var(--accent-dim);
-  color: var(--accent-hover);
   text-transform: none;
   letter-spacing: 0;
-  font-size: 10px;
 }
 
 .workspace-menu-item {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 6px;
-  border-radius: 8px;
-  transition: background 0.1s;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-1-5);
+  border-radius: var(--radius-lg);
+  transition: background var(--dur-fast);
 }
 
 .workspace-menu-item:hover { background: var(--hover); }
-
-.workspace-menu-item.active { background: var(--accent-dim); }
 
 .workspace-menu-item.invalid .workspace-lock,
 .workspace-menu-item.invalid .workspace-menu-select small {
@@ -221,25 +169,25 @@
   display: grid;
   place-items: center;
   box-sizing: border-box;
-  width: 20px;
-  height: 20px;
+  width: 1.25rem;
+  height: 1.25rem;
   border: 1px solid var(--diagnostic-badge-border);
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   background: var(--diagnostic-badge-bg);
   color: var(--diagnostic-badge-text);
-  font-size: 12px;
-  font-weight: 900;
-  line-height: 1;
+  font-size: var(--text-label);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-none);
 }
 
 .workspace-menu-list .workspace-menu-select {
   display: grid !important;
-  grid-template-columns: 30px minmax(0, 1fr) !important;
+  grid-template-columns: 1.875rem minmax(0, 1fr) !important;
   grid-template-rows: auto auto !important;
-  column-gap: 10px !important;
+  column-gap: var(--space-2-5) !important;
   flex: 1;
   min-width: 0;
-  padding: 4px 2px;
+  padding: var(--space-1) var(--space-0-5);
   border: none;
   background: transparent;
   color: var(--text);
@@ -261,15 +209,15 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--text-body);
+  font-weight: var(--weight-medium);
   color: var(--text);
 }
 
 .workspace-menu-select small {
   grid-column: 2;
   grid-row: 2;
-  font-size: 10px;
+  font-size: var(--text-caption);
   color: var(--text-3);
   white-space: nowrap;
   overflow: hidden;
@@ -279,37 +227,20 @@
 .workspace-delete-btn {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text-3);
   opacity: 0;
   flex-shrink: 0;
-  margin-right: 4px;
-  transition: opacity 0.15s, background 0.12s, color 0.12s;
+  margin-right: var(--space-1);
 }
 
 .workspace-menu-item:hover .workspace-delete-btn { opacity: 1; }
 
-.workspace-delete-btn:hover { background: rgba(248,113,113,0.15); color: var(--delete); }
-
 .status-bar {
   grid-column: 1 / -1;
   grid-row: 2;
-  padding: 0 10px 0 8px;
+  padding: 0 var(--space-2-5) 0 var(--space-2);
   background: var(--surface);
   color: var(--text-3);
-  font-size: 11.5px;
-}
-
-.storage-status-btn {
-  height: 22px;
-  gap: 6px;
-  padding: 0 6px;
-  border: none;
-  color: var(--text-3);
+  font-size: var(--text-caption);
 }
 
 .storage-status-btn.git {
@@ -318,8 +249,6 @@
 
 .storage-status-btn:hover {
   border: none;
-  background: var(--hover);
-  color: var(--text-2);
 }
 
 .storage-status-btn.active,
@@ -334,13 +263,13 @@
 }
 
 :root[data-platform="darwin"] .status-bar {
-  padding-inline: 12px;
+  padding-inline: var(--space-3);
 }
 
 .storage-status-main {
   color: inherit;
-  font-size: 11.5px;
-  font-weight: 500;
+  font-size: var(--text-caption);
+  font-weight: var(--weight-medium);
 }
 
 .storage-status-mode {
@@ -356,16 +285,16 @@
   background: transparent;
   color: var(--text-3);
   font-family: var(--font-ui);
-  font-size: 11.5px;
-  font-weight: 400;
+  font-size: var(--text-caption);
+  font-weight: var(--weight-regular);
 }
 
 .version-pill {
-  height: 22px;
-  padding: 0 6px;
+  height: 1.375rem;
+  padding: 0 var(--space-1-5);
   border: none;
   font-family: var(--font-ui);
-  font-size: 11.5px;
+  font-size: var(--text-caption);
   letter-spacing: 0;
 }
 
@@ -379,41 +308,28 @@
 }
 
 .workspace-menu {
-  width: min(380px, calc(100vw - 40px));
+  width: min(23.75rem, calc(100vw - 2.5rem));
   min-height: 0;
-  border-radius: 9px;
+  border-radius: var(--radius-lg);
   background: var(--modal-bg);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28), 0 2px 6px rgba(0, 0, 0, 0.16);
+  box-shadow: var(--shadow-popover);
 }
 
 .workspace-menu-top {
-  gap: 6px;
-  padding: 8px;
-}
-
-.workspace-menu-top input {
-  height: 30px;
-  font-size: 13px;
-}
-
-.workspace-menu-top button {
-  height: 30px;
-  padding: 0 12px;
-  background: transparent;
-  font-size: 12.5px;
-  font-weight: 500;
+  gap: var(--space-1-5);
+  padding: var(--space-2);
 }
 
 .workspace-menu-limit {
   min-height: 0;
-  padding: 6px 12px 0;
+  padding: var(--space-1-5) var(--space-3) 0;
   border-bottom: none;
-  font-size: 11.5px;
-  font-weight: 400;
+  font-size: var(--text-caption);
+  font-weight: var(--weight-regular);
 }
 
 .workspace-menu-list {
-  padding: 4px 5px 6px;
+  padding: var(--space-1) var(--space-1-5) var(--space-1-5);
 }
 
 .workspace-menu-item.active {
@@ -425,8 +341,8 @@
 }
 
 .workspace-menu-footer {
-  height: 38px;
-  padding: 0 14px;
+  height: 2.375rem;
+  padding: 0 var(--space-3);
   background: transparent;
-  font-size: 13px;
+  font-size: var(--text-body);
 }

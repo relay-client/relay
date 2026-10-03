@@ -17,8 +17,8 @@
       <span class="settings-subtitle">Kept with this request. Save them as the default to start new requests with the same values.</span>
     </div>
     <div class="settings-actions">
-      <button class="btn-ghost btn-sm" type="button" onclick={vm.resetRequestSettings} title="Return every setting to Relay's defaults and forget the saved default">Reset</button>
-      <button class="btn-secondary btn-sm" class:feedback-ok={vm.settingsSaved} type="button" onclick={vm.saveRequestSettings} title="New requests start with these settings">
+      <button class="btn btn-ghost" type="button" onclick={vm.resetRequestSettings} title="Return every setting to Relay's defaults and forget the saved default">Reset</button>
+      <button class="btn btn-secondary" class:feedback-ok={vm.settingsSaved} type="button" onclick={vm.saveRequestSettings} title="New requests start with these settings">
         {vm.settingsSaved ? 'Saved as default' : 'Save as default'}
       </button>
     </div>
@@ -69,24 +69,24 @@
           <span class="client-cert-label">Certificate (CRT/PEM)</span>
           {#if vm.clientCertPath}
             <span class="client-cert-path" title={vm.clientCertPath}>{vm.clientCertPath}</span>
-            <button class="btn-secondary btn-sm" type="button" onclick={() => vm.clearClientCertField('clientCertPath')}>Clear</button>
+            <button class="btn btn-secondary" type="button" onclick={() => vm.clearClientCertField('clientCertPath')}>Clear</button>
           {:else}
-            <button class="btn-secondary btn-sm" type="button" onclick={() => vm.pickClientCertFile('clientCertPath')}>Choose file…</button>
+            <button class="btn btn-secondary" type="button" onclick={() => vm.pickClientCertFile('clientCertPath')}>Choose file…</button>
           {/if}
         </div>
         <div class="client-cert-row">
           <span class="client-cert-label">Private key (optional)</span>
           {#if vm.clientKeyPath}
             <span class="client-cert-path" title={vm.clientKeyPath}>{vm.clientKeyPath}</span>
-            <button class="btn-secondary btn-sm" type="button" onclick={() => vm.clearClientCertField('clientKeyPath')}>Clear</button>
+            <button class="btn btn-secondary" type="button" onclick={() => vm.clearClientCertField('clientKeyPath')}>Clear</button>
           {:else}
-            <button class="btn-secondary btn-sm" type="button" onclick={() => vm.pickClientCertFile('clientKeyPath')} disabled={!vm.clientCertPath}>Choose file…</button>
+            <button class="btn btn-secondary" type="button" onclick={() => vm.pickClientCertFile('clientKeyPath')} disabled={!vm.clientCertPath}>Choose file…</button>
           {/if}
         </div>
         <div class="client-cert-row">
           <span class="client-cert-label">Key passphrase</span>
           <input
-            class="field-input client-cert-pass"
+            class="field field-input client-cert-pass"
             type="password"
             placeholder="Leave blank if the key is unencrypted"
             autocomplete="off"
@@ -184,17 +184,17 @@
         <span>Stop following redirects after this many hops.</span>
         {#if vm.collectionSettingDefaultNote('maxRedirects')}<em class:setting-default-muted={!vm.collectionSettingIsInherited('maxRedirects')}>{vm.collectionSettingDefaultNote('maxRedirects')}</em>{/if}
       </span>
-      <input class="setting-number" type="number" bind:value={vm.maxRedirects} min="0" max="50" step="1" disabled={!vm.followRedirects} oninput={() => vm.markRequestSettingOverride('maxRedirects')} />
+      <input class="field setting-number" type="number" bind:value={vm.maxRedirects} min="0" max="50" step="1" disabled={!vm.followRedirects} oninput={() => vm.markRequestSettingOverride('maxRedirects')} />
     </label>
 
     <label class="postman-setting">
       <span class="setting-copy">
         <strong>Request timeout</strong>
-        <span>Abort the request when it takes longer than this value.</span>
+        <span>Abort the request when it takes longer than this value. 0 waits indefinitely.</span>
         {#if vm.collectionSettingDefaultNote('timeoutMs')}<em class:setting-default-muted={!vm.collectionSettingIsInherited('timeoutMs')}>{vm.collectionSettingDefaultNote('timeoutMs')}</em>{/if}
       </span>
       <span class="setting-inline-number">
-        <input class="setting-number" type="number" bind:value={vm.timeoutMs} min="100" max="300000" step="1000" oninput={() => vm.markRequestSettingOverride('timeoutMs')} />
+        <input class="field setting-number" type="number" bind:value={vm.timeoutMs} min="0" step="1000" oninput={() => vm.markRequestSettingOverride('timeoutMs')} />
         <span>ms</span>
       </span>
     </label>
@@ -206,7 +206,7 @@
         {#if vm.collectionSettingDefaultNote('scriptTimeoutMs')}<em class:setting-default-muted={!vm.collectionSettingIsInherited('scriptTimeoutMs')}>{vm.collectionSettingDefaultNote('scriptTimeoutMs')}</em>{/if}
       </span>
       <span class="setting-inline-number">
-        <input class="setting-number" type="number" bind:value={vm.scriptTimeoutMs} min="0" max="60000" step="500" oninput={() => vm.markRequestSettingOverride('scriptTimeoutMs')} />
+        <input class="field setting-number" type="number" bind:value={vm.scriptTimeoutMs} min="0" max="60000" step="500" oninput={() => vm.markRequestSettingOverride('scriptTimeoutMs')} />
         <span>ms</span>
       </span>
     </label>
@@ -230,7 +230,7 @@
         <span>Route this request through a proxy. Leave empty to use the system proxy (HTTP_PROXY env var).</span>
         {#if vm.collectionSettingDefaultNote('proxyUrl')}<em class:setting-default-muted={!vm.collectionSettingIsInherited('proxyUrl')}>{vm.collectionSettingDefaultNote('proxyUrl')}</em>{/if}
       </span>
-      <input class="kv-input setting-proxy" type="text" placeholder="http://localhost:8080" bind:value={vm.proxyUrl} spellcheck="false" autocomplete="off" oninput={() => vm.markRequestSettingOverride('proxyUrl')} />
+      <input class="field field-mono kv-input setting-proxy" type="text" placeholder="http://localhost:8080" bind:value={vm.proxyUrl} spellcheck="false" autocomplete="off" oninput={() => vm.markRequestSettingOverride('proxyUrl')} />
     </label>
 
     {#if vm.method === 'SSE'}
@@ -252,7 +252,7 @@
           <span>Wait this long before reconnecting. Leave at 0 to follow the interval the server sends in its <code>retry:</code> field.</span>
         </span>
         <span class="setting-inline-number">
-          <input class="setting-number" type="number" bind:value={vm.sseReconnectIntervalMs} min="0" max="300000" step="500" oninput={() => vm.markRequestSettingOverride('sseReconnectIntervalMs')} />
+          <input class="field setting-number" type="number" bind:value={vm.sseReconnectIntervalMs} min="0" max="300000" step="500" oninput={() => vm.markRequestSettingOverride('sseReconnectIntervalMs')} />
           <span>ms</span>
         </span>
       </label>

@@ -37,9 +37,9 @@
     <div class="globals-actions">
       {#if saveLabel}<span class="globals-save-state" class:dirty={saveState === 'dirty'}>{saveLabel}</span>{/if}
       {#if !autosave}
-        <button class="btn-primary btn-sm" type="button" onclick={save} disabled={saveState === 'saving'}>Save</button>
+        <button class="btn btn-primary" type="button" onclick={save} disabled={saveState === 'saving'}>Save</button>
       {/if}
-      <button class="btn-ghost btn-sm" type="button" onclick={clearAll} disabled={!filled}>Clear all</button>
+      <button class="btn btn-ghost" type="button" onclick={clearAll} disabled={!filled}>Clear all</button>
     </div>
   </header>
 
@@ -54,7 +54,7 @@
       <div class="globals-row" role="row">
         <span role="cell" class="globals-col-toggle">
           <input
-            class="kv-check"
+            class="check"
             type="checkbox"
             checked={row.enabled}
             aria-label={`Enable ${row.key || 'variable'}`}
@@ -63,7 +63,7 @@
         </span>
         <span role="cell">
           <input
-            class="globals-input"
+            class="field field-bare globals-input"
             value={row.key}
             placeholder="name"
             spellcheck="false"
@@ -73,7 +73,7 @@
         </span>
         <span role="cell">
           <input
-            class="globals-input globals-input-mono"
+            class="field field-bare globals-input globals-input-mono"
             value={row.value}
             type={row.secret ? 'password' : 'text'}
             placeholder="value"
@@ -84,7 +84,7 @@
         </span>
         <span role="cell" class="globals-col-actions">
           <button
-            class="globals-secret-toggle"
+            class="btn btn-ghost btn-icon btn-sm globals-secret-toggle"
             class:active={row.secret}
             type="button"
             aria-pressed={Boolean(row.secret)}
@@ -92,7 +92,7 @@
             onclick={() => updateRow(index, { secret: !row.secret })}
           >Secret</button>
           <button
-            class="globals-remove"
+            class="btn btn-ghost btn-icon btn-xs globals-remove"
             type="button"
             aria-label={`Remove ${row.key || 'variable'}`}
             onclick={() => removeRow(index)}
@@ -116,65 +116,65 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 20px;
-    padding: 36px 48px 0;
+    gap: var(--space-5);
+    padding: var(--space-8) var(--space-12) 0;
   }
 
   .globals-heading h2 {
     margin: 0;
     color: var(--text);
-    font-size: 22px;
-    font-weight: 600;
+    font-size: var(--text-display);
+    font-weight: var(--weight-semibold);
     letter-spacing: -0.02em;
-    line-height: 1.2;
+    line-height: var(--leading-tight);
   }
 
   .globals-heading p {
-    margin: 6px 0 0;
+    margin: var(--space-1-5) 0 0;
     max-width: 70ch;
     color: var(--text-2);
-    font-size: 13px;
-    line-height: 1.5;
+    font-size: var(--text-body);
+    line-height: var(--leading-normal);
   }
 
   .globals-heading code {
     font-family: var(--font-mono);
-    font-size: 11px;
+    font-size: var(--text-caption);
   }
 
   .globals-actions {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--space-2-5);
     flex-shrink: 0;
   }
 
   .globals-save-state {
     color: var(--text-3);
-    font-size: 11px;
+    font-size: var(--text-caption);
   }
   .globals-save-state.dirty { color: var(--accent); }
 
   .globals-table {
     display: flex;
     flex-direction: column;
-    margin: 28px 48px 48px;
+    margin: var(--space-6) var(--space-12) var(--space-12);
     border-top: 1px solid var(--border-subtle);
   }
 
   .globals-row {
     display: grid;
-    grid-template-columns: 34px minmax(140px, 1fr) minmax(180px, 2fr) 110px;
+    grid-template-columns: 2.125rem minmax(8.75rem, 1fr) minmax(11.25rem, 2fr) 6.875rem;
     align-items: center;
-    gap: 8px;
-    min-height: 34px;
+    gap: var(--space-2);
+    min-height: 2.125rem;
     border-bottom: 1px solid var(--border-subtle);
   }
 
   .globals-row-head {
     color: var(--text-3);
-    font-size: 12px;
-    font-weight: 500;
+    font-size: var(--text-label);
+    font-weight: var(--weight-medium);
   }
 
   .globals-col-toggle { display: grid; place-items: center; }
@@ -183,57 +183,15 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 4px;
+    gap: var(--space-1);
   }
 
   .globals-input {
     width: 100%;
-    height: 28px;
-    padding: 0 8px;
-    border: 1px solid transparent;
-    border-radius: 5px;
-    background: transparent;
-    color: var(--text);
-    font-size: 12px;
   }
-  .globals-input:focus {
-    outline: none;
-    border-color: var(--accent);
-    background: var(--elevated);
-  }
-  .globals-input-mono { font-family: var(--font-mono); font-size: 11px; }
-
-  .globals-secret-toggle {
-    height: 24px;
-    padding: 0 8px;
-    border: none;
-    border-radius: 5px;
-    background: transparent;
-    color: var(--text-3);
-    font-size: 12px;
-    font-weight: 500;
-  }
-  .globals-secret-toggle:hover {
-    background: var(--hover);
-    color: var(--text);
-  }
+  .globals-input-mono { font-family: var(--font-mono); font-size: var(--text-code); }
   .globals-secret-toggle.active {
     color: var(--accent-hover);
-  }
-
-  .globals-remove {
-    width: 22px;
-    height: 22px;
-    border: 1px solid transparent;
-    border-radius: 5px;
-    background: transparent;
-    color: var(--text-3);
-    font-size: 14px;
-    line-height: 1;
-  }
-  .globals-remove:hover {
-    color: var(--text);
-    background: var(--hover);
   }
 
   .sr-only {

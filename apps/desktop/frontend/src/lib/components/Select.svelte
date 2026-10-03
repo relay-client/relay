@@ -92,7 +92,7 @@
 
 <div class="app-select {className}" class:open bind:this={wrap} onfocusout={onFocusOut}>
   <button
-    class="app-select-trigger"
+    class="field select-trigger app-select-trigger"
     type="button"
     {disabled}
     aria-haspopup="listbox"
@@ -101,15 +101,15 @@
     onclick={() => (open = !open)}
   >
     <span>{selected?.label ?? value}</span>
-    <svg class="app-select-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+    <svg class="app-select-chevron" width="0.625rem" height="0.375rem" viewBox="0 0 10 6" fill="none" aria-hidden="true">
       <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
     </svg>
   </button>
   {#if open}
-    <div class="app-select-menu" role="listbox" bind:this={menu} style={menuStyle}>
+    <div class="menu app-select-menu" role="listbox" bind:this={menu} style={menuStyle}>
       {#each options as opt, eachIndex (eachIndex)}
         <button
-          class="app-select-option"
+          class="menu-item app-select-option"
           class:active={opt.value === value}
           type="button"
           role="option"

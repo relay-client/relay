@@ -9,9 +9,9 @@
       <span class="settings-subtitle">Connection, TLS, response formatting, and timeouts for this request.</span>
     </div>
     <div class="settings-actions">
-      <button class="btn-secondary btn-sm" type="button" onclick={vm.resetRequestSettings}>Reset</button>
-      <button class="btn-primary btn-sm" class:feedback-ok={vm.settingsSaved} type="button" onclick={vm.saveRequestSettings}>
-        {vm.settingsSaved ? 'Saved' : 'Save'}
+      <button class="btn btn-ghost" type="button" onclick={vm.resetRequestSettings} title="Return every setting to Relay's defaults and forget the saved default">Reset</button>
+      <button class="btn btn-secondary" class:feedback-ok={vm.settingsSaved} type="button" onclick={vm.saveRequestSettings} title="New requests start with these settings">
+        {vm.settingsSaved ? 'Saved as default' : 'Save as default'}
       </button>
     </div>
   </div>
@@ -60,7 +60,7 @@
         <span>Use this value for TLS SNI, authority, and certificate hostname checks.</span>
         {#if vm.collectionSettingDefaultNote('grpcServerName')}<em class:setting-default-muted={!vm.collectionSettingIsInherited('grpcServerName')}>{vm.collectionSettingDefaultNote('grpcServerName')}</em>{/if}
       </span>
-      <input class="field-input" type="text" bind:value={vm.grpcServerName} placeholder="api.example.com" spellcheck="false" autocomplete="off" oninput={() => vm.markRequestSettingOverride('grpcServerName')} />
+      <input class="field field-input" type="text" bind:value={vm.grpcServerName} placeholder="api.example.com" spellcheck="false" autocomplete="off" oninput={() => vm.markRequestSettingOverride('grpcServerName')} />
     </label>
 
     <label class="postman-setting">
@@ -83,7 +83,7 @@
         {#if vm.collectionSettingDefaultNote('grpcMaxResponseMessageSizeMb')}<em class:setting-default-muted={!vm.collectionSettingIsInherited('grpcMaxResponseMessageSizeMb')}>{vm.collectionSettingDefaultNote('grpcMaxResponseMessageSizeMb')}</em>{/if}
       </span>
       <span class="setting-inline-number">
-        <input class="setting-number" type="number" bind:value={vm.grpcMaxResponseMessageSizeMb} min="0" max="2048" step="1" oninput={() => vm.markRequestSettingOverride('grpcMaxResponseMessageSizeMb')} />
+        <input class="field setting-number" type="number" bind:value={vm.grpcMaxResponseMessageSizeMb} min="0" max="2048" step="1" oninput={() => vm.markRequestSettingOverride('grpcMaxResponseMessageSizeMb')} />
         <span>MB</span>
       </span>
     </label>
@@ -95,7 +95,7 @@
         {#if vm.collectionSettingDefaultNote('timeoutMs')}<em class:setting-default-muted={!vm.collectionSettingIsInherited('timeoutMs')}>{vm.collectionSettingDefaultNote('timeoutMs')}</em>{/if}
       </span>
       <span class="setting-inline-number">
-        <input class="setting-number" type="number" bind:value={vm.timeoutMs} min="0" max="300000" step="1000" oninput={() => vm.markRequestSettingOverride('timeoutMs')} />
+        <input class="field setting-number" type="number" bind:value={vm.timeoutMs} min="0" max="300000" step="1000" oninput={() => vm.markRequestSettingOverride('timeoutMs')} />
         <span>ms</span>
       </span>
     </label>

@@ -70,33 +70,33 @@
 <div class="collection-tree-node" style={`--tree-depth: ${depth}`}>
   <div class="collection-subfolder" role="presentation" oncontextmenu={(event) => { event.preventDefault(); toggleFolderMenu(folder.key, event); }}>
     <button class="subfolder-collapse" type="button" onclick={() => toggleFolderCollapsed(collectionId, folder.path)} aria-label={folder.collapsed ? 'Expand folder' : 'Collapse folder'}>
-      <svg class:collapsed={folder.collapsed} width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+      <svg class:collapsed={folder.collapsed} width="0.625rem" height="0.625rem" viewBox="0 0 10 10" fill="none" aria-hidden="true">
         <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </button>
-    <svg class="folder-icon" width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><path d="M1.5 3.2h3l1.1 1.1h5.9v5.5a1.2 1.2 0 01-1.2 1.2H2.7a1.2 1.2 0 01-1.2-1.2V3.2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+    <svg class="folder-icon" width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none" aria-hidden="true"><path d="M1.5 3.2h3l1.1 1.1h5.9v5.5a1.2 1.2 0 01-1.2 1.2H2.7a1.2 1.2 0 01-1.2-1.2V3.2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
     <span class="folder-title">{folder.name}</span>
     <span class="collection-count">{folder.requestCount}</span>
-    <button class="folder-menu-btn" type="button" onclick={(event) => toggleFolderMenu(folder.key, event)} aria-label="Folder menu">•••</button>
+    <button class="btn btn-ghost btn-icon btn-sm folder-menu-btn" type="button" onclick={(event) => toggleFolderMenu(folder.key, event)} aria-label="Folder menu">•••</button>
     {#if openFolderMenuKey === folder.key}
-      <div class="request-menu folder-menu">
-        <button
+      <div class="menu request-menu folder-menu">
+        <button class="menu-item"
           type="button"
           disabled={!folderCanAcceptRequest(folder)}
           title={folderCanAcceptRequest(folder) ? 'Add request' : `Limit: ${MAX_FOLDER_REQUESTS} requests in one folder`}
           onclick={() => createRequestInFolder(collectionId, folder.path)}
         ><MenuIcon name="request" />Add request</button>
-        <button
+        <button class="menu-item"
           type="button"
           disabled={!folderCanAcceptSubfolder(folder)}
           title={folderCanAcceptSubfolder(folder) ? 'Add subfolder' : `Limit: ${MAX_FOLDER_DEPTH} folder levels`}
           onclick={() => createSubfolder(collectionId, folder.path)}
         ><MenuIcon name="folder" />Add subfolder</button>
-        <div class="menu-sep" role="separator"></div>
-        <button type="button" onclick={() => runFolder(collectionId, folder.path)}><MenuIcon name="play" />Run folder</button>
-        <button type="button" onclick={() => renameFolder(collectionId, folder.path)}><MenuIcon name="rename" />Rename</button>
-        <div class="menu-sep" role="separator"></div>
-        <button class="danger" type="button" onclick={() => deleteFolder(collectionId, folder.path)}><MenuIcon name="trash" />Delete folder</button>
+        <div class="menu-separator" role="separator"></div>
+        <button class="menu-item" type="button" onclick={() => runFolder(collectionId, folder.path)}><MenuIcon name="play" />Run folder</button>
+        <button class="menu-item" type="button" onclick={() => renameFolder(collectionId, folder.path)}><MenuIcon name="rename" />Rename</button>
+        <div class="menu-separator" role="separator"></div>
+        <button class="menu-item danger" type="button" onclick={() => deleteFolder(collectionId, folder.path)}><MenuIcon name="trash" />Delete folder</button>
       </div>
     {/if}
   </div>

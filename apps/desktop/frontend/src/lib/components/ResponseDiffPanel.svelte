@@ -65,11 +65,11 @@
           <span class="diff-count diff-count-del">−{diff.removed}</span>
         {/if}
         {#if !diff.identical}
-          <button type="button" onclick={() => (collapsed = !collapsed)}>
+          <button class="btn btn-ghost btn-sm" type="button" onclick={() => (collapsed = !collapsed)}>
             {collapsed ? 'Show all lines' : 'Collapse unchanged'}
           </button>
         {/if}
-        <button type="button" onclick={onDismiss}>Clear baseline</button>
+        <button class="btn btn-ghost btn-sm" type="button" onclick={onDismiss}>Clear baseline</button>
       </div>
     </div>
 

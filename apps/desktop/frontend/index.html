@@ -65,6 +65,11 @@
               : 'browser';
 
         try {
+          const scale = Number.parseFloat(localStorage.getItem('relay.uiScale.v1') || '');
+          if (Number.isFinite(scale) && scale >= 0.5 && scale <= 2 && scale !== 1) document.documentElement.style.fontSize = `${scale * 100}%`;
+        } catch {}
+
+        try {
           const theme = themeFromStorage();
           const resolved = theme.mode === 'system' ? systemTheme() : theme.mode;
           const variantId = resolved === 'light' ? theme.light : theme.dark;

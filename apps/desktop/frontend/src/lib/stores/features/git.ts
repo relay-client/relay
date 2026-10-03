@@ -1334,7 +1334,7 @@ export const gitFeature = {
     if (!await this.beginGitMutation('Force push')) return;
     const confirmed = await this.openConfirmDialog(
       'Force push with lease',
-      'Force push rewrites the remote branch, but Relay uses --force-with-lease so it refuses if the remote moved unexpectedly. Continue?'
+      'Force push rewrites the remote branch. Relay refuses if the remote has commits this branch has not taken in yet — even ones a fetch already downloaded. Continue?'
     );
     if (!confirmed) return;
     if (!this.gitStatus.upstream) {

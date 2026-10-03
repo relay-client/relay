@@ -311,18 +311,18 @@
       {/if}
     </div>
 
-    <div class="response-tabs sse-tabs" role="tablist" use:tabListKeyboard>
-      <button role="tab" class:active={sseTab === 'messages'} aria-selected={sseTab === 'messages'} tabindex={sseTab === 'messages' ? 0 : -1} onclick={() => (sseTab = 'messages')} type="button">
+    <div class="tab-bar response-tabs sse-tabs" role="tablist" use:tabListKeyboard>
+      <button class="tab" role="tab" class:active={sseTab === 'messages'} aria-selected={sseTab === 'messages'} tabindex={sseTab === 'messages' ? 0 : -1} onclick={() => (sseTab = 'messages')} type="button">
         Messages<span class="badge">{events.length.toLocaleString()}</span>
       </button>
-      <button role="tab" class:active={sseTab === 'headers'} aria-selected={sseTab === 'headers'} tabindex={sseTab === 'headers' ? 0 : -1} onclick={() => (sseTab = 'headers')} type="button">
+      <button class="tab" role="tab" class:active={sseTab === 'headers'} aria-selected={sseTab === 'headers'} tabindex={sseTab === 'headers' ? 0 : -1} onclick={() => (sseTab = 'headers')} type="button">
         Headers{#if headers.length}<span class="badge">{headers.length}</span>{/if}
       </button>
     </div>
 
     {#if sseTab === 'messages' && searchOpen}
-      <div class="response-search-box">
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+      <div class="field field-md field-wrap response-search-box">
+        <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none" aria-hidden="true">
           <circle cx="5.8" cy="5.8" r="3.8" stroke="currentColor" stroke-width="1.3"/>
           <path d="M8.7 8.7l2.7 2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
         </svg>
@@ -343,24 +343,24 @@
 
     <div class="resp-actions">
       {#if sseTab === 'messages'}
-        <button class="btn-icon" title="Search response" aria-label="Search response" aria-pressed={searchOpen} onclick={() => (searchOpen = !searchOpen)} type="button">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+        <button class="btn btn-icon" title="Search response" aria-label="Search response" aria-pressed={searchOpen} onclick={() => (searchOpen = !searchOpen)} type="button">
+          <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none">
             <circle cx="5.8" cy="5.8" r="3.8" stroke="currentColor" stroke-width="1.3"/>
             <path d="M8.7 8.7l2.7 2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
           </svg>
         </button>
       {/if}
       {#if canRestore}
-        <button class="sse-clear-btn sse-restore-btn" type="button" onclick={onRestore}>
-          <svg width="12" height="12" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+        <button class="btn btn-secondary btn-sm sse-clear-btn sse-restore-btn" type="button" onclick={onRestore}>
+          <svg width="0.75rem" height="0.75rem" viewBox="0 0 13 13" fill="none" aria-hidden="true">
             <path d="M3 6a3.5 3.5 0 116.1 2.3M3 6H1.5M3 6V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           Restore
         </button>
       {/if}
       {#if sseTab === 'messages'}
-        <button class="btn-icon" type="button" onclick={onClear} disabled={events.length === 0} title="Clear messages" aria-label="Clear messages">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+        <button class="btn btn-icon" type="button" onclick={onClear} disabled={events.length === 0} title="Clear messages" aria-label="Clear messages">
+          <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none" aria-hidden="true">
             <path d="M2 3h9M5 3V2h3v1M4 3v7a1 1 0 001 1h3a1 1 0 001-1V3"
               stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
@@ -376,8 +376,8 @@
     <div class="sse-event-list" bind:this={listEl} onscroll={onScroll} role="log" aria-live="polite">
       {#if !atTop && newMessagesBadge > 0}
         <div class="sio-new-top-wrap">
-          <button class="sse-new-messages-btn" type="button" onclick={jumpToTop}>
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <button class="btn btn-primary btn-sm sse-new-messages-btn" type="button" onclick={jumpToTop}>
+            <svg width="0.75rem" height="0.75rem" viewBox="0 0 12 12" fill="none" aria-hidden="true">
               <path d="M6 10V2M3 5l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             {newMessagesBadge > 999 ? '999+' : newMessagesBadge} new message{newMessagesBadge !== 1 ? 's' : ''}
@@ -385,16 +385,16 @@
         </div>
       {/if}
       {#if events.length === 0 && status === 'idle'}
-        <div class="sse-empty-state">
-          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" opacity="0.35">
+        <div class="empty-state sse-empty-state">
+          <svg width="2rem" height="2rem" viewBox="0 0 32 32" fill="none" opacity="0.35">
             <circle cx="16" cy="16" r="13" stroke="currentColor" stroke-width="1.5"/>
             <path d="M10 16h12M16 10v12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
-          <span>Connect to start receiving events</span>
+          <span class="empty-state-title">Connect to start receiving events</span>
         </div>
       {:else if filteredEvents.length === 0 && searchQuery}
-        <div class="sse-empty-state">
-          <span>No events match "{searchQuery}"</span>
+        <div class="empty-state sse-empty-state">
+          <span class="empty-state-title">No events match "{searchQuery}"</span>
         </div>
       {:else}
         {#each visibleReversedEvents as ev, idx (entryKey(ev, idx))}
@@ -417,12 +417,12 @@
             >
               <span class="sse-event-arrow" aria-hidden="true">
                 {#if ev.isSystem || ev.isError}
-                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                  <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none">
                     <circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/>
                     <path d="M6.5 4v3.5M6.5 9.5v.3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
                   </svg>
                 {:else}
-                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                  <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none">
                     <path d="M6.5 2v9M3 8l3.5 3L10 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 {/if}
@@ -440,7 +440,7 @@
 
               {#if hasExpandable}
                 <span class="sse-expand-chevron" style="transform: rotate({expanded ? 180 : 0}deg)" aria-hidden="true">
-                  <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
+                  <svg width="0.625rem" height="0.375rem" viewBox="0 0 10 6" fill="none">
                     <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                   </svg>
                 </span>
@@ -457,7 +457,7 @@
         {/each}
         {#if hiddenEventCount > 0}
           <div class="sse-pagination-row">
-            <button type="button" onclick={() => (visibleEventCount = Math.min(filteredEvents.length, visibleEventCount + REALTIME_PAGE_SIZE))}>
+            <button class="btn btn-secondary btn-sm" type="button" onclick={() => (visibleEventCount = Math.min(filteredEvents.length, visibleEventCount + REALTIME_PAGE_SIZE))}>
               Load {Math.min(REALTIME_PAGE_SIZE, hiddenEventCount).toLocaleString()} older
             </button>
             <span>Showing {visibleReversedEvents.length.toLocaleString()} of {filteredEvents.length.toLocaleString()}</span>
@@ -476,8 +476,8 @@
           </div>
         {/each}
       {:else}
-        <div class="sse-empty-state">
-          <span>No response headers yet</span>
+        <div class="empty-state sse-empty-state">
+          <span class="empty-state-title">No response headers yet</span>
         </div>
       {/if}
     </div>

@@ -35,7 +35,7 @@
     <div class="graphql-schema-select-wrap">
       <div class="graphql-schema-select-row">
         <div class="graphql-schema-select-field">
-          <input
+          <input class="field"
             value={schemaValue}
             placeholder="Select a Protobuf schema or paste link to one"
             spellcheck="false"
@@ -45,13 +45,13 @@
             onkeydown={onSchemaKeydown}
           />
           <button
-            class="graphql-select-toggle"
+            class="btn btn-ghost btn-icon btn-sm graphql-select-toggle"
             type="button"
             aria-label="Choose protobuf schema"
             onclick={vm.importGrpcProtoFile}
             disabled={vm.grpcServiceLoading}
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <svg width="0.875rem" height="0.875rem" viewBox="0 0 14 14" fill="none" aria-hidden="true">
               <path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
@@ -61,7 +61,7 @@
 
     <div class="graphql-import-link-row">
       <button
-        class="graphql-import-link-btn"
+        class="btn-link graphql-import-link-btn"
         type="button"
         onclick={vm.importGrpcProtoFile}
         disabled={vm.grpcServiceLoading}
@@ -76,14 +76,14 @@
           <div class="grpc-proto-row">
             <span class="grpc-proto-icon" aria-hidden="true">&lt;/&gt;</span>
             <span class="grpc-proto-name" title={vm.grpcProtoFilePath}>{vm.grpcProtoFileName}</span>
-            <button class="kv-del" type="button" onclick={vm.clearGrpcProtoFile} aria-label="Clear proto file">✕</button>
+            <button class="btn btn-ghost btn-icon btn-sm kv-del" type="button" onclick={vm.clearGrpcProtoFile} aria-label="Clear proto file">✕</button>
           </div>
         {/if}
 
         <div class="grpc-import-path-actions">
-          <button class="toolbar-btn" type="button" onclick={vm.addGrpcProtoImportPath} disabled={vm.grpcServiceLoading}>Add import path</button>
+          <button class="btn btn-secondary btn-sm toolbar-btn" type="button" onclick={vm.addGrpcProtoImportPath} disabled={vm.grpcServiceLoading}>Add import path</button>
           {#if vm.grpcProtoFilePath.trim()}
-            <button class="toolbar-btn" type="button" onclick={vm.discoverGrpcServices} disabled={vm.grpcServiceLoading}>
+            <button class="btn btn-secondary btn-sm toolbar-btn" type="button" onclick={vm.discoverGrpcServices} disabled={vm.grpcServiceLoading}>
               {#if vm.grpcServiceLoading}<span class="spinner spinner-inline"></span>{/if}
               Refresh proto
             </button>
@@ -95,7 +95,7 @@
             {#each vm.grpcProtoImportPaths as path, index (index)}
               <span class="grpc-import-path" title={path}>
                 {path}
-                <button type="button" onclick={() => vm.removeGrpcProtoImportPath(index)} aria-label="Remove import path">×</button>
+                <button class="btn btn-ghost btn-icon btn-xs" type="button" onclick={() => vm.removeGrpcProtoImportPath(index)} aria-label="Remove import path">×</button>
               </span>
             {/each}
           </div>
@@ -104,7 +104,7 @@
     {/if}
 
     <div class="graphql-schema-or-row" aria-hidden="true">
-      <span>OR</span>
+      <span>or</span>
     </div>
 
     <div class="graphql-introspection-row">
@@ -118,7 +118,7 @@
           <span class="spinner spinner-inline"></span>
         {:else}
           <span class="graphql-introspection-check" aria-hidden="true">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <svg width="0.875rem" height="0.875rem" viewBox="0 0 14 14" fill="none">
               <path d="M3.2 7.1l2.4 2.4 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </span>
@@ -126,13 +126,13 @@
         {vm.grpcUseReflection ? 'Using server reflection.' : 'Use server reflection'}
       </button>
       <button
-        class="graphql-introspection-refresh"
+        class="btn btn-ghost btn-icon graphql-introspection-refresh"
         type="button"
         aria-label="Refresh server reflection"
         onclick={vm.discoverGrpcServices}
         disabled={vm.grpcServiceLoading || (!vm.grpcUseReflection && !vm.grpcProtoFilePath.trim())}
       >
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+        <svg width="1.125rem" height="1.125rem" viewBox="0 0 18 18" fill="none" aria-hidden="true">
           <path d="M14.5 8.2A5.6 5.6 0 0 0 4.2 5.5L3 7.2M3.5 3.6v3.6h3.6M3.5 9.8a5.6 5.6 0 0 0 10.3 2.7l1.2-1.7M14.5 14.4v-3.6h-3.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
@@ -152,10 +152,10 @@
   .grpc-proto-summary {
     display: flex;
     flex-direction: column;
-    gap: 9px;
-    padding: 10px;
+    gap: var(--space-2);
+    padding: var(--space-2-5);
     border: 1px solid var(--border-subtle);
-    border-radius: 8px;
+    border-radius: var(--radius-lg);
     background: var(--surface);
   }
 
@@ -163,14 +163,14 @@
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    gap: 10px;
+    gap: var(--space-2-5);
   }
 
   .grpc-proto-icon {
-    color: #2dd4bf;
+    color: var(--head);
     font-family: var(--font-mono);
-    font-size: 12px;
-    font-weight: 800;
+    font-size: var(--text-label);
+    font-weight: var(--weight-semibold);
   }
 
   .grpc-proto-name,
@@ -183,46 +183,40 @@
 
   .grpc-proto-name {
     color: var(--text);
-    font-size: 12px;
-    font-weight: 700;
+    font-size: var(--text-label);
+    font-weight: var(--weight-semibold);
   }
 
   .grpc-import-path-actions,
   .grpc-import-paths {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: var(--space-1-5);
   }
 
   .grpc-import-path {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    max-width: min(100%, 420px);
-    min-height: 26px;
-    padding: 0 8px;
+    gap: var(--space-1-5);
+    max-width: min(100%, 26.25rem);
+    min-height: 1.625rem;
+    padding: 0 var(--space-2);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     background: var(--elevated);
     color: var(--text-2);
     font-family: var(--font-mono);
-    font-size: 11px;
+    font-size: var(--text-caption);
   }
 
-  .grpc-import-path button {
-    border: none;
-    background: transparent;
-    color: var(--text-3);
-    font-size: 13px;
-  }
 
   .grpc-service-alert {
-    padding: 10px 12px;
-    border-radius: 8px;
-    border: 1px solid color-mix(in srgb, #ef4444 30%, transparent);
-    background: color-mix(in srgb, #ef4444 12%, var(--surface));
-    color: #f87171;
-    font-size: 12px;
-    line-height: 1.35;
+    padding: var(--space-2-5) var(--space-3);
+    border-radius: var(--radius-lg);
+    border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+    background: color-mix(in srgb, var(--danger) 12%, var(--surface));
+    color: var(--danger);
+    font-size: var(--text-label);
+    line-height: var(--leading-tight);
   }
 </style>

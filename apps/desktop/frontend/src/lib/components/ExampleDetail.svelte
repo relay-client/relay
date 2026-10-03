@@ -39,7 +39,7 @@
     <label class="examples-field">
       <span>Status</span>
       <input
-        class="examples-status-input"
+        class="field field-md examples-status-input"
         type="number"
         min="100"
         max="599"
@@ -53,7 +53,7 @@
     <label class="examples-field examples-field-grow">
       <span>Status text</span>
       <input
-        class="examples-text-input"
+        class="field field-md examples-text-input"
         value={example.response.status}
         placeholder="201 Created"
         oninput={(event) =>

@@ -7,6 +7,7 @@ import {
   valuesWithBrunoPriority,
 } from '../../collectionDefaults';
 import { serializeGraphQLPayload, type GraphQLPayload } from '../../graphql';
+import { stripJsonComments } from '../../jsonEditing';
 import { resolveProxy, type ResolvedProxy } from '../../proxy';
 import { flattenUrlParams } from '../../queryParams';
 import { DEFAULT_GRPC_MESSAGE } from '../../requestBodyDefaults';
@@ -22,14 +23,23 @@ import type {
 
 const RAW_BODY_TYPES = ['text', 'json', 'html', 'xml'] as const;
 
+export type RunnableHttpOptions = {
+  deferTemplates?: boolean;
+  globals?: Record<string, string>;
+  iterationData?: Record<string, string>;
+  iteration?: number;
+  iterationCount?: number;
+};
+
 type RequestSerializationHost = {
   proxyConfig: ProxyConfig;
   activeWorkspaceId: string;
   activeEnvironmentValues: () => Record<string, string>;
   activeSecretEnvironmentKeys: () => string[];
   activeSecretEnvironmentValues: () => string[];
+  globalVariableValues?: () => Record<string, string>;
   collectionForRequest: (req: Pick<SavedRequest, 'collectionId'>) => Collection | undefined;
-  environmentValuesForRequest: (req: Pick<SavedRequest, 'collectionId'>, envValues?: Record<string, string>) => Record<string, string>;
+  environmentValuesForRequest: (req: Pick<SavedRequest, 'collectionId'>, envValues?: Record<string, string>, globals?: Record<string, string>) => Record<string, string>;
   graphQLBodyForSend: (payload: GraphQLPayload) => string;
   graphQLPayloadFromRequest: (req: Pick<SavedRequest, 'bodyContent'>) => GraphQLPayload;
   normalizeRequestTypeValue: (value: unknown, url?: string) => RequestType;
@@ -46,6 +56,7 @@ type RequestSerializationHost = {
     secretEnvironmentValues?: string[],
     secretEnvironmentKeys?: string[],
     requestId?: string,
+    options?: RunnableHttpOptions,
   ) => HttpRequest;
   scriptFieldsForSend: (req: SavedRequest) => { preRequestScript: string; testScript: string; scriptEngine: ScriptEngine };
   secretEnvironmentKeysForRequest: (req: Pick<SavedRequest, 'collectionId'>, secretKeys?: string[]) => string[];
@@ -57,8 +68,9 @@ export const requestSerializationFeature = {
     this: RequestSerializationHost,
     req: Pick<SavedRequest, 'collectionId'>,
     envValues = this.activeEnvironmentValues(),
+    globals = this.globalVariableValues?.() ?? {},
   ) {
-    return valuesWithBrunoPriority(this.collectionForRequest(req), envValues);
+    return valuesWithBrunoPriority(this.collectionForRequest(req), envValues, globals);
   },
 
   secretEnvironmentKeysForRequest(
@@ -103,59 +115,69 @@ export const requestSerializationFeature = {
     secretEnvironmentValues = this.activeSecretEnvironmentValues(),
     secretEnvironmentKeys = this.activeSecretEnvironmentKeys(),
     requestId = req.id,
+    options: RunnableHttpOptions = {},
   ): HttpRequest {
     req = this.requestWithCollectionDefaults(req);
-    envValues = this.environmentValuesForRequest(req, envValues);
+    envValues = this.environmentValuesForRequest(req, envValues, options.globals);
     secretEnvironmentValues = this.secretEnvironmentValuesForRequest(req, secretEnvironmentValues);
     secretEnvironmentKeys = this.secretEnvironmentKeysForRequest(req, secretEnvironmentKeys);
+    const defer = options.deferTemplates === true;
+    const resolveValue = (value: string) => (defer ? value : this.resolveTemplate(value, envValues));
+    const resolveRows = (rows: KVRow[]) => (defer ? rows : this.resolveRows(rows, envValues));
     const isGraphQL = this.normalizeRequestTypeValue(req.requestType, req.url) === 'graphql' || req.bodyType === 'graphql';
     const rawBody = bodyContentForSend(this, req);
-    const outBody = isGraphQL
-      ? this.graphQLBodyForSend({
-          query: this.resolveTemplate(this.graphQLPayloadFromRequest(req).query, envValues),
-          variables: this.resolveTemplate(this.graphQLPayloadFromRequest(req).variables, envValues),
-          operationName: this.resolveTemplate(this.graphQLPayloadFromRequest(req).operationName, envValues),
-        })
-      : this.resolveTemplate(rawBody, envValues);
-    const outBodyType = (isRawBodyType(req.bodyType) || req.bodyType === 'graphql') && !outBody.trim() ? 'none' : req.bodyType;
+    const graphQLPayload = isGraphQL ? this.graphQLPayloadFromRequest(req) : null;
+    const deferredGraphQL = defer && graphQLPayload
+      ? { query: graphQLPayload.query, variables: stripJsonComments(graphQLPayload.variables), operationName: graphQLPayload.operationName }
+      : undefined;
+    const outBody = deferredGraphQL
+      ? ''
+      : graphQLPayload
+        ? this.graphQLBodyForSend({
+            query: resolveValue(graphQLPayload.query),
+            variables: resolveValue(graphQLPayload.variables),
+            operationName: resolveValue(graphQLPayload.operationName),
+          })
+        : resolveValue(rawBody);
+    const outBodyType = !deferredGraphQL && (isRawBodyType(req.bodyType) || req.bodyType === 'graphql') && !outBody.trim() ? 'none' : req.bodyType;
     const normalizedRequestType = this.normalizeRequestTypeValue(req.requestType, req.url);
     const flat = flattenUrlParams(req.url.trim(), req.params);
-    const resolvedUrl = this.resolveTemplate(flat.url, envValues);
+    const resolvedUrl = resolveValue(flat.url);
     return {
       workspaceId: this.activeWorkspaceId,
       method: isGraphQL ? 'POST' : req.method,
       url: normalizedRequestType === 'ws' || normalizedRequestType === 'socketio'
         ? this.normalizeWebSocketUrlForSend(resolvedUrl)
         : this.normalizeRequestUrlForSend(resolvedUrl),
-      params: this.resolveRows(flat.params, envValues).filter(r => r.enabled && r.key).map(({ key, value, enabled }) => ({ key, value, enabled, isFile: false, fileName: '', contentType: '' })),
-      headers: this.resolveRows(req.headers, envValues).filter(r => r.enabled && r.key).map(({ key, value, enabled }) => ({ key, value, enabled, isFile: false, fileName: '', contentType: '' })),
+      params: resolveRows(flat.params).filter(r => r.enabled && r.key).map(({ key, value, enabled }) => ({ key, value, enabled, isFile: false, fileName: '', contentType: '' })),
+      headers: resolveRows(req.headers).filter(r => r.enabled && r.key).map(({ key, value, enabled }) => ({ key, value, enabled, isFile: false, fileName: '', contentType: '' })),
       auth: {
         ...emptyAuthConfig(),
         type: req.auth.type,
-        token: this.resolveTemplate(req.auth.type === 'oauth2' ? req.auth.oauth2Token : req.auth.bearerToken, envValues),
-        username: this.resolveTemplate(req.auth.basicUser, envValues),
-        password: this.resolveTemplate(req.auth.basicPass, envValues),
-        keyName: this.resolveTemplate(req.auth.apiKeyName, envValues),
-        keyValue: this.resolveTemplate(req.auth.apiKeyValue, envValues),
+        token: resolveValue(req.auth.type === 'oauth2' ? req.auth.oauth2Token : req.auth.bearerToken),
+        username: resolveValue(req.auth.basicUser),
+        password: resolveValue(req.auth.basicPass),
+        keyName: resolveValue(req.auth.apiKeyName),
+        keyValue: resolveValue(req.auth.apiKeyValue),
         keyIn: req.auth.apiKeyIn,
         oauth2GrantType: req.auth.oauth2GrantType ?? '',
-        oauth2AuthURL: this.resolveTemplate(req.auth.oauth2AuthURL ?? '', envValues),
-        oauth2TokenURL: this.resolveTemplate(req.auth.oauth2TokenURL, envValues),
-        oauth2ClientID: this.resolveTemplate(req.auth.oauth2ClientID, envValues),
-        oauth2Secret: this.resolveTemplate(req.auth.oauth2Secret, envValues),
-        oauth2Scope: this.resolveTemplate(req.auth.oauth2Scope, envValues),
+        oauth2AuthURL: resolveValue(req.auth.oauth2AuthURL ?? ''),
+        oauth2TokenURL: resolveValue(req.auth.oauth2TokenURL),
+        oauth2ClientID: resolveValue(req.auth.oauth2ClientID),
+        oauth2Secret: resolveValue(req.auth.oauth2Secret),
+        oauth2Scope: resolveValue(req.auth.oauth2Scope),
         oauth2UsePKCE: req.auth.oauth2UsePKCE ?? false,
-        oauth2RefreshToken: this.resolveTemplate(req.auth.oauth2RefreshToken ?? '', envValues),
-        awsAccessKey: this.resolveTemplate(req.auth.awsAccessKey, envValues),
-        awsSecretKey: this.resolveTemplate(req.auth.awsSecretKey, envValues),
-        awsSessionToken: this.resolveTemplate(req.auth.awsSessionToken ?? '', envValues),
-        awsRegion: this.resolveTemplate(req.auth.awsRegion, envValues),
-        awsService: this.resolveTemplate(req.auth.awsService, envValues),
+        oauth2RefreshToken: resolveValue(req.auth.oauth2RefreshToken ?? ''),
+        awsAccessKey: resolveValue(req.auth.awsAccessKey),
+        awsSecretKey: resolveValue(req.auth.awsSecretKey),
+        awsSessionToken: resolveValue(req.auth.awsSessionToken ?? ''),
+        awsRegion: resolveValue(req.auth.awsRegion),
+        awsService: resolveValue(req.auth.awsService),
       },
       bodyType: isGraphQL ? 'graphql' : outBodyType,
       body: outBody,
-      bodyFilePath: this.resolveTemplate(req.bodyFilePath, envValues),
-      formData: this.resolveRows(req.formRows, envValues).filter(r => r.enabled && r.key).map(({ key, value, enabled, isFile, fileName, contentType }) => ({ key, value, enabled, isFile: isFile ?? false, fileName: fileName ?? '', contentType: contentType ?? '' })),
+      bodyFilePath: resolveValue(req.bodyFilePath),
+      formData: resolveRows(req.formRows).filter(r => r.enabled && r.key).map(({ key, value, enabled, isFile, fileName, contentType }) => ({ key, value, enabled, isFile: isFile ?? false, fileName: fileName ?? '', contentType: contentType ?? '' })),
       ...this.scriptFieldsForSend(req),
       followRedirects: req.settings.followRedirects,
       timeoutMs: req.settings.timeoutMs,
@@ -171,9 +193,9 @@ export const requestSerializationFeature = {
       disableCookieJar: req.settings.disableCookieJar,
       maxRedirects: req.settings.maxRedirects,
       ...this.resolveProxyFields(req.settings.proxyUrl ?? ''),
-      clientCertPath: this.resolveTemplate(req.settings.clientCertPath ?? '', envValues),
-      clientKeyPath: this.resolveTemplate(req.settings.clientKeyPath ?? '', envValues),
-      clientKeyPassword: this.resolveTemplate(req.settings.clientKeyPassword ?? '', envValues),
+      clientCertPath: resolveValue(req.settings.clientCertPath ?? ''),
+      clientKeyPath: resolveValue(req.settings.clientKeyPath ?? ''),
+      clientKeyPassword: resolveValue(req.settings.clientKeyPassword ?? ''),
       browserEmulation: req.settings.browserEmulation,
       browserOrigin: req.settings.browserOrigin,
       browserWithCredentials: req.settings.browserWithCredentials,
@@ -198,6 +220,10 @@ export const requestSerializationFeature = {
       requestId,
       secretEnvironmentKeys,
       secretEnvironmentValues,
+      ...(defer ? { resolveTemplates: true, templateValues: { ...envValues, ...(options.iterationData ?? {}) } } : {}),
+      ...(deferredGraphQL ? { graphql: deferredGraphQL } : {}),
+      ...(options.iterationData ? { iterationData: options.iterationData } : {}),
+      ...(options.iteration ? { iteration: options.iteration, iterationCount: options.iterationCount ?? 0 } : {}),
     };
   },
 

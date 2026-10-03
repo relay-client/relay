@@ -80,6 +80,7 @@ import { historyFeature } from './features/history';
 import { normalizeCollectionRuns, type CollectionRunRecord } from '../collectionRuns';
 import { menuFeature } from './features/menus';
 import { preferencesFeature } from './features/preferences';
+import { DEFAULT_STARTUP_VIEW, startupNeedsDraftRequest, startupTopView, type StartupView } from '../startupView';
 import { readResponseLayout, uiShellFeature, type ResponseLayout } from './features/uiShell';
 import { workspaceFeature } from './features/workspace';
 import { workspaceDiagnosticsFeature } from './features/workspaceDiagnostics';
@@ -778,6 +779,13 @@ class AppVM {
   declare setThemeVariant: typeof preferencesFeature.setThemeVariant;
   declare loadAutosaveSettings: typeof preferencesFeature.loadAutosaveSettings;
   declare setAutosave: typeof preferencesFeature.setAutosave;
+  declare loadStartupViewPreference: typeof preferencesFeature.loadStartupViewPreference;
+  declare setStartupView: typeof preferencesFeature.setStartupView;
+  declare readonly uiScale: number;
+  declare setUiScale: typeof preferencesFeature.setUiScale;
+  declare zoomIn: typeof preferencesFeature.zoomIn;
+  declare zoomOut: typeof preferencesFeature.zoomOut;
+  declare resetZoom: typeof preferencesFeature.resetZoom;
   declare loadProxyConfig: typeof preferencesFeature.loadProxyConfig;
   declare setProxyConfig: typeof preferencesFeature.setProxyConfig;
   declare loadScriptEngine: typeof preferencesFeature.loadScriptEngine;
@@ -870,6 +878,7 @@ class AppVM {
   declare focusSidebarSearch: typeof uiShellFeature.focusSidebarSearch;
   declare focusRequestUrl: typeof uiShellFeature.focusRequestUrl;
   declare isEditableTarget: typeof uiShellFeature.isEditableTarget;
+  declare isKeyboardWidgetTarget: typeof uiShellFeature.isKeyboardWidgetTarget;
   declare isShortcutAllowedInEditable: typeof uiShellFeature.isShortcutAllowedInEditable;
   declare runShortcut: typeof uiShellFeature.runShortcut;
   declare onKeydown: typeof uiShellFeature.onKeydown;
@@ -1260,6 +1269,8 @@ class AppVM {
   responseBodyPage = $state(0);
   quitReviewInProgress = $state(false);
   autosave = $state(false);
+  startupView = $state<StartupView>(DEFAULT_STARTUP_VIEW);
+  startupViewApplied = false;
   saveStatus = $state<'idle' | 'saving' | 'saved' | 'error'>('idle');
   saveStatusTimer: ReturnType<typeof setTimeout> | null = null;
   dirtyRecomputeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -1369,7 +1380,13 @@ class AppVM {
         description: row.description || `Collection: ${collection?.name ?? ''}`.trim(),
         secret: row.secret ?? false,
       }));
-    const rows = [...this.environmentVariableSuggestions(), ...collectionSuggestions];
+    const globalSuggestions = this.globalVariableRows().map(row => ({
+      key: row.key.trim(),
+      value: row.value,
+      description: row.description || 'Global',
+      secret: row.secret ?? false,
+    }));
+    const rows = [...this.environmentVariableSuggestions(), ...collectionSuggestions, ...globalSuggestions];
     return rows.filter((row, index) => rows.findIndex(candidate => candidate.key === row.key) === index);
   }
   async copyHistoryEntryCurl(historyId: string) {
@@ -1440,7 +1457,12 @@ class AppVM {
       setTimeout(() => (this.collectionImportToast = ''), 5000);
     }
     const firstAppLaunch = rawOverride === undefined && !requestStoreReadFailed && !requestStoreRaw.trim() && !savedTopViewState;
-    if (!lReqs.length && (firstAppLaunch || savedTopViewState?.topView === 'request')) {
+    const launching = !this.startupViewApplied;
+    this.startupViewApplied = true;
+    const needsDraft = launching
+      ? startupNeedsDraftRequest({ view: this.startupView, hasRequests: lReqs.length > 0, firstAppLaunch, savedTopView: savedTopViewState?.topView })
+      : !lReqs.length && (firstAppLaunch || savedTopViewState?.topView === 'request');
+    if (needsDraft) {
       const draft: SavedRequest = { ...this.blankSavedRequest('', 'http'), isDraft: true, collectionId: '', collection: '' };
       lReqs = [draft];
       lActiveId = draft.id;
@@ -1471,7 +1493,13 @@ class AppVM {
       this.applySavedRequest(active);
       this.requestStoreLoaded = true;
     }
-    this.restoreTopViewState(savedTopViewState);
+    const launchTopView = launching ? startupTopView(this.startupView, { workspaceBlocked: this.workspaceBlocked, hasActiveRequest: Boolean(this.activeRequestId) }) : null;
+    if (launchTopView) {
+      if (savedTopViewState?.sidebarView) this.sidebarView = savedTopViewState.sidebarView;
+      this.topView = launchTopView;
+    } else {
+      this.restoreTopViewState(savedTopViewState);
+    }
     void this.refreshGitStatus();
   }
 

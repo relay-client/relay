@@ -32,7 +32,7 @@
 
 <div class="bulk-edit">
   <textarea
-    class="bulk-edit-input"
+    class="field field-area bulk-edit-input"
     value={text}
     spellcheck="false"
     autocomplete="off"

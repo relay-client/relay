@@ -68,11 +68,11 @@
   <span class="response-time-popover" role="tooltip">
     <span class="rt-header">
       <span class="rt-title">
-        <svg width="17" height="17" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+        <svg width="1.0625rem" height="1.0625rem" viewBox="0 0 18 18" fill="none" aria-hidden="true">
           <circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.4"/>
           <path d="M9 4.8V9l2.8 1.7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        Response Time
+        Response time
       </span>
       <span class="rt-total">{totalLabel}</span>
     </span>
@@ -100,8 +100,8 @@
     display: inline-flex;
     align-items: center;
     min-width: 0;
-    padding-bottom: 10px;
-    margin-bottom: -10px;
+    padding-bottom: var(--space-2-5);
+    margin-bottom: calc(var(--space-2-5) * -1);
   }
 
   .response-time-trigger {
@@ -110,8 +110,8 @@
     background: transparent;
     color: var(--text-3);
     font-family: var(--font-mono);
-    font-size: 12px;
-    line-height: 1;
+    font-size: var(--text-code);
+    line-height: var(--leading-none);
     cursor: default;
     outline: none;
     white-space: nowrap;
@@ -124,18 +124,18 @@
 
   .response-time-popover {
     position: absolute;
-    top: calc(100% + 10px);
+    top: calc(100% + 0.625rem);
     left: 0;
     z-index: 50;
     display: none;
-    width: min(430px, calc(100vw - 24px));
-    padding: 15px 16px 14px;
+    width: min(26.875rem, calc(100vw - 1.5rem));
+    padding: var(--space-4) var(--space-4) var(--space-3);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-lg);
     background: color-mix(in srgb, var(--surface) 94%, var(--bg));
-    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);
+    box-shadow: var(--shadow-popover);
     color: var(--text-2);
-    font-family: var(--font-sans, sans-serif);
+    font-family: var(--font-ui);
   }
 
   .response-time-popover::before {
@@ -144,7 +144,7 @@
     left: 0;
     right: 0;
     bottom: 100%;
-    height: 10px;
+    height: 0.625rem;
   }
 
   .response-time:hover .response-time-popover,
@@ -156,17 +156,17 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 10px;
+    gap: var(--space-4);
+    margin-bottom: var(--space-2-5);
     color: var(--text);
-    font-size: 13px;
-    font-weight: 700;
+    font-size: var(--text-body);
+    font-weight: var(--weight-semibold);
   }
 
   .rt-title {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     min-width: 0;
   }
 
@@ -178,7 +178,7 @@
   .rt-total {
     flex: 0 0 auto;
     font-family: var(--font-mono);
-    font-size: 13px;
+    font-size: var(--text-body);
   }
 
   .rt-rows {
@@ -189,23 +189,23 @@
 
   .rt-row {
     display: grid;
-    grid-template-columns: minmax(126px, 0.85fr) minmax(120px, 1.25fr) minmax(66px, auto);
+    grid-template-columns: minmax(7.875rem, 0.85fr) minmax(7.5rem, 1.25fr) minmax(4.125rem, auto);
     align-items: center;
-    gap: 10px;
-    min-height: 24px;
+    gap: var(--space-2-5);
+    min-height: 1.5rem;
   }
 
   .rt-label {
     overflow: hidden;
     color: var(--text-2);
-    font-size: 12px;
+    font-size: var(--text-label);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .rt-track {
     position: relative;
-    height: 14px;
+    height: 0.875rem;
     border-left: 1px solid color-mix(in srgb, var(--text-3) 25%, transparent);
     border-right: 1px solid color-mix(in srgb, var(--text-3) 14%, transparent);
     background: color-mix(in srgb, var(--s2xx) 7%, transparent);
@@ -223,19 +223,19 @@
   .rt-value {
     color: var(--text-3);
     font-family: var(--font-mono);
-    font-size: 11px;
+    font-size: var(--text-caption);
     text-align: right;
     white-space: nowrap;
   }
 
   @media (max-width: 700px) {
     .response-time-popover {
-      padding: 14px;
+      padding: var(--space-3);
     }
 
     .rt-row {
-      grid-template-columns: minmax(108px, 0.7fr) minmax(80px, 1fr) minmax(58px, auto);
-      gap: 8px;
+      grid-template-columns: minmax(6.75rem, 0.7fr) minmax(5rem, 1fr) minmax(3.625rem, auto);
+      gap: var(--space-2);
     }
   }
 </style>

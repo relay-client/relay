@@ -1,4 +1,5 @@
 import { openFileDialog, readTextFile, sendHttpRequest } from '../../backend';
+import type { RunnableHttpOptions } from './requestSerialization';
 import { emptyAuthConfig, emptyHttpRequest } from '../../wire';
 import type { HttpRequest } from '../../backend';
 import {
@@ -45,7 +46,7 @@ type GraphQLHost = {
   requestWithCollectionDefaults: (req: SavedRequest) => SavedRequest;
   resolveProxyFields: (overrideUrl: string) => ResolvedProxy;
   resolveTemplate: (value: string, values?: Record<string, string>) => string;
-  savedRequestToRunnableHttpRequest: (req: SavedRequest, envValues?: Record<string, string>, secretValues?: string[], secretKeys?: string[], requestId?: string) => HttpRequest;
+  savedRequestToRunnableHttpRequest: (req: SavedRequest, envValues?: Record<string, string>, secretValues?: string[], secretKeys?: string[], requestId?: string, options?: RunnableHttpOptions) => HttpRequest;
   scheduleActiveRequestPersist: () => void;
   snapshotActiveRequest: (options?: { forPersistence?: boolean }) => SavedRequest;
   syncBackendEnvironment: () => Promise<void>;
@@ -255,7 +256,7 @@ export const graphqlFeature = {
     try {
       try { await this.syncBackendEnvironment(); } catch {}
       if (!stillOwned()) return;
-      const resp = await sendHttpRequest(this.savedRequestToRunnableHttpRequest(snapshot, envValues, secretValues, secretKeys, requestId));
+      const resp = await sendHttpRequest(this.savedRequestToRunnableHttpRequest(snapshot, envValues, secretValues, secretKeys, requestId, { deferTemplates: true }));
       if (!stillOwned()) return;
       if (resp.error && !resp.statusCode) {
         this.graphqlSchemaError = resp.error;

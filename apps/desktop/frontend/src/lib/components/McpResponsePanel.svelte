@@ -38,7 +38,7 @@
       <div class="request-error-shell">
         <div class="request-error-title">Could not send the call</div>
         <div class="request-error-card">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <svg width="1.25rem" height="1.25rem" viewBox="0 0 20 20" fill="none">
             <path d="M10 2l8 14H2L10 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
             <path d="M10 7v4M10 14v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
@@ -67,8 +67,8 @@
       </div>
       <div class="status-right">
       </div>
-      <div class="response-mini-tabs" role="tablist" use:tabListKeyboard>
-        <button
+      <div class="tab-bar response-mini-tabs" role="tablist" use:tabListKeyboard>
+        <button class="tab"
           role="tab"
           type="button"
           class:active={tab === 'result'}
@@ -79,7 +79,7 @@
         >
           Result{#if response.content.length}<span class="badge">{response.content.length}</span>{/if}
         </button>
-        <button
+        <button class="tab"
           role="tab"
           type="button"
           class:active={tab === 'raw'}
@@ -91,7 +91,7 @@
           Raw exchange
         </button>
         {#if notificationCount}
-          <button
+          <button class="tab"
             role="tab"
             type="button"
             class:active={tab === 'notifications'}
@@ -108,7 +108,7 @@
 
     {#if response.warnings.length}
       <div class="mcp-warnings" role="status">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <svg width="0.875rem" height="0.875rem" viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <path d="M8 2l6 11H2L8 2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
           <path d="M8 6.4v3M8 11.4v.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
         </svg>
@@ -196,7 +196,7 @@
 
   {:else}
     <div class="response-placeholder response-empty-state" role="status">
-      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" opacity="0.35">
+      <svg width="2rem" height="2rem" viewBox="0 0 32 32" fill="none" opacity="0.35">
         <circle cx="16" cy="16" r="14" stroke="currentColor" stroke-width="1.5"/>
         <path d="M12 16h8M16 12l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
@@ -209,8 +209,8 @@
 <style>
   .mcp-warnings {
     display: flex;
-    gap: 9px;
-    padding: 9px 14px;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
     border-bottom: 1px solid var(--border);
     background: color-mix(in srgb, var(--s4xx) 8%, transparent);
     color: var(--s4xx);
@@ -224,34 +224,34 @@
   .mcp-warning-lines {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: var(--space-1);
     min-width: 0;
-    font-size: 12px;
-    line-height: 1.5;
+    font-size: var(--text-label);
+    line-height: var(--leading-normal);
   }
 
   .mcp-result-panel {
-    padding: 12px 14px;
+    padding: var(--space-3) var(--space-3);
     overflow: auto;
   }
 
   .mcp-block + .mcp-block {
-    margin-top: 14px;
+    margin-top: var(--space-3);
   }
 
   .mcp-block-head {
     display: flex;
     align-items: baseline;
-    gap: 8px;
-    margin-bottom: 6px;
+    gap: var(--space-2);
+    margin-bottom: var(--space-1-5);
     color: var(--text-2);
-    font-size: 12px;
-    font-weight: 500;
+    font-size: var(--text-label);
+    font-weight: var(--weight-medium);
   }
 
   .mcp-block-kind {
     font-family: var(--font-mono);
-    font-size: 11.5px;
+    font-size: var(--text-caption);
   }
 
   .mcp-block-head-bad {
@@ -259,37 +259,37 @@
   }
 
   .mcp-block-meta {
-    font-weight: 500;
+    font-weight: var(--weight-medium);
     letter-spacing: 0;
     text-transform: none;
   }
 
   .mcp-block-message {
-    margin: 0 0 6px;
+    margin: 0 0 var(--space-1-5);
     color: var(--text-2);
-    font-size: 12.5px;
-    line-height: 1.5;
+    font-size: var(--text-body);
+    line-height: var(--leading-normal);
   }
 
   .mcp-block-uri {
     display: block;
-    margin-bottom: 6px;
+    margin-bottom: var(--space-1-5);
     color: var(--text-2);
     font-family: var(--font-mono);
-    font-size: 11.5px;
+    font-size: var(--text-caption);
     word-break: break-all;
   }
 
   .mcp-code {
     margin: 0;
-    padding: 10px 12px;
+    padding: var(--space-2-5) var(--space-3);
     border: 1px solid var(--border);
-    border-radius: 7px;
+    border-radius: var(--radius-md);
     background: var(--surface);
     color: var(--text);
     font-family: var(--font-mono);
-    font-size: 12px;
-    line-height: 1.55;
+    font-size: var(--text-label);
+    line-height: var(--leading-normal);
     white-space: pre-wrap;
     word-break: break-word;
   }

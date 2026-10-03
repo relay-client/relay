@@ -70,7 +70,7 @@ function requestOAuth2ForGrant(grant: OAuth2GrantType, cfg: AuthConfig): Promise
 export const authFeature = {
   authLabel(this: AuthHost, type: AuthType = this.authType) {
     if (this.requestType === 'grpc' && type === 'oauth2') return 'OAuth 2.0';
-    return AUTH_OPTIONS.find(o => o.value === type)?.label ?? 'No Auth';
+    return AUTH_OPTIONS.find(o => o.value === type)?.label ?? 'No auth';
   },
 
   currentAuthState(this: AuthHost): SavedRequest['auth'] {

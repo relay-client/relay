@@ -11,9 +11,9 @@
   {#if vm.saveStatus === 'saving'}
     <span class="save-status-dot" aria-hidden="true"></span>Saving&hellip;
   {:else if vm.saveStatus === 'error'}
-    <svg width="12" height="12" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 3.6v3.6M6.5 9.2v.05" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Save failed
+    <svg width="0.75rem" height="0.75rem" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 3.6v3.6M6.5 9.2v.05" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Save failed
   {:else}
-    <svg width="12" height="12" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M4 6.5l2 2 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>Saved
+    <svg width="0.75rem" height="0.75rem" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M4 6.5l2 2 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>Saved
   {/if}
 </div>
 

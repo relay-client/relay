@@ -173,7 +173,7 @@
       <div class="request-error-shell">
         <div class="request-error-title">Could not invoke method</div>
         <div class="request-error-card">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <svg width="1.25rem" height="1.25rem" viewBox="0 0 20 20" fill="none">
             <path d="M10 2l8 14H2L10 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
             <path d="M10 7v4M10 14v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
@@ -197,8 +197,8 @@
       </div>
       <div class="status-right">
         {#if vm.grpcResponseTab === 'messages' && vm.responseSearchOpen}
-          <div class="response-search-box">
-            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+          <div class="field field-md field-wrap response-search-box">
+            <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none" aria-hidden="true">
               <circle cx="5.8" cy="5.8" r="3.8" stroke="currentColor" stroke-width="1.3"/>
               <path d="M8.7 8.7l2.7 2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
             </svg>
@@ -220,41 +220,41 @@
         {/if}
         <div class="resp-actions">
           {#if vm.grpcResponseTab === 'messages'}
-            <button class="btn-icon" title="Search response" aria-label="Search response" aria-pressed={vm.responseSearchOpen} onclick={() => (vm.responseSearchOpen = !vm.responseSearchOpen)} type="button">
-              <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+            <button class="btn btn-icon" title="Search response" aria-label="Search response" aria-pressed={vm.responseSearchOpen} onclick={() => (vm.responseSearchOpen = !vm.responseSearchOpen)} type="button">
+              <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none">
                 <circle cx="5.8" cy="5.8" r="3.8" stroke="currentColor" stroke-width="1.3"/>
                 <path d="M8.7 8.7l2.7 2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
               </svg>
             </button>
           {/if}
-          <button class="btn-icon" class:feedback-ok={vm.copiedBody} title={vm.copiedBody ? 'Copied response' : 'Copy response'} aria-label={vm.copiedBody ? 'Copied response' : 'Copy response'} onclick={vm.copyGrpcResponseBody} type="button">
+          <button class="btn btn-icon" class:feedback-ok={vm.copiedBody} title={vm.copiedBody ? 'Copied response' : 'Copy response'} aria-label={vm.copiedBody ? 'Copied response' : 'Copy response'} onclick={vm.copyGrpcResponseBody} type="button">
             {#if vm.copiedBody}
-              <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5l3 3 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none"><path d="M2 6.5l3 3 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             {:else}
-              <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="3" y="1" width="8" height="9" rx="1.2" stroke="currentColor" stroke-width="1.2"/><path d="M1 3.5v7a1.2 1.2 0 001.2 1.2H8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+              <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none"><rect x="3" y="1" width="8" height="9" rx="1.2" stroke="currentColor" stroke-width="1.2"/><path d="M1 3.5v7a1.2 1.2 0 001.2 1.2H8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
             {/if}
           </button>
-          <button class="btn-icon" class:feedback-ok={vm.savedResponse} title={vm.savedResponse ? 'Saved response' : 'Save to file'} aria-label={vm.savedResponse ? 'Saved response' : 'Save to file'} onclick={vm.saveGrpcResponseFile} type="button">
+          <button class="btn btn-icon" class:feedback-ok={vm.savedResponse} title={vm.savedResponse ? 'Saved response' : 'Save to file'} aria-label={vm.savedResponse ? 'Saved response' : 'Save to file'} onclick={vm.saveGrpcResponseFile} type="button">
             {#if vm.savedResponse}
-              <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5l3 3 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none"><path d="M2 6.5l3 3 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             {:else}
-              <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 2v7M4 7l2.5 2.5L9 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 11h9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+              <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none"><path d="M6.5 2v7M4 7l2.5 2.5L9 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 11h9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
             {/if}
           </button>
         </div>
       </div>
-      <div class="response-mini-tabs" role="tablist" use:tabListKeyboard>
-        <button role="tab" class:active={vm.grpcResponseTab === 'messages'} aria-selected={vm.grpcResponseTab === 'messages'} aria-controls="grpc-response-messages" tabindex={vm.grpcResponseTab === 'messages' ? 0 : -1} onclick={() => vm.setActiveGrpcResponseTab('messages')} type="button">
+      <div class="tab-bar response-mini-tabs" role="tablist" use:tabListKeyboard>
+        <button class="tab" role="tab" class:active={vm.grpcResponseTab === 'messages'} aria-selected={vm.grpcResponseTab === 'messages'} aria-controls="grpc-response-messages" tabindex={vm.grpcResponseTab === 'messages' ? 0 : -1} onclick={() => vm.setActiveGrpcResponseTab('messages')} type="button">
           Messages{#if response.messages?.length}<span class="badge">{response.messages.length}</span>{/if}
         </button>
-        <button role="tab" class:active={vm.grpcResponseTab === 'metadata'} aria-selected={vm.grpcResponseTab === 'metadata'} aria-controls="grpc-response-metadata" tabindex={vm.grpcResponseTab === 'metadata' ? 0 : -1} onclick={() => vm.setActiveGrpcResponseTab('metadata')} type="button">
+        <button class="tab" role="tab" class:active={vm.grpcResponseTab === 'metadata'} aria-selected={vm.grpcResponseTab === 'metadata'} aria-controls="grpc-response-metadata" tabindex={vm.grpcResponseTab === 'metadata' ? 0 : -1} onclick={() => vm.setActiveGrpcResponseTab('metadata')} type="button">
           Metadata{#if response.headers?.length}<span class="badge">{response.headers.length}</span>{/if}
         </button>
-        <button role="tab" class:active={vm.grpcResponseTab === 'trailers'} aria-selected={vm.grpcResponseTab === 'trailers'} aria-controls="grpc-response-trailers" tabindex={vm.grpcResponseTab === 'trailers' ? 0 : -1} onclick={() => vm.setActiveGrpcResponseTab('trailers')} type="button">
+        <button class="tab" role="tab" class:active={vm.grpcResponseTab === 'trailers'} aria-selected={vm.grpcResponseTab === 'trailers'} aria-controls="grpc-response-trailers" tabindex={vm.grpcResponseTab === 'trailers' ? 0 : -1} onclick={() => vm.setActiveGrpcResponseTab('trailers')} type="button">
           Trailers{#if response.trailers?.length}<span class="badge">{response.trailers.length}</span>{/if}
         </button>
         {#if hasScripts}
-          <button role="tab" class:active={vm.grpcResponseTab === 'scripts'} class="tab-script" aria-selected={vm.grpcResponseTab === 'scripts'} aria-controls="grpc-response-scripts" tabindex={vm.grpcResponseTab === 'scripts' ? 0 : -1} onclick={() => vm.setActiveGrpcResponseTab('scripts')} type="button">
+          <button role="tab" class:active={vm.grpcResponseTab === 'scripts'} class="tab tab-script" aria-selected={vm.grpcResponseTab === 'scripts'} aria-controls="grpc-response-scripts" tabindex={vm.grpcResponseTab === 'scripts' ? 0 : -1} onclick={() => vm.setActiveGrpcResponseTab('scripts')} type="button">
             Test results
             {#if responseTestSummary}
               <span class="badge" class:badge-pass={responseTestSummary.allPassed} class:badge-fail={!responseTestSummary.allPassed}>{responseTestSummary.passed}/{responseTestSummary.total}</span>
@@ -299,16 +299,16 @@
                   >
                     {#if row.kind === 'message'}
                       {#if direction === 'outgoing'}
-                        <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                        <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none">
                           <path d="M6.5 11V2M3 5l3.5-3L10 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                       {:else}
-                        <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                        <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none">
                           <path d="M6.5 2v9M3 8l3.5 3L10 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                       {/if}
                     {:else}
-                      <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                      <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none">
                         <circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/>
                         <path d="M6.5 4v3.5M6.5 9.5v.3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
                       </svg>
@@ -320,7 +320,7 @@
                   </span>
                   <span class="sse-event-time">{formatGrpcTime(row.timestamp)}</span>
                   <span class="sse-expand-chevron" style="transform: rotate({expanded ? 180 : 0}deg)" aria-hidden="true">
-                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
+                    <svg width="0.625rem" height="0.375rem" viewBox="0 0 10 6" fill="none">
                       <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                     </svg>
                   </span>
@@ -418,9 +418,9 @@
               <div class="test-row" class:pass={t.passed} class:fail={!t.passed}>
                 <span class="test-icon">
                   {#if t.passed}
-                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 6.5l2 2 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 6.5l2 2 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
                   {:else}
-                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 4.5l4 4M8.5 4.5l-4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                    <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 4.5l4 4M8.5 4.5l-4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
                   {/if}
                 </span>
                 <span class="test-name">{t.name}</span>
@@ -441,7 +441,7 @@
 
   {:else}
     <div class="response-placeholder response-empty-state" role="status">
-      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" opacity="0.35">
+      <svg width="2rem" height="2rem" viewBox="0 0 32 32" fill="none" opacity="0.35">
         <circle cx="16" cy="16" r="14" stroke="currentColor" stroke-width="1.5"/>
         <path d="M12 16h8M16 12l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
@@ -455,26 +455,20 @@
   .grpc-status-method {
     flex: 1 1 auto;
     min-width: 0;
-    max-width: min(36vw, 460px);
+    max-width: min(36vw, 28.75rem);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .grpc-response-area .sse-clear-btn.feedback-ok {
-    border-color: rgba(74,222,128,0.5);
-    background: rgba(74,222,128,0.12);
-    color: var(--s2xx);
-  }
-
   .grpc-system-detail {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 10px 12px;
+    gap: var(--space-2-5);
+    padding: var(--space-2-5) var(--space-3);
     color: var(--text-2);
-    font-size: 12px;
-    line-height: 1.45;
+    font-size: var(--text-label);
+    line-height: var(--leading-normal);
   }
 
   .grpc-system-detail p {

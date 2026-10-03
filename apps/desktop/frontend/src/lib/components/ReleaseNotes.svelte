@@ -49,7 +49,7 @@
 <style>
   .release-notes {
     display: grid;
-    gap: 16px;
+    gap: var(--space-4);
     align-content: start;
     user-select: text;
   }
@@ -57,16 +57,16 @@
   .release-notes-heading {
     display: flex;
     align-items: center;
-    gap: 7px;
-    margin: 0 0 7px;
+    gap: var(--space-2);
+    margin: 0 0 var(--space-2);
     color: var(--text);
-    font-size: 12.5px;
-    font-weight: 600;
+    font-size: var(--text-body);
+    font-weight: var(--weight-semibold);
   }
 
   .release-notes-dot {
-    width: 6px;
-    height: 6px;
+    width: 0.375rem;
+    height: 0.375rem;
     flex: 0 0 auto;
     border-radius: 50%;
     background: var(--text-3);
@@ -90,15 +90,15 @@
 
   ul {
     margin: 0;
-    padding: 0 0 0 17px;
+    padding: 0 0 0 var(--space-4);
     display: grid;
-    gap: 6px;
+    gap: var(--space-1-5);
   }
 
   li {
     color: var(--text-2);
-    font-size: 12.5px;
-    line-height: 1.55;
+    font-size: var(--text-body);
+    line-height: var(--leading-normal);
     overflow-wrap: anywhere;
   }
 
@@ -107,27 +107,27 @@
   }
 
   .release-notes-subitems {
-    margin: 5px 0 0;
-    padding-left: 15px;
-    gap: 4px;
+    margin: var(--space-1-5) 0 0;
+    padding-left: var(--space-4);
+    gap: var(--space-1);
   }
 
   .release-notes-subitems li {
     color: var(--text-3);
-    font-size: 12px;
+    font-size: var(--text-label);
   }
 
   .release-notes-intro {
     margin: 0;
     color: var(--text);
-    font-size: 13px;
-    line-height: 1.55;
+    font-size: var(--text-body);
+    line-height: var(--leading-normal);
   }
 
   .release-notes-plain {
     margin: 0;
     color: var(--text-2);
-    font-size: 12.5px;
-    line-height: 1.55;
+    font-size: var(--text-body);
+    line-height: var(--leading-normal);
   }
 </style>

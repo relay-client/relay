@@ -8,6 +8,7 @@ import { filesystemNameFromName, makeCollection, normalizeCollection, normalizeE
 import { normalizeCollectionDefaults } from '../../collectionDefaults';
 import { routeImportedScripts, withActiveScripts } from '../../scriptEngine';
 import { downloadTextFile, safeFileName } from '../../utils';
+import { requestsHaveExportSecrets } from '../../secretExport';
 import type { OpenApiExportFormat } from '../../openapi';
 
 type ImportedCollectionDefaults = { variables?: KVRow[]; auth?: import('../../types/models').AuthState };
@@ -127,8 +128,8 @@ export const importExportFeature = {
     this.closeFloatingMenus();
     const source = await this.openSelectDialog('Import collection', 'Choose the source format to import:', [
       { value: 'bruno', label: 'Bruno / OpenCollection', icon: 'bruno', description: 'Import a Bruno collection folder with opencollection.yml or legacy .bru files.' },
-      { value: 'postman', label: 'Postman Collection', icon: 'postman', description: 'Import a Postman v2.1 collection, environment, or globals JSON file.' },
-      { value: 'insomnia', label: 'Insomnia Export', icon: 'insomnia', description: 'Import an Insomnia workspace or collection export JSON file.' },
+      { value: 'postman', label: 'Postman collection', icon: 'postman', description: 'Import a Postman v2.1 collection, environment, or globals JSON file.' },
+      { value: 'insomnia', label: 'Insomnia export', icon: 'insomnia', description: 'Import an Insomnia workspace or collection export JSON file.' },
       { value: 'openapi', label: 'OpenAPI / Swagger', icon: 'openapi', description: 'Import OpenAPI 3.x or Swagger 2.0 JSON/YAML specs.' },
       { value: 'openapi-url', label: 'OpenAPI / Swagger from URL', icon: 'openapi', description: 'Fetch a spec from a link — https://api.example.com/openapi.json' },
       { value: 'har', label: 'HAR from DevTools', icon: 'har', description: 'Turn captured browser traffic into requests.' },
@@ -355,7 +356,7 @@ export const importExportFeature = {
     this.closeFloatingMenus();
     const format = await this.openSelectDialog('Export collection', 'Choose the export format:', [
       { value: 'opencollection', label: 'OpenCollection YAML folder', icon: 'bruno', description: 'Export a Bruno v3-compatible folder with opencollection.yml and request .yml files.' },
-      { value: 'postman', label: 'Postman Collection v2.1', icon: 'postman', description: 'Export a single Postman collection JSON file.' },
+      { value: 'postman', label: 'Postman collection v2.1', icon: 'postman', description: 'Export a single Postman collection JSON file.' },
       { value: 'insomnia', label: 'Insomnia Export v4', icon: 'insomnia', description: 'Export an Insomnia workspace JSON file with Relay request metadata.' },
       { value: 'openapi3', label: 'OpenAPI 3.0 JSON', icon: 'openapi', description: 'Export HTTP requests as an OpenAPI document.' },
       { value: 'swagger2', label: 'Swagger 2.0 JSON', icon: 'openapi', description: 'Export HTTP requests as a Swagger 2.0 document.' },
@@ -479,7 +480,6 @@ export const importExportFeature = {
     finally { setTimeout(() => (this.collectionImportToast = ''), 2600); }
   },
   async chooseCollectionSecretExportMode(this: ImportExportHost, reqs: SavedRequest[], title: string): Promise<boolean | null> {
-    const { requestsHaveExportSecrets } = await import('../../secretExport');
     if (!requestsHaveExportSecrets(reqs)) return false;
     const selected = await this.openSelectDialog(title, 'This collection contains values that look like secrets. Choose how to export it:', [
       { value: 'safe', label: 'Export without secret values' },

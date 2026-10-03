@@ -203,6 +203,23 @@ describe('collection defaults', () => {
   });
 });
 
+describe('global variables', () => {
+  it('sit below collection and environment values', () => {
+    const defaults = emptyCollectionDefaults();
+    defaults.variables = [row('tenant', 'collection')];
+
+    expect(valuesWithBrunoPriority(collection(defaults), { baseUrl: 'https://env.test' }, {
+      baseUrl: 'https://global.test',
+      tenant: 'global',
+      apiKey: 'global-key',
+    })).toEqual({
+      baseUrl: 'https://env.test',
+      tenant: 'collection',
+      apiKey: 'global-key',
+    });
+  });
+});
+
 describe('collection settings round-trip into requests', () => {
   it('applies headers, secret vars, auth, scripts and settings after a store persistence round-trip', () => {
 

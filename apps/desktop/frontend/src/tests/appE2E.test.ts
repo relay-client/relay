@@ -45,6 +45,8 @@ import { normalizeRequestExample } from '../lib/examples';
 import { environmentFeature } from '../lib/stores/features/environments';
 import { folderFeature } from '../lib/stores/features/folders';
 import { graphqlFeature } from '../lib/stores/features/graphql';
+import { globalsFeature } from '../lib/stores/features/globals';
+import { buildGraphQLRequestBody } from '../lib/graphql';
 import { historyFeature } from '../lib/stores/features/history';
 import { requestBodyFeature } from '../lib/stores/features/requestBody';
 import { requestCrudFeature } from '../lib/stores/features/requestCrud';
@@ -62,6 +64,7 @@ import { workspaceFeature } from '../lib/stores/features/workspace';
 const backend = vi.hoisted(() => {
   const state = {
     environment: {} as Record<string, string>,
+    globals: {} as Record<string, string>,
     savedStores: [] as RequestStore[],
     sentHttpRequests: [] as HttpRequest[],
     savedFiles: [] as Array<{ name: string; content: string }>,
@@ -88,8 +91,13 @@ const backend = vi.hoisted(() => {
       state.environment = { ...values };
     }),
     getEnvironment: vi.fn(async () => ({ ...state.environment })),
-    sendHttpRequest: vi.fn(async (req: HttpRequest): Promise<HttpResponse> => {
-      state.sentHttpRequests.push(req);
+    getGlobalVariables: vi.fn(async () => ({ ...state.globals })),
+    setGlobalVariables: vi.fn(async (values: Record<string, string>) => {
+      state.globals = { ...values };
+    }),
+    sendHttpRequest: vi.fn(async (sent: HttpRequest): Promise<HttpResponse> => {
+      state.sentHttpRequests.push(sent);
+      const req = materializeTemplates(sent);
       if (req.url.endsWith('/login')) {
         expect(req.method).toBe('POST');
         expect(req.params).toEqual(expect.arrayContaining([
@@ -436,9 +444,31 @@ class TestApp {
   }
 }
 
+function materializeTemplates(req: HttpRequest): HttpRequest {
+  if (!req.resolveTemplates) return req;
+  const values = req.templateValues ?? {};
+  const resolve = (value: string) => environmentFeature.resolveTemplate.call({} as never, value, values);
+  const rows = <T extends { key: string; value: string }>(list: T[]) => list.map(row => ({ ...row, key: resolve(row.key), value: resolve(row.value) }));
+  return {
+    ...req,
+    url: resolve(req.url),
+    params: rows(req.params),
+    headers: rows(req.headers),
+    formData: rows(req.formData),
+    auth: { ...req.auth, token: resolve(req.auth.token), username: resolve(req.auth.username), password: resolve(req.auth.password), keyName: resolve(req.auth.keyName), keyValue: resolve(req.auth.keyValue) },
+    body: req.graphql
+      ? buildGraphQLRequestBody({ query: resolve(req.graphql.query), variables: resolve(req.graphql.variables), operationName: resolve(req.graphql.operationName) })
+      : resolve(req.body),
+    resolveTemplates: false,
+    templateValues: undefined,
+    graphql: undefined,
+  };
+}
+
 applyFeatures(
   TestApp.prototype,
   workspaceFeature,
+  globalsFeature,
   collectionFeature,
   folderFeature,
   environmentFeature,
@@ -530,7 +560,9 @@ describe('full application e2e smoke', () => {
     expect(app.requestHistory).toHaveLength(1);
     expect(backend.state.sentHttpRequests[0]).toMatchObject({
       method: 'POST',
-      url: 'https://api.example.test/login',
+      url: '{{baseUrl}}/login',
+      resolveTemplates: true,
+      templateValues: expect.objectContaining({ baseUrl: 'https://api.example.test' }),
       bodyType: 'json',
       secretEnvironmentKeys: ['token'],
       secretEnvironmentValues: ['raw-token'],
@@ -1175,3 +1207,84 @@ describe('opening a saved request', () => {
     expect(drifted).toEqual([]);
   });
 });
+
+describe('request templates reach the backend unresolved', () => {
+  async function appWithRequest(url: string) {
+    backend.state.savedStores = [];
+    backend.state.sentHttpRequests = [];
+    backend.state.environment = {};
+    backend.state.globals = {};
+    const app = new TestApp() as TestApp & Record<string, any>;
+    app.prompts.push('Templates');
+    await app.createCollection();
+    await app.createNewRequest(app.collections[0].id);
+    app.url = url;
+    app.method = 'GET';
+    await app.saveActiveRequest();
+    return app;
+  }
+
+  it('resolves globals below collection and environment values', async () => {
+    const app = await appWithRequest('{{host}}/{{scope}}/{{only}}');
+    app.globalVariables = [row('host', 'https://global.test'), row('scope', 'global'), row('only', 'from-globals')];
+    app.collections[0].defaults.variables = [row('scope', 'collection')];
+    const req = app.savedRequestToRunnableHttpRequest(app.snapshotActiveRequest(), { host: 'https://env.test' }, [], []);
+    expect(req.url).toBe('https://env.test/collection/from-globals');
+    expect(req.resolveTemplates).toBeUndefined();
+  });
+
+  it('defers templates with the merged values, iteration data and GraphQL parts', async () => {
+    const app = await appWithRequest('{{base}}/graphql');
+    app.globalVariables = [row('base', 'https://global.test')];
+    const snapshot = app.snapshotActiveRequest();
+    const req = app.savedRequestToRunnableHttpRequest(
+      { ...snapshot, requestType: 'graphql', bodyType: 'graphql', bodyContent: JSON.stringify({ query: 'query { user(id: "{{id}}") { name } }', variables: '{\n  // note\n  "id": "{{id}}"\n}', operationName: '' }) },
+      { id: '7' },
+      [],
+      [],
+      'deferred',
+      { deferTemplates: true, iterationData: { row: 'r1' }, iteration: 2, iterationCount: 3 },
+    );
+    expect(req.url).toBe('{{base}}/graphql');
+    expect(req.body).toBe('');
+    expect(req.graphql).toEqual({ query: 'query { user(id: "{{id}}") { name } }', variables: expect.not.stringContaining('//'), operationName: '' });
+    expect(req.templateValues).toEqual(expect.objectContaining({ base: 'https://global.test', id: '7', row: 'r1' }));
+    expect(req).toMatchObject({ resolveTemplates: true, iterationData: { row: 'r1' }, iteration: 2, iterationCount: 3 });
+  });
+
+  it('sends single requests deferred so pre-request scripts can change variables', async () => {
+    const app = await appWithRequest('{{base}}/items');
+    app.globalVariables = [row('base', 'https://api.example.test')];
+    let sent: HttpRequest | undefined;
+    vi.mocked(backend.sendHttpRequest).mockImplementationOnce(async (req: HttpRequest) => {
+      sent = req;
+      return httpResponse(200, { ok: true });
+    });
+    await app.runActiveRequest();
+    expect(sent).toMatchObject({
+      url: '{{base}}/items',
+      resolveTemplates: true,
+      templateValues: expect.objectContaining({ base: 'https://api.example.test' }),
+    });
+  });
+
+  it('gives each runner request its data row, iteration and the globals written so far', async () => {
+    const app = await appWithRequest('https://api.example.test/{{name}}');
+    const saved = app.requests.find((req: SavedRequest) => req.id === app.activeRequestId)!;
+    const sent: HttpRequest[] = [];
+    vi.mocked(backend.sendHttpRequest).mockImplementation(async (req: HttpRequest) => {
+      sent.push(req);
+      backend.state.globals = { ...backend.state.globals, counter: String(sent.length) };
+      return httpResponse(200, { ok: true });
+    });
+    await app.startCollectionRunner('Templates', [saved], { dataRows: [{ name: 'ada' }, { name: 'bob' }], parallel: false });
+    vi.mocked(backend.sendHttpRequest).mockReset();
+    expect(sent.map(req => [req.iteration, req.iterationCount, req.iterationData])).toEqual([
+      [1, 2, { name: 'ada' }],
+      [2, 2, { name: 'bob' }],
+    ]);
+    expect(sent[0].templateValues?.counter).toBeUndefined();
+    expect(sent[1].templateValues).toEqual(expect.objectContaining({ name: 'bob', counter: '1' }));
+  });
+});
+

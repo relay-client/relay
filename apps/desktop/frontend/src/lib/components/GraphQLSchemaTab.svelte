@@ -63,7 +63,7 @@
       {/if}
       <div class="graphql-schema-loaded-actions">
         <button
-          class="btn-secondary btn-sm"
+          class="btn btn-secondary"
           type="button"
           onclick={() => vm.fetchGraphQLSchema()}
           disabled={vm.graphqlSchemaLoading || !vm.url.trim()}
@@ -72,7 +72,7 @@
           Refresh introspection
         </button>
         <button
-          class="btn-secondary btn-sm"
+          class="btn btn-secondary"
           type="button"
           onclick={() => vm.clearGraphQLSchema()}
         >Clear</button>
@@ -81,7 +81,7 @@
     {#if vm.graphqlSchemaError}
       <div class="graphql-schema-error-card" role="alert">
         <div class="graphql-schema-error-header">
-          <svg class="graphql-schema-error-icon" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+          <svg class="graphql-schema-error-icon" width="1.125rem" height="1.125rem" viewBox="0 0 18 18" fill="none" aria-hidden="true">
             <path d="M9 1L17 9L9 17L1 9L9 1Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
             <path d="M9 6v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
             <circle cx="9" cy="12.5" r="0.9" fill="currentColor"/>
@@ -109,7 +109,7 @@
       {#if vm.graphqlSchemaError}
         <div class="graphql-schema-error-card" role="alert">
           <div class="graphql-schema-error-header">
-            <svg class="graphql-schema-error-icon" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <svg class="graphql-schema-error-icon" width="1.125rem" height="1.125rem" viewBox="0 0 18 18" fill="none" aria-hidden="true">
               <path d="M9 1L17 9L9 17L1 9L9 1Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
               <path d="M9 6v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
               <circle cx="9" cy="12.5" r="0.9" fill="currentColor"/>
@@ -118,7 +118,7 @@
           </div>
           <p class="graphql-schema-error-detail">{vm.graphqlSchemaError}</p>
           <button
-            class="graphql-schema-error-retry"
+            class="btn btn-secondary btn-danger btn-sm graphql-schema-error-retry"
             type="button"
             onclick={() => vm.fetchGraphQLSchema()}
             disabled={vm.graphqlSchemaLoading}
@@ -134,7 +134,7 @@
         <div class="graphql-schema-select-wrap">
           <div class="graphql-schema-select-row">
             <div class="graphql-schema-select-field">
-              <input
+              <input class="field"
                 bind:value={schemaUrl}
                 placeholder="Select a schema or paste link to one"
                 spellcheck="false"
@@ -142,20 +142,20 @@
                 onkeydown={onUrlKeydown}
               />
               <button
-                class="graphql-select-toggle"
+                class="btn btn-ghost btn-icon btn-sm graphql-select-toggle"
                 type="button"
                 aria-label="Import pasted GraphQL schema URL"
                 onclick={importUrl}
                 disabled={!schemaUrl.trim() || vm.graphqlSchemaLoading}
               >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <svg width="0.875rem" height="0.875rem" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                   <path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </button>
             </div>
             {#if schemaUrl.trim()}
               <button
-                class="btn-primary btn-sm"
+                class="btn btn-primary"
                 type="button"
                 onclick={importUrl}
                 disabled={vm.graphqlSchemaLoading}
@@ -170,7 +170,7 @@
 
       <div class="graphql-import-link-row">
         <button
-          class="graphql-import-link-btn"
+          class="btn-link graphql-import-link-btn"
           type="button"
           onclick={() => (showImportPanel = !showImportPanel)}
           disabled={vm.graphqlSchemaLoading}
@@ -184,14 +184,14 @@
           <p class="graphql-import-panel-hint">Import from your local system or from the URL where it's hosted.</p>
           <div class="graphql-import-panel-row">
             <button
-              class="btn-secondary btn-sm"
+              class="btn btn-secondary"
               type="button"
               onclick={importFile}
               disabled={vm.graphqlSchemaLoading}
             >Choose a file</button>
-            <span class="graphql-import-panel-or">OR</span>
+            <span class="graphql-import-panel-or">or</span>
             <input
-              class="graphql-import-panel-url"
+              class="field field-md graphql-import-panel-url"
               bind:value={importPanelUrl}
               placeholder="Enter a URL"
               spellcheck="false"
@@ -200,7 +200,7 @@
             />
             {#if importPanelUrl.trim()}
               <button
-                class="btn-primary btn-sm"
+                class="btn btn-primary"
                 type="button"
                 onclick={importPanelUrlSubmit}
                 disabled={vm.graphqlSchemaLoading}
@@ -211,7 +211,7 @@
       {/if}
 
       <div class="graphql-schema-or-row" aria-hidden="true">
-        <span>OR</span>
+        <span>or</span>
       </div>
 
 
@@ -226,7 +226,7 @@
             <span class="spinner spinner-inline"></span>
           {:else}
             <span class="graphql-introspection-check" aria-hidden="true">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <svg width="0.875rem" height="0.875rem" viewBox="0 0 14 14" fill="none">
                 <path d="M3.2 7.1l2.4 2.4 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </span>
@@ -234,13 +234,13 @@
           Using GraphQL introspection.
         </button>
         <button
-          class="graphql-introspection-refresh"
+          class="btn btn-ghost btn-icon graphql-introspection-refresh"
           type="button"
           aria-label="Refresh GraphQL introspection"
           onclick={() => vm.fetchGraphQLSchema()}
           disabled={vm.graphqlSchemaLoading}
         >
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+          <svg width="1.125rem" height="1.125rem" viewBox="0 0 18 18" fill="none" aria-hidden="true">
             <path d="M14.5 8.2A5.6 5.6 0 0 0 4.2 5.5L3 7.2M3.5 3.6v3.6h3.6M3.5 9.8a5.6 5.6 0 0 0 10.3 2.7l1.2-1.7M14.5 14.4v-3.6h-3.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>

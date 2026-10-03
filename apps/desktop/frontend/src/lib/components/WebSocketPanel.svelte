@@ -324,18 +324,18 @@
       {#if status !== 'idle'}<span class="sse-summary-dot"></span>{/if}<span>{messages.length} {messages.length === 1 ? 'message' : 'messages'}</span>
       <span class="sse-summary-dot"></span><span>{formatSize(streamSize)}</span>
     </div>
-    <div class="response-tabs sse-tabs" role="tablist" use:tabListKeyboard>
-      <button role="tab" class:active={responseTab === 'messages'} aria-selected={responseTab === 'messages'} tabindex={responseTab === 'messages' ? 0 : -1} onclick={() => (responseTab = 'messages')} type="button">
+    <div class="tab-bar response-tabs sse-tabs" role="tablist" use:tabListKeyboard>
+      <button class="tab" role="tab" class:active={responseTab === 'messages'} aria-selected={responseTab === 'messages'} tabindex={responseTab === 'messages' ? 0 : -1} onclick={() => (responseTab = 'messages')} type="button">
         Messages{#if messages.length}<span class="badge">{messages.length}</span>{/if}
       </button>
-      <button role="tab" class:active={responseTab === 'headers'} aria-selected={responseTab === 'headers'} tabindex={responseTab === 'headers' ? 0 : -1} onclick={() => (responseTab = 'headers')} type="button">
+      <button class="tab" role="tab" class:active={responseTab === 'headers'} aria-selected={responseTab === 'headers'} tabindex={responseTab === 'headers' ? 0 : -1} onclick={() => (responseTab = 'headers')} type="button">
         Headers{#if headers.length}<span class="badge">{headers.length}</span>{/if}
       </button>
     </div>
 
     {#if responseTab === 'messages' && searchOpen}
-      <div class="response-search-box">
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+      <div class="field field-md field-wrap response-search-box">
+        <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none" aria-hidden="true">
           <circle cx="5.8" cy="5.8" r="3.8" stroke="currentColor" stroke-width="1.3"/>
           <path d="M8.7 8.7l2.7 2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
         </svg>
@@ -357,7 +357,7 @@
     {#if responseTab === 'messages'}
       <div class="ws-filter-menu" onfocusout={closeFilterMenuOnFocusOut}>
         <button
-          class="ws-filter-button"
+          class="field select-trigger ws-filter-button"
           class:open={filterMenuOpen}
           type="button"
           aria-haspopup="listbox"
@@ -365,14 +365,14 @@
           onclick={() => (filterMenuOpen = !filterMenuOpen)}
         >
           {filterLabel()}
-          <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+          <svg width="0.625rem" height="0.375rem" viewBox="0 0 10 6" fill="none" aria-hidden="true">
             <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
         </button>
         {#if filterMenuOpen}
-          <div class="ws-filter-list" role="listbox" aria-label="Message filter">
+          <div class="menu ws-filter-list" role="listbox" aria-label="Message filter">
             {#each messageFilterOptions as option, eachIndex (eachIndex)}
-              <button
+              <button class="menu-item"
                 class:active={messageFilter === option.value}
                 role="option"
                 aria-selected={messageFilter === option.value}
@@ -390,24 +390,24 @@
 
     <div class="resp-actions">
       {#if responseTab === 'messages'}
-        <button class="btn-icon" title="Search response" aria-label="Search response" aria-pressed={searchOpen} onclick={() => (searchOpen = !searchOpen)} type="button">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+        <button class="btn btn-icon" title="Search response" aria-label="Search response" aria-pressed={searchOpen} onclick={() => (searchOpen = !searchOpen)} type="button">
+          <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none">
             <circle cx="5.8" cy="5.8" r="3.8" stroke="currentColor" stroke-width="1.3"/>
             <path d="M8.7 8.7l2.7 2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
           </svg>
         </button>
       {/if}
       {#if canRestore}
-        <button class="sse-clear-btn sse-restore-btn" type="button" onclick={onRestore}>
-          <svg width="12" height="12" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+        <button class="btn btn-secondary btn-sm sse-clear-btn sse-restore-btn" type="button" onclick={onRestore}>
+          <svg width="0.75rem" height="0.75rem" viewBox="0 0 13 13" fill="none" aria-hidden="true">
             <path d="M3 6a3.5 3.5 0 116.1 2.3M3 6H1.5M3 6V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           Restore
         </button>
       {/if}
       {#if responseTab === 'messages'}
-        <button class="btn-icon" type="button" onclick={onClear} disabled={messages.length === 0} title="Clear messages" aria-label="Clear messages">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+        <button class="btn btn-icon" type="button" onclick={onClear} disabled={messages.length === 0} title="Clear messages" aria-label="Clear messages">
+          <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none" aria-hidden="true">
             <path d="M2 3h9M5 3V2h3v1M4 3v7a1 1 0 001 1h3a1 1 0 001-1V3"
               stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
@@ -423,8 +423,8 @@
     <div class="sse-event-list ws-message-list" bind:this={listEl} onscroll={onScroll} role="log" aria-live="polite">
       {#if !atTop && newMessagesBadge > 0}
         <div class="sio-new-top-wrap">
-          <button class="sse-new-messages-btn" type="button" onclick={jumpToTop}>
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <button class="btn btn-primary btn-sm sse-new-messages-btn" type="button" onclick={jumpToTop}>
+            <svg width="0.75rem" height="0.75rem" viewBox="0 0 12 12" fill="none" aria-hidden="true">
               <path d="M6 10V2M3 5l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             {newMessagesBadge > 999 ? '999+' : newMessagesBadge} new message{newMessagesBadge !== 1 ? 's' : ''}
@@ -433,16 +433,16 @@
       {/if}
 
       {#if messages.length === 0}
-        <div class="sse-empty-state">
+        <div class="empty-state sse-empty-state">
           {#if status === 'connected'}
-            <span>No messages yet</span>
+            <span class="empty-state-title">No messages yet</span>
           {:else}
             <span>Connect to send and receive messages</span>
           {/if}
         </div>
       {:else if filteredMessages.length === 0}
-        <div class="sse-empty-state">
-          <span>{filterEmptyLabel()}</span>
+        <div class="empty-state sse-empty-state">
+          <span class="empty-state-title">{filterEmptyLabel()}</span>
         </div>
       {:else}
         {#each visibleReversedMessages as message (message.id || message.timestamp)}
@@ -470,15 +470,15 @@
                 aria-hidden="true"
               >
                 {#if message.direction === 'outgoing'}
-                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                  <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none">
                     <path d="M6.5 11V2M3 5l3.5-3L10 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 {:else if message.direction === 'incoming'}
-                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                  <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none">
                     <path d="M6.5 2v9M3 8l3.5 3L10 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 {:else}
-                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                  <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none">
                     <circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/>
                     <path d="M6.5 4v3.5M6.5 9.5v.3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
                   </svg>
@@ -490,7 +490,7 @@
 
               {#if hasExpandable}
                 <span class="sse-expand-chevron" style="transform: rotate({expanded ? 180 : 0}deg)" aria-hidden="true">
-                  <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
+                  <svg width="0.625rem" height="0.375rem" viewBox="0 0 10 6" fill="none">
                     <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                   </svg>
                 </span>
@@ -508,13 +508,13 @@
                       {messagePreview(message)}
                     </div>
 
-                    <div class="rt-detail-section-title">Handshake Details</div>
+                    <div class="rt-detail-section-title">Handshake details</div>
                     <div class="rt-detail-row">
                       <span class="rt-detail-key">Request URL</span>
                       <span class="rt-detail-val">{message.handshake?.url ?? ''}</span>
                     </div>
                     <div class="rt-detail-row">
-                      <span class="rt-detail-key">Request Method</span>
+                      <span class="rt-detail-key">Request method</span>
                       <span class="rt-detail-val rt-detail-method">{message.handshake?.method ?? 'GET'}</span>
                     </div>
                     {#if detailStatusCode(message)}
@@ -536,7 +536,7 @@
                     {/if}
 
                     {#if message.handshake?.requestHeaders && message.handshake.requestHeaders.length > 0}
-                      <div class="rt-detail-section-title">Request Headers</div>
+                      <div class="rt-detail-section-title">Request headers</div>
                       {#each message.handshake.requestHeaders as h, eachIndex (eachIndex)}
                         <div class="rt-detail-header-row">
                           <span class="rt-detail-hkey">{h.key}</span>
@@ -546,7 +546,7 @@
                     {/if}
 
                     {#if message.handshake?.responseHeaders && message.handshake.responseHeaders.length > 0}
-                      <div class="rt-detail-section-title">Response Headers</div>
+                      <div class="rt-detail-section-title">Response headers</div>
                       {#each message.handshake.responseHeaders as h, eachIndex (eachIndex)}
                         <div class="rt-detail-header-row">
                           <span class="rt-detail-hkey">{h.key}</span>
@@ -565,7 +565,7 @@
         {/each}
         {#if hiddenMessageCount > 0}
           <div class="sse-pagination-row">
-            <button type="button" onclick={() => (visibleMessageCount = Math.min(filteredMessages.length, visibleMessageCount + REALTIME_PAGE_SIZE))}>
+            <button class="btn btn-secondary btn-sm" type="button" onclick={() => (visibleMessageCount = Math.min(filteredMessages.length, visibleMessageCount + REALTIME_PAGE_SIZE))}>
               Load {Math.min(REALTIME_PAGE_SIZE, hiddenMessageCount).toLocaleString()} older
             </button>
             <span>Showing {visibleReversedMessages.length.toLocaleString()} of {filteredMessages.length.toLocaleString()}</span>
@@ -583,7 +583,7 @@
           </div>
         {/each}
       {:else}
-        <div class="sse-empty-state"><span>No response headers yet</span></div>
+        <div class="empty-state sse-empty-state"><span class="empty-state-title">No response headers yet</span></div>
       {/if}
     </div>
   {/if}

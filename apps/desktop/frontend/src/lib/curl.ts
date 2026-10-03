@@ -34,7 +34,7 @@ type CurlRequest = {
   formData: CurlRow[];
 };
 
-function shellQuote(value: string): string {
+export function shellQuote(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
@@ -157,6 +157,8 @@ export function parseCurl(input: string): ParsedCurl {
   const getQueryParts: string[] = [];
   let explicitMethod = false;
   let useGet = false;
+  let sentAsForm = false;
+  let sentAsJson = false;
 
   let i = 1;
   while (i < tokens.length) {
@@ -166,6 +168,7 @@ export function parseCurl(input: string): ParsedCurl {
     const url = readOptionValue(tokens, i, ['--url']);
     const cookie = readOptionValue(tokens, i, ['-b', '--cookie']);
     const data = readOptionValue(tokens, i, ['-d', '--data', '--data-ascii', '--data-raw']);
+    const json = readOptionValue(tokens, i, ['--json']);
     const dataBinary = readOptionValue(tokens, i, ['--data-binary']);
     const dataUrlencode = readOptionValue(tokens, i, ['--data-urlencode']);
     const form = readOptionValue(tokens, i, ['-F', '--form']);
@@ -193,15 +196,34 @@ export function parseCurl(input: string): ParsedCurl {
       i = url.index;
     } else if (cookie) {
       if (looksLikeCookieHeader(cookie.value)) {
-        result.headers!.push({ key: 'Cookie', value: cookie.value.trim() });
+        const existing = result.headers!.find(h => h.key.toLowerCase() === 'cookie');
+        if (existing) existing.value = `${existing.value}; ${cookie.value.trim()}`;
+        else result.headers!.push({ key: 'Cookie', value: cookie.value.trim() });
       }
       i = cookie.index;
     } else if (data) {
-      result.body = [result.body, data.value].filter(Boolean).join('&');
-      result.bodyType = result.bodyType ?? 'text';
-      if (data.value && !data.value.startsWith('@')) getQueryParts.push(data.value);
+      if (data.value.startsWith('@') && result.body === undefined && data.value.length > 1) {
+        result.bodyType = 'binary';
+        result.bodyFilePath = data.value.slice(1);
+      } else {
+        result.body = [result.body, data.value].filter(Boolean).join('&');
+        result.bodyType = result.bodyType === 'binary' ? 'text' : result.bodyType ?? 'text';
+        if (data.value) getQueryParts.push(data.value);
+      }
+      sentAsForm = true;
       if (!explicitMethod && (!result.method || result.method === 'GET')) result.method = 'POST';
       i = data.index;
+    } else if (json) {
+      if (json.value.startsWith('@') && result.body === undefined && json.value.length > 1) {
+        result.bodyType = 'binary';
+        result.bodyFilePath = json.value.slice(1);
+      } else {
+        result.body = (result.body ?? '') + json.value;
+        result.bodyType = 'json';
+      }
+      sentAsJson = true;
+      if (!explicitMethod && (!result.method || result.method === 'GET')) result.method = 'POST';
+      i = json.index;
     } else if (dataBinary) {
       const v = dataBinary.value;
       if (v.startsWith('@')) {
@@ -279,16 +301,30 @@ export function parseCurl(input: string): ParsedCurl {
     if (!explicitMethod) result.method = 'GET';
   }
 
+  const hasHeader = (name: string) => result.headers!.some(h => h.key.toLowerCase() === name);
+  if (sentAsJson) {
+    if (!hasHeader('content-type')) result.headers!.push({ key: 'Content-Type', value: 'application/json' });
+    if (!hasHeader('accept')) result.headers!.push({ key: 'Accept', value: 'application/json' });
+  } else if (sentAsForm && result.bodyType === 'text' && !hasHeader('content-type')) {
+    if (looksUrlencoded(result.body ?? '')) result.bodyType = 'urlencoded';
+    else result.headers!.push({ key: 'Content-Type', value: 'application/x-www-form-urlencoded' });
+  }
+
   if (result.body && result.bodyType === 'text') {
     const ct = result.headers?.find(h => h.key.toLowerCase() === 'content-type')?.value ?? '';
     if (ct.includes('application/json')) result.bodyType = 'json';
     else if (ct.includes('application/javascript') || ct.includes('text/javascript')) result.bodyType = 'text';
     else if (ct.includes('application/xml') || ct.includes('text/xml')) result.bodyType = 'xml';
     else if (ct.includes('text/html')) result.bodyType = 'html';
-    else if (ct.includes('application/x-www-form-urlencoded')) result.bodyType = 'urlencoded';
+    else if (ct.includes('application/x-www-form-urlencoded') && looksUrlencoded(result.body)) result.bodyType = 'urlencoded';
   }
 
   return result;
+}
+
+function looksUrlencoded(body: string) {
+  if (!body || /[\s{}[\]"<>]/.test(body)) return false;
+  return body.split('&').every(part => /^[^=&]+=[^=]*$/.test(part));
 }
 
 const IGNORED_VALUE_FLAGS = [
@@ -394,6 +430,44 @@ function parseDataUrlencode(value: string): { key: string; value: string; isFile
   return null;
 }
 
+const ANSI_C_ESCAPES: Record<string, string> = {
+  a: '\x07', b: '\b', e: '\x1b', E: '\x1b', f: '\f', n: '\n', r: '\r', t: '\t', v: '\v',
+  '\\': '\\', "'": "'", '"': '"', '?': '?',
+};
+
+function readAnsiCQuoted(input: string, start: number): { value: string; next: number } {
+  let value = '';
+  let i = start;
+  while (i < input.length && input[i] !== "'") {
+    if (input[i] !== '\\' || i + 1 >= input.length) {
+      value += input[i];
+      i++;
+      continue;
+    }
+    const next = input[i + 1];
+    if (next in ANSI_C_ESCAPES) {
+      value += ANSI_C_ESCAPES[next];
+      i += 2;
+      continue;
+    }
+    const hex = next === 'x' ? /^[0-9a-fA-F]{1,2}/.exec(input.slice(i + 2)) : null;
+    const unicode = next === 'u' ? /^[0-9a-fA-F]{1,4}/.exec(input.slice(i + 2)) : next === 'U' ? /^[0-9a-fA-F]{1,8}/.exec(input.slice(i + 2)) : null;
+    const octal = /^[0-7]{1,3}/.exec(input.slice(i + 1));
+    if (hex || unicode) {
+      const digits = (hex ?? unicode)![0];
+      value += String.fromCodePoint(Number.parseInt(digits, 16));
+      i += 2 + digits.length;
+    } else if (octal) {
+      value += String.fromCharCode(Number.parseInt(octal[0], 8));
+      i += 1 + octal[0].length;
+    } else {
+      value += `\\${next}`;
+      i += 2;
+    }
+  }
+  return { value, next: i < input.length ? i + 1 : i };
+}
+
 function tokenise(input: string): string[] {
   const tokens: string[] = [];
   let i = 0;
@@ -412,6 +486,12 @@ function tokenise(input: string): string[] {
       continue;
     }
     inToken = true;
+    if (ch === '$' && input[i + 1] === "'") {
+      const quoted = readAnsiCQuoted(input, i + 2);
+      token += quoted.value;
+      i = quoted.next;
+      continue;
+    }
     if (ch === "'") {
       i++;
       while (i < input.length && input[i] !== "'") {

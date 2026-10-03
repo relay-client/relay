@@ -2,10 +2,21 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
+import { latestReleaseNotes } from './src/lib/whatsNew';
 
 const CHANGELOG_PATH = resolve(import.meta.dirname, '../../../CHANGELOG.md');
 const CHANGELOG_ID = 'virtual:relay-changelog';
 const CHANGELOG_RESOLVED_ID = '\0' + CHANGELOG_ID;
+const CHANGELOG_META_ID = 'virtual:relay-changelog-meta';
+const CHANGELOG_META_RESOLVED_ID = '\0' + CHANGELOG_META_ID;
+
+function readChangelog(): string {
+  try {
+    return readFileSync(CHANGELOG_PATH, 'utf8');
+  } catch {
+    return '';
+  }
+}
 
 export default defineConfig({
   plugins: [
@@ -13,16 +24,15 @@ export default defineConfig({
     {
       name: 'relay-changelog',
       resolveId(id) {
-        return id === CHANGELOG_ID ? CHANGELOG_RESOLVED_ID : null;
+        if (id === CHANGELOG_ID) return CHANGELOG_RESOLVED_ID;
+        if (id === CHANGELOG_META_ID) return CHANGELOG_META_RESOLVED_ID;
+        return null;
       },
       load(id) {
-        if (id !== CHANGELOG_RESOLVED_ID) return null;
+        if (id !== CHANGELOG_RESOLVED_ID && id !== CHANGELOG_META_RESOLVED_ID) return null;
         this.addWatchFile(CHANGELOG_PATH);
-        let markdown = '';
-        try {
-          markdown = readFileSync(CHANGELOG_PATH, 'utf8');
-        } catch {
-        }
+        const markdown = readChangelog();
+        if (id === CHANGELOG_META_RESOLVED_ID) return `export const hasReleaseNotes = ${Boolean(latestReleaseNotes(markdown))};`;
         return `export default ${JSON.stringify(markdown)};`;
       }
     },

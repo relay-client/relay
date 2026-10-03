@@ -970,6 +970,22 @@ export namespace model {
 		    return a;
 		}
 	}
+	export class GraphQLPayload {
+	    query: string;
+	    variables: string;
+	    operationName: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new GraphQLPayload(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.query = source["query"];
+	        this.variables = source["variables"];
+	        this.operationName = source["operationName"];
+	    }
+	}
 	export class GrpcMessage {
 	    index: number;
 	    direction?: string;
@@ -1296,6 +1312,9 @@ export namespace model {
 	    secretEnvironmentValues: string[];
 	    collectionVariables: Record<string, string>;
 	    iterationData?: Record<string, string>;
+	    resolveTemplates?: boolean;
+	    templateValues?: Record<string, string>;
+	    graphql?: GraphQLPayload;
 	    proxyUrl: string;
 	    proxyMode: string;
 	    proxyBypass: string;
@@ -1368,6 +1387,9 @@ export namespace model {
 	        this.secretEnvironmentValues = source["secretEnvironmentValues"];
 	        this.collectionVariables = source["collectionVariables"];
 	        this.iterationData = source["iterationData"];
+	        this.resolveTemplates = source["resolveTemplates"];
+	        this.templateValues = source["templateValues"];
+	        this.graphql = this.convertValues(source["graphql"], GraphQLPayload);
 	        this.proxyUrl = source["proxyUrl"];
 	        this.proxyMode = source["proxyMode"];
 	        this.proxyBypass = source["proxyBypass"];
@@ -1517,6 +1539,7 @@ export namespace model {
 	    skipped?: boolean;
 	    skipReason?: string;
 	    warnings?: string[];
+	    browserHiddenHeaders?: string[];
 	    previewImageBase64?: string;
 	    previewMediaType?: string;
 	    bodyIsBinary?: boolean;
@@ -1546,6 +1569,7 @@ export namespace model {
 	        this.skipped = source["skipped"];
 	        this.skipReason = source["skipReason"];
 	        this.warnings = source["warnings"];
+	        this.browserHiddenHeaders = source["browserHiddenHeaders"];
 	        this.previewImageBase64 = source["previewImageBase64"];
 	        this.previewMediaType = source["previewMediaType"];
 	        this.bodyIsBinary = source["bodyIsBinary"];

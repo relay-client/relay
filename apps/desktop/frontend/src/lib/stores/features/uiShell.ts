@@ -10,6 +10,7 @@ import {
 } from '../../utils';
 import type { SettingsTab, TopView } from '../ui';
 import { shortcutComboLabel } from './preferences';
+import { toLogicalPx } from '../../uiScale';
 
 const SIDEBAR_MIN_WIDTH = 260;
 const SIDEBAR_MAX_WIDTH = 460;
@@ -111,6 +112,7 @@ type UiShellHost = {
   focusRequestUrl: () => void;
   focusSidebarSearch: () => void;
   isEditableTarget: (target: EventTarget | null) => boolean;
+  isKeyboardWidgetTarget: (target: EventTarget | null) => boolean;
   isShortcutAllowedInEditable: (id: ShortcutId) => boolean;
   openGlobalSearch: () => void;
   openSettings: (tab?: SettingsTab) => void;
@@ -122,6 +124,9 @@ type UiShellHost = {
   saveActiveRequest: () => Promise<unknown>;
   saveEnvironment: () => Promise<unknown>;
   setShortcut: (id: ShortcutId, combo: string) => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetZoom: () => void;
   shortcutForEvent: (event: KeyboardEvent) => ShortcutId | null;
   showWorkspaceBlockedToast: (action?: string, workspaceId?: string) => void;
   guardWorkspaceWritable: (action?: string) => boolean;
@@ -251,7 +256,7 @@ export const uiShellFeature = {
 
   startColResize(this: UiShellHost, col: ColumnResizeTarget, e: MouseEvent) {
     const table = (e.currentTarget as HTMLElement | null)?.closest('.kv-table') as HTMLElement | null;
-    const tableW = table?.clientWidth ?? Math.max(520, window.innerWidth - this.sidebarWidth - 80);
+    const tableW = table ? toLogicalPx(table.clientWidth) : Math.max(520, toLogicalPx(window.innerWidth) - this.sidebarWidth - 80);
     const minKey = 110; const minVal = 140; const minType = 80; const minDesc = 160;
     const fixedW = 32 + 28;
     const keyW = Math.max(minKey, this.kvKeyW);
@@ -278,25 +283,25 @@ export const uiShellFeature = {
 
   onWindowMouseMove(this: UiShellHost, e: MouseEvent) {
     if (this.sidebarResizing) {
-      this.sidebarWidth = clamp(this.sidebarResizeStartW + (e.clientX - this.sidebarResizeStartX), SIDEBAR_MIN_WIDTH, SIDEBAR_MAX_WIDTH);
+      this.sidebarWidth = clamp(this.sidebarResizeStartW + toLogicalPx(e.clientX - this.sidebarResizeStartX), SIDEBAR_MIN_WIDTH, SIDEBAR_MAX_WIDTH);
       if (this.codePanelOpen) {
         const sidebarWidth = this.sidebarHidden ? 0 : this.sidebarWidth;
-        this.codePanelWidth = Math.min(this.codePanelWidth, codePanelMaxWidth(window.innerWidth, sidebarWidth));
+        this.codePanelWidth = Math.min(this.codePanelWidth, codePanelMaxWidth(toLogicalPx(window.innerWidth), sidebarWidth));
       }
     }
-    if (this.panelResizing) this.requestPanelHeight = clamp(this.panelResizeStartH + (e.clientY - this.panelResizeStartY), 120, window.innerHeight - 220);
+    if (this.panelResizing) this.requestPanelHeight = clamp(this.panelResizeStartH + toLogicalPx(e.clientY - this.panelResizeStartY), 120, toLogicalPx(window.innerHeight) - 220);
     if (this.splitResizing && this.splitResizeWidth > 0) {
       const delta = (e.clientX - this.splitResizeStartX) / this.splitResizeWidth;
       this.requestSplitRatio = clamp(this.splitResizeStartRatio + delta, SPLIT_MIN_RATIO, SPLIT_MAX_RATIO);
     }
     if (this.codePanelResizing) {
       const sidebarWidth = this.sidebarHidden ? 0 : this.sidebarWidth;
-      const maxW = codePanelMaxWidth(window.innerWidth, sidebarWidth);
-      this.codePanelWidth = clamp(this.codePanelResizeStartW + (this.codePanelResizeStartX - e.clientX), CODE_PANEL_MIN_WIDTH, maxW);
+      const maxW = codePanelMaxWidth(toLogicalPx(window.innerWidth), sidebarWidth);
+      this.codePanelWidth = clamp(this.codePanelResizeStartW + toLogicalPx(this.codePanelResizeStartX - e.clientX), CODE_PANEL_MIN_WIDTH, maxW);
     }
     if (this.colResizing) {
       const minW = this.colResizing === 'key' ? 110 : this.colResizing === 'val' ? 140 : this.colResizing === 'type' ? 80 : 160;
-      const newW = clamp(this.colResizeStartW + (e.clientX - this.colResizeStartX), minW, this.colResizeMaxW);
+      const newW = clamp(this.colResizeStartW + toLogicalPx(e.clientX - this.colResizeStartX), minW, this.colResizeMaxW);
       if (this.colResizing === 'key') this.kvKeyW = newW;
       else if (this.colResizing === 'val') this.kvValW = newW;
       else if (this.colResizing === 'type') this.kvTypeW = newW;
@@ -315,14 +320,14 @@ export const uiShellFeature = {
   onPanelDividerKeydown(this: UiShellHost, e: KeyboardEvent) {
     if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
     e.preventDefault();
-    this.requestPanelHeight = clamp(this.requestPanelHeight + (e.key === 'ArrowDown' ? 16 : -16), 120, window.innerHeight - 220);
+    this.requestPanelHeight = clamp(this.requestPanelHeight + (e.key === 'ArrowDown' ? 16 : -16), 120, toLogicalPx(window.innerHeight) - 220);
   },
 
   onCodePanelDividerKeydown(this: UiShellHost, e: KeyboardEvent) {
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
     e.preventDefault();
     const sidebarWidth = this.sidebarHidden ? 0 : this.sidebarWidth;
-    const maxW = codePanelMaxWidth(window.innerWidth, sidebarWidth);
+    const maxW = codePanelMaxWidth(toLogicalPx(window.innerWidth), sidebarWidth);
     this.codePanelWidth = clamp(this.codePanelWidth + (e.key === 'ArrowLeft' ? 16 : -16), CODE_PANEL_MIN_WIDTH, maxW);
   },
 
@@ -364,12 +369,17 @@ export const uiShellFeature = {
     return isEditable(target) || isEditable(document.activeElement);
   },
 
+  isKeyboardWidgetTarget(this: UiShellHost, target: EventTarget | null) {
+    return target instanceof Element
+      && Boolean(target.closest('[role="textbox"], [role="dialog"], [role="tablist"], [role="listbox"], [role="menu"], [role="radiogroup"]'));
+  },
+
   isShortcutAllowedInEditable(this: UiShellHost, id: ShortcutId) {
-    return ['close-tab', 'force-close-tab', 'send-request', 'save-request', 'request-url', 'search', 'settings', 'toggle-right-sidebar'].includes(id);
+    return ['close-tab', 'force-close-tab', 'send-request', 'save-request', 'request-url', 'search', 'settings', 'toggle-right-sidebar', 'zoom-in', 'zoom-out', 'zoom-reset'].includes(id);
   },
 
   async runShortcut(this: UiShellHost, id: ShortcutId) {
-    if (this.workspaceBlocked && !['close-tab', 'force-close-tab', 'settings', 'shortcut-help', 'toggle-left-sidebar', 'toggle-right-sidebar'].includes(id)) {
+    if (this.workspaceBlocked && !['close-tab', 'force-close-tab', 'settings', 'shortcut-help', 'toggle-left-sidebar', 'toggle-right-sidebar', 'zoom-in', 'zoom-out', 'zoom-reset'].includes(id)) {
       this.showWorkspaceBlockedToast('Workspace shortcuts');
       return;
     }
@@ -404,6 +414,9 @@ export const uiShellFeature = {
     else if (id === 'shortcut-help') this.openSettings('shortcuts');
     else if (id === 'toggle-left-sidebar') this.sidebarHidden = !this.sidebarHidden;
     else if (id === 'toggle-right-sidebar' && this.codePanelAvailable) this.codePanelOpen = !this.codePanelOpen;
+    else if (id === 'zoom-in') this.zoomIn();
+    else if (id === 'zoom-out') this.zoomOut();
+    else if (id === 'zoom-reset') this.resetZoom();
   },
 
   async onKeydown(this: UiShellHost, e: KeyboardEvent) {
@@ -441,6 +454,7 @@ export const uiShellFeature = {
     const shortcutId = this.shortcutForEvent(e);
     if (shortcutId) {
       if (this.isEditableTarget(e.target) && !this.isShortcutAllowedInEditable(shortcutId)) return;
+      if (!e.metaKey && !e.ctrlKey && !e.altKey && this.isKeyboardWidgetTarget(e.target)) return;
       if (shortcutId === 'copy-item') {
         if (window.getSelection()?.toString()) return;
         const el = e.target as HTMLElement | null;

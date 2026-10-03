@@ -88,6 +88,8 @@
       {appRuntime}
       appTheme={vm.appTheme}
       autosave={vm.autosave}
+      startupView={vm.startupView}
+      setStartupView={vm.setStartupView}
       scriptEngine={vm.scriptEngine}
       setScriptEngine={vm.setScriptEngine}
       shortcutGroups={vm.shortcutGroups}
@@ -169,12 +171,12 @@
 {#if vm.yamlEditorOpen}
   <div class="modal-overlay" role="presentation">
     <div class="modal yaml-editor-modal" role="dialog" aria-modal="true" aria-labelledby="yaml-editor-title" tabindex="-1">
-      <div class="modal-header">
+      <div class="modal-head modal-header">
         <div>
-          <span id="yaml-editor-title">Edit YAML</span>
+          <span class="modal-title" id="yaml-editor-title">Edit YAML</span>
           <small>{vm.yamlEditorPath}</small>
         </div>
-        <button class="modal-close" type="button" onclick={vm.closeWorkspaceYAMLEditor} aria-label="Close">&times;</button>
+        <button class="btn btn-ghost btn-icon modal-close" type="button" onclick={vm.closeWorkspaceYAMLEditor} aria-label="Close">&times;</button>
       </div>
       {#if vm.yamlEditorLoading}
         <div class="yaml-editor-loading">Loading YAML&hellip;</div>
@@ -189,9 +191,9 @@
       {#if vm.yamlEditorError}
         <div class="modal-error">{vm.yamlEditorError}</div>
       {/if}
-      <div class="modal-footer">
-        <button class="btn-secondary" type="button" onclick={vm.closeWorkspaceYAMLEditor} disabled={vm.yamlEditorSaving}>Cancel</button>
-        <button class="btn-primary" type="button" onclick={vm.saveWorkspaceYAMLEditor} disabled={vm.yamlEditorLoading || vm.yamlEditorSaving}>
+      <div class="modal-foot modal-footer">
+        <button class="btn btn-secondary btn-lg" type="button" onclick={vm.closeWorkspaceYAMLEditor} disabled={vm.yamlEditorSaving}>Cancel</button>
+        <button class="btn btn-primary btn-lg" type="button" onclick={vm.saveWorkspaceYAMLEditor} disabled={vm.yamlEditorLoading || vm.yamlEditorSaving}>
           {vm.yamlEditorSaving ? 'Saving\u2026' : 'Save YAML'}
         </button>
       </div>

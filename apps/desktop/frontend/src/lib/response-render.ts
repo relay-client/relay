@@ -83,46 +83,63 @@ function normalizeRenderMode(mode: ResponseRenderMode | boolean): ResponseRender
   return mode;
 }
 
-export function markSearch(text: string, query: string, counter: { value: number }, currentIndex: number) {
-  const needle = query.trim();
-  if (!needle) return escapeHtml(text);
-  const lowerText = text.toLowerCase();
-  const lowerNeedle = needle.toLowerCase();
-  let pos = 0;
-  let html = '';
-  while (true) {
-    const idx = lowerText.indexOf(lowerNeedle, pos);
-    if (idx === -1) { html += escapeHtml(text.slice(pos)); return html; }
-    html += escapeHtml(text.slice(pos, idx));
-    const matchText = text.slice(idx, idx + needle.length);
-    const isCurrent = counter.value === currentIndex;
-    html += `<mark class="rsp-search-hit${isCurrent ? ' rsp-search-current' : ''}">${escapeHtml(matchText)}</mark>`;
-    counter.value += 1;
-    pos = idx + needle.length;
+type SearchMarks = { ranges: Array<{ start: number; end: number; index: number }>; currentIndex: number };
+
+function lineSearchMarks(line: string, query: string, counter: { value: number }, currentIndex: number): SearchMarks {
+  const needle = query.trim().toLowerCase();
+  const ranges: SearchMarks['ranges'] = [];
+  if (needle) {
+    const lower = line.toLowerCase();
+    let pos = 0;
+    while (true) {
+      const idx = lower.indexOf(needle, pos);
+      if (idx === -1) break;
+      ranges.push({ start: idx, end: idx + needle.length, index: counter.value });
+      counter.value += 1;
+      pos = idx + needle.length;
+    }
   }
+  return { ranges, currentIndex };
 }
 
-function renderJsonLine(line: string, query: string, counter: { value: number }, currentIndex: number) {
+function markSegment(text: string, offset: number, marks: SearchMarks) {
+  const end = offset + text.length;
+  let html = '';
+  let pos = 0;
+  for (const range of marks.ranges) {
+    if (range.end <= offset + pos) continue;
+    if (range.start >= end) break;
+    const from = Math.max(range.start, offset) - offset;
+    const to = Math.min(range.end, end) - offset;
+    if (from > pos) html += escapeHtml(text.slice(pos, from));
+    html += `<mark class="rsp-search-hit${range.index === marks.currentIndex ? ' rsp-search-current' : ''}">${escapeHtml(text.slice(from, to))}</mark>`;
+    pos = to;
+  }
+  if (pos < text.length) html += escapeHtml(text.slice(pos));
+  return html;
+}
+
+function renderJsonLine(line: string, marks: SearchMarks) {
   JSON_TOKEN_RE.lastIndex = 0;
   let html = '';
   let last = 0;
   let match: RegExpExecArray | null;
   while ((match = JSON_TOKEN_RE.exec(line)) !== null) {
-    if (match.index > last) html += markSearch(line.slice(last, match.index), query, counter, currentIndex);
+    if (match.index > last) html += markSegment(line.slice(last, match.index), last, marks);
     const token = match[0];
-    html += `<span class="${jsonTokenClass(token)}">${markSearch(token, query, counter, currentIndex)}</span>`;
+    html += `<span class="${jsonTokenClass(token)}">${markSegment(token, match.index, marks)}</span>`;
     last = match.index + token.length;
   }
-  if (last < line.length) html += markSearch(line.slice(last), query, counter, currentIndex);
+  if (last < line.length) html += markSegment(line.slice(last), last, marks);
   return html || '&nbsp;';
 }
 
-function renderHtmlTag(token: string, query: string, counter: { value: number }, currentIndex: number) {
+function renderHtmlTag(token: string, offset: number, marks: SearchMarks) {
   if (/^<!--/.test(token) || /^<!\[CDATA\[/.test(token)) {
-    return `<span class="hc">${markSearch(token, query, counter, currentIndex)}</span>`;
+    return `<span class="hc">${markSegment(token, offset, marks)}</span>`;
   }
   if (/^<!/.test(token) || /^<\?/.test(token)) {
-    return `<span class="hm">${markSearch(token, query, counter, currentIndex)}</span>`;
+    return `<span class="hm">${markSegment(token, offset, marks)}</span>`;
   }
 
   const partRE = /(\s+|<\/?|\/?>|=|"[^"]*"|'[^']*'|[^\s=<>"']+)/g;
@@ -134,12 +151,12 @@ function renderHtmlTag(token: string, query: string, counter: { value: number },
   let valuePending = false;
 
   while ((match = partRE.exec(token)) !== null) {
-    if (match.index > last) html += markSearch(token.slice(last, match.index), query, counter, currentIndex);
+    if (match.index > last) html += markSegment(token.slice(last, match.index), offset + last, marks);
     const part = match[0];
     let className = '';
 
     if (/^\s+$/.test(part)) {
-      html += markSearch(part, query, counter, currentIndex);
+      html += markSegment(part, offset + match.index, marks);
       last = match.index + part.length;
       continue;
     }
@@ -160,27 +177,27 @@ function renderHtmlTag(token: string, query: string, counter: { value: number },
       className = 'ha';
     }
 
-    html += `<span class="${className}">${markSearch(part, query, counter, currentIndex)}</span>`;
+    html += `<span class="${className}">${markSegment(part, offset + match.index, marks)}</span>`;
     last = match.index + part.length;
   }
 
-  if (last < token.length) html += markSearch(token.slice(last), query, counter, currentIndex);
-  return html || markSearch(token, query, counter, currentIndex);
+  if (last < token.length) html += markSegment(token.slice(last), offset + last, marks);
+  return html || markSegment(token, offset, marks);
 }
 
-function renderHtmlLine(line: string, query: string, counter: { value: number }, currentIndex: number) {
+function renderHtmlLine(line: string, marks: SearchMarks) {
   const tagRE = /(<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>|<\/?[A-Za-z][^>]*>|<![^>]*>|<\?[^>]*\?>)/g;
   let html = '';
   let last = 0;
   let match: RegExpExecArray | null;
 
   while ((match = tagRE.exec(line)) !== null) {
-    if (match.index > last) html += markSearch(line.slice(last, match.index), query, counter, currentIndex);
-    html += renderHtmlTag(match[0], query, counter, currentIndex);
+    if (match.index > last) html += markSegment(line.slice(last, match.index), last, marks);
+    html += renderHtmlTag(match[0], match.index, marks);
     last = match.index + match[0].length;
   }
 
-  if (last < line.length) html += markSearch(line.slice(last), query, counter, currentIndex);
+  if (last < line.length) html += markSegment(line.slice(last), last, marks);
   return html || '&nbsp;';
 }
 
@@ -265,11 +282,12 @@ export function renderResponseBodyLine(
 ): ResponseLine {
   const before = counter.value;
   const renderMode = normalizeRenderMode(mode);
+  const marks = lineSearchMarks(line, query, counter, currentIndex);
   const html = renderMode === 'json'
-    ? renderJsonLine(line, query, counter, currentIndex)
+    ? renderJsonLine(line, marks)
     : renderMode === 'html'
-      ? renderHtmlLine(line, query, counter, currentIndex)
-      : (markSearch(line, query, counter, currentIndex) || '&nbsp;');
+      ? renderHtmlLine(line, marks)
+      : (markSegment(line, 0, marks) || '&nbsp;');
   return {
     number,
     html,

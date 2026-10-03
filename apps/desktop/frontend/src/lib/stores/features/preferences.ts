@@ -1,6 +1,7 @@
 import { openFileDialog } from '../../backend';
 import { DEFAULT_PROXY_CONFIG, DEFAULT_REQUEST_SETTINGS, SHORTCUT_DEFINITIONS } from '../../constants';
 import { normalizeProxyConfig, proxyConfigForPersistence } from '../../proxy';
+import { loadStartupView, saveStartupView, type StartupView } from '../../startupView';
 import type { SettingsTab } from '../ui';
 import {
   applyDocumentTheme,
@@ -11,10 +12,12 @@ import {
   type AppThemeMode,
   type ThemeVariantId,
 } from '../../theme';
+import { applyUiScale, currentUiScale, saveUiScale, stepUiScale } from '../../uiScale';
 import type { HttpVersion, ProxyConfig, RequestSettings, ScriptEngine, ShortcutId, Workspace } from '../../types/models';
 
 type PreferencesHost = {
   autosave: boolean;
+  startupView: StartupView;
   scriptEngine: ScriptEngine;
   dirtyRequestIds: Set<string>;
   httpVersion: HttpVersion;
@@ -84,6 +87,7 @@ type PreferencesHost = {
   eventToCombo: (event: KeyboardEvent) => string;
   applyTheme: (theme?: AppTheme) => void;
   setTheme: (theme: AppTheme) => void;
+  setUiScale: (scale: number) => void;
 };
 
 const SETTINGS_STORAGE_KEY = 'relay.request.settings.v1';
@@ -127,6 +131,7 @@ const SHORTCUT_CODE_KEYS: Record<string, string> = {
 export function shortcutKeyFromEvent(event: Pick<KeyboardEvent, 'key' | 'code'>): string {
   const key = event.key;
   if (key === ' ' || key === 'Spacebar') return 'Space';
+  if (key === '+') return '=';
   if (key === 'Esc') return 'Escape';
   if (key.length === 1 && key >= '!' && key <= '~') return key.toUpperCase();
   const code = event.code ?? '';
@@ -364,7 +369,9 @@ export const preferencesFeature = {
   shortcutForEvent(this: PreferencesHost, event: KeyboardEvent) {
     const combo = this.eventToCombo(event);
     if (!combo) return null;
-    return SHORTCUT_DEFINITIONS.find(definition => this.shortcutCombo(definition.id) === combo)?.id ?? null;
+    const match = SHORTCUT_DEFINITIONS.find(definition => this.shortcutCombo(definition.id) === combo)?.id ?? null;
+    if (match || !event.shiftKey || !combo.endsWith('+=')) return match;
+    return this.shortcutCombo('zoom-in') === combo.replace('Shift+', '') ? 'zoom-in' : null;
   },
   setShortcut(this: PreferencesHost, id: ShortcutId, combo: string) {
     const defaultCombo = platformShortcutCombo(SHORTCUT_DEFINITIONS.find(definition => definition.id === id)?.defaultCombo ?? '', this.appRuntime);
@@ -432,6 +439,21 @@ export const preferencesFeature = {
       : { ...this.appTheme, dark: id as AppTheme['dark'] };
     this.setTheme(next);
   },
+  get uiScale(): number {
+    return currentUiScale();
+  },
+  setUiScale(this: PreferencesHost, scale: number) {
+    saveUiScale(applyUiScale(scale));
+  },
+  zoomIn(this: PreferencesHost) {
+    this.setUiScale(stepUiScale(currentUiScale(), 1));
+  },
+  zoomOut(this: PreferencesHost) {
+    this.setUiScale(stepUiScale(currentUiScale(), -1));
+  },
+  resetZoom(this: PreferencesHost) {
+    this.setUiScale(1);
+  },
   loadAutosaveSettings(this: PreferencesHost) {
     try {
       const raw = localStorage.getItem(AUTOSAVE_STORAGE_KEY);
@@ -446,6 +468,13 @@ export const preferencesFeature = {
     } else {
       void this.persistActiveRequestNow(true);
     }
+  },
+  loadStartupViewPreference(this: PreferencesHost) {
+    this.startupView = loadStartupView();
+  },
+  setStartupView(this: PreferencesHost, view: StartupView) {
+    this.startupView = view;
+    saveStartupView(view);
   },
   loadScriptEngine(this: PreferencesHost) {
     try {

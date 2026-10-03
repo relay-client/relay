@@ -65,7 +65,7 @@
 <div class="body-mode-row">
   <div class="body-mode-compact-menu" onfocusout={closeBodyModeMenuOnFocusOut}>
     <button
-      class="body-mode-compact-trigger"
+      class="field field-sm select-trigger body-mode-compact-trigger"
       class:open={bodyModeMenuOpen}
       type="button"
       aria-label="Body type"
@@ -74,14 +74,14 @@
       onclick={() => (bodyModeMenuOpen = !bodyModeMenuOpen)}
     >
       <span>{activeBodyMode.label}</span>
-      <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+      <svg width="0.625rem" height="0.375rem" viewBox="0 0 10 6" fill="none" aria-hidden="true">
         <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
       </svg>
     </button>
     {#if bodyModeMenuOpen}
-      <div class="body-mode-compact-list" role="listbox" aria-label="Body types">
+      <div class="menu body-mode-compact-list" role="listbox" aria-label="Body types">
         {#each bodyModes as item, eachIndex (eachIndex)}
-          <button
+          <button class="menu-item"
             class:active={bodyModeIs(item.mode)}
             role="option"
             aria-selected={bodyModeIs(item.mode)}
@@ -95,30 +95,25 @@
       </div>
     {/if}
   </div>
-  <div class="body-mode-segments" role="radiogroup" aria-label="Body type">
-    <label class="body-mode-label" class:active={bodyModeIs('none')}>
+  <div class="segmented body-mode-segments" role="radiogroup" aria-label="Body type">
+    <label class="segmented-item body-mode-label" class:active={bodyModeIs('none')}>
       <input type="radio" name="bodyMode" value="none" checked={bodyModeIs('none')} onchange={() => setBodyMode('none')} />
-      <span class="body-radio-mark"></span>
       None
     </label>
-    <label class="body-mode-label" class:active={bodyModeIs('form')}>
+    <label class="segmented-item body-mode-label" class:active={bodyModeIs('form')}>
       <input type="radio" name="bodyMode" value="form" checked={bodyModeIs('form')} onchange={() => setBodyMode('form')} />
-      <span class="body-radio-mark"></span>
       Form data
     </label>
-    <label class="body-mode-label" class:active={bodyModeIs('urlencoded')}>
+    <label class="segmented-item body-mode-label" class:active={bodyModeIs('urlencoded')}>
       <input type="radio" name="bodyMode" value="urlencoded" checked={bodyModeIs('urlencoded')} onchange={() => setBodyMode('urlencoded')} />
-      <span class="body-radio-mark"></span>
       URL-encoded
     </label>
-    <label class="body-mode-label" class:active={bodyModeIs('raw')}>
+    <label class="segmented-item body-mode-label" class:active={bodyModeIs('raw')}>
       <input type="radio" name="bodyMode" value="raw" checked={bodyModeIs('raw')} onchange={() => setBodyMode('raw')} />
-      <span class="body-radio-mark"></span>
       Raw
     </label>
-    <label class="body-mode-label" class:active={bodyModeIs('binary')}>
+    <label class="segmented-item body-mode-label" class:active={bodyModeIs('binary')}>
       <input type="radio" name="bodyMode" value="binary" checked={bodyModeIs('binary')} onchange={() => setBodyMode('binary')} />
-      <span class="body-radio-mark"></span>
       Binary
     </label>
   </div>
@@ -128,7 +123,7 @@
       onfocusout={closeRawTypeMenuOnFocusOut}
     >
       <button
-        class="raw-type-button"
+        class="field field-sm select-trigger raw-type-button"
         class:open={rawTypeMenuOpen}
         type="button"
         aria-haspopup="listbox"
@@ -136,14 +131,14 @@
         onclick={() => (rawTypeMenuOpen = !rawTypeMenuOpen)}
       >
         {rawTypeLabel()}
-        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+        <svg width="0.625rem" height="0.375rem" viewBox="0 0 10 6" fill="none" aria-hidden="true">
           <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
       </button>
       {#if rawTypeMenuOpen}
-        <div class="raw-type-list" role="listbox">
+        <div class="menu raw-type-list" role="listbox">
           {#each rawBodyTypes as type, eachIndex (eachIndex)}
-            <button
+            <button class="menu-item"
               class:active={rawBodyType === type}
               role="option"
               aria-selected={rawBodyType === type}
@@ -165,8 +160,6 @@
 </div>
 
 <style>
-
-
 
   .body-mode-beautify {
     display: flex;

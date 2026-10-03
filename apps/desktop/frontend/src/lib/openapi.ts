@@ -290,6 +290,10 @@ function resolveServerUrl(server: Record<string, unknown>) {
   });
 }
 
+function operationServerUrl(item: Record<string, unknown>): string {
+  return asArray(item.servers).filter(isRecord).map(resolveServerUrl).find(Boolean) ?? '';
+}
+
 function serverUrls(spec: Record<string, unknown>): string[] {
   if (Array.isArray(spec.servers)) {
     const urls = spec.servers.filter(isRecord).map(resolveServerUrl).filter(Boolean);
@@ -531,7 +535,8 @@ export function openApiImportFromSpec(specValue: unknown, collectionId: string, 
       const name = asText(operation.summary) || asText(operation.operationId) || `${method.toUpperCase()} ${path}`;
       const methodUpper = method.toUpperCase() as Method;
       const id = newRequestId();
-      const url = joinUrl(servers.length ? `{{${OPENAPI_BASE_URL_VARIABLE}}}` : '', path);
+      const ownServer = operationServerUrl(operation) || operationServerUrl(pathItem);
+      const url = joinUrl(ownServer || (servers.length ? `{{${OPENAPI_BASE_URL_VARIABLE}}}` : ''), path);
       const examples = openApiExamplesFromResponses(operation, spec, id, {
         method: methodUpper, url, params, headers, bodyType: body.bodyType, bodyContent: body.bodyContent,
       });

@@ -10,6 +10,7 @@ import type {
   SavedRequest,
 } from '../../types/models';
 import { newRequestId } from '../../utils';
+import type { RunnableHttpOptions } from './requestSerialization';
 
 const REQUEST_CANCELED_ERROR = 'Request canceled';
 
@@ -65,6 +66,7 @@ type RequestExecutionHost = {
     secretValues?: string[],
     secretKeys?: string[],
     requestId?: string,
+    options?: RunnableHttpOptions,
   ) => HttpRequest;
   send: (opts?: { downloadName?: string }) => Promise<void>;
   setActiveGrpcResponse: (response: GrpcResponse | null, requestId?: string) => void;
@@ -167,7 +169,7 @@ export const requestExecutionFeature = {
       await this.persistActiveRequestNow();
       try { await this.syncBackendEnvironment(); } catch {  }
       try { await this.syncBackendGlobals(); } catch {}
-      const serialized = this.savedRequestToRunnableHttpRequest(requestSnapshot, envValues, secretValues, secretKeys, requestId);
+      const serialized = this.savedRequestToRunnableHttpRequest(requestSnapshot, envValues, secretValues, secretKeys, requestId, { deferTemplates: true });
       let resp: HttpResponse;
       let downloadedPath = '';
       if (opts?.downloadName !== undefined) {

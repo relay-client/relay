@@ -1,4 +1,5 @@
-import { cancelHttpRequest, getEnvironment, openFileDialog, readTextFile, sendGrpcRequest, sendHttpRequest } from '../../backend';
+import { cancelHttpRequest, getEnvironment, getGlobalVariables, openFileDialog, readTextFile, sendGrpcRequest, sendHttpRequest } from '../../backend';
+import type { RunnableHttpOptions } from './requestSerialization';
 import { clampConcurrency, DEFAULT_RUNNER_CONCURRENCY, forEachWithConcurrency } from '../../concurrency';
 import type { GrpcRequest, HttpRequest, HttpResponse } from '../../backend';
 import type { Collection, CollectionRunnerResult, GrpcResponse, RequestType, SavedRequest } from '../../types/models';
@@ -53,9 +54,10 @@ type CollectionRunnerHost = {
   guardWorkspaceWritable: (action?: string) => boolean;
   folderPathMatches: (path?: string[], prefix?: string[]) => boolean;
   headerValidationErrorForRequest: (req: SavedRequest, envValues?: Record<string, string>) => string;
-  savedRequestToRunnableHttpRequest: (req: SavedRequest, envValues?: Record<string, string>, secretValues?: string[], secretKeys?: string[], requestId?: string) => HttpRequest;
+  savedRequestToRunnableHttpRequest: (req: SavedRequest, envValues?: Record<string, string>, secretValues?: string[], secretKeys?: string[], requestId?: string, options?: RunnableHttpOptions) => HttpRequest;
   savedRequestToRunnableGrpcRequest: (req: SavedRequest, envValues?: Record<string, string>, secretValues?: string[], secretKeys?: string[], requestId?: string) => GrpcRequest;
   activeEnvironmentValues: () => Record<string, string>;
+  globalVariableValues: () => Record<string, string>;
   activeSecretEnvironmentValues: () => string[];
   activeSecretEnvironmentKeys: () => string[];
   syncBackendEnvironment: () => Promise<void>;
@@ -86,8 +88,10 @@ type CollectionRunnerHost = {
   buildCollectionRunnerSummary: () => { total: number; completed: number; passed: number; failed: number; skipped: number; testsPassed: number; testsTotal: number; duration: number; allPassed: boolean };
   updateCollectionRunnerResult: (runId: string, patch: Partial<CollectionRunnerResult>) => void;
   waitForCollectionRunnerDelay: (ms: number) => Promise<void>;
-  executeCollectionRunnerRequest: (req: SavedRequest, runId: string, iteration: number, envValues: Record<string, string>, secretValues: string[], secretKeys: string[], dataRow?: RunnerDataRow) => Promise<void>;
+  executeCollectionRunnerRequest: (req: SavedRequest, runId: string, iteration: number, envValues: Record<string, string>, secretValues: string[], secretKeys: string[], dataRow?: RunnerDataRow, context?: RunnerRequestContext) => Promise<void>;
 };
+
+type RunnerRequestContext = { globals?: Record<string, string>; iterationCount?: number };
 
 export const collectionRunnerFeature = {
   collectionRunnerDefaultCollectionId(this: CollectionRunnerHost) {
@@ -372,6 +376,7 @@ export const collectionRunnerFeature = {
     secretValues: string[],
     secretKeys: string[],
     dataRow: RunnerDataRow = {},
+    context: RunnerRequestContext = {},
   ) {
     if (this.collectionRunnerCancelRequested) {
       this.updateCollectionRunnerResult(runId, { status: 'skipped' });
@@ -401,7 +406,13 @@ export const collectionRunnerFeature = {
           this.updateCollectionRunnerResult(runId, { status: 'error', error: headerError });
           return;
         }
-        const resp = await sendHttpRequest(this.savedRequestToRunnableHttpRequest(req, runnerEnvValues, secretValues, secretKeys, runnerRequestId));
+        const resp = await sendHttpRequest(this.savedRequestToRunnableHttpRequest(req, runnerEnvValues, secretValues, secretKeys, runnerRequestId, {
+          deferTemplates: true,
+          globals: context.globals,
+          iterationData: Object.keys(dataRow).length ? { ...dataRow } : undefined,
+          iteration,
+          iterationCount: context.iterationCount,
+        }));
         if (this.collectionRunnerCancelRequested && resp.error === REQUEST_CANCELED_ERROR) {
           this.updateCollectionRunnerResult(runId, { status: 'skipped', error: '' });
         } else {
@@ -451,6 +462,7 @@ export const collectionRunnerFeature = {
     this.collectionRunnerActiveRequestId = '';
     this.collectionRunnerActiveRequestIds = new Set();
     let envValues = this.activeEnvironmentValues();
+    let globals = this.globalVariableValues();
     const secretValues = this.activeSecretEnvironmentValues();
     const secretKeys = this.activeSecretEnvironmentKeys();
     try { await this.syncBackendEnvironment(); } catch {}
@@ -468,8 +480,9 @@ export const collectionRunnerFeature = {
           continue;
         }
         await forEachWithConcurrency(batch, concurrency, run =>
-          this.executeCollectionRunnerRequest(run.request, run.runId, run.iteration, envValues, secretValues, secretKeys, dataRows[run.iteration - 1] ?? {}));
+          this.executeCollectionRunnerRequest(run.request, run.runId, run.iteration, envValues, secretValues, secretKeys, dataRows[run.iteration - 1] ?? {}, { globals, iterationCount: iterations }));
         try { envValues = await getEnvironment(); } catch {}
+        try { globals = await getGlobalVariables(); } catch {}
         if (delayMs > 0 && iteration < iterations && !this.collectionRunnerCancelRequested) {
           await this.waitForCollectionRunnerDelay(delayMs);
         }
@@ -488,8 +501,9 @@ export const collectionRunnerFeature = {
             continue;
           }
         }
-        await this.executeCollectionRunnerRequest(run.request, run.runId, run.iteration, envValues, secretValues, secretKeys, dataRows[run.iteration - 1] ?? {});
+        await this.executeCollectionRunnerRequest(run.request, run.runId, run.iteration, envValues, secretValues, secretKeys, dataRows[run.iteration - 1] ?? {}, { globals, iterationCount: iterations });
         try { envValues = await getEnvironment(); } catch {}
+        try { globals = await getGlobalVariables(); } catch {}
       }
     }
     try { await this.mergeActiveEnvironmentValues(envValues); } catch {}

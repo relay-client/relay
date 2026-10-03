@@ -1,4 +1,5 @@
 <script lang="ts" module>
+  import { rem } from '../uiScale';
   let autoHeadersOpen = $state(false);
 </script>
 
@@ -137,7 +138,7 @@
   <span class="request-section-title">Headers</span>
   <span class="request-section-meta">{activeCount(vm.reqHeaders)} custom · {vm.autoRequestHeaders.length} auto</span>
   <button
-    class="bulk-edit-toggle"
+    class="btn btn-secondary btn-xs bulk-edit-toggle"
     type="button"
     aria-pressed={vm.bulkEditTables.headers}
     onclick={() => (vm.bulkEditTables.headers = !vm.bulkEditTables.headers)}
@@ -148,7 +149,7 @@
 {#if vm.bulkEditTables.headers}
   <BulkEditPanel rows={vm.reqHeaders} apply={(next) => (vm.reqHeaders = next)} />
 {:else}
-<div class="kv-table headers-kv-table" bind:this={tableEl} style="--kw: {vm.kvKeyW}px; --vw: {vm.kvValW}px">
+<div class="kv-table headers-kv-table" bind:this={tableEl} style="--kw: {rem(vm.kvKeyW)}; --vw: {rem(vm.kvValW)}">
   <div class="kv-head">
     <span></span>
     <span class="kv-head-cell">Key</span>
@@ -160,14 +161,14 @@
   <button class="kv-col-resizer kv-col-resizer--value" type="button" onmousedown={(e) => vm.startColResize('val', e)} aria-label="Resize value column"></button>
   {#if vm.autoRequestHeaders.length}
     <button class="kv-auto-toggle" type="button" aria-expanded={autoHeadersOpen} onclick={() => (autoHeadersOpen = !autoHeadersOpen)}>
-      <svg class:open={autoHeadersOpen} width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M3.5 2L6.5 5L3.5 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg class:open={autoHeadersOpen} width="0.625rem" height="0.625rem" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M3.5 2L6.5 5L3.5 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       {vm.autoRequestHeaders.length} {vm.autoRequestHeaders.length === 1 ? 'header' : 'headers'} added by Relay
       <span class="kv-auto-toggle-keys">{vm.autoRequestHeaders.filter(h => !h.overridden).map(h => h.key).join(', ')}</span>
     </button>
   {/if}
   {#each autoHeadersOpen ? vm.autoRequestHeaders : [] as header, eachIndex (eachIndex)}
     <div class="kv-row kv-row--auto" class:kv-row--overridden={header.overridden}>
-      <span class="kv-auto-badge" title="Added by Relay"><svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true"><rect x="2.5" y="5.2" width="7" height="5" rx="1.2" stroke="currentColor" stroke-width="1.1"/><path d="M4 5.2V3.9a2 2 0 014 0v1.3" stroke="currentColor" stroke-width="1.1"/></svg><span class="sr-only">Added by Relay</span></span>
+      <span class="kv-auto-badge" title="Added by Relay"><svg width="0.6875rem" height="0.6875rem" viewBox="0 0 12 12" fill="none" aria-hidden="true"><rect x="2.5" y="5.2" width="7" height="5" rx="1.2" stroke="currentColor" stroke-width="1.1"/><path d="M4 5.2V3.9a2 2 0 014 0v1.3" stroke="currentColor" stroke-width="1.1"/></svg><span class="sr-only">Added by Relay</span></span>
       <span class="kv-cell kv-auto-key">{header.key}</span>
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <span
@@ -183,9 +184,9 @@
   {/each}
   {#each vm.reqHeaders as row, i (row.id)}
     <div class="kv-row" data-testid="request-header-row" class:inactive-row={!row.enabled && (row.key || row.value || row.description)}>
-      <input type="checkbox" class="kv-check" bind:checked={row.enabled} aria-label="Enable" disabled={!row.key && !row.value} />
+      <input type="checkbox" class="check" bind:checked={row.enabled} aria-label="Enable" disabled={!row.key && !row.value} />
       <VariableInput
-        className="kv-input"
+        className="field field-bare kv-input"
         bind:value={row.key}
         suggestions={vm.variableSuggestions}
         placeholder="Key"
@@ -195,7 +196,7 @@
         oninput={() => { guardTrailing(vm.reqHeaders, i); vm.onHeaderKeyInput(row); }}
       />
       <VariableInput
-        className="kv-input kv-value-input"
+        className="field field-bare kv-input kv-value-input"
         bind:value={row.value}
         suggestions={vm.variableSuggestions}
         placeholder="Value"
@@ -206,8 +207,8 @@
         onfocus={() => { vm.onHeaderKeyInput(row); }}
         ondblclick={(event) => maybeOpenCustomHeaderDetailFromEvent(row, i, event)}
       />
-      <input class="kv-input kv-desc" bind:value={row.description} placeholder="Description" />
-      <button class="kv-del" type="button" onclick={() => removeRow(vm.reqHeaders, i)} aria-label="Remove">✕</button>
+      <input class="field field-bare kv-input kv-desc" bind:value={row.description} placeholder="Description" />
+      <button class="btn btn-ghost btn-icon btn-sm kv-del" type="button" onclick={() => removeRow(vm.reqHeaders, i)} aria-label="Remove">✕</button>
     </div>
   {/each}
 
@@ -219,7 +220,7 @@
       role="dialog"
       aria-label="{headerDetail.key} full value"
     >
-      <textarea
+      <textarea class="field field-area"
         bind:this={headerDetailTextarea}
         value={headerDetailValue}
         readonly={headerDetail.kind === 'auto'}

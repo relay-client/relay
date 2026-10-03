@@ -129,7 +129,7 @@
   {/if}
   {#if !req.isDraft && !req.isInvalid}
     <button
-      class="request-star-btn"
+      class="btn btn-ghost btn-icon btn-sm request-star-btn"
       class:active={req.isPinned}
       type="button"
       onclick={(event) => { event.stopPropagation(); toggleRequestPinned(req.id); }}
@@ -139,16 +139,16 @@
     >★</button>
   {/if}
   {#if !req.isInvalid}
-    <button class="request-menu-btn" type="button" onclick={(event) => toggleRequestMenu(menuKey, event)} aria-label="Request menu" disabled={disabled}>•••</button>
+    <button class="btn btn-ghost btn-icon btn-sm request-menu-btn" type="button" onclick={(event) => toggleRequestMenu(menuKey, event)} aria-label="Request menu" disabled={disabled}>•••</button>
   {/if}
   {#if !req.isInvalid && openRequestMenuId === menuKey}
-    <div class="request-menu">
-      <button type="button" onclick={() => renameRequest(req.id)} disabled={disabled}><MenuIcon name="rename" />Rename</button>
-      <button type="button" onclick={() => duplicateRequest(req.id)} disabled={disabled}><MenuIcon name="duplicate" />Duplicate</button>
-      {#if !req.isDraft}<button type="button" onclick={() => toggleRequestPinned(req.id)} disabled={disabled}><MenuIcon name="star" />{req.isPinned ? 'Unstar' : 'Star'}</button>{/if}
-      {#if requestSupportsCurl(req)}<button type="button" onclick={() => copyRequestCurl(req.id)} disabled={disabled}><MenuIcon name="copy" />Copy as cURL</button>{/if}
-      <div class="menu-sep" role="separator"></div>
-      <button class="danger" type="button" onclick={() => deleteRequest(req.id)} disabled={disabled}><MenuIcon name="trash" />Delete</button>
+    <div class="menu request-menu">
+      <button class="menu-item" type="button" onclick={() => renameRequest(req.id)} disabled={disabled}><MenuIcon name="rename" />Rename</button>
+      <button class="menu-item" type="button" onclick={() => duplicateRequest(req.id)} disabled={disabled}><MenuIcon name="duplicate" />Duplicate</button>
+      {#if !req.isDraft}<button class="menu-item" type="button" onclick={() => toggleRequestPinned(req.id)} disabled={disabled}><MenuIcon name="star" />{req.isPinned ? 'Unstar' : 'Star'}</button>{/if}
+      {#if requestSupportsCurl(req)}<button class="menu-item" type="button" onclick={() => copyRequestCurl(req.id)} disabled={disabled}><MenuIcon name="copy" />Copy as cURL</button>{/if}
+      <div class="menu-separator" role="separator"></div>
+      <button class="menu-item danger" type="button" onclick={() => deleteRequest(req.id)} disabled={disabled}><MenuIcon name="trash" />Delete</button>
     </div>
   {/if}
 </div>

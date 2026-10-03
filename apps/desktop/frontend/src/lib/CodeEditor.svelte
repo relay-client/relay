@@ -22,8 +22,8 @@
     language = 'text' as Lang,
     placeholder = '',
     readonly = false,
-    minHeight = '120px',
-    maxHeight = '300px',
+    minHeight = '7.5rem',
+    maxHeight = '18.75rem',
     fillHeight = false,
     compact = false,
     testId = '',
@@ -61,17 +61,17 @@
     '&': {
       backgroundColor: 'transparent',
       color: 'var(--text)',
-      fontSize: '12px',
+      fontSize: 'var(--text-code)',
       fontFamily: 'var(--font-mono, ui-monospace, monospace)',
       height: fillHeight ? '100%' : 'auto',
     },
     '.cm-content': {
-      padding: compact ? '7px 0' : '10px 0',
+      padding: compact ? 'var(--space-2) 0' : 'var(--space-2-5) 0',
       caretColor: 'var(--accent)',
       minHeight: minHeight,
     },
     '.cm-line': {
-      padding: '0 12px',
+      padding: '0 var(--space-3)',
       minHeight: compact ? '1.42em' : '1.65em',
     },
     '.cm-scroller': {
@@ -97,21 +97,21 @@
       userSelect: 'none',
     },
     '.cm-lineNumbers .cm-gutterElement': {
-      padding: '0 14px 0 6px',
-      minWidth: '36px',
+      padding: '0 var(--space-3) 0 var(--space-1-5)',
+      minWidth: '2.25rem',
     },
-    '.cm-foldGutter .cm-gutterElement': { padding: '0 4px', cursor: 'pointer' },
+    '.cm-foldGutter .cm-gutterElement': { padding: '0 var(--space-1)', cursor: 'pointer' },
     '.cm-foldPlaceholder': {
       backgroundColor: 'var(--elevated)',
       border: '1px solid var(--border)',
       color: 'var(--text-2)',
-      borderRadius: '4px',
-      padding: '0 4px',
+      borderRadius: 'var(--radius-sm)',
+      padding: '0 var(--space-1)',
     },
     '.cm-tooltip': {
       backgroundColor: 'var(--elevated)',
       border: '1px solid var(--border)',
-      borderRadius: '6px',
+      borderRadius: 'var(--radius-md)',
       color: 'var(--text)',
     },
     '.cm-tooltip-autocomplete ul li[aria-selected]': {
@@ -133,16 +133,16 @@
     '.cm-tooltip-lint': {
       padding: '0',
       margin: '0',
-      minWidth: '180px',
-      maxWidth: '420px',
+      minWidth: '11.25rem',
+      maxWidth: '26.25rem',
     },
     '.cm-diagnostic': {
-      padding: '7px 11px',
+      padding: 'var(--space-2) var(--space-2-5)',
       borderLeft: '3px solid transparent',
       whiteSpace: 'pre-wrap',
       fontFamily: 'var(--font-mono, ui-monospace, monospace)',
-      fontSize: '11.5px',
-      lineHeight: '1.55',
+      fontSize: 'var(--text-caption)',
+      lineHeight: 'var(--leading-normal)',
       color: 'var(--text)',
     },
     '.cm-diagnostic-error': { borderLeftColor: 'var(--delete)' },
@@ -150,10 +150,10 @@
     '.cm-diagnosticText': { color: 'var(--text)' },
     '.cm-diagnosticSource': {
       display: 'block',
-      marginTop: '3px',
+      marginTop: 'var(--space-1)',
       color: 'var(--text-3)',
-      fontSize: '10px',
-      fontWeight: '700',
+      fontSize: 'var(--text-micro)',
+      fontWeight: 'var(--weight-semibold)',
       letterSpacing: '0.04em',
       textTransform: 'uppercase',
       opacity: '1',
@@ -266,7 +266,7 @@
   function variableCompletionSource(context: CompletionContext) {
     const from = Math.max(0, context.pos - 90);
     const before = context.state.sliceDoc(from, context.pos);
-    const match = before.match(/\{\{\s*([$A-Za-z0-9_.-]*)$/);
+    const match = before.match(/\{\{\s*([$\p{L}\p{N}_.:-]*)$/u);
     if (!match) return null;
     const prefix = match[1] ?? '';
     const start = context.pos - prefix.length;
@@ -296,7 +296,7 @@
       }));
     const options = [...environmentOptions, ...dynamicOptions];
     if (!options.length) return null;
-    return { from: start, options, validFor: /^[$A-Za-z0-9_.-]*$/ };
+    return { from: start, options, validFor: /^[$\p{L}\p{N}_.:-]*$/u };
   }
 
   function lineCommentToken() {
@@ -690,7 +690,7 @@
     color: var(--text-3) !important;
   }
   :global(.cm-wrap .cm-lintRange) {
-    padding-bottom: 2px;
+    padding-bottom: var(--space-0-5);
     background-position: left bottom;
     background-repeat: repeat-x;
     text-decoration: none !important;

@@ -26,11 +26,11 @@
 
 <div class="script-section">
   <div class="script-head">
-    <div class="subtabs" role="tablist" use:tabListKeyboard>
-      <button role="tab" class:active={vm.scriptTab === 'pre-request'} aria-selected={vm.scriptTab === 'pre-request'} tabindex={vm.scriptTab === 'pre-request' ? 0 : -1} type="button" onclick={() => (vm.scriptTab = 'pre-request')}>
+    <div class="segmented subtabs" role="tablist" use:tabListKeyboard>
+      <button class="segmented-item" role="tab" class:active={vm.scriptTab === 'pre-request'} aria-selected={vm.scriptTab === 'pre-request'} tabindex={vm.scriptTab === 'pre-request' ? 0 : -1} type="button" onclick={() => (vm.scriptTab = 'pre-request')}>
         Pre-request{#if scriptLineCount(vm.activePreRequestScript) > 0}<span class="subtab-count" title="Lines">{scriptLineCount(vm.activePreRequestScript)}</span>{/if}
       </button>
-      <button role="tab" class:active={vm.scriptTab === 'tests'} aria-selected={vm.scriptTab === 'tests'} tabindex={vm.scriptTab === 'tests' ? 0 : -1} type="button" onclick={() => (vm.scriptTab = 'tests')}>
+      <button class="segmented-item" role="tab" class:active={vm.scriptTab === 'tests'} aria-selected={vm.scriptTab === 'tests'} tabindex={vm.scriptTab === 'tests' ? 0 : -1} type="button" onclick={() => (vm.scriptTab = 'tests')}>
         Tests{#if scriptLineCount(vm.activeTestScript) > 0}<span class="subtab-count" title="Lines">{scriptLineCount(vm.activeTestScript)}</span>{/if}
       </button>
     </div>
@@ -41,7 +41,7 @@
       <span class="ref-title">Snippets</span>
       {#each preSnippets as snippet (snippet.label)}
         <button
-          class="script-snippet"
+          class="btn btn-secondary btn-sm script-snippet"
           type="button"
           title={snippet.code}
           aria-label="Insert snippet: {snippet.label}"
@@ -56,8 +56,8 @@
       bind:value={vm.activePreRequestScript}
       language="javascript"
       placeholder={prePlaceholder}
-      minHeight="140px"
-      maxHeight="240px"
+      minHeight="8.75rem"
+      maxHeight="15rem"
       testId="pre-request-script-editor"
       ariaLabel="Pre-request script editor"
     />
@@ -66,7 +66,7 @@
       <span class="ref-title">Snippets</span>
       {#each testSnippetList as snippet (snippet.label)}
         <button
-          class="script-snippet"
+          class="btn btn-secondary btn-sm script-snippet"
           type="button"
           title={snippet.code}
           aria-label="Insert snippet: {snippet.label}"
@@ -81,8 +81,8 @@
       bind:value={vm.activeTestScript}
       language="javascript"
       placeholder={testPlaceholder}
-      minHeight="140px"
-      maxHeight="240px"
+      minHeight="8.75rem"
+      maxHeight="15rem"
       testId="test-script-editor"
       ariaLabel="Test script editor"
     />
