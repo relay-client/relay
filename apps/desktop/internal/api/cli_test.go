@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -320,5 +321,22 @@ func TestRunCLIMissingWorkspace(t *testing.T) {
 	}
 	if !strings.Contains(out.String(), "not a Relay YAML workspace") {
 		t.Fatalf("expected a clear error, got %q", out.String())
+	}
+}
+
+func TestRunCLIHandlesAHugeIterationCount(t *testing.T) {
+	httpTransports.closeAll()
+	t.Cleanup(httpTransports.closeAll)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	root := writeYAMLWorkspace(t, server.URL)
+	var out bytes.Buffer
+	code := runCLI(cliOptions{workspace: root, env: "Local", reporters: []string{"cli"}, iterations: math.MaxInt, failFast: true, stdout: &out, stderr: &out})
+	if code != 1 {
+		t.Fatalf("expected the run to stop at the first failure with exit 1, got %d. output:\n%s", code, out.String())
 	}
 }

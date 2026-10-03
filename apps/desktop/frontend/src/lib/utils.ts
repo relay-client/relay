@@ -347,6 +347,8 @@ export async function clipboardCopy(text: string) {
   }
 }
 
+const ENV_FILE_ESCAPES: Record<string, string> = { n: '\n', t: '\t', '"': '"', '\\': '\\' };
+
 export function parseEnvFile(text: string): Array<{ key: string; value: string }> {
   const result: Array<{ key: string; value: string }> = [];
   for (const line of text.split(/\r?\n/)) {
@@ -361,7 +363,7 @@ export function parseEnvFile(text: string): Array<{ key: string; value: string }
     const sq = value.startsWith("'") && value.endsWith("'");
     if (dq || sq) {
       value = value.slice(1, -1);
-      if (dq) value = value.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\\\/g, '\\').replace(/\\"/g, '"');
+      if (dq) value = value.replace(/\\([nt"\\])/g, (_, ch: string) => ENV_FILE_ESCAPES[ch]);
     }
     result.push({ key, value });
   }
