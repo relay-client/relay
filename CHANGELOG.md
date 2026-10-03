@@ -9,7 +9,7 @@ All notable changes to Relay are documented here. This project follows
 
 ### Added
 
-- **The download button downloads the file.** Both the landing page's button and the cards on `/download/` used to open the releases page on GitHub and leave you to pick the right one of eighteen files. They now resolve the newest release when the page loads and point straight at the artifact for your platform, labelled with its size — one click, no detour. Release artifacts carry their version in the filename, so a static link could never do this. Windows cards switch to the Arm64 installer when the browser reports an Arm machine, and without JavaScript, or if the lookup is rate-limited, every link still falls back to the releases page it pointed at before.
+- **The download button downloads the file.** Both the landing page's button and the cards on `/download/` used to open the releases page on GitHub and leave you to pick the right one of eighteen files. They now resolve the newest release when the page loads and point straight at the artifact for your platform, with its exact filename and size listed above the button — one click, no detour. Release artifacts carry their version in the filename, so a static link could never do this. Windows cards switch to the Arm64 installer when the browser reports an Arm machine, and without JavaScript, or if the lookup is rate-limited, every link still falls back to the releases page it pointed at before.
 
 ### Changed
 
