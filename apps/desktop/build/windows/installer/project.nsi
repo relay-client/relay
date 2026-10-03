@@ -17,11 +17,26 @@ VIAddVersionKey "ProductName"     "${INFO_PRODUCTNAME}"
 
 ManifestDPIAware true
 
-!include "MUI.nsh"
+!include "MUI2.nsh"
 
 !define MUI_ICON "..\icon.ico"
 !define MUI_UNICON "..\icon.ico"
 !define MUI_ABORTWARNING
+!define MUI_WELCOMEFINISHPAGE_BITMAP "assets\welcome.bmp"
+!define MUI_UNWELCOMEFINISHPAGE_BITMAP "assets\welcome.bmp"
+!define MUI_WELCOMEFINISHPAGE_BITMAP_STRETCH AspectFitHeight
+!define MUI_UNWELCOMEFINISHPAGE_BITMAP_STRETCH AspectFitHeight
+!define MUI_HEADERIMAGE
+!define MUI_HEADERIMAGE_RIGHT
+!define MUI_HEADERIMAGE_BITMAP "assets\header.bmp"
+!define MUI_HEADERIMAGE_UNBITMAP "assets\header.bmp"
+!define MUI_HEADERIMAGE_BITMAP_STRETCH AspectFitHeight
+!define MUI_HEADERIMAGE_UNBITMAP_STRETCH AspectFitHeight
+!define MUI_WELCOMEPAGE_TITLE "Welcome to Relay"
+!define MUI_WELCOMEPAGE_TEXT "Your APIs. Your workspace.$\r$\n$\r$\nSet up your local-first API client in a few moments. No account required.$\r$\n$\r$\nRelay installs for your Windows account. Click Next to choose where to install it."
+!define MUI_FINISHPAGE_TITLE "Relay is ready"
+!define MUI_FINISHPAGE_TEXT "You're all set to start sending requests.$\r$\n$\r$\nLaunch Relay now, or find it later in the Start menu."
+!define MUI_FINISHPAGE_NOREBOOTSUPPORT
 !define MUI_FINISHPAGE_RUN "$INSTDIR\${PRODUCT_EXECUTABLE}"
 !define MUI_FINISHPAGE_RUN_TEXT "Launch ${INFO_PRODUCTNAME}"
 
@@ -30,14 +45,17 @@ ManifestDPIAware true
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
 
+!insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
+!insertmacro MUI_UNPAGE_FINISH
 
 !insertmacro MUI_LANGUAGE "English"
 
 Name "${INFO_PRODUCTNAME}"
 OutFile "..\..\bin\${INFO_PROJECTNAME}-${ARCH}-installer.exe"
 InstallDir "$LOCALAPPDATA\Programs\${INFO_PRODUCTNAME}"
-ShowInstDetails show
+ShowInstDetails hide
+ShowUninstDetails hide
 
 Function .onInit
     !insertmacro wails.checkArchitecture

@@ -24,6 +24,14 @@ Once the workflow finishes, work through
 [RELEASE-CHECKLIST.md](RELEASE-CHECKLIST.md) — the installers, the first launch
 and the update from the previous version are the parts no test can reach.
 
+Installer artwork is committed under `apps/desktop/build/windows/installer/assets`
+and `apps/desktop/build/darwin/assets`. Regenerate it from the app's master icon with
+`node scripts/gen-installer-assets.mjs` after installing the npm dependencies.
+The release workflow uses these assets automatically. For a local macOS DMG, install
+`create-dmg` (`brew install create-dmg`) and run `make -C apps/desktop build-macos-dmg`.
+On Windows, `make -C apps/desktop build-windows` builds the branded NSIS installer
+and the MSIX package.
+
 Update `CHANGELOG.md` and `apps/web/src/content/docs/changelog.md` before tagging — the
 release notes are assembled from the changelog, not from commit messages.
 

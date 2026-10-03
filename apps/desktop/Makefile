@@ -19,6 +19,7 @@ LDFLAGS     := -X 'github.com/relay-client/relay/apps/desktop/internal/api.appVe
                -X 'github.com/relay-client/relay/apps/desktop/internal/api.githubRepo=$(UPDATE_REPO)'
 
 MAC_APP     := $(DESKTOP_DIR)/build/bin/$(APP_NAME).app
+MAC_DMG     := $(DESKTOP_DIR)/build/bin/relay-$(VERSION)-darwin-universal.dmg
 LINUX_BIN   := $(DESKTOP_DIR)/build/bin/relay
 WIN_ARCH    ?= amd64
 WIN_EXE     := $(DESKTOP_DIR)/build/bin/relay-$(WIN_ARCH)-installer.exe
@@ -34,7 +35,7 @@ MSIX_CERT_PATH ?=
 MSIX_CERT_PASSWORD ?=
 MSIX_TIMESTAMP_URL ?=
 
-.PHONY: help dev dev-go dev-run frontend install tidy check test build build-desktop build-macos build-windows build-windows-msix build-linux build-all build-frontend open clean wails-install version
+.PHONY: help dev dev-go dev-run frontend install tidy check test build build-desktop build-macos build-macos-dmg build-windows build-windows-msix build-linux build-all build-frontend open clean wails-install version
 
 help:
 	@printf '%s\n' 'Available targets:'
@@ -43,6 +44,7 @@ help:
 	@printf '  %-18s %s\n' 'make install' 'Install npm deps and tidy Go deps'
 	@printf '  %-18s %s\n' 'make check' 'Run frontend typecheck and Go tests'
 	@printf '  %-18s %s\n' 'make build' 'Build desktop app for the current platform'
+	@printf '  %-18s %s\n' 'make build-macos-dmg' 'Build universal macOS app and branded DMG (requires create-dmg)'
 	@printf '  %-18s %s\n' 'make build-windows' 'Build Windows NSIS installer and MSIX package (WIN_ARCH=amd64|arm64)'
 
 version:
@@ -80,6 +82,9 @@ build-desktop:
 
 build-macos:
 	cd $(DESKTOP_DIR) && $(GO_ENV) $(WAILS_CMD) build -platform darwin/universal -ldflags "$(LDFLAGS)"
+
+build-macos-dmg: build-macos
+	$(DESKTOP_DIR)/build/darwin/make-dmg.sh "$(MAC_APP)" "$(MAC_DMG)" "Relay $(VERSION)"
 
 build-windows:
 	cd $(DESKTOP_DIR) && $(GO_ENV) $(WAILS_CMD) build -platform windows/$(WIN_ARCH) -nsis -ldflags "$(LDFLAGS)"
