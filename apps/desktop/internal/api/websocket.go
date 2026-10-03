@@ -255,6 +255,9 @@ func (m *websocketManager) runConnectionOnceWithCallbacks(ctx context.Context, s
 		headers.Set("User-Agent", "Relay/"+appVersion)
 	}
 	_, _ = applyUserHeaders(headers, req.Headers)
+	if notice := websocketHandshakeHeaderNotice(dropWebSocketHandshakeHeaders(headers)); notice != "" {
+		callbacks.onEvent(newWebSocketMessage("system", "notice", nil, "", 0, true, false, notice))
+	}
 	httpReq := &http.Request{Method: http.MethodGet, URL: cloneURL(u), Header: headers}
 	if err := auth.Apply(httpReq, req.Auth); err != nil {
 		emitError("auth error: " + err.Error())
@@ -268,6 +271,13 @@ func (m *websocketManager) runConnectionOnceWithCallbacks(ctx context.Context, s
 	if msg := validateBrowserCSP(req, u, browserCtx); msg != "" {
 		emitError("CSP error: " + msg)
 		return false
+	}
+	if msg := blockedBrowserNetworkAccess(u, browserCtx); msg != "" {
+		emitError("Browser error: " + msg)
+		return false
+	}
+	for _, warning := range browserNetworkAccessWarnings(u, "", false, browserCtx) {
+		callbacks.onEvent(newWebSocketMessage("system", "notice", nil, "", 0, true, false, warning))
 	}
 	skipCookieJar := req.DisableCookieJar
 	if browserCtx.active && browserCtx.crossOrigin && !browserCtx.withCredentials {
@@ -335,9 +345,11 @@ func (m *websocketManager) runConnectionOnceWithCallbacks(ctx context.Context, s
 	sess.conn = conn
 	m.mu.Unlock()
 
-	const readIdleTimeout = 90 * time.Second
+	readIdleTimeout := websocketReadIdleTimeout(req)
 	resetReadDeadline := func() {
-		_ = conn.SetReadDeadline(time.Now().Add(readIdleTimeout))
+		if readIdleTimeout > 0 {
+			_ = conn.SetReadDeadline(time.Now().Add(readIdleTimeout))
+		}
 	}
 	resetReadDeadline()
 
@@ -437,6 +449,35 @@ func websocketKeepAliveInterval(req model.HttpRequest) time.Duration {
 		return defaultWebSocketKeepAliveInterval
 	}
 	return time.Duration(req.WebSocketKeepAliveIntervalMs) * time.Millisecond
+}
+
+var websocketHandshakeHeaders = []string{"Sec-WebSocket-Key", "Sec-WebSocket-Version", "Sec-WebSocket-Extensions", "Sec-WebSocket-Accept"}
+
+func dropWebSocketHandshakeHeaders(headers http.Header) []string {
+	var dropped []string
+	for _, name := range websocketHandshakeHeaders {
+		key := http.CanonicalHeaderKey(name)
+		if _, ok := headers[key]; ok {
+			delete(headers, key)
+			dropped = append(dropped, name)
+		}
+	}
+	return dropped
+}
+
+func websocketHandshakeHeaderNotice(names []string) string {
+	if len(names) == 0 {
+		return ""
+	}
+	return "Not sent: " + strings.Join(names, ", ") + ". Relay negotiates these itself during the WebSocket handshake."
+}
+
+func websocketReadIdleTimeout(req model.HttpRequest) time.Duration {
+	interval := websocketKeepAliveInterval(req)
+	if interval <= 0 {
+		return 0
+	}
+	return max(90*time.Second, 2*interval+10*time.Second)
 }
 
 func websocketReadLimit(req model.HttpRequest) int64 {

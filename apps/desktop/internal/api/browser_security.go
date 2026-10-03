@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/relay-client/relay/apps/desktop/internal/model"
@@ -23,6 +24,10 @@ type browserSecurityContext struct {
 	origin          string
 	originURL       *url.URL
 	crossOrigin     bool
+	corsRequested   bool
+	corsTainted     bool
+	crossSiteSeen   bool
+	kind            browserSecurityKind
 }
 
 type browserSecurityKind int
@@ -42,6 +47,8 @@ func prepareBrowserSecurity(req model.HttpRequest, headers http.Header, target *
 		enforceCORS:     req.BrowserEnforceCORS,
 		enforceCSP:      req.BrowserEnforceCSP,
 		withCredentials: req.BrowserWithCredentials,
+		corsRequested:   req.BrowserEnforceCORS,
+		kind:            kind,
 	}
 	if !ctx.active {
 		return ctx, nil
@@ -62,6 +69,8 @@ func prepareBrowserSecurity(req model.HttpRequest, headers http.Header, target *
 		ctx.origin = normalizedOrigin
 		ctx.originURL = originURL
 		ctx.crossOrigin = originURL == nil || !browserOriginMatchesTarget(originURL, target, kind)
+		ctx.corsTainted = ctx.crossOrigin
+		ctx.crossSiteSeen = ctx.crossOrigin
 		headers.Set("Origin", normalizedOrigin)
 	}
 
@@ -179,12 +188,27 @@ func isSimpleCORSMethod(method string) bool {
 
 func corsUnsafeRequestHeaderNames(headers http.Header) []string {
 	names := make(map[string]struct{})
+	var safelisted []string
+	safelistValueSize := 0
 	for name, values := range headers {
 		lower := strings.ToLower(strings.TrimSpace(name))
-		if lower == "" || isBrowserControlledCORSHeader(lower) || isCORSSafelistedRequestHeader(lower, values) {
+		if lower == "" || isBrowserControlledCORSHeader(lower) {
 			continue
 		}
-		names[lower] = struct{}{}
+		for _, value := range values {
+			value = strings.Trim(value, " \t\r\n")
+			if !isCORSSafelistedRequestHeader(lower, value) {
+				names[lower] = struct{}{}
+				continue
+			}
+			safelisted = append(safelisted, lower)
+			safelistValueSize += len(value)
+		}
+	}
+	if safelistValueSize > corsSafelistValueSizeLimit {
+		for _, name := range safelisted {
+			names[name] = struct{}{}
+		}
 	}
 	out := make([]string, 0, len(names))
 	for name := range names {
@@ -193,6 +217,11 @@ func corsUnsafeRequestHeaderNames(headers http.Header) []string {
 	sort.Strings(out)
 	return out
 }
+
+const (
+	corsSafelistValueLengthLimit = 128
+	corsSafelistValueSizeLimit   = 1024
+)
 
 func isBrowserControlledCORSHeader(name string) bool {
 	if strings.HasPrefix(name, "sec-") || strings.HasPrefix(name, "proxy-") {
@@ -206,24 +235,111 @@ func isBrowserControlledCORSHeader(name string) bool {
 	}
 }
 
-func isCORSSafelistedRequestHeader(name string, values []string) bool {
+func isCORSSafelistedRequestHeader(name, value string) bool {
+	if len(value) > corsSafelistValueLengthLimit {
+		return false
+	}
 	switch name {
-	case "accept", "accept-language", "content-language", "range":
-		return true
+	case "accept":
+		return !containsCORSUnsafeRequestHeaderByte(value)
+	case "accept-language", "content-language":
+		return isCORSLanguageHeaderValue(value)
 	case "content-type":
-		for _, value := range values {
-			mediaType := strings.ToLower(strings.TrimSpace(strings.Split(value, ";")[0]))
-			if mediaType == "" {
-				continue
-			}
-			if mediaType != "application/x-www-form-urlencoded" && mediaType != "multipart/form-data" && mediaType != "text/plain" {
-				return false
-			}
+		if containsCORSUnsafeRequestHeaderByte(value) {
+			return false
 		}
-		return true
+		switch corsMIMEEssence(value) {
+		case "application/x-www-form-urlencoded", "multipart/form-data", "text/plain":
+			return true
+		default:
+			return false
+		}
+	case "range":
+		return isCORSSimpleRangeHeaderValue(value)
 	default:
 		return false
 	}
+}
+
+func containsCORSUnsafeRequestHeaderByte(value string) bool {
+	for i := 0; i < len(value); i++ {
+		b := value[i]
+		if b < 0x20 && b != '\t' || b == 0x7f {
+			return true
+		}
+		switch b {
+		case '"', '(', ')', ':', '<', '>', '?', '@', '[', '\\', ']', '{', '}':
+			return true
+		}
+	}
+	return false
+}
+
+func isCORSLanguageHeaderValue(value string) bool {
+	for i := 0; i < len(value); i++ {
+		b := value[i]
+		switch {
+		case b >= '0' && b <= '9', b >= 'A' && b <= 'Z', b >= 'a' && b <= 'z':
+		case b == ' ', b == '*', b == ',', b == '-', b == '.', b == ';', b == '=':
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+func corsMIMEEssence(value string) string {
+	essence := strings.ToLower(strings.Trim(strings.Split(value, ";")[0], " \t\r\n"))
+	mediaType, subtype, ok := strings.Cut(essence, "/")
+	if !ok || !isHTTPToken(mediaType) || !isHTTPToken(subtype) {
+		return ""
+	}
+	return essence
+}
+
+func isHTTPToken(value string) bool {
+	if value == "" {
+		return false
+	}
+	for i := 0; i < len(value); i++ {
+		b := value[i]
+		switch {
+		case b >= '0' && b <= '9', b >= 'A' && b <= 'Z', b >= 'a' && b <= 'z':
+		case strings.IndexByte("!#$%&'*+-.^_`|~", b) >= 0:
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+func isCORSSimpleRangeHeaderValue(value string) bool {
+	rest, ok := strings.CutPrefix(value, "bytes=")
+	if !ok {
+		return false
+	}
+	start, end, ok := strings.Cut(rest, "-")
+	if !ok || start == "" || !isASCIIDigits(start) || end != "" && !isASCIIDigits(end) {
+		return false
+	}
+	if end == "" {
+		return true
+	}
+	startValue, err := strconv.ParseUint(start, 10, 64)
+	if err != nil {
+		return false
+	}
+	endValue, err := strconv.ParseUint(end, 10, 64)
+	return err == nil && startValue <= endValue
+}
+
+func isASCIIDigits(value string) bool {
+	for i := 0; i < len(value); i++ {
+		if value[i] < '0' || value[i] > '9' {
+			return false
+		}
+	}
+	return value != ""
 }
 
 func validateCORSPreflightResponse(resp *http.Response, method string, requestHeaders []string, ctx browserSecurityContext) string {
@@ -269,6 +385,77 @@ func validateCORSOrigin(headers http.Header, ctx browserSecurityContext) string 
 		return "response is missing Access-Control-Allow-Credentials: true for a credentialed request"
 	}
 	return ""
+}
+
+type browserBlockedError struct {
+	label string
+	msg   string
+}
+
+func (e browserBlockedError) Error() string {
+	return e.label + " error: " + e.msg
+}
+
+func ensureCORSPreflight(ctx context.Context, client *http.Client, actualReq *http.Request, browserCtx browserSecurityContext, cache *preflightCache) (*http.Response, string, error) {
+	requestHeaders := corsUnsafeRequestHeaderNames(actualReq.Header)
+	cacheKey := preflightCacheKey(browserCtx.origin, urlWithoutFragment(actualReq.URL), browserCtx.withCredentials)
+	if cached, ok := cache.lookup(cacheKey); ok && preflightCacheCovers(cached, actualReq.Method, requestHeaders, browserCtx) {
+		return nil, "", nil
+	}
+	preflightResp, corsMsg, err := runCORSPreflight(ctx, client, actualReq, actualReq.URL, browserCtx)
+	if err != nil || corsMsg != "" {
+		return preflightResp, corsMsg, err
+	}
+	if preflightResp != nil {
+		cachePreflightResponse(cache, cacheKey, preflightResp)
+	}
+	return preflightResp, "", nil
+}
+
+func corsUnexposedResponseHeaders(headers http.Header, ctx browserSecurityContext) []string {
+	if !ctx.enforceCORS {
+		return nil
+	}
+	exposed := make(map[string]struct{})
+	exposeAll := false
+	for _, value := range headers.Values("Access-Control-Expose-Headers") {
+		for _, part := range strings.Split(value, ",") {
+			name := strings.ToLower(strings.TrimSpace(part))
+			if name == "" {
+				continue
+			}
+			if name == "*" && !ctx.withCredentials {
+				exposeAll = true
+			}
+			exposed[name] = struct{}{}
+		}
+	}
+	var hidden []string
+	for name := range headers {
+		lower := strings.ToLower(name)
+		if lower == "set-cookie" || lower == "set-cookie2" {
+			hidden = append(hidden, name)
+			continue
+		}
+		if isCORSSafelistedResponseHeader(lower) || exposeAll {
+			continue
+		}
+		if _, ok := exposed[lower]; ok {
+			continue
+		}
+		hidden = append(hidden, name)
+	}
+	sort.Strings(hidden)
+	return hidden
+}
+
+func isCORSSafelistedResponseHeader(name string) bool {
+	switch name {
+	case "cache-control", "content-language", "content-length", "content-type", "expires", "last-modified", "pragma":
+		return true
+	default:
+		return false
+	}
 }
 
 func corsHeaderAllowsToken(headerValue, token string, wildcardAllowed bool) bool {

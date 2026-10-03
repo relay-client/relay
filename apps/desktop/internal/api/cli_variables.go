@@ -4,12 +4,9 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
-	"regexp"
 	"strings"
 	"time"
 )
-
-var templateRe = regexp.MustCompile(`\{\{\s*(\$?[A-Za-z0-9_.-]+)\s*\}\}`)
 
 func randInt(min, max int64) int64 {
 	if max <= min {
@@ -194,20 +191,4 @@ func resolveDynamicCLIVariable(name string) (string, bool) {
 		return gen(), true
 	}
 	return "", false
-}
-
-func resolveTemplateValue(value string, values map[string]string) string {
-	if !strings.Contains(value, "{{") {
-		return value
-	}
-	return templateRe.ReplaceAllStringFunc(value, func(match string) string {
-		key := strings.TrimSpace(templateRe.FindStringSubmatch(match)[1])
-		if replacement, ok := values[key]; ok {
-			return replacement
-		}
-		if replacement, ok := resolveDynamicCLIVariable(key); ok {
-			return replacement
-		}
-		return match
-	})
 }

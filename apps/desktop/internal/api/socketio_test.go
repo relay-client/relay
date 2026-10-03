@@ -16,6 +16,8 @@ import (
 	"github.com/relay-client/relay/apps/desktop/internal/model"
 )
 
+const sioTestBinaryFrame = "\x00binary-frame:"
+
 type sioServer struct {
 	t        *testing.T
 	upgrader websocket.Upgrader
@@ -70,7 +72,11 @@ func (s *sioServer) handler(w http.ResponseWriter, r *http.Request) {
 				if !ok {
 					return
 				}
-				if err := conn.WriteMessage(websocket.TextMessage, []byte(pkt)); err != nil {
+				frameType := websocket.TextMessage
+				if binary, ok := strings.CutPrefix(pkt, sioTestBinaryFrame); ok {
+					frameType, pkt = websocket.BinaryMessage, binary
+				}
+				if err := conn.WriteMessage(frameType, []byte(pkt)); err != nil {
 					return
 				}
 			}
@@ -581,5 +587,68 @@ func TestSocketIODisplayURLHumanizesSchemeAndQuery(t *testing.T) {
 	want := "http://localhost:3001/socket.io/?EIO=4&transport=websocket&а="
 	if got != want {
 		t.Fatalf("expected %q, got %q", want, got)
+	}
+}
+
+func TestSocketIOReceivesBinaryEvents(t *testing.T) {
+	srv := newSIOServer(t)
+	server := httptest.NewServer(http.HandlerFunc(srv.handler))
+	defer server.Close()
+
+	manager := newSocketIOManager(nil)
+	em := newSIOTestEmitter()
+	manager.connectWithCallbacks(context.Background(), "sio-bin", model.HttpRequest{
+		URL:                   sioHTTPToWS(server.URL),
+		EnableSSLVerification: true,
+	}, em.callbacks())
+	defer manager.disconnect("sio-bin")
+	waitSIOOpen(t, em.opens)
+
+	srv.push <- `452-["file",{"name":"a.bin","data":{"_placeholder":true,"num":0}},{"_placeholder":true,"num":1}]`
+	srv.push <- sioTestBinaryFrame + "\x01\x02\x03"
+	srv.push <- sioTestBinaryFrame + "hi"
+
+	ev := waitSIOEvent(t, em.events)
+	if ev.EventName != "file" || len(ev.Args) != 2 {
+		t.Fatalf("expected the binary event with two args, got %+v", ev)
+	}
+	if ev.Args[0] != `{"data":{"_binary":"AQID","size":3},"name":"a.bin"}` || ev.Args[1] != `{"_binary":"aGk=","size":2}` {
+		t.Fatalf("unexpected args %v", ev.Args)
+	}
+
+	srv.push <- `450-["empty"]`
+	if ev := waitSIOEvent(t, em.events); ev.EventName != "empty" {
+		t.Fatalf("expected a binary event without attachments to arrive at once, got %+v", ev)
+	}
+}
+
+func TestSocketIOReceivesABinaryAck(t *testing.T) {
+	srv := newSIOServer(t)
+	server := httptest.NewServer(http.HandlerFunc(srv.handler))
+	defer server.Close()
+
+	manager := newSocketIOManager(nil)
+	em := newSIOTestEmitter()
+	manager.connectWithCallbacks(context.Background(), "sio-bin-ack", model.HttpRequest{
+		URL:                   sioHTTPToWS(server.URL),
+		EnableSSLVerification: true,
+	}, em.callbacks())
+	defer manager.disconnect("sio-bin-ack")
+	waitSIOOpen(t, em.opens)
+
+	result := manager.emit("sio-bin-ack", model.SocketIOEmitMessage{EventName: "download", Ack: true})
+	if !result.OK {
+		t.Fatalf("emit failed: %s", result.Error)
+	}
+	srv.push <- fmt.Sprintf(`461-%d[{"_placeholder":true,"num":0}]`, result.AckID)
+	srv.push <- sioTestBinaryFrame + "ok"
+
+	select {
+	case ack := <-em.acks:
+		if ack.EventName != "download" || len(ack.Args) != 1 || ack.Args[0] != `{"_binary":"b2s=","size":2}` {
+			t.Fatalf("unexpected ack %+v", ack)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("timed out waiting for the binary ack")
 	}
 }

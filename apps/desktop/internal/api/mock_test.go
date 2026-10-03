@@ -156,6 +156,28 @@ func TestMockServerServesTheExample(t *testing.T) {
 	}
 }
 
+func TestMockServerReplaysAnExampleCapturedFromACompressedResponse(t *testing.T) {
+	route := mockRoute("GET", "/report", 200, `{"ok":true}`)
+	route.Headers = []model.KeyValue{
+		{Key: "Content-Type", Value: "application/json"},
+		{Key: "Content-Encoding", Value: "gzip"},
+	}
+	_, base, _ := startTestMock(t, model.MockServerConfig{Routes: []model.MockRoute{route}})
+
+	resp, err := http.Get(base + "/report")
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("a client could not read the replayed body: %v", err)
+	}
+	if string(body) != `{"ok":true}` || resp.Header.Get("Content-Encoding") != "" {
+		t.Fatalf("expected the stored plain body without Content-Encoding, got %q (encoding %q)", body, resp.Header.Get("Content-Encoding"))
+	}
+}
+
 func TestMockServerExplainsAnUnmatchedRequest(t *testing.T) {
 	_, base, logs := startTestMock(t, model.MockServerConfig{
 		Routes: []model.MockRoute{mockRoute("GET", "/pets", 200, "list")},

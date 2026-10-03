@@ -1679,6 +1679,38 @@ func TestGitForcePushWorkspaceUsesForceWithLease(t *testing.T) {
 	}
 }
 
+func TestGitForcePushRefusesToDropFetchedTeammateCommits(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git is not installed")
+	}
+	dir, peer := setupGitPullRemoteForTest(t)
+	if err := os.WriteFile(filepath.Join(peer, "teammate.txt"), []byte("work\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	runGitForTest(t, peer, "add", "teammate.txt")
+	runGitForTest(t, peer, "commit", "-m", "Teammate work")
+	runGitForTest(t, peer, "push", "origin", "main")
+	teammateHead := strings.TrimSpace(runGitOutputForTest(t, peer, "rev-parse", "HEAD"))
+
+	if _, err := gitFetchWorkspaceOnOpen(dir); err != nil {
+		t.Fatalf("fetch: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "relay.yml"), []byte("version: 1\nrewritten: true\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	runGitForTest(t, dir, "add", "relay.yml")
+	runGitForTest(t, dir, "commit", "--amend", "-m", "Rewrite Relay workspace")
+
+	result := gitForcePushWorkspaceForRoot(dir, "origin")
+	if result.Ok {
+		t.Fatal("expected force push to refuse overwriting a fetched commit that was never integrated")
+	}
+	remoteHead := strings.TrimSpace(runGitOutputForTest(t, dir, "ls-remote", "origin", "refs/heads/main"))
+	if !strings.HasPrefix(remoteHead, teammateHead) {
+		t.Fatalf("expected the teammate's commit to survive, remote is at %s", remoteHead)
+	}
+}
+
 func TestGitPullMergeConflictCanResolveAndContinue(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git is not installed")

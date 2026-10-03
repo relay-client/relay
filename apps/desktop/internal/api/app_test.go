@@ -2947,3 +2947,37 @@ func TestScriptBodyWriteRescuesABinaryRequestWithNoFile(t *testing.T) {
 		t.Fatalf("content type = %q", gotContentType)
 	}
 }
+
+func TestSendRequestReadsAPostEventStreamAsTheResponse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.WriteHeader(http.StatusOK)
+		flusher := w.(http.Flusher)
+		for _, chunk := range []string{"data: {\"delta\":\"Hel\"}\n\n", "data: {\"delta\":\"lo\"}\n\n", "data: [DONE]\n\n"} {
+			_, _ = io.WriteString(w, chunk)
+			flusher.Flush()
+		}
+		_, _ = io.WriteString(w, ": echo "+string(body)+"\n\n")
+	}))
+	defer server.Close()
+
+	resp := NewApp().SendRequest(model.HttpRequest{
+		Method:                http.MethodPost,
+		URL:                   server.URL,
+		BodyType:              "json",
+		Body:                  `{"stream":true}`,
+		FollowRedirects:       true,
+		TimeoutMs:             5000,
+		HTTPVersion:           "auto",
+		EnableSSLVerification: true,
+		MaxRedirects:          10,
+	})
+
+	if resp.Error != "" {
+		t.Fatalf("expected the stream to be read as the response, got error %q", resp.Error)
+	}
+	if !strings.Contains(resp.Body, `"delta":"lo"`) || !strings.Contains(resp.Body, "[DONE]") || !strings.Contains(resp.Body, `{"stream":true}`) {
+		t.Fatalf("expected the whole stream and the posted body to reach the server, got %q", resp.Body)
+	}
+}

@@ -141,6 +141,16 @@ func (a *App) Show() {
 	}
 }
 
+func (a *App) MenuZoom(action string) {
+	if a.ctx == nil {
+		return
+	}
+	switch action {
+	case "in", "out", "reset":
+		runtime.EventsEmit(a.ctx, "relay:zoom", action)
+	}
+}
+
 func (a *App) emitWorkspaceChanged(reason string) {
 	if a.ctx == nil {
 		return
