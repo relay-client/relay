@@ -111,15 +111,18 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
   { id: 'search', group: 'Window and modals', label: 'Search', defaultCombo: 'Meta+K' },
   { id: 'toggle-left-sidebar', group: 'Interface', label: 'Toggle left sidebar', defaultCombo: 'Meta+\\' },
   { id: 'toggle-right-sidebar', group: 'Interface', label: 'Toggle right sidebar', defaultCombo: 'Alt+Meta+\\' },
+  { id: 'zoom-in', group: 'Interface', label: 'Zoom in', defaultCombo: 'Meta+=' },
+  { id: 'zoom-out', group: 'Interface', label: 'Zoom out', defaultCombo: 'Meta+-' },
+  { id: 'zoom-reset', group: 'Interface', label: 'Reset zoom', defaultCombo: 'Meta+0' },
 ];
 
 export const AUTH_OPTIONS: { value: AuthType; label: string }[] = [
-  { value: 'inherit', label: 'Inherit Auth' },
-  { value: 'none', label: 'No Auth' },
-  { value: 'bearer', label: 'Bearer Token' },
-  { value: 'basic', label: 'Basic Auth' },
-  { value: 'digest', label: 'Digest Auth' },
-  { value: 'apikey', label: 'API Key' },
+  { value: 'inherit', label: 'Inherit auth' },
+  { value: 'none', label: 'No auth' },
+  { value: 'bearer', label: 'Bearer token' },
+  { value: 'basic', label: 'Basic auth' },
+  { value: 'digest', label: 'Digest auth' },
+  { value: 'apikey', label: 'API key' },
   { value: 'oauth2', label: 'OAuth 2.0' },
   { value: 'aws', label: 'AWS Signature v4' },
 ];

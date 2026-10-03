@@ -59,7 +59,7 @@
   aria-label={invalid ? 'Invalid request' : currentLabel}
 >
   {#if invalid}
-    <svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+    <svg width="1rem" height="1rem" viewBox="0 0 18 18" fill="none" aria-hidden="true">
       <path d="M9 2.2l7 12.1H2L9 2.2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
       <path d="M9 7v3.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
       <circle cx="9" cy="12.4" r="0.95" fill="currentColor"/>
@@ -76,12 +76,12 @@
     justify-content: flex-start;
     flex: 0 0 auto;
     min-width: 0;
-    height: 20px;
+    height: 1.25rem;
     font-family: var(--font-mono);
-    font-size: 10.5px;
-    font-weight: 500;
+    font-size: var(--text-micro);
+    font-weight: var(--weight-medium);
     letter-spacing: 0.02em;
-    line-height: 1;
+    line-height: var(--leading-none);
   }
 
   .request-kind-text {
@@ -99,17 +99,17 @@
   }
 
   .request-kind-badge--sidebar {
-    width: 38px;
+    width: 2.375rem;
   }
 
   .request-kind-badge--tab {
     width: auto;
-    max-width: 54px;
+    max-width: 3.375rem;
   }
 
   .request-kind-badge--search {
     justify-self: center;
     justify-content: center;
-    width: 48px;
+    width: 3rem;
   }
 </style>

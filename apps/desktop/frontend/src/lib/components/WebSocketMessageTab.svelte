@@ -25,20 +25,20 @@
     <div class="body-editor-toolbar ws-message-toolbar">
       <div class="raw-type-menu ws-type-menu">
         <button
-          class="raw-type-button"
+          class="field field-sm select-trigger raw-type-button"
           class:open={vm.wsMessageTypeMenuOpen}
           type="button"
           onclick={() => (vm.wsMessageTypeMenuOpen = !vm.wsMessageTypeMenuOpen)}
         >
           {vm.webSocketMessageTypeLabel()}
-          <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+          <svg width="0.625rem" height="0.375rem" viewBox="0 0 10 6" fill="none" aria-hidden="true">
             <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
         </button>
         {#if vm.wsMessageTypeMenuOpen}
-          <div class="raw-type-list ws-type-options" role="listbox">
+          <div class="menu raw-type-list ws-type-options" role="listbox">
             {#each WS_MESSAGE_TYPES as type, eachIndex (eachIndex)}
-              <button
+              <button class="menu-item"
                 class:active={vm.webSocketMessageBodyType() === type}
                 role="option"
                 aria-selected={vm.webSocketMessageBodyType() === type}
@@ -56,10 +56,10 @@
       <BeautifyButton onbeautify={() => editorRef?.format()} beautified={vm.beautifiedBody} disabled={vm.bodyLang !== 'json'} title="Beautify message" />
 
       <div class="ws-message-actions">
-        <button class="toolbar-btn ws-toolbar-btn" type="button" disabled={!vm.webSocketConnected} onclick={() => vm.webSocketSendControl('ping')} title="Send ping">
+        <button class="btn btn-secondary btn-sm toolbar-btn ws-toolbar-btn" type="button" disabled={!vm.webSocketConnected} onclick={() => vm.webSocketSendControl('ping')} title="Send ping">
           Ping
         </button>
-        <button class="btn-send ws-message-send" type="button" disabled={!vm.webSocketConnected} onclick={vm.webSocketSendCurrentMessage}>
+        <button class="btn btn-primary btn-sm ws-message-send" type="button" disabled={!vm.webSocketConnected} onclick={vm.webSocketSendCurrentMessage}>
           Send
         </button>
       </div>

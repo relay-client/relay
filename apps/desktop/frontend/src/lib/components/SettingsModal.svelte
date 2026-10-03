@@ -6,6 +6,7 @@
   import type { SettingsTab } from '../stores/ui';
   import type { UpdateInfo } from '../backend';
   import type { ProxyConfig, ProxyMode, ProxyProtocol, ScriptEngine, ShortcutId } from '../types/models';
+  import type { StartupView } from '../startupView';
   import {
     DARK_THEME_VARIANTS,
     LIGHT_THEME_VARIANTS,
@@ -70,7 +71,7 @@
   }
 
   const NAV_ITEMS: SettingsNavItem[] = [
-    { id: 'general', label: 'General', keywords: 'general saving autosave manual save default location workspace collection folder data export import backup script engine javascript tengo' },
+    { id: 'general', label: 'General', keywords: 'general on launch startup start screen open request overview restore saving autosave manual save default location workspace collection folder data export import backup script engine javascript tengo' },
     { id: 'theme', label: 'Theme', keywords: 'theme appearance dark light system color scheme' },
     { id: 'proxy', label: 'Proxy', keywords: 'proxy http https socks5 system bypass network hostname port credentials' },
     { id: 'shortcuts', label: 'Shortcuts', keywords: 'shortcuts keybindings keyboard hotkeys' },
@@ -86,6 +87,8 @@
     appRuntime = '',
     appTheme,
     autosave,
+    startupView,
+    setStartupView,
     scriptEngine,
     setScriptEngine,
     shortcutGroups,
@@ -122,6 +125,8 @@
     appRuntime?: string;
     appTheme: AppTheme;
     autosave: boolean;
+    startupView: StartupView;
+    setStartupView: (value: StartupView) => void;
     scriptEngine: ScriptEngine;
     setScriptEngine: (value: ScriptEngine) => void;
     shortcutGroups: () => ShortcutGroup[];
@@ -190,25 +195,16 @@
 
 
   let generalSavingOpen = $state(false);
+  let generalStartupOpen = $state(false);
+  const STARTUP_VIEW_OPTIONS: Array<{ value: StartupView; title: string; detail: string }> = [
+    { value: 'request', title: 'Request editor', detail: 'Open your tabs on the request editor, or a new request when there are none' },
+    { value: 'restore', title: 'Where you left off', detail: 'Reopen the last screen: Git, the runner, a collection or the overview' },
+    { value: 'overview', title: 'Workspace overview', detail: 'Start on collections, history and storage for the workspace' },
+  ];
+  const startupViewSummary = $derived(STARTUP_VIEW_OPTIONS.find(option => option.value === startupView)?.title ?? 'Request editor');
   let generalScriptsOpen = $state(false);
   let generalLocationOpen = $state(false);
   let generalAdvancedOpen = $state(false);
-
-
-  function onNavKeydown(event: KeyboardEvent) {
-    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp' && event.key !== 'Home' && event.key !== 'End') return;
-    const items = filteredNav;
-    if (!items.length) return;
-    const currentIdx = items.findIndex(item => item.id === settingsTab);
-    let nextIdx = currentIdx;
-    if (event.key === 'ArrowDown') nextIdx = currentIdx >= 0 ? (currentIdx + 1) % items.length : 0;
-    else if (event.key === 'ArrowUp') nextIdx = currentIdx >= 0 ? (currentIdx - 1 + items.length) % items.length : items.length - 1;
-    else if (event.key === 'Home') nextIdx = 0;
-    else if (event.key === 'End') nextIdx = items.length - 1;
-    if (nextIdx === currentIdx || nextIdx < 0) return;
-    event.preventDefault();
-    settingsTab = items[nextIdx].id;
-  }
 
 
   type AboutInfo = { version: string; platform: string; arch: string; runtime: string };
@@ -388,16 +384,16 @@
 </script>
 
 <div class="settings-backdrop" role="presentation" onmousedown={(event) => event.target === event.currentTarget && onClose()}>
-  <div class="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title" tabindex="-1" use:trapFocus>
-    <div class="settings-modal-head">
-      <h2 id="settings-modal-title">Settings</h2>
-      <button class="settings-close" type="button" onclick={onClose} aria-label="Close settings">×</button>
+  <div class="modal settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title" tabindex="-1" use:trapFocus>
+    <div class="modal-head settings-modal-head">
+      <h2 class="modal-title" id="settings-modal-title">Settings</h2>
+      <button class="btn btn-ghost btn-icon settings-close" type="button" onclick={onClose} aria-label="Close settings">×</button>
     </div>
 
     <div class="settings-layout">
       <nav class="settings-sidebar" aria-label="Settings navigation">
-        <div class="settings-search">
-          <svg width="12" height="12" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+        <div class="field field-wrap settings-search">
+          <svg width="0.75rem" height="0.75rem" viewBox="0 0 13 13" fill="none" aria-hidden="true">
             <circle cx="5.8" cy="5.8" r="3.8" stroke="currentColor" stroke-width="1.3"/>
             <path d="M8.7 8.7l2.7 2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
           </svg>
@@ -410,7 +406,7 @@
             data-autofocus
           />
         </div>
-        <div class="settings-nav-list" role="tablist" aria-orientation="vertical" tabindex="-1" onkeydown={onNavKeydown} use:tabListKeyboard>
+        <div class="settings-nav-list" role="tablist" aria-orientation="vertical" tabindex="-1" use:tabListKeyboard>
           {#each filteredNav as item (item.id)}
             <button
               class="settings-nav-item"
@@ -424,23 +420,23 @@
               onclick={() => (settingsTab = item.id)}
             >
               {#if item.id === 'general'}
-                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+                <svg width="0.9375rem" height="0.9375rem" viewBox="0 0 15 15" fill="none" aria-hidden="true">
                   <path d="M2 4.5h5.2M10.8 4.5H13M2 10.5h2.2M7.8 10.5H13" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
                   <circle cx="9" cy="4.5" r="1.8" stroke="currentColor" stroke-width="1.3"/>
                   <circle cx="6" cy="10.5" r="1.8" stroke="currentColor" stroke-width="1.3"/>
                 </svg>
               {:else if item.id === 'theme'}
-                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+                <svg width="0.9375rem" height="0.9375rem" viewBox="0 0 15 15" fill="none" aria-hidden="true">
                   <circle cx="7.5" cy="7.5" r="5.8" stroke="currentColor" stroke-width="1.3"/>
                   <path d="M7.5 1.7a5.8 5.8 0 010 11.6V1.7z" fill="currentColor"/>
                 </svg>
               {:else if item.id === 'proxy'}
-                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+                <svg width="0.9375rem" height="0.9375rem" viewBox="0 0 15 15" fill="none" aria-hidden="true">
                   <circle cx="7.5" cy="7.5" r="6" stroke="currentColor" stroke-width="1.3"/>
                   <path d="M1.5 7.5h12M7.5 1.5c2 2 2 10 0 12M7.5 1.5c-2 2-2 10 0 12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
                 </svg>
               {:else if item.id === 'shortcuts'}
-                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+                <svg width="0.9375rem" height="0.9375rem" viewBox="0 0 15 15" fill="none" aria-hidden="true">
                   <rect x="1.5" y="3.5" width="12" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
                   <rect x="3.5" y="5.5" width="1.5" height="1.5" rx="0.3" fill="currentColor"/>
                   <rect x="7" y="5.5" width="1.5" height="1.5" rx="0.3" fill="currentColor"/>
@@ -450,18 +446,18 @@
                   <rect x="10" y="8" width="1.5" height="1.5" rx="0.3" fill="currentColor"/>
                 </svg>
               {:else if item.id === 'updates'}
-                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+                <svg width="0.9375rem" height="0.9375rem" viewBox="0 0 15 15" fill="none" aria-hidden="true">
                   <circle cx="7.5" cy="7.5" r="6" stroke="currentColor" stroke-width="1.3"/>
                   <path d="M7.5 4.5v6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
                   <path d="M4.5 8l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               {:else if item.id === 'support'}
-                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+                <svg width="0.9375rem" height="0.9375rem" viewBox="0 0 15 15" fill="none" aria-hidden="true">
                   <path d="M2.2 6.8c0-2.8 2.2-4.8 5.3-4.8s5.3 2 5.3 4.8-2.2 4.8-5.3 4.8c-.7 0-1.4-.1-2-.3l-2.4 1 .7-2.1c-1-.9-1.6-2-1.6-3.4z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
                   <path d="M5.4 6h4.2M5.4 8.3h2.8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
                 </svg>
               {:else if item.id === 'about'}
-                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+                <svg width="0.9375rem" height="0.9375rem" viewBox="0 0 15 15" fill="none" aria-hidden="true">
                   <circle cx="7.5" cy="7.5" r="6.5" stroke="currentColor" stroke-width="1.3"/>
                   <path d="M7.5 6.5v5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
                   <circle cx="7.5" cy="4.5" r="0.8" fill="currentColor"/>
@@ -480,7 +476,7 @@
         <div class="settings-body" id="settings-panel-shortcuts" role="tabpanel">
           <div class="shortcut-modal-head">
             <p>{shortcutCaptureMessage || 'Click a shortcut to record a new combination.'}</p>
-            <button class="btn-secondary btn-sm" type="button" onclick={resetAllShortcuts}>Reset all</button>
+            <button class="btn btn-secondary" type="button" onclick={resetAllShortcuts}>Reset all</button>
           </div>
           <div class="shortcut-list">
             {#each shortcutGroups() as group, eachIndex (eachIndex)}
@@ -501,7 +497,7 @@
                           {/if}
                         {/if}
                       </button>
-                      <button class="shortcut-reset" type="button" onclick={() => resetShortcut(shortcut.id)} aria-label="Reset shortcut">↺</button>
+                      <button class="btn btn-ghost btn-icon btn-sm shortcut-reset" type="button" onclick={() => resetShortcut(shortcut.id)} aria-label="Reset shortcut">↺</button>
                     </div>
                   </div>
                 {/each}
@@ -513,22 +509,22 @@
 
       {#if settingsTab === 'theme'}
         <div class="settings-body settings-theme" id="settings-panel-theme" role="tabpanel">
-          <div class="theme-mode-options" role="group" aria-label="Theme mode">
-            <button class="theme-mode-option" class:active={appTheme.mode === 'light'} type="button" onclick={() => setThemeMode('light')}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <div class="segmented segmented-md theme-mode-options" role="group" aria-label="Theme mode">
+            <button class="segmented-item theme-mode-option" class:active={appTheme.mode === 'light'} type="button" onclick={() => setThemeMode('light')}>
+              <svg width="1rem" height="1rem" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.4"/>
                 <path d="M8 1.5v1.4M8 13.1v1.4M1.5 8h1.4M13.1 8h1.4M3.4 3.4l1 1M11.6 11.6l1 1M3.4 12.6l1-1M11.6 4.4l1-1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
               </svg>
               <span>Light</span>
             </button>
-            <button class="theme-mode-option" class:active={appTheme.mode === 'dark'} type="button" onclick={() => setThemeMode('dark')}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <button class="segmented-item theme-mode-option" class:active={appTheme.mode === 'dark'} type="button" onclick={() => setThemeMode('dark')}>
+              <svg width="1rem" height="1rem" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <path d="M13.2 10.5A5.8 5.8 0 015.5 2.8 6.2 6.2 0 1013.2 10.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
               </svg>
               <span>Dark</span>
             </button>
-            <button class="theme-mode-option" class:active={appTheme.mode === 'system'} type="button" onclick={() => setThemeMode('system')}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <button class="segmented-item theme-mode-option" class:active={appTheme.mode === 'system'} type="button" onclick={() => setThemeMode('system')}>
+              <svg width="1rem" height="1rem" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <rect x="2.2" y="3" width="11.6" height="8" rx="1.2" stroke="currentColor" stroke-width="1.4"/>
                 <path d="M6 14h4M8 11v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
               </svg>
@@ -541,7 +537,7 @@
             <div class="theme-variant-grid">
               {#each LIGHT_THEME_VARIANTS as variant, eachIndex (eachIndex)}
                 <button
-                  class="theme-variant-card"
+                  class="option-card theme-variant-card"
                   class:active={appTheme.light === variant.id}
                   type="button"
                   onclick={() => setThemeVariant(variant.id)}
@@ -551,7 +547,7 @@
                   </div>
                   <span class="theme-variant-name">{variant.name}</span>
                   <span class="theme-card-check" aria-hidden="true">
-                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                    <svg width="0.6875rem" height="0.6875rem" viewBox="0 0 12 12" fill="none">
                       <path d="M2.5 6.3l2.4 2.4 4.6-4.9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                   </span>
@@ -565,7 +561,7 @@
             <div class="theme-variant-grid">
               {#each DARK_THEME_VARIANTS as variant, eachIndex (eachIndex)}
                 <button
-                  class="theme-variant-card"
+                  class="option-card theme-variant-card"
                   class:active={appTheme.dark === variant.id}
                   type="button"
                   onclick={() => setThemeVariant(variant.id)}
@@ -575,7 +571,7 @@
                   </div>
                   <span class="theme-variant-name">{variant.name}</span>
                   <span class="theme-card-check" aria-hidden="true">
-                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                    <svg width="0.6875rem" height="0.6875rem" viewBox="0 0 12 12" fill="none">
                       <path d="M2.5 6.3l2.4 2.4 4.6-4.9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                   </span>
@@ -594,9 +590,9 @@
           <div class="proxy-form">
             <div class="proxy-row">
               <span class="proxy-label">Mode</span>
-              <div class="proxy-radio-group" role="radiogroup" aria-label="Proxy mode">
+              <div class="segmented proxy-radio-group" role="radiogroup" aria-label="Proxy mode">
                 {#each PROXY_MODES as option, eachIndex (eachIndex)}
-                  <label class="proxy-radio">
+                  <label class="segmented-item proxy-radio">
                     <input type="radio" name="proxy-mode" value={option.value} checked={proxyConfig.mode === option.value} onchange={() => updateProxy({ mode: option.value })} />
                     <span>{option.label}</span>
                   </label>
@@ -606,9 +602,9 @@
 
             <div class="proxy-row" class:proxy-disabled={proxyConfig.mode !== 'on'}>
               <span class="proxy-label">Protocol</span>
-              <div class="proxy-radio-group" role="radiogroup" aria-label="Proxy protocol">
+              <div class="segmented proxy-radio-group" role="radiogroup" aria-label="Proxy protocol">
                 {#each PROXY_PROTOCOLS as protocol, eachIndex (eachIndex)}
-                  <label class="proxy-radio">
+                  <label class="segmented-item proxy-radio">
                     <input type="radio" name="proxy-protocol" value={protocol} checked={proxyConfig.protocol === protocol} disabled={proxyConfig.mode !== 'on'} onchange={() => updateProxy({ protocol })} />
                     <span>{protocol.toUpperCase()}</span>
                   </label>
@@ -618,7 +614,7 @@
 
             <div class="proxy-row" class:proxy-disabled={proxyConfig.mode !== 'on'}>
               <label class="proxy-label" for="proxy-hostname">Hostname</label>
-              <input id="proxy-hostname" class="proxy-input" type="text" spellcheck="false" autocomplete="off" placeholder="proxy.example.com" value={proxyConfig.hostname} disabled={proxyConfig.mode !== 'on'} oninput={(event) => updateProxy({ hostname: inputValue(event) })} />
+              <input id="proxy-hostname" class="field proxy-input" type="text" spellcheck="false" autocomplete="off" placeholder="proxy.example.com" value={proxyConfig.hostname} disabled={proxyConfig.mode !== 'on'} oninput={(event) => updateProxy({ hostname: inputValue(event) })} />
             </div>
 
             {#if proxyConfig.mode === 'on' && !proxyConfig.hostname.trim()}
@@ -627,7 +623,7 @@
 
             <div class="proxy-row" class:proxy-disabled={proxyConfig.mode !== 'on'}>
               <label class="proxy-label" for="proxy-port">Port</label>
-              <input id="proxy-port" class="proxy-input proxy-input-sm" type="number" min="0" max="65535" step="1" placeholder="0" value={proxyConfig.port} disabled={proxyConfig.mode !== 'on'} oninput={proxyPortInput} />
+              <input id="proxy-port" class="field proxy-input proxy-input-sm" type="number" min="0" max="65535" step="1" placeholder="0" value={proxyConfig.port} disabled={proxyConfig.mode !== 'on'} oninput={proxyPortInput} />
             </div>
 
             <div class="proxy-row" class:proxy-disabled={proxyConfig.mode !== 'on'}>
@@ -642,17 +638,17 @@
             {#if proxyConfig.auth.enabled}
               <div class="proxy-row" class:proxy-disabled={proxyConfig.mode !== 'on'}>
                 <label class="proxy-label" for="proxy-username">Username</label>
-                <input id="proxy-username" class="proxy-input" type="text" spellcheck="false" autocomplete="off" value={proxyConfig.auth.username} disabled={proxyConfig.mode !== 'on'} oninput={(event) => updateProxyAuth({ username: inputValue(event) })} />
+                <input id="proxy-username" class="field proxy-input" type="text" spellcheck="false" autocomplete="off" value={proxyConfig.auth.username} disabled={proxyConfig.mode !== 'on'} oninput={(event) => updateProxyAuth({ username: inputValue(event) })} />
               </div>
               <div class="proxy-row" class:proxy-disabled={proxyConfig.mode !== 'on'}>
                 <label class="proxy-label" for="proxy-password">Password</label>
                 <span class="proxy-password">
-                  <input id="proxy-password" class="proxy-input" type={proxyPasswordVisible ? 'text' : 'password'} autocomplete="off" value={proxyConfig.auth.password} disabled={proxyConfig.mode !== 'on'} oninput={(event) => updateProxyAuth({ password: inputValue(event) })} />
-                  <button type="button" class="proxy-eye" aria-label={proxyPasswordVisible ? 'Hide password' : 'Show password'} onclick={() => (proxyPasswordVisible = !proxyPasswordVisible)}>
+                  <input id="proxy-password" class="field proxy-input" type={proxyPasswordVisible ? 'text' : 'password'} autocomplete="off" value={proxyConfig.auth.password} disabled={proxyConfig.mode !== 'on'} oninput={(event) => updateProxyAuth({ password: inputValue(event) })} />
+                  <button type="button" class="btn btn-ghost btn-icon btn-xs proxy-eye" aria-label={proxyPasswordVisible ? 'Hide password' : 'Show password'} onclick={() => (proxyPasswordVisible = !proxyPasswordVisible)}>
                     {#if proxyPasswordVisible}
-                      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 8s2.5-4.5 6-4.5S14 8 14 8s-2.5 4.5-6 4.5S2 8 2 8z" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="1.8" stroke="currentColor" stroke-width="1.3"/><path d="M3 13L13 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                      <svg width="0.9375rem" height="0.9375rem" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 8s2.5-4.5 6-4.5S14 8 14 8s-2.5 4.5-6 4.5S2 8 2 8z" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="1.8" stroke="currentColor" stroke-width="1.3"/><path d="M3 13L13 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
                     {:else}
-                      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 8s2.5-4.5 6-4.5S14 8 14 8s-2.5 4.5-6 4.5S2 8 2 8z" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="1.8" stroke="currentColor" stroke-width="1.3"/></svg>
+                      <svg width="0.9375rem" height="0.9375rem" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 8s2.5-4.5 6-4.5S14 8 14 8s-2.5 4.5-6 4.5S2 8 2 8z" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="1.8" stroke="currentColor" stroke-width="1.3"/></svg>
                     {/if}
                   </button>
                 </span>
@@ -661,7 +657,7 @@
 
             <div class="proxy-row" class:proxy-disabled={proxyConfig.mode !== 'on'}>
               <label class="proxy-label" for="proxy-bypass">Proxy bypass</label>
-              <input id="proxy-bypass" class="proxy-input" type="text" spellcheck="false" autocomplete="off" placeholder="localhost, 127.0.0.1, .internal" value={proxyConfig.bypass} disabled={proxyConfig.mode !== 'on'} oninput={(event) => updateProxy({ bypass: inputValue(event) })} />
+              <input id="proxy-bypass" class="field proxy-input" type="text" spellcheck="false" autocomplete="off" placeholder="localhost, 127.0.0.1, .internal" value={proxyConfig.bypass} disabled={proxyConfig.mode !== 'on'} oninput={(event) => updateProxy({ bypass: inputValue(event) })} />
             </div>
           </div>
         </div>
@@ -680,7 +676,7 @@
                 <span class="updates-inline"><span class="updates-spinner" aria-hidden="true"></span>Checking for updates…</span>
               {:else if updateState === 'up-to-date'}
                 <span class="updates-inline">
-                  <svg width="13" height="13" viewBox="0 0 15 15" fill="none" aria-hidden="true" class="updates-ok-icon">
+                  <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 15 15" fill="none" aria-hidden="true" class="updates-ok-icon">
                     <circle cx="7.5" cy="7.5" r="6.5" stroke="currentColor" stroke-width="1.3"/>
                     <path d="M4.5 7.5l2 2 4-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
@@ -692,7 +688,7 @@
                 <span class="updates-inline"><span class="updates-spinner" aria-hidden="true"></span>Downloading and installing…</span>
               {:else if updateState === 'ready'}
                 <span class="updates-inline">
-                  <svg width="13" height="13" viewBox="0 0 15 15" fill="none" aria-hidden="true" class="updates-ok-icon">
+                  <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 15 15" fill="none" aria-hidden="true" class="updates-ok-icon">
                     <circle cx="7.5" cy="7.5" r="6.5" stroke="currentColor" stroke-width="1.3"/>
                     <path d="M4.5 7.5l2 2 4-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
@@ -704,17 +700,17 @@
             </div>
             {#if !isDevBuild}
               {#if updateState === 'idle'}
-                <button class="btn-secondary btn-sm" type="button" onclick={handleCheck}>Check for updates</button>
+                <button class="btn btn-secondary" type="button" onclick={handleCheck}>Check for updates</button>
               {:else if updateState === 'up-to-date'}
-                <button class="btn-secondary btn-sm" type="button" onclick={handleCheck}>Check again</button>
+                <button class="btn btn-secondary" type="button" onclick={handleCheck}>Check again</button>
               {:else if updateState === 'available' && updateInfo && manualUpdateURL}
-                <button class="btn-primary btn-sm" type="button" onclick={handleDownload}>Download update</button>
+                <button class="btn btn-primary" type="button" onclick={handleDownload}>Download update</button>
               {:else if updateState === 'available' && updateInfo}
-                <button class="btn-primary btn-sm" type="button" onclick={handleInstall}>Install update</button>
+                <button class="btn btn-primary" type="button" onclick={handleInstall}>Install update</button>
               {:else if updateState === 'ready'}
-                <button class="btn-primary btn-sm" type="button" onclick={handleRestart}>Restart now</button>
+                <button class="btn btn-primary" type="button" onclick={handleRestart}>Restart now</button>
               {:else if updateState === 'error'}
-                <button class="btn-secondary btn-sm" type="button" onclick={handleCheck}>Try again</button>
+                <button class="btn btn-secondary" type="button" onclick={handleCheck}>Try again</button>
               {/if}
             {/if}
           </div>
@@ -744,7 +740,7 @@
             <details class="settings-card" bind:open={generalSavingOpen}>
               <summary class="settings-card-summary">
                 <span class="settings-card-icon">
-                  <svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                  <svg width="1rem" height="1rem" viewBox="0 0 18 18" fill="none" aria-hidden="true">
                     <path d="M3 3h10.5L15 4.5V15H3V3z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
                     <rect x="5.5" y="10" width="7" height="4" rx="0.6" stroke="currentColor" stroke-width="1.2"/>
                   </svg>
@@ -752,7 +748,7 @@
                 <span class="settings-card-title">Saving</span>
                 <span class="settings-card-subtitle">{autosave ? 'Autosave is on' : `Manual save (${saveShortcut})`}</span>
                 <span class="settings-card-chevron" aria-hidden="true">
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <svg width="0.625rem" height="0.625rem" viewBox="0 0 10 10" fill="none">
                     <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </span>
@@ -760,13 +756,13 @@
               <div class="settings-card-body">
                 <div class="general-save-options">
                   <button
-                    class="save-mode-option"
+                    class="option-card save-mode-option"
                     class:active={autosave}
                     type="button"
                     onclick={() => setAutosave(true)}
                   >
                     <div class="save-mode-icon">
-                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                      <svg width="1.125rem" height="1.125rem" viewBox="0 0 18 18" fill="none" aria-hidden="true">
                         <path d="M3 3h10.5L15 4.5V15H3V3z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
                         <rect x="5.5" y="10" width="7" height="4" rx="0.6" stroke="currentColor" stroke-width="1.15"/>
                         <rect x="6" y="3" width="5" height="3.5" rx="0.6" stroke="currentColor" stroke-width="1.15"/>
@@ -779,13 +775,13 @@
                     {#if autosave}<span class="save-mode-check">✓</span>{/if}
                   </button>
                   <button
-                    class="save-mode-option"
+                    class="option-card save-mode-option"
                     class:active={!autosave}
                     type="button"
                     onclick={() => setAutosave(false)}
                   >
                     <div class="save-mode-icon">
-                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                      <svg width="1.125rem" height="1.125rem" viewBox="0 0 18 18" fill="none" aria-hidden="true">
                         <path d="M3 3h10.5L15 4.5V15H3V3z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
                         <rect x="5.5" y="10" width="7" height="4" rx="0.6" stroke="currentColor" stroke-width="1.15"/>
                         <rect x="6" y="3" width="5" height="3.5" rx="0.6" stroke="currentColor" stroke-width="1.15"/>
@@ -808,18 +804,62 @@
             </details>
           {/if}
 
+          {#if matchesQuery('On launch', 'startup start screen open request overview restore')}
+            <details class="settings-card" bind:open={generalStartupOpen}>
+              <summary class="settings-card-summary">
+                <span class="settings-card-icon">
+                  <svg width="1rem" height="1rem" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                    <rect x="2.5" y="3.5" width="13" height="11" rx="1.4" stroke="currentColor" stroke-width="1.35"/>
+                    <path d="M2.5 6.5h13" stroke="currentColor" stroke-width="1.2"/>
+                    <path d="M7.5 9v3.2L10.4 10.6 7.5 9z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+                <span class="settings-card-title">On launch</span>
+                <span class="settings-card-subtitle">{startupViewSummary}</span>
+                <span class="settings-card-chevron" aria-hidden="true">
+                  <svg width="0.625rem" height="0.625rem" viewBox="0 0 10 10" fill="none">
+                    <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+              </summary>
+              <div class="settings-card-body">
+                <div class="general-save-options" role="radiogroup" aria-label="On launch">
+                  {#each STARTUP_VIEW_OPTIONS as option (option.value)}
+                    <button
+                      class="option-card save-mode-option"
+                      class:active={startupView === option.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={startupView === option.value}
+                      onclick={() => setStartupView(option.value)}
+                    >
+                      <div class="save-mode-copy">
+                        <strong>{option.title}</strong>
+                        <small>{option.detail}</small>
+                      </div>
+                      {#if startupView === option.value}<span class="save-mode-check">✓</span>{/if}
+                    </button>
+                  {/each}
+                </div>
+                <p class="general-save-hint">
+                  A workspace that needs attention, such as a missing folder or broken YAML, opens where you can fix it instead.
+                </p>
+              </div>
+            </details>
+          {/if}
+
           {#if matchesQuery('Scripts', 'script engine javascript tengo pre-request tests')}
             <details class="settings-card" bind:open={generalScriptsOpen}>
               <summary class="settings-card-summary">
                 <span class="settings-card-icon">
-                  <svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                  <svg width="1rem" height="1rem" viewBox="0 0 18 18" fill="none" aria-hidden="true">
                     <path d="M6.5 5 3.5 9l3 4M11.5 5l3 4-3 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </span>
                 <span class="settings-card-title">Scripts</span>
                 <span class="settings-card-subtitle">{scriptEngine === 'js' ? 'JavaScript engine' : 'Tengo engine'}</span>
                 <span class="settings-card-chevron" aria-hidden="true">
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <svg width="0.625rem" height="0.625rem" viewBox="0 0 10 10" fill="none">
                     <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </span>
@@ -827,13 +867,13 @@
               <div class="settings-card-body">
                 <div class="general-save-options">
                   <button
-                    class="save-mode-option"
+                    class="option-card save-mode-option"
                     class:active={scriptEngine === 'js'}
                     type="button"
                     onclick={() => setScriptEngine('js')}
                   >
                     <div class="save-mode-icon">
-                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                      <svg width="1.125rem" height="1.125rem" viewBox="0 0 18 18" fill="none" aria-hidden="true">
                         <path d="M6 4.5 2.5 9 6 13.5M12 4.5 15.5 9 12 13.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
                       </svg>
                     </div>
@@ -844,13 +884,13 @@
                     {#if scriptEngine === 'js'}<span class="save-mode-check">✓</span>{/if}
                   </button>
                   <button
-                    class="save-mode-option"
+                    class="option-card save-mode-option"
                     class:active={scriptEngine === 'tengo'}
                     type="button"
                     onclick={() => setScriptEngine('tengo')}
                   >
                     <div class="save-mode-icon">
-                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                      <svg width="1.125rem" height="1.125rem" viewBox="0 0 18 18" fill="none" aria-hidden="true">
                         <path d="M4 5h10M9 5v9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
                       </svg>
                     </div>
@@ -872,14 +912,14 @@
             <details class="settings-card" bind:open={generalLocationOpen}>
               <summary class="settings-card-summary">
                 <span class="settings-card-icon">
-                  <svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                  <svg width="1rem" height="1rem" viewBox="0 0 18 18" fill="none" aria-hidden="true">
                     <path d="M2.5 5.2c0-.8.6-1.4 1.4-1.4h3.4l1.4 1.6h5.4c.8 0 1.4.6 1.4 1.4v6c0 .8-.6 1.4-1.4 1.4H3.9c-.8 0-1.4-.6-1.4-1.4V5.2z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/>
                   </svg>
                 </span>
                 <span class="settings-card-title">Default location</span>
                 <span class="settings-card-subtitle">Used for new folder workspaces and collection exports</span>
                 <span class="settings-card-chevron" aria-hidden="true">
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <svg width="0.625rem" height="0.625rem" viewBox="0 0 10 10" fill="none">
                     <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </span>
@@ -889,7 +929,7 @@
                   <label for="settings-default-location">Default location</label>
                   <p>Used as the default location for new workspaces and exported collections.</p>
                   <div class="default-location-row">
-                    <input
+                    <input class="field"
                       id="settings-default-location"
                       value={defaultWorkspaceLocationDraft}
                       spellcheck="false"
@@ -898,9 +938,9 @@
                       onkeydown={handleDefaultLocationKeydown}
                       aria-describedby="settings-default-location-help"
                     />
-                    <button class="btn-secondary btn-sm" type="button" onclick={() => saveDefaultWorkspaceLocation()}>Save</button>
+                    <button class="btn btn-secondary btn-lg" type="button" onclick={() => saveDefaultWorkspaceLocation()}>Save</button>
                   </div>
-                  <button class="settings-link-button" type="button" onclick={browseDefaultWorkspaceLocation}>Browse</button>
+                  <button class="btn-link settings-link-button" type="button" onclick={browseDefaultWorkspaceLocation}>Browse</button>
                   <p
                     id="settings-default-location-help"
                     class:settings-inline-status={defaultWorkspaceLocationStatus}
@@ -917,7 +957,7 @@
             <details class="settings-card" bind:open={generalAdvancedOpen}>
               <summary class="settings-card-summary">
                 <span class="settings-card-icon">
-                  <svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                  <svg width="1rem" height="1rem" viewBox="0 0 18 18" fill="none" aria-hidden="true">
                     <ellipse cx="9" cy="4.2" rx="5.8" ry="2.2" stroke="currentColor" stroke-width="1.4"/>
                     <path d="M3.2 4.2v9.6c0 1.2 2.6 2.2 5.8 2.2s5.8-1 5.8-2.2V4.2" stroke="currentColor" stroke-width="1.4"/>
                     <path d="M3.2 9c0 1.2 2.6 2.2 5.8 2.2s5.8-1 5.8-2.2" stroke="currentColor" stroke-width="1.4"/>
@@ -926,7 +966,7 @@
                 <span class="settings-card-title">Advanced data</span>
                 <span class="settings-card-subtitle">Export or replace all your local data</span>
                 <span class="settings-card-chevron" aria-hidden="true">
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <svg width="0.625rem" height="0.625rem" viewBox="0 0 10 10" fill="none">
                     <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </span>
@@ -937,18 +977,18 @@
                   in this profile. Export is safe to run any time.
                 </p>
                 <div class="general-data-actions">
-                  <button class="data-action-button" type="button" onclick={exportAllData}>
+                  <button class="btn btn-secondary btn-lg data-action-button" type="button" onclick={exportAllData}>
                     <span class="data-action-icon">
-                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                      <svg width="1.125rem" height="1.125rem" viewBox="0 0 18 18" fill="none" aria-hidden="true">
                         <path d="M9 2.5v8.2M5.8 7.6 9 10.8l3.2-3.2" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/>
                         <path d="M3.2 11.5v2.7c0 .7.6 1.3 1.3 1.3h9c.7 0 1.3-.6 1.3-1.3v-2.7" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
                       </svg>
                     </span>
                     <span>Export all data</span>
                   </button>
-                  <button class="data-action-button data-action-danger" type="button" onclick={importAllData}>
+                  <button class="btn btn-secondary btn-danger btn-lg data-action-button data-action-danger" type="button" onclick={importAllData}>
                     <span class="data-action-icon">
-                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                      <svg width="1.125rem" height="1.125rem" viewBox="0 0 18 18" fill="none" aria-hidden="true">
                         <path d="M9 15.5V7.3M5.8 10.4 9 7.2l3.2 3.2" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/>
                         <path d="M3.2 6.5V3.8c0-.7.6-1.3 1.3-1.3h9c.7 0 1.3.6 1.3 1.3v2.7" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
                       </svg>
@@ -972,7 +1012,7 @@
           <div class="support-actions">
             <button class="support-link-card" type="button" onclick={() => openExternalURL('https://github.com/relay-client/relay/issues')}>
               <span class="support-link-icon" aria-hidden="true">
-                <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
+                <svg width="1.0625rem" height="1.0625rem" viewBox="0 0 18 18" fill="none">
                   <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.4"/>
                   <path d="M9 5.4v4.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
                   <circle cx="9" cy="12.2" r="0.8" fill="currentColor"/>
@@ -982,14 +1022,14 @@
                 <span class="support-link-title">Report issues</span>
                 <span class="support-link-meta">github.com/relay-client/relay/issues</span>
               </span>
-              <svg width="11" height="11" viewBox="0 0 10 10" fill="none" aria-hidden="true" class="support-link-arrow">
+              <svg width="0.6875rem" height="0.6875rem" viewBox="0 0 10 10" fill="none" aria-hidden="true" class="support-link-arrow">
                 <path d="M2 8L8 2M8 2H4M8 2v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </button>
 
             <button class="support-link-card" type="button" onclick={() => openExternalURL('https://github.com/relay-client/relay/issues/new')}>
               <span class="support-link-icon" aria-hidden="true">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                <svg width="1.0625rem" height="1.0625rem" viewBox="0 0 24 24" fill="none">
                   <path d="M21.8 2.2L1.2 10.1c-1.4.6-1.3 1.5-.2 1.9l5.2 1.6 2 6.3c.3.8.6.9 1 .6l2.7-2.6 5.2 3.9c1 .5 1.6.3 1.9-.9L22.9 3.6c.4-1.5-.5-2.1-1.1-1.4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
                 </svg>
               </span>
@@ -997,14 +1037,14 @@
                 <span class="support-link-title">Questions</span>
                 <span class="support-link-meta">github.com/relay-client/relay/issues/new</span>
               </span>
-              <svg width="11" height="11" viewBox="0 0 10 10" fill="none" aria-hidden="true" class="support-link-arrow">
+              <svg width="0.6875rem" height="0.6875rem" viewBox="0 0 10 10" fill="none" aria-hidden="true" class="support-link-arrow">
                 <path d="M2 8L8 2M8 2H4M8 2v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </button>
 
             <button class="support-link-card" type="button" onclick={copyDiagnostics}>
               <span class="support-link-icon" aria-hidden="true">
-                <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
+                <svg width="1.0625rem" height="1.0625rem" viewBox="0 0 18 18" fill="none">
                   <rect x="6" y="2.5" width="9.5" height="12" rx="2" stroke="currentColor" stroke-width="1.4"/>
                   <path d="M12 15.5H4.5a2 2 0 0 1-2-2V5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
                 </svg>
@@ -1023,7 +1063,7 @@
 
             <button class="support-link-card" type="button" onclick={revealLogFolder}>
               <span class="support-link-icon" aria-hidden="true">
-                <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
+                <svg width="1.0625rem" height="1.0625rem" viewBox="0 0 18 18" fill="none">
                   <path d="M2.5 5.2c0-.9.7-1.6 1.6-1.6h2.6l1.5 1.7h5.7c.9 0 1.6.7 1.6 1.6v6.3c0 .9-.7 1.6-1.6 1.6H4.1a1.6 1.6 0 0 1-1.6-1.6V5.2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
                 </svg>
               </span>
@@ -1061,7 +1101,7 @@
                   <strong>What's new</strong>
                   <span>Release notes for this build</span>
                 </span>
-                <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true" class="about-item-chevron">
+                <svg width="0.75rem" height="0.75rem" viewBox="0 0 14 14" fill="none" aria-hidden="true" class="about-item-chevron">
                   <path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </button>
@@ -1102,76 +1142,76 @@
 
 <style>
   .updates-tab {
-    padding-top: 20px;
+    padding-top: var(--space-5);
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: var(--space-5);
   }
 
   .updates-summary {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
-    padding-bottom: 16px;
+    gap: var(--space-4);
+    padding-bottom: var(--space-4);
     border-bottom: 1px solid var(--border-subtle);
   }
 
   .updates-summary-copy {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-1);
     min-width: 0;
   }
 
   .updates-summary-copy strong {
     color: var(--text);
-    font-size: 14px;
-    font-weight: 600;
+    font-size: var(--text-title);
+    font-weight: var(--weight-semibold);
   }
 
   .updates-summary-copy > span {
     color: var(--text-3);
-    font-size: 12.5px;
-    line-height: 1.45;
+    font-size: var(--text-body);
+    line-height: var(--leading-normal);
   }
 
   .updates-summary-copy b {
     color: var(--text);
-    font-weight: 600;
+    font-weight: var(--weight-semibold);
   }
 
-  .updates-summary .btn-sm {
+  .updates-summary .btn {
     flex: 0 0 auto;
   }
 
   .updates-inline {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
+    gap: var(--space-2);
   }
 
   .updates-dev-notice {
     margin: 0;
     color: var(--text-3);
-    font-size: 12.5px;
-    line-height: 1.6;
+    font-size: var(--text-body);
+    line-height: var(--leading-relaxed);
   }
 
   .updates-dev-notice code {
-    padding: 1px 5px;
-    border-radius: 4px;
+    padding: 1px var(--space-1-5);
+    border-radius: var(--radius-sm);
     background: var(--hover);
     color: var(--text-2);
     font-family: var(--font-mono);
-    font-size: 11px;
+    font-size: var(--text-caption);
   }
 
   .updates-dev-notice a {
     color: var(--text-2);
     text-decoration: underline;
     text-decoration-color: var(--border);
-    text-underline-offset: 2px;
+    text-underline-offset: 0.125rem;
   }
 
   .updates-dev-notice a:hover {
@@ -1185,8 +1225,8 @@
   }
 
   .updates-spinner {
-    width: 12px;
-    height: 12px;
+    width: 0.75rem;
+    height: 0.75rem;
     border: 1.5px solid var(--border);
     border-top-color: var(--text-2);
     border-radius: 50%;
@@ -1207,7 +1247,7 @@
   .updates-notes {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: var(--space-2-5);
   }
 
   .updates-notes .settings-section-label {
@@ -1219,32 +1259,14 @@
   }
 
   .settings-search {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
-    margin: 0 6px 8px;
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    background: var(--bg);
+    margin: 0 var(--space-1-5) var(--space-2);
     color: var(--text-3);
-  }
-
-  .settings-search:focus-within {
-    border-color: var(--accent);
-    color: var(--text);
   }
 
   .settings-search input {
     flex: 1;
     min-width: 0;
     width: 100%;
-    border: none;
-    background: transparent;
-    color: var(--text);
-    font-size: 12px;
-    outline: none;
-    padding: 2px 0;
     text-overflow: ellipsis;
   }
 
@@ -1256,8 +1278,8 @@
 
   .settings-search input::-webkit-search-cancel-button {
     -webkit-appearance: none;
-    height: 12px;
-    width: 12px;
+    height: 0.75rem;
+    width: 0.75rem;
     background: var(--text-3);
     -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path d='M3 3l6 6M9 3l-6 6' stroke='black' stroke-width='1.5' stroke-linecap='round'/></svg>") no-repeat center / contain;
     cursor: pointer;
@@ -1266,19 +1288,18 @@
   .settings-nav-list {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--space-0-5);
     flex: 1;
     min-height: 0;
     overflow-y: auto;
   }
 
   .settings-nav-empty {
-    margin: 8px 10px;
-    font-size: 12px;
+    margin: var(--space-2) var(--space-2-5);
+    font-size: var(--text-label);
     color: var(--text-3);
-    line-height: 1.4;
+    line-height: var(--leading-normal);
   }
-
 
   .settings-card {
     border: none;
@@ -1292,8 +1313,8 @@
   .settings-card-summary {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 14px 2px;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-0-5);
     cursor: pointer;
     user-select: none;
     list-style: none;
@@ -1306,8 +1327,8 @@
   .settings-card-icon {
     display: grid;
     place-items: center;
-    width: 20px;
-    height: 20px;
+    width: 1.25rem;
+    height: 1.25rem;
     border-radius: 0;
     background: transparent;
     color: var(--text-3);
@@ -1315,20 +1336,20 @@
   }
 
   .settings-card-title {
-    font-size: 13px;
-    font-weight: 600;
+    font-size: var(--text-body);
+    font-weight: var(--weight-semibold);
     color: var(--text);
   }
 
   .settings-card-subtitle {
     flex: 1;
-    font-size: 12.5px;
+    font-size: var(--text-body);
     color: var(--text-3);
   }
 
   .settings-card-chevron {
     color: var(--text-3);
-    transition: transform 0.18s;
+    transition: transform var(--dur-base);
   }
 
   .settings-card[open] .settings-card-chevron {
@@ -1336,22 +1357,22 @@
   }
 
   .settings-card-body {
-    padding: 0 2px 16px 34px;
+    padding: 0 var(--space-0-5) var(--space-4) calc(var(--space-0-5) + 1.25rem + var(--space-3));
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--space-3);
   }
 
   .settings-danger-warning {
     margin: 0;
-    font-size: 12px;
-    line-height: 1.5;
+    font-size: var(--text-label);
+    line-height: var(--leading-normal);
     color: var(--text-2);
   }
 
   .settings-danger-warning strong {
     color: var(--text);
-    font-weight: 600;
+    font-weight: var(--weight-semibold);
   }
 
   .data-action-danger:hover {
@@ -1363,53 +1384,28 @@
     color: currentColor;
   }
 
-
   .settings-theme {
     display: flex;
     flex-direction: column;
-    gap: 22px;
-    padding-top: 18px;
+    gap: var(--space-5);
+    padding-top: var(--space-4);
   }
 
   .theme-mode-options {
     display: inline-flex;
     align-self: flex-start;
-    gap: 2px;
-    margin-bottom: 24px;
-    padding: 2px;
-    border: none;
-    border-radius: 8px;
-    background: var(--hover);
+    margin-bottom: var(--space-6);
   }
 
   .theme-mode-option {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    min-height: 28px;
-    padding: 0 12px;
-    border: none;
-    border-radius: 6px;
-    background: transparent;
-    color: var(--text-2);
-    font-size: 12.5px;
-    font-weight: 500;
-    transition: background 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
+    gap: var(--space-2);
   }
 
   .theme-mode-option svg {
     flex-shrink: 0;
     opacity: 0.8;
-  }
-
-  .theme-mode-option:hover {
-    color: var(--text);
-  }
-
-  .theme-mode-option.active {
-    color: var(--text);
-    background: var(--modal-bg);
-    box-shadow: 0 0 0 1px var(--border), 0 1px 2px rgba(0, 0, 0, 0.16);
   }
 
   .theme-mode-option.active svg {
@@ -1419,12 +1415,12 @@
   .theme-section {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: var(--space-3);
   }
 
   .theme-section + .theme-section {
-    margin-top: 24px;
-    padding-top: 24px;
+    margin-top: var(--space-6);
+    padding-top: var(--space-6);
     border-top: 1px solid var(--border-subtle);
   }
 
@@ -1434,33 +1430,19 @@
 
   .theme-variant-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
-    gap: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(9.75rem, 1fr));
+    gap: var(--space-3);
   }
 
   .theme-variant-card {
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 10px;
-    border: 1px solid var(--border-subtle);
-    border-radius: 10px;
-    background: transparent;
-    color: var(--text);
-    text-align: left;
-    transition: border-color 0.14s ease, background 0.14s ease, box-shadow 0.14s ease, transform 0.14s ease;
+    gap: var(--space-2-5);
+    padding: var(--space-2-5);
   }
 
-  .theme-variant-card:hover {
-    border-color: var(--border);
-  }
 
-  .theme-variant-card.active {
-    border-color: var(--accent);
-    background: transparent;
-    box-shadow: 0 0 0 1px var(--accent);
-  }
 
   .theme-card-preview {
     position: relative;
@@ -1469,7 +1451,7 @@
     flex: 0 0 auto;
     container-type: inline-size;
     aspect-ratio: 16 / 10;
-    border-radius: 7px;
+    border-radius: var(--radius-md);
     border: 1px solid var(--border);
     overflow: hidden;
     isolation: isolate;
@@ -1478,13 +1460,13 @@
   .theme-variant-name {
     display: flex;
     align-items: center;
-    min-height: 16px;
-    padding: 0 22px 0 2px;
-    font-size: 12.5px;
-    font-weight: 500;
+    min-height: 1rem;
+    padding: 0 var(--space-5) 0 var(--space-0-5);
+    font-size: var(--text-body);
+    font-weight: var(--weight-medium);
     color: var(--text-2);
-    line-height: 1.2;
-    transition: color 0.14s ease;
+    line-height: var(--leading-tight);
+    transition: color var(--dur-fast) ease;
   }
 
   .theme-variant-card:hover .theme-variant-name,
@@ -1494,18 +1476,18 @@
 
   .theme-card-check {
     position: absolute;
-    right: 10px;
-    bottom: 10px;
+    right: 0.625rem;
+    bottom: 0.625rem;
     display: grid;
     place-items: center;
-    width: 16px;
-    height: 16px;
-    border-radius: 999px;
+    width: 1rem;
+    height: 1rem;
+    border-radius: var(--radius-full);
     background: var(--accent);
     color: var(--on-accent);
     opacity: 0;
     transform: scale(0.6);
-    transition: opacity 0.14s ease, transform 0.14s ease;
+    transition: opacity var(--dur-fast) ease, transform var(--dur-fast) ease;
   }
 
   .theme-variant-card.active .theme-card-check {
@@ -1522,49 +1504,48 @@
     }
   }
 
-
   .settings-proxy {
-    padding-top: 18px;
+    padding-top: var(--space-4);
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--space-1-5);
   }
 
   .proxy-intro {
-    margin: 0 0 14px;
-    font-size: 12px;
-    line-height: 1.5;
+    margin: 0 0 var(--space-3);
+    font-size: var(--text-label);
+    line-height: var(--leading-normal);
     color: var(--text-3);
   }
 
   .proxy-warning {
-    margin: -4px 0 0;
-    padding: 8px 10px;
+    margin: calc(var(--space-1) * -1) 0 0;
+    padding: var(--space-2) var(--space-2-5);
     background: color-mix(in srgb, var(--delete) 8%, transparent);
     border: 1px solid color-mix(in srgb, var(--delete) 25%, transparent);
-    border-radius: 6px;
-    font-size: 12px;
-    line-height: 1.5;
+    border-radius: var(--radius-md);
+    font-size: var(--text-label);
+    line-height: var(--leading-normal);
     color: var(--text-2);
   }
 
   .proxy-warning strong {
     color: var(--text);
-    font-weight: 600;
+    font-weight: var(--weight-semibold);
   }
 
   .proxy-form {
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    max-width: 460px;
+    gap: var(--space-3);
+    max-width: 28.75rem;
   }
 
   .proxy-row {
     display: grid;
-    grid-template-columns: 110px 1fr;
+    grid-template-columns: 6.875rem 1fr;
     align-items: center;
-    gap: 14px;
+    gap: var(--space-3);
   }
 
   .proxy-disabled {
@@ -1572,34 +1553,18 @@
   }
 
   .proxy-label {
-    font-size: 13px;
+    font-size: var(--text-body);
     color: var(--text-2);
   }
 
   .proxy-input {
     box-sizing: border-box;
     width: 100%;
-    height: 34px;
-    padding: 0 10px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface);
-    color: var(--text);
-    font: 13px var(--font-sans, inherit);
+    font: 0.8125rem var(--font-ui);
   }
 
   .proxy-input-sm {
-    max-width: 120px;
-  }
-
-  .proxy-input:focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent);
-  }
-
-  .proxy-input:disabled {
-    cursor: not-allowed;
+    max-width: 7.5rem;
   }
 
   .proxy-password {
@@ -1607,43 +1572,27 @@
     display: block;
   }
 
-  .proxy-password .proxy-input {
-    padding-right: 36px;
-  }
-
   .proxy-eye {
     position: absolute;
     top: 50%;
-    right: 8px;
+    right: 0.5rem;
     transform: translateY(-50%);
     display: grid;
     place-items: center;
-    width: 22px;
-    height: 22px;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    color: var(--text-3);
-    cursor: pointer;
   }
-
-  .proxy-eye:hover {
-    color: var(--text);
-  }
-
 
   .support-tab {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding-top: 20px;
-    max-width: 480px;
+    gap: var(--space-3);
+    padding-top: var(--space-5);
+    max-width: 30rem;
   }
 
   .support-intro {
     margin: 0;
-    font-size: 12.5px;
-    line-height: 1.5;
+    font-size: var(--text-body);
+    line-height: var(--leading-normal);
     color: var(--text-3);
   }
 
@@ -1651,22 +1600,22 @@
     display: flex;
     flex-direction: column;
     border: 1px solid var(--border);
-    border-radius: 9px;
+    border-radius: var(--radius-lg);
     overflow: hidden;
   }
 
   .support-link-card {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-3);
     width: 100%;
-    padding: 11px 14px;
+    padding: var(--space-2-5) var(--space-3);
     border: none;
     background: transparent;
     color: var(--text);
     text-align: left;
     cursor: pointer;
-    transition: background 0.12s;
+    transition: background var(--dur-fast);
   }
 
   .support-link-card + .support-link-card {
@@ -1680,8 +1629,8 @@
   .support-link-icon {
     display: grid;
     place-items: center;
-    width: 18px;
-    height: 18px;
+    width: 1.125rem;
+    height: 1.125rem;
     color: var(--text-3);
     flex-shrink: 0;
   }
@@ -1695,12 +1644,12 @@
     flex: 1;
     min-width: 0;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--space-0-5);
   }
 
   .support-link-title {
-    font-size: 13px;
-    font-weight: 500;
+    font-size: var(--text-body);
+    font-weight: var(--weight-medium);
     color: var(--text);
   }
 
@@ -1708,7 +1657,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 12px;
+    font-size: var(--text-label);
     color: var(--text-3);
   }
 
@@ -1721,21 +1670,21 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding-top: 40px;
+    padding-top: var(--space-10);
   }
 
   .about-hero {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-bottom: 28px;
+    margin-bottom: var(--space-6);
   }
 
   .about-icon {
-    width: 64px;
-    height: 64px;
-    margin-bottom: 14px;
-    border-radius: 15px;
+    width: 4rem;
+    height: 4rem;
+    margin-bottom: var(--space-3);
+    border-radius: 0.9375rem;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18), 0 6px 18px rgba(0, 0, 0, 0.22);
     -webkit-user-drag: none;
   }
@@ -1743,27 +1692,27 @@
   .about-name {
     margin: 0;
     color: var(--text);
-    font-size: 17px;
-    font-weight: 600;
+    font-size: var(--text-heading);
+    font-weight: var(--weight-semibold);
   }
 
   .about-meta {
-    margin: 5px 0 0;
+    margin: var(--space-1-5) 0 0;
     color: var(--text-3);
-    font-size: 12.5px;
+    font-size: var(--text-body);
     user-select: text;
   }
 
   .about-loading {
-    margin-top: 8px;
+    margin-top: var(--space-2);
   }
 
   .about-list {
     box-sizing: border-box;
     width: 100%;
-    max-width: 420px;
+    max-width: 26.25rem;
     border: 1px solid var(--border);
-    border-radius: 9px;
+    border-radius: var(--radius-lg);
     overflow: hidden;
   }
 
@@ -1772,9 +1721,9 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: var(--space-4);
     width: 100%;
-    padding: 12px 14px;
+    padding: var(--space-3) var(--space-3);
     border: none;
     background: transparent;
     color: var(--text);
@@ -1787,7 +1736,7 @@
 
   .about-item-link {
     cursor: pointer;
-    transition: background 0.12s;
+    transition: background var(--dur-fast);
   }
 
   .about-item-link:hover {
@@ -1799,19 +1748,19 @@
     flex: 1;
     min-width: 0;
     flex-direction: column;
-    gap: 3px;
+    gap: var(--space-1);
   }
 
   .about-item-copy strong {
     color: var(--text);
-    font-size: 13px;
-    font-weight: 500;
+    font-size: var(--text-body);
+    font-weight: var(--weight-medium);
   }
 
   .about-item-copy span {
     color: var(--text-3);
-    font-size: 12px;
-    line-height: 1.45;
+    font-size: var(--text-label);
+    line-height: var(--leading-normal);
   }
 
   .about-item-chevron {
@@ -1824,11 +1773,11 @@
   }
 
   .about-update-note {
-    max-width: 420px;
-    margin: 10px 0 0;
+    max-width: 26.25rem;
+    margin: var(--space-2-5) 0 0;
     color: var(--text-3);
-    font-size: 12px;
-    line-height: 1.45;
+    font-size: var(--text-label);
+    line-height: var(--leading-normal);
     text-align: center;
   }
 
@@ -1836,9 +1785,8 @@
     margin-top: auto;
   }
 
-
   .general-tab {
-    padding-top: 16px;
+    padding-top: var(--space-4);
     display: flex;
     flex-direction: column;
     gap: 0;
@@ -1847,43 +1795,26 @@
   .general-save-options {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .save-mode-option {
     box-sizing: border-box;
     display: flex;
     align-items: center;
-    gap: 12px;
-    min-height: 58px;
-    padding: 10px 14px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--elevated);
-    color: var(--text-2);
-    text-align: left;
-    cursor: pointer;
-    transition: border-color 0.12s, background 0.12s, color 0.12s;
+    gap: var(--space-3);
+    min-height: 3.625rem;
+    padding: var(--space-2-5) var(--space-3);
   }
 
-  .save-mode-option:hover {
-    border-color: var(--accent);
-    background: var(--hover);
-    color: var(--text);
-  }
 
-  .save-mode-option.active {
-    border-color: var(--accent);
-    background: var(--accent-dim);
-    color: var(--text);
-  }
 
   .save-mode-icon {
     display: grid;
     place-items: center;
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
+    width: 1.875rem;
+    height: 1.875rem;
+    border-radius: var(--radius-lg);
     background: color-mix(in srgb, var(--accent) 15%, transparent);
     color: var(--accent-hover, var(--accent));
     flex-shrink: 0;
@@ -1892,63 +1823,63 @@
   .save-mode-copy {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--space-0-5);
     flex: 1;
     min-width: 0;
   }
 
   .save-mode-copy strong {
-    font-size: 13px;
-    font-weight: 600;
+    font-size: var(--text-body);
+    font-weight: var(--weight-semibold);
     color: inherit;
   }
 
   .save-mode-copy small {
-    font-size: 11.5px;
+    font-size: var(--text-caption);
     color: var(--text-3);
   }
 
   .save-mode-check {
-    font-size: 14px;
+    font-size: 0.875rem;
     color: var(--accent);
-    font-weight: 700;
+    font-weight: var(--weight-semibold);
     flex-shrink: 0;
   }
 
   .general-save-hint {
     margin: 0;
-    font-size: 12px;
+    font-size: var(--text-label);
     color: var(--text-2);
-    line-height: 1.5;
-    padding: 10px 12px;
+    line-height: var(--leading-normal);
+    padding: var(--space-2-5) var(--space-3);
     background: var(--hover);
-    border-radius: 8px;
+    border-radius: var(--radius-lg);
     border: 1px solid var(--border-subtle);
   }
 
   .default-location-field {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .default-location-field label {
-    font-size: 12px;
-    font-weight: 500;
+    font-size: var(--text-label);
+    font-weight: var(--weight-medium);
     color: var(--text);
   }
 
   .default-location-field p {
     margin: 0;
     color: var(--text-3);
-    font-size: 12px;
-    line-height: 1.45;
+    font-size: var(--text-label);
+    line-height: var(--leading-normal);
   }
 
   .default-location-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     min-width: 0;
   }
 
@@ -1956,34 +1887,12 @@
     box-sizing: border-box;
     flex: 1;
     min-width: 0;
-    height: 34px;
-    padding: 0 10px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface);
-    color: var(--text);
-    font: 12px var(--font-mono, monospace);
-  }
-
-  .default-location-row input:focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent);
+    font: 0.75rem var(--font-mono, monospace);
   }
 
   .settings-link-button {
     align-self: flex-start;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    color: var(--accent);
-    font-size: 12.5px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  .settings-link-button:hover {
-    color: var(--accent-hover, var(--accent));
+    font-weight: var(--weight-medium);
   }
 
   .settings-inline-status {
@@ -1997,44 +1906,26 @@
   .general-data-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .data-action-button {
     box-sizing: border-box;
     display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    min-height: 32px;
-    padding: 0 12px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--elevated);
-    color: var(--text-2);
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: border-color 0.12s, background 0.12s, color 0.12s;
-  }
-
-  .data-action-button:hover {
-    border-color: var(--border);
-    background: var(--hover);
-    color: var(--text);
   }
 
   .data-action-icon {
     display: inline-grid;
     place-items: center;
-    width: 18px;
-    height: 18px;
+    width: 1.125rem;
+    height: 1.125rem;
     color: var(--text-3);
     flex-shrink: 0;
   }
 
   .general-data-status {
-    margin: -2px 0 0;
+    margin: calc(var(--space-0-5) * -1) 0 0;
     color: var(--text-3);
-    font-size: 12px;
+    font-size: var(--text-label);
   }
 </style>

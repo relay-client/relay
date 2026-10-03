@@ -116,9 +116,9 @@
 <section class="environment-workspace">
   {#snippet viewSwitch()}
     {#if environments.length > 1}
-      <div class="env-view-switch" role="radiogroup" aria-label="Environment view">
-        <button type="button" role="radio" aria-checked={showMatrix} class:active={showMatrix} onclick={() => setEnvironmentView('matrix')}>Matrix</button>
-        <button type="button" role="radio" aria-checked={!showMatrix} class:active={!showMatrix} onclick={() => setEnvironmentView('single')}>Single</button>
+      <div class="segmented env-view-switch" role="radiogroup" aria-label="Environment view">
+        <button class="segmented-item" type="button" role="radio" aria-checked={showMatrix} class:active={showMatrix} onclick={() => setEnvironmentView('matrix')}>Matrix</button>
+        <button class="segmented-item" type="button" role="radio" aria-checked={!showMatrix} class:active={!showMatrix} onclick={() => setEnvironmentView('single')}>Single</button>
       </div>
     {/if}
   {/snippet}
@@ -136,9 +136,9 @@
       <div class="overview-actions">
         {@render viewSwitch()}
         {#if !autosave}
-          <button class="btn-secondary btn-sm" type="button" onclick={saveEnvironment} disabled={environmentSaveState !== 'dirty'}>Save</button>
+          <button class="btn btn-secondary" type="button" onclick={saveEnvironment} disabled={environmentSaveState !== 'dirty'}>Save</button>
         {/if}
-        <button class="btn-primary btn-sm" type="button" onclick={addVariable}>+ Variable</button>
+        <button class="btn btn-primary" type="button" onclick={addVariable}>+ Variable</button>
       </div>
     </div>
     <EnvironmentMatrix
@@ -165,23 +165,23 @@
       <div class="overview-actions">
         {@render viewSwitch()}
         {#if !autosave}
-          <button class="btn-secondary btn-sm" type="button" onclick={saveEnvironment} disabled={environmentSaveState !== 'dirty'}>Save</button>
+          <button class="btn btn-secondary" type="button" onclick={saveEnvironment} disabled={environmentSaveState !== 'dirty'}>Save</button>
         {/if}
         {#if activeEnvironmentId === activeEnvironment.id}
           <button class="env-in-use" type="button" onclick={() => useEnvironment(activeEnvironment.id)} title="This environment's values are applied to requests">In use</button>
         {:else}
-          <button class="btn-primary btn-sm" type="button" onclick={() => useEnvironment(activeEnvironment.id)}>Use environment</button>
+          <button class="btn btn-primary" type="button" onclick={() => useEnvironment(activeEnvironment.id)}>Use environment</button>
         {/if}
         <div class="env-more" onfocusout={closeMoreMenuOnFocusOut}>
-          <button class="env-more-btn" type="button" aria-label="More environment actions" aria-haspopup="menu" aria-expanded={moreMenuOpen} onclick={() => (moreMenuOpen = !moreMenuOpen)}>•••</button>
+          <button class="btn btn-ghost btn-icon env-more-btn" type="button" aria-label="More environment actions" aria-haspopup="menu" aria-expanded={moreMenuOpen} onclick={() => (moreMenuOpen = !moreMenuOpen)}>•••</button>
           {#if moreMenuOpen}
-            <div class="request-menu env-more-menu" role="menu">
-              <button type="button" role="menuitem" onclick={() => runMenuAction(() => renameEnvironment(activeEnvironment.id))}><MenuIcon name="rename" />Rename</button>
-              <div class="menu-sep" role="separator"></div>
-              <button type="button" role="menuitem" title="Import variables from a .env file" onclick={() => runMenuAction(() => importEnvFromFile(activeEnvironment.id))}><MenuIcon name="import" />Import .env</button>
-              <button type="button" role="menuitem" onclick={() => runMenuAction(() => exportEnvironment(activeEnvironment.id))}><MenuIcon name="export" />Export…</button>
-              <div class="menu-sep" role="separator"></div>
-              <button class="danger" type="button" role="menuitem" onclick={() => runMenuAction(() => deleteEnvironment(activeEnvironment.id))}><MenuIcon name="trash" />Delete</button>
+            <div class="menu request-menu env-more-menu" role="menu">
+              <button class="menu-item" type="button" role="menuitem" onclick={() => runMenuAction(() => renameEnvironment(activeEnvironment.id))}><MenuIcon name="rename" />Rename</button>
+              <div class="menu-separator" role="separator"></div>
+              <button class="menu-item" type="button" role="menuitem" title="Import variables from a .env file" onclick={() => runMenuAction(() => importEnvFromFile(activeEnvironment.id))}><MenuIcon name="import" />Import .env</button>
+              <button class="menu-item" type="button" role="menuitem" onclick={() => runMenuAction(() => exportEnvironment(activeEnvironment.id))}><MenuIcon name="export" />Export…</button>
+              <div class="menu-separator" role="separator"></div>
+              <button class="menu-item danger" type="button" role="menuitem" onclick={() => runMenuAction(() => deleteEnvironment(activeEnvironment.id))}><MenuIcon name="trash" />Delete</button>
             </div>
           {/if}
         </div>
@@ -200,8 +200,8 @@
         {@const row = item.row}
         {@const i = item.index}
         <div class="kv-row env-kv-row" data-testid="environment-variable-row" class:inactive-row={!row.enabled && (row.key || row.value || row.description)} title={!row.enabled && (row.key || row.value || row.description) ? 'Disabled variables are not applied to requests' : ''}>
-          <input type="checkbox" class="kv-check" checked={row.enabled} onchange={(event) => updateEnvironmentRow(activeEnvironment.id, i, { enabled: inputChecked(event) })} aria-label="Enable variable" disabled={!row.key && !row.value} />
-          <input class="kv-input" value={row.key} placeholder="Add variable" aria-label="Environment variable key" oninput={(event) => updateEnvironmentRow(activeEnvironment.id, i, { key: inputValue(event) })} spellcheck="false" />
+          <input type="checkbox" class="check" checked={row.enabled} onchange={(event) => updateEnvironmentRow(activeEnvironment.id, i, { enabled: inputChecked(event) })} aria-label="Enable variable" disabled={!row.key && !row.value} />
+          <input class="field field-bare kv-input" value={row.key} placeholder="Add variable" aria-label="Environment variable key" oninput={(event) => updateEnvironmentRow(activeEnvironment.id, i, { key: inputValue(event) })} spellcheck="false" />
           <button
             class="env-type-toggle"
             class:secret={row.secret}
@@ -212,27 +212,27 @@
           >
             {row.secret ? 'Secret' : 'Default'}
           </button>
-          <input class="kv-input" type={row.secret ? 'password' : 'text'} value={row.value} placeholder="Value" aria-label="Environment variable value" oninput={(event) => updateEnvironmentRow(activeEnvironment.id, i, { value: inputValue(event) })} spellcheck="false" autocomplete="off" />
-          <input class="kv-input kv-desc" value={row.description} placeholder="Description" aria-label="Environment variable description" oninput={(event) => updateEnvironmentRow(activeEnvironment.id, i, { description: inputValue(event) })} />
-          <button class="kv-del" type="button" onclick={() => removeEnvironmentRow(activeEnvironment.id, i)} aria-label="Remove variable">✕</button>
+          <input class="field field-bare kv-input" type={row.secret ? 'password' : 'text'} value={row.value} placeholder="Value" aria-label="Environment variable value" oninput={(event) => updateEnvironmentRow(activeEnvironment.id, i, { value: inputValue(event) })} spellcheck="false" autocomplete="off" />
+          <input class="field field-bare kv-input kv-desc" value={row.description} placeholder="Description" aria-label="Environment variable description" oninput={(event) => updateEnvironmentRow(activeEnvironment.id, i, { description: inputValue(event) })} />
+          <button class="btn btn-ghost btn-icon btn-sm kv-del" type="button" onclick={() => removeEnvironmentRow(activeEnvironment.id, i)} aria-label="Remove variable">✕</button>
         </div>
       {/each}
       {#if activeEnvironment.values.length > ENVIRONMENT_ROW_PAGE_SIZE}
         <div class="environment-pagination" aria-label="Environment variable pages">
           <span>Variables {rangeLabel(valuePage, ENVIRONMENT_ROW_PAGE_SIZE, activeEnvironment.values.length)}</span>
           <div class="environment-page-buttons">
-            <button type="button" onclick={() => (valuePage = Math.max(0, valuePage - 1))} disabled={valuePage === 0}>Prev</button>
+            <button class="btn btn-secondary btn-sm" type="button" onclick={() => (valuePage = Math.max(0, valuePage - 1))} disabled={valuePage === 0}>Prev</button>
             <span>{valuePage + 1}/{valuePageCount}</span>
-            <button type="button" onclick={() => (valuePage = Math.min(valuePageCount - 1, valuePage + 1))} disabled={valuePage + 1 >= valuePageCount}>Next</button>
+            <button class="btn btn-secondary btn-sm" type="button" onclick={() => (valuePage = Math.min(valuePageCount - 1, valuePage + 1))} disabled={valuePage + 1 >= valuePageCount}>Next</button>
           </div>
         </div>
       {/if}
     </div>
   {:else}
-    <div class="environment-empty-main">
-      <span>No environment selected</span>
-      <small>Create an environment to reuse variables in URLs, headers, params, auth, and bodies.</small>
-      <button class="btn-primary btn-sm" type="button" onclick={createEnvironment}>Create environment</button>
+    <div class="empty-state environment-empty-main">
+      <span class="empty-state-title">No environment selected</span>
+      <small class="empty-state-text">Create an environment to reuse variables in URLs, headers, params, auth, and bodies.</small>
+      <button class="btn btn-primary" type="button" onclick={createEnvironment}>Create environment</button>
     </div>
   {/if}
 </section>

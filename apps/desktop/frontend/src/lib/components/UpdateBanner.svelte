@@ -26,7 +26,7 @@
 </script>
 
 <div class="update-notif" role="status" aria-live="polite">
-  <svg class="update-notif-icon" class:ready width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+  <svg class="update-notif-icon" class:ready width="0.875rem" height="0.875rem" viewBox="0 0 14 14" fill="none" aria-hidden="true">
     {#if ready}
       <circle cx="7" cy="7" r="5.8" stroke="currentColor" stroke-width="1.3"/>
       <path d="M4.6 7.1l1.7 1.7 3.2-3.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
@@ -38,9 +38,9 @@
   <span class="update-notif-text">
     Relay <strong>{info.version}</strong> {statusLabel}
   </span>
-  <button class="update-notif-btn" type="button" onclick={handleAction} disabled={installing}>{actionLabel}</button>
-  <button class="update-notif-close" type="button" onclick={onDismiss} aria-label="Dismiss">
-    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+  <button class="btn btn-primary btn-sm update-notif-btn" type="button" onclick={handleAction} disabled={installing}>{actionLabel}</button>
+  <button class="btn btn-ghost btn-icon btn-sm update-notif-close" type="button" onclick={onDismiss} aria-label="Dismiss">
+    <svg width="0.625rem" height="0.625rem" viewBox="0 0 10 10" fill="none" aria-hidden="true">
       <path d="M2 2l6 6M8 2L2 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
     </svg>
   </button>
@@ -49,22 +49,22 @@
 <style>
   .update-notif {
     position: fixed;
-    bottom: 36px;
-    right: 16px;
+    bottom: 2.25rem;
+    right: 1rem;
     display: flex;
     align-items: center;
-    gap: 9px;
-    padding: 6px 6px 6px 12px;
+    gap: var(--space-2);
+    padding: var(--space-1-5) var(--space-1-5) var(--space-1-5) var(--space-3);
     background: var(--elevated);
     border: 1px solid var(--border);
-    border-radius: 9px;
+    border-radius: var(--radius-lg);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 10px 30px rgba(0, 0, 0, 0.35);
     z-index: 300;
     animation: notif-in 0.18s ease;
   }
 
   @keyframes notif-in {
-    from { opacity: 0; transform: translateY(6px); }
+    from { opacity: 0; transform: translateY(0.375rem); }
     to   { opacity: 1; transform: translateY(0); }
   }
 
@@ -84,56 +84,23 @@
   }
 
   .update-notif-text {
-    font-size: 12.5px;
+    font-size: var(--text-body);
     color: var(--text-2);
     white-space: nowrap;
   }
 
   .update-notif-text strong {
     color: var(--text);
-    font-weight: 600;
+    font-weight: var(--weight-semibold);
   }
 
   .update-notif-btn {
-    height: 26px;
-    margin-left: 3px;
-    padding: 0 10px;
-    border: none;
-    border-radius: 6px;
-    background: var(--accent);
-    color: var(--on-accent);
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
+    margin-left: var(--space-1);
     white-space: nowrap;
-    transition: background 0.12s;
-  }
-
-  .update-notif-btn:hover {
-    background: var(--accent-hover);
-  }
-
-  .update-notif-btn:disabled {
-    cursor: default;
-    opacity: 0.7;
   }
 
   .update-notif-close {
     display: grid;
     place-items: center;
-    width: 24px;
-    height: 24px;
-    padding: 0;
-    border: none;
-    border-radius: 6px;
-    background: none;
-    color: var(--text-3);
-    cursor: pointer;
-    transition: color 0.12s, background 0.12s;
-  }
-
-  .update-notif-close:hover {
-    background: var(--hover);
-    color: var(--text);
   }
 </style>

@@ -107,9 +107,9 @@
 </script>
 
 <div class="global-search-backdrop" role="presentation" onmousedown={(event) => event.target === event.currentTarget && onClose()}>
-  <div class="global-search-modal" role="dialog" aria-modal="true" aria-label="Search requests and commands" tabindex="-1" use:trapFocus>
+  <div class="modal global-search-modal" role="dialog" aria-modal="true" aria-label="Search requests and commands" tabindex="-1" use:trapFocus>
     <div class="global-search-input-wrap">
-      <svg width="16" height="16" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+      <svg width="1rem" height="1rem" viewBox="0 0 13 13" fill="none" aria-hidden="true">
         <circle cx="5.8" cy="5.8" r="3.8" stroke="currentColor" stroke-width="1.4"/>
         <path d="M8.7 8.7l2.7 2.7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
       </svg>

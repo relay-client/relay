@@ -8,9 +8,9 @@
 
 <div class="examples-tab">
   {#if vm.requestExamples.length === 0}
-    <div class="examples-empty">
-      <p class="examples-empty-title">No saved examples</p>
-      <p class="examples-empty-hint">
+    <div class="empty-state examples-empty">
+      <p class="empty-state-title examples-empty-title">No saved examples</p>
+      <p class="empty-state-text examples-empty-hint">
         Send the request, then use <strong>Save as example</strong> in the response panel to keep what
         came back. Examples travel with the workspace, so a saved response is reviewable in Git.
       </p>
@@ -34,7 +34,7 @@
             </button>
             <div class="examples-row-actions">
               <button
-                class="btn-icon examples-move"
+                class="btn btn-ghost btn-icon btn-xs examples-move"
                 type="button"
                 title="Move up"
                 aria-label="Move {example.name} up"
@@ -42,7 +42,7 @@
                 onclick={() => vm.moveExample(example.id, -1)}
               >↑</button>
               <button
-                class="btn-icon examples-move"
+                class="btn btn-ghost btn-icon btn-xs examples-move"
                 type="button"
                 title="Move down"
                 aria-label="Move {example.name} down"
@@ -50,14 +50,14 @@
                 onclick={() => vm.moveExample(example.id, 1)}
               >↓</button>
               <button
-                class="btn-icon examples-move"
+                class="btn btn-ghost btn-icon btn-xs examples-move"
                 type="button"
                 title="Rename"
                 aria-label="Rename {example.name}"
                 onclick={() => vm.renameExample(example.id)}
               >✎</button>
               <button
-                class="btn-icon examples-move examples-delete"
+                class="btn btn-ghost btn-icon btn-xs examples-move examples-delete"
                 type="button"
                 title="Delete"
                 aria-label="Delete {example.name}"

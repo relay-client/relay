@@ -97,7 +97,7 @@
 <div class="status-bar">
   <div class="status-bar-left">
     <button
-      class="storage-status-btn"
+      class="btn btn-ghost btn-xs storage-status-btn"
       class:active={topView === 'git'}
       class:git={gitStatus.isRepo}
       class:missing={workspaceMissing}
@@ -106,7 +106,7 @@
       title={storageTitle}
       aria-label="Open Git and storage status"
     >
-      <svg width="14" height="14" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+      <svg width="0.875rem" height="0.875rem" viewBox="0 0 15 15" fill="none" aria-hidden="true">
         <path d="M4 12.2V4.8a2 2 0 114 0v5.4a2 2 0 104 0V3" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
       </svg>
       <span class="storage-status-main">{storageLabel}</span>
@@ -121,13 +121,13 @@
   </div>
   <div class="status-bar-right">
     <button
-      class="layout-btn github-link-btn"
+      class="btn btn-ghost btn-icon btn-xs layout-btn github-link-btn"
       type="button"
       onclick={() => openExternalURL(RELAY_UPDATES_URL)}
       title="Relay updates and releases"
       aria-label="Open Relay updates on GitHub"
     >
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <svg width="0.875rem" height="0.875rem" viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M8 .9a7.1 7.1 0 00-2.25 13.84c.36.07.49-.16.49-.35v-1.25c-2 .43-2.42-.86-2.42-.86-.33-.82-.79-1.04-.79-1.04-.64-.44.05-.43.05-.43.71.05 1.09.73 1.09.73.63 1.08 1.65.77 2.05.59.06-.46.25-.77.45-.95-1.6-.18-3.28-.8-3.28-3.55 0-.78.28-1.42.73-1.92-.07-.18-.32-.91.07-1.9 0 0 .6-.19 1.96.73A6.8 6.8 0 018 4.3c.61 0 1.22.08 1.79.24 1.36-.92 1.95-.73 1.95-.73.39.99.14 1.72.07 1.9.46.5.73 1.14.73 1.92 0 2.76-1.68 3.36-3.28 3.54.26.22.49.66.49 1.34v1.88c0 .19.13.42.5.35A7.1 7.1 0 008 .9z"/>
       </svg>
     </button>
@@ -162,7 +162,7 @@
                 <span class="theme-menu-swatch" style={`background:${variant.preview.accent}`}></span>
                 <span class="theme-menu-name">{variant.name}</span>
                 {#if activeVariantId === variant.id}
-                  <svg class="theme-menu-check" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                  <svg class="theme-menu-check" width="0.75rem" height="0.75rem" viewBox="0 0 12 12" fill="none" aria-hidden="true">
                     <path d="M2.5 6.3l2.4 2.4 4.6-4.9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 {/if}
@@ -172,7 +172,7 @@
         </div>
       {/if}
       <button
-        class="layout-btn"
+        class="btn btn-ghost btn-icon btn-xs layout-btn"
         class:active={themeMenuOpen}
         type="button"
         onclick={() => (themeMenuOpen = !themeMenuOpen)}
@@ -181,7 +181,7 @@
         aria-haspopup="menu"
         aria-expanded={themeMenuOpen}
       >
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <svg width="0.875rem" height="0.875rem" viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <path d="M8 1.5a6.5 6.5 0 100 13 1.6 1.6 0 001.2-2.7 1.4 1.4 0 011-2.3h1A3.3 3.3 0 0014.5 6 6.6 6.6 0 008 1.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
           <circle cx="5.3" cy="6.2" r="0.9" fill="currentColor"/>
           <circle cx="8" cy="4.6" r="0.9" fill="currentColor"/>
@@ -194,35 +194,35 @@
         class="version-pill"
         type="button"
         onclick={() => onOpenAbout?.()}
-        title="Click to open About"
+        title="Open About"
         aria-label={`Relay version ${appVersion} — click to open About`}
       >
         v{appVersion}
       </button>
     {/if}
     <button
-      class="layout-btn"
+      class="btn btn-ghost btn-icon btn-xs layout-btn"
       class:active={!sidebarHidden}
       type="button"
       onclick={onToggleSidebar}
       title={`Toggle sidebar (${toggleSidebarShortcut})`}
       aria-label="Toggle sidebar"
     >
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <svg width="0.875rem" height="0.875rem" viewBox="0 0 14 14" fill="none" aria-hidden="true">
         <rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.2"/>
         <line x1="5" y1="1" x2="5" y2="13" stroke="currentColor" stroke-width="1.2"/>
       </svg>
     </button>
     {#if codePanelAvailable}
       <button
-        class="layout-btn"
+        class="btn btn-ghost btn-icon btn-xs layout-btn"
         class:active={codePanelOpen}
         type="button"
         onclick={onToggleCodePanel}
         title="Toggle code snippet panel"
         aria-label="Toggle code snippet panel"
       >
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+        <svg width="0.875rem" height="0.875rem" viewBox="0 0 14 14" fill="none" aria-hidden="true">
           <rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.2"/>
           <line x1="9" y1="1" x2="9" y2="13" stroke="currentColor" stroke-width="1.2"/>
         </svg>
@@ -249,40 +249,40 @@
 
   .theme-menu {
     position: absolute;
-    bottom: calc(100% + 8px);
+    bottom: calc(100% + 0.5rem);
     right: 0;
     z-index: 41;
-    width: 220px;
-    padding: 8px;
+    width: 13.75rem;
+    padding: var(--space-2);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     background: var(--elevated, var(--surface));
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+    box-shadow: var(--shadow-popover);
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .theme-menu-modes {
     display: flex;
-    gap: 3px;
-    padding: 3px;
+    gap: var(--space-1);
+    padding: var(--space-1);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-lg);
     background: var(--surface);
   }
 
   .theme-menu-mode {
     flex: 1;
-    min-height: 26px;
+    min-height: 1.625rem;
     border: 0;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     background: transparent;
     color: var(--text-2);
-    font-size: 12px;
-    font-weight: 600;
+    font-size: var(--text-label);
+    font-weight: var(--weight-semibold);
     cursor: pointer;
-    transition: background 0.12s, color 0.12s;
+    transition: background var(--dur-fast), color var(--dur-fast);
   }
 
   .theme-menu-mode:hover {
@@ -299,23 +299,23 @@
     display: flex;
     flex-direction: column;
     gap: 1px;
-    max-height: 240px;
+    max-height: 15rem;
     overflow-y: auto;
   }
 
   .theme-menu-item {
     display: flex;
     align-items: center;
-    gap: 9px;
-    padding: 7px 8px;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-2);
     border: 0;
-    border-radius: 7px;
+    border-radius: var(--radius-md);
     background: transparent;
     color: var(--text-2);
-    font-size: 12.5px;
+    font-size: var(--text-body);
     text-align: left;
     cursor: pointer;
-    transition: background 0.12s, color 0.12s;
+    transition: background var(--dur-fast), color var(--dur-fast);
   }
 
   .theme-menu-item:hover {
@@ -328,9 +328,9 @@
   }
 
   .theme-menu-swatch {
-    width: 12px;
-    height: 12px;
-    border-radius: 4px;
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: var(--radius-sm);
     flex-shrink: 0;
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
   }

@@ -278,3 +278,47 @@ describe('multipart part content types', () => {
     expect(curl).toContain("-F 'note=hi'");
   });
 });
+
+describe('parseCurl data flags', () => {
+  it('sends -d key=value pairs as a urlencoded form, like curl does', () => {
+    const parsed = parseCurl(`curl -X POST https://a.io/x -d 'a=1' -d 'b=two%20words'`);
+    expect(parsed).toMatchObject({ method: 'POST', bodyType: 'urlencoded', body: 'a=1&b=two%20words', headers: [] });
+  });
+
+  it('keeps any other -d body raw and adds the urlencoded Content-Type curl would send', () => {
+    const parsed = parseCurl(`curl https://a.io/x -d '{"a":1}'`);
+    expect(parsed).toMatchObject({ method: 'POST', bodyType: 'text', body: '{"a":1}' });
+    expect(parsed.headers).toEqual([{ key: 'Content-Type', value: 'application/x-www-form-urlencoded' }]);
+  });
+
+  it('respects an explicit Content-Type with -d', () => {
+    const parsed = parseCurl(`curl https://a.io/x -H 'content-type: application/json' -d '{"a":1}'`);
+    expect(parsed).toMatchObject({ bodyType: 'json', body: '{"a":1}' });
+    expect(parsed.headers).toHaveLength(1);
+  });
+
+  it('reads --json as a JSON POST with its headers', () => {
+    const parsed = parseCurl(`curl https://a.io/x --json '{"a":1}'`);
+    expect(parsed).toMatchObject({ method: 'POST', bodyType: 'json', body: '{"a":1}' });
+    expect(parsed.headers).toEqual([
+      { key: 'Content-Type', value: 'application/json' },
+      { key: 'Accept', value: 'application/json' },
+    ]);
+  });
+
+  it('turns -d @file into a file body', () => {
+    expect(parseCurl(`curl -XPOST https://a.io/x -d@body.json`)).toMatchObject({ method: 'POST', bodyType: 'binary', bodyFilePath: 'body.json' });
+    expect(parseCurl(`curl https://a.io/x --json @payload.json`)).toMatchObject({ bodyType: 'binary', bodyFilePath: 'payload.json' });
+  });
+
+  it('decodes ANSI-C quoted strings from Copy as cURL (bash)', () => {
+    const parsed = parseCurl(`curl 'https://a.io/x' -H 'content-type: application/json' --data-raw $'{"name":"it\\'s","note":"line1\\\\nline2\\u00e9\\x41"}'`);
+    expect(parsed.body).toBe(`{"name":"it's","note":"line1\\nline2éA"}`);
+    expect(parsed.bodyType).toBe('json');
+  });
+
+  it('merges -b cookies into an existing Cookie header', () => {
+    const parsed = parseCurl(`curl https://a.io/x -H "Cookie: a=1; b=2" -b 'c=3'`);
+    expect(parsed.headers).toEqual([{ key: 'Cookie', value: 'a=1; b=2; c=3' }]);
+  });
+});

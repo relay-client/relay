@@ -7,6 +7,7 @@ import svelteParser from 'svelte-eslint-parser';
 export default [
   {
     ignores: [
+      '.claude/**',
       '**/node_modules/**',
       '**/dist/**',
       '**/.astro/**',

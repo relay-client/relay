@@ -10,9 +10,9 @@
       <span class="settings-subtitle">Applied during the handshake and while receiving messages.</span>
     </div>
     <div class="settings-actions">
-      <button class="btn-secondary btn-sm" type="button" onclick={vm.resetRequestSettings}>Reset</button>
-      <button class="btn-primary btn-sm" class:feedback-ok={vm.settingsSaved} type="button" onclick={vm.saveRequestSettings}>
-        {vm.settingsSaved ? 'Saved' : 'Save'}
+      <button class="btn btn-ghost" type="button" onclick={vm.resetRequestSettings} title="Return every setting to Relay's defaults and forget the saved default">Reset</button>
+      <button class="btn btn-secondary" class:feedback-ok={vm.settingsSaved} type="button" onclick={vm.saveRequestSettings} title="New requests start with these settings">
+        {vm.settingsSaved ? 'Saved as default' : 'Save as default'}
       </button>
     </div>
   </div>
@@ -35,7 +35,7 @@
         <strong>Handshake request timeout</strong>
         <span>Set how long the handshake request should wait before timing out in milliseconds. To never time out, set to 0.</span>
       </span>
-      <input class="setting-number" type="number" bind:value={vm.wsHandshakeTimeoutMs} min="0" max="300000" step="1000" oninput={() => vm.markRequestSettingOverride('wsHandshakeTimeoutMs')} />
+      <input class="field setting-number" type="number" bind:value={vm.wsHandshakeTimeoutMs} min="0" max="300000" step="1000" oninput={() => vm.markRequestSettingOverride('wsHandshakeTimeoutMs')} />
     </label>
 
     <label class="postman-setting">
@@ -43,7 +43,7 @@
         <strong>Reconnection attempts</strong>
         <span>Maximum reconnection attempts when the connection closes abruptly.</span>
       </span>
-      <input class="setting-number" type="number" bind:value={vm.wsReconnectAttempts} min="0" max="50" step="1" oninput={() => vm.markRequestSettingOverride('wsReconnectAttempts')} />
+      <input class="field setting-number" type="number" bind:value={vm.wsReconnectAttempts} min="0" max="50" step="1" oninput={() => vm.markRequestSettingOverride('wsReconnectAttempts')} />
     </label>
 
     <label class="postman-setting">
@@ -51,7 +51,7 @@
         <strong>Reconnection interval</strong>
         <span>Interval between each reconnection attempt in milliseconds.</span>
       </span>
-      <input class="setting-number" type="number" bind:value={vm.wsReconnectIntervalMs} min="0" max="60000" step="500" oninput={() => vm.markRequestSettingOverride('wsReconnectIntervalMs')} />
+      <input class="field setting-number" type="number" bind:value={vm.wsReconnectIntervalMs} min="0" max="60000" step="500" oninput={() => vm.markRequestSettingOverride('wsReconnectIntervalMs')} />
     </label>
 
     <label class="postman-setting">
@@ -59,7 +59,7 @@
         <strong>Maximum message size</strong>
         <span>Maximum allowed message size in MB. To receive messages of any size, set to 0.</span>
       </span>
-      <input class="setting-number" type="number" bind:value={vm.wsMaxMessageSizeMb} min="0" max="512" step="1" oninput={() => vm.markRequestSettingOverride('wsMaxMessageSizeMb')} />
+      <input class="field setting-number" type="number" bind:value={vm.wsMaxMessageSizeMb} min="0" max="512" step="1" oninput={() => vm.markRequestSettingOverride('wsMaxMessageSizeMb')} />
     </label>
 
     <label class="postman-setting">
@@ -67,7 +67,7 @@
         <strong>Keep-alive interval</strong>
         <span>How often to ping the server to hold the connection open. Leave at 0 for the default; set -1 to stop pinging entirely.</span>
       </span>
-      <input class="setting-number" type="number" bind:value={vm.wsKeepAliveIntervalMs} min="-1" max="300000" step="1000" oninput={() => vm.markRequestSettingOverride('wsKeepAliveIntervalMs')} />
+      <input class="field setting-number" type="number" bind:value={vm.wsKeepAliveIntervalMs} min="-1" max="300000" step="1000" oninput={() => vm.markRequestSettingOverride('wsKeepAliveIntervalMs')} />
     </label>
 
     <BrowserSecuritySettings includeEnforceCORS={false} />

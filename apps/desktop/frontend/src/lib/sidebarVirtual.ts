@@ -8,10 +8,11 @@ export function virtualizeRows<T extends VirtualRow>(
   overscan: number,
   minViewport: number,
   measured?: Map<string, number>,
+  scale = 1,
 ): VirtualWindow<T> {
   const top = Math.max(0, scrollTop - overscan);
   const bottom = scrollTop + Math.max(viewportHeight, minViewport) + overscan;
-  const heightOf = (row: T) => measured?.get(row.key) ?? row.height;
+  const heightOf = (row: T) => measured?.get(row.key) ?? row.height * scale;
   const visible: T[] = [];
   let before = 0;
   let after = 0;

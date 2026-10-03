@@ -49,11 +49,11 @@
   .preview-meta {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 7px 14px;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
     border-bottom: 1px solid var(--border-subtle);
     color: var(--text-3);
-    font-size: 11px;
+    font-size: var(--text-caption);
     font-family: var(--font-mono);
     flex-shrink: 0;
   }
@@ -68,15 +68,15 @@
     place-items: center;
     flex: 1;
     min-height: 0;
-    padding: 20px;
+    padding: var(--space-5);
     overflow: auto;
     background-image:
       linear-gradient(45deg, var(--hover) 25%, transparent 25%),
       linear-gradient(-45deg, var(--hover) 25%, transparent 25%),
       linear-gradient(45deg, transparent 75%, var(--hover) 75%),
       linear-gradient(-45deg, transparent 75%, var(--hover) 75%);
-    background-size: 16px 16px;
-    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+    background-size: 1rem 1rem;
+    background-position: 0 0, 0 0.5rem, 0.5rem -0.5rem, -0.5rem 0;
   }
 
   .preview-image-stage img {
@@ -95,8 +95,8 @@
 
   .preview-empty {
     margin: 0;
-    padding: 24px 16px;
+    padding: var(--space-6) var(--space-4);
     color: var(--text-3);
-    font-size: 12px;
+    font-size: var(--text-label);
   }
 </style>

@@ -2,7 +2,7 @@
   import { onMount, untrack } from 'svelte';
   import { getAppInfo, checkForUpdate, applyUpdate, restartApp, clipboardSet } from './lib/backend';
   import type { MockRequestLog, OAuth2DevicePrompt, UpdateInfo } from './lib/backend';
-  import CHANGELOG_MARKDOWN from 'virtual:relay-changelog';
+  import { hasReleaseNotes } from 'virtual:relay-changelog-meta';
   import { isReleaseVersion, latestReleaseNotes, releaseNotesFor, shouldShowWhatsNew, type ChangelogSection } from './lib/whatsNew';
   import WhatsNewModal from './lib/components/WhatsNewModal.svelte';
   import UpdateBanner from './lib/components/UpdateBanner.svelte';
@@ -16,6 +16,7 @@
   import ActivityRail from './lib/components/ActivityRail.svelte';
   import { shortcutComboLabel, usesMacShortcutGlyphs } from './lib/stores/features/preferences';
   import { RESPONSE_RIGHT_MIN_WIDTH } from './lib/stores/features/uiShell';
+  import { rem, uiScale } from './lib/uiScale';
   import Sidebar from './lib/components/Sidebar.svelte';
   import StatusBar from './lib/components/StatusBar.svelte';
   import WorkspaceChrome from './lib/components/WorkspaceChrome.svelte';
@@ -23,7 +24,6 @@
   import GlobalsWorkspace from './lib/components/GlobalsWorkspace.svelte';
   import HistoryDetail from './lib/components/HistoryDetail.svelte';
   import { METHODS, REQUEST_TYPES, DEFAULT_WORKSPACE, RAW_BODY_TYPES } from './lib/constants';
-  import './styles/sse.css';
   import { installTitlebarDoubleClickHandler } from './lib/windowControls';
   import { methodColor, requestTabLabel, requestTransportLabel, activeCount, statusClass, formatSize, scriptLineCount, requestSupportsCurl } from './lib/utils';
   import type { SnippetLanguage } from './lib/stores/ui';
@@ -37,34 +37,38 @@
 
   let whatsNewSection = $state<ChangelogSection | null>(null);
 
-  function checkWhatsNew(version: string) {
+  async function loadChangelog(): Promise<string> {
+    return (await import('virtual:relay-changelog')).default;
+  }
+
+  async function checkWhatsNew(version: string) {
     let lastSeen: string | null = null;
     try {
       lastSeen = localStorage.getItem(LAST_SEEN_VERSION_KEY);
     } catch {
       return;
     }
-    const section = releaseNotesFor(CHANGELOG_MARKDOWN, version);
-    if (shouldShowWhatsNew(version, lastSeen, Boolean(section))) {
-      whatsNewSection = section;
-    }
+    const mayShow = shouldShowWhatsNew(version, lastSeen, hasReleaseNotes);
     if (isReleaseVersion(version)) {
       try {
         localStorage.setItem(LAST_SEEN_VERSION_KEY, version);
       } catch {  }
     }
+    if (!mayShow) return;
+    const section = releaseNotesFor(await loadChangelog(), version);
+    if (section) whatsNewSection = section;
   }
 
   function dismissWhatsNew() {
     whatsNewSection = null;
   }
 
-  function showWhatsNew() {
-    whatsNewSection =
-      releaseNotesFor(CHANGELOG_MARKDOWN, vm.appVersion) ?? latestReleaseNotes(CHANGELOG_MARKDOWN);
+  async function showWhatsNew() {
+    const markdown = await loadChangelog();
+    whatsNewSection = releaseNotesFor(markdown, vm.appVersion) ?? latestReleaseNotes(markdown);
   }
 
-  const whatsNewAvailable = Boolean(latestReleaseNotes(CHANGELOG_MARKDOWN));
+  const whatsNewAvailable = hasReleaseNotes;
 
   let updateInfo = $state<UpdateInfo | null>(null);
   let updateReady = $state(false);
@@ -89,7 +93,7 @@
   let historyDetailBody = $derived(vm.historyDetailResponse ? vm.formatResponseBody(vm.historyDetailResponse) : '');
   let historyDetailMode = $derived<ResponseRenderMode>(!vm.historyDetailResponse ? 'text' : vm.isJsonResponse(vm.historyDetailResponse) ? 'json' : vm.isHtmlResponse(vm.historyDetailResponse) ? 'html' : 'text');
   let historyDetailVirtualized = $derived(historyDetailBody ? shouldVirtualizeResponseBody(historyDetailBody, historyDetailMode) : false);
-  let responseOnRight = $derived(vm.responseLayout === 'right' && requestSplitWidth >= RESPONSE_RIGHT_MIN_WIDTH);
+  let responseOnRight = $derived(vm.responseLayout === 'right' && requestSplitWidth / $uiScale >= RESPONSE_RIGHT_MIN_WIDTH);
 
   function setRuntimePlatform(runtime: string) {
     const platform = runtime.split('/')[0] || 'browser';
@@ -249,6 +253,11 @@
     const offMockRequest = window.runtime?.EventsOn?.<MockRequestLog>('mock:request', entry => {
       vm.recordMockRequest(entry);
     });
+    const offZoom = window.runtime?.EventsOn?.<string>('relay:zoom', action => {
+      if (action === 'in') vm.zoomIn();
+      else if (action === 'out') vm.zoomOut();
+      else if (action === 'reset') vm.resetZoom();
+    });
     vm.initCookieSyncListeners();
     void vm.refreshMockServerStatus();
     const beforeUnload = (event: BeforeUnloadEvent) => {
@@ -305,6 +314,7 @@
       vm.loadRequestSettings();
       vm.loadShortcutSettings();
       vm.loadAutosaveSettings();
+      vm.loadStartupViewPreference();
       vm.loadProxyConfig();
       vm.loadScriptEngine();
       void vm.loadDefaultWorkspaceLocation();
@@ -324,7 +334,7 @@
       vm.appVersion = info.version;
       setRuntimePlatform(info.runtime);
       const updatePendingRestart = syncUpdateReadyForVersion(info.version);
-      checkWhatsNew(info.version);
+      void checkWhatsNew(info.version);
 
       if (info.version && info.version !== 'dev' && !updatePendingRestart) {
         updateCheckTimer = setTimeout(async () => {
@@ -352,6 +362,7 @@
       uninstallTitlebarDoubleClick();
       offBeforeQuit?.();
       offMockRequest?.();
+      offZoom?.();
       offDevicePrompt?.();
       window.removeEventListener('beforeunload', beforeUnload);
       window.removeEventListener('pagehide', flushOnPageHide);
@@ -411,7 +422,7 @@
   class:resizing-code={vm.codePanelResizing}
   class:code-open={vm.codePanelOpen && codePanelAvailable}
   class:sidebar-hidden={vm.sidebarHidden}
-  style="--sidebar-w: {vm.sidebarHidden ? 0 : vm.sidebarWidth}px; --code-requested-w: {vm.codePanelOpen && codePanelAvailable ? vm.codePanelWidth : 0}px"
+  style="--sidebar-w: {rem(vm.sidebarHidden ? 0 : vm.sidebarWidth)}; --code-requested-w: {rem(vm.codePanelOpen && codePanelAvailable ? vm.codePanelWidth : 0)}"
 >
   <input
     class="hidden-file-input"
@@ -829,7 +840,7 @@
       />
 
       <div class="request-split" class:split-right={responseOnRight} bind:clientWidth={requestSplitWidth} style="--request-split: {vm.requestSplitRatio}">
-      <div class="request-editor" style={responseOnRight ? '' : `height: ${vm.requestPanelHeight}px; --request-panel-h: ${vm.requestPanelHeight}px`}>
+      <div class="request-editor" style={responseOnRight ? '' : `height: ${rem(vm.requestPanelHeight)}; --request-panel-h: ${rem(vm.requestPanelHeight)}`}>
         <RequestEditorTabs
           bind:requestTab={vm.requestTab}
           requestType={vm.requestType}

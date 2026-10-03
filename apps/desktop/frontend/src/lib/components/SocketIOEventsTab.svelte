@@ -19,7 +19,7 @@
       <div class="sio-event-row" class:sio-row-disabled={!row.enabled}>
         <div class="sio-col-event">
           <input
-            class="sio-input"
+            class="field field-bare sio-input"
             type="text"
             value={row.key}
             placeholder="Add event…"
@@ -29,7 +29,7 @@
         </div>
         <div class="sio-col-listen">
           <button
-            class="sio-listen-btn"
+            class="btn btn-secondary btn-sm sio-listen-btn"
             class:active={row.enabled}
             type="button"
             title={row.enabled ? 'Listening — click to stop' : 'Not listening — click to listen'}
@@ -41,7 +41,7 @@
         </div>
         <div class="sio-col-desc">
           <input
-            class="sio-input"
+            class="field field-bare sio-input"
             type="text"
             value={row.description}
             placeholder="Description"
@@ -52,7 +52,7 @@
         <div class="sio-col-del">
           {#if row.key !== ''}
             <button
-              class="sio-del-btn"
+              class="btn btn-ghost btn-icon btn-xs sio-del-btn"
               type="button"
               title="Remove"
               onclick={() => vm.removeSioEventRow(row.id)}
@@ -71,18 +71,18 @@
     flex-direction: column;
     flex: 1;
     overflow: auto;
-    font-size: 12.5px;
+    font-size: var(--text-body);
   }
 
   .sio-events-header {
     display: flex;
     align-items: center;
-    padding: 0 6px;
-    height: 30px;
-    border-bottom: 1px solid var(--border, #e5e5e5);
-    font-size: 11.5px;
-    font-weight: 500;
-    color: var(--text-secondary, #888);
+    padding: 0 var(--space-1-5);
+    height: 1.875rem;
+    border-bottom: 1px solid var(--border);
+    font-size: var(--text-caption);
+    font-weight: var(--weight-medium);
+    color: var(--text-2);
     flex-shrink: 0;
   }
 
@@ -94,75 +94,40 @@
   .sio-event-row {
     display: flex;
     align-items: center;
-    padding: 0 6px;
-    min-height: 34px;
-    border-bottom: 1px solid var(--border-subtle, #f0f0f0);
+    padding: 0 var(--space-1-5);
+    min-height: 2.125rem;
+    border-bottom: 1px solid var(--border-subtle);
   }
-  .sio-event-row:hover { background: var(--hover-bg, rgba(0,0,0,0.02)); }
+  .sio-event-row:hover { background: var(--hover); }
 
-  .sio-col-event { flex: 0 0 38%; min-width: 0; padding-right: 4px; }
-  .sio-col-listen { flex: 0 0 80px; display: flex; justify-content: center; }
-  .sio-col-desc { flex: 1; min-width: 0; padding-left: 4px; padding-right: 4px; }
-  .sio-col-del { flex: 0 0 28px; display: flex; justify-content: center; }
+  .sio-col-event { flex: 0 0 38%; min-width: 0; padding-right: var(--space-1); }
+  .sio-col-listen { flex: 0 0 5rem; display: flex; justify-content: center; }
+  .sio-col-desc { flex: 1; min-width: 0; padding-left: var(--space-1); padding-right: var(--space-1); }
+  .sio-col-del { flex: 0 0 1.75rem; display: flex; justify-content: center; }
 
   .sio-input {
     width: 100%;
-    border: none;
-    background: transparent;
-    font-size: 12.5px;
-    padding: 5px 6px;
-    color: var(--text-primary, #eee);
-    outline: none;
     font-family: inherit;
   }
   .sio-input:focus {
-    background: var(--input-focus-bg, rgba(255,255,255,0.05));
-    border-radius: 3px;
+    border-radius: var(--radius-xs);
   }
-  .sio-input::placeholder { color: var(--text-placeholder, #666); }
   .sio-row-disabled .sio-input { opacity: 0.4; }
 
   .sio-listen-btn {
     display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 8px;
-    border-radius: 10px;
-    border: 1px solid var(--border, #555);
-    background: transparent;
-    font-size: 11px;
-    color: var(--text-secondary, #888);
-    cursor: pointer;
-    transition: background 0.1s, border-color 0.1s, color 0.1s;
   }
   .sio-listen-btn.active {
-    background: color-mix(in srgb, #10b981 15%, transparent);
-    border-color: color-mix(in srgb, #10b981 50%, transparent);
-    color: #10b981;
-  }
-  .sio-listen-btn:hover:not(.active) {
-    background: var(--hover-bg, rgba(255,255,255,0.05));
-    border-color: var(--text-secondary, #888);
-    color: var(--text-primary, #eee);
+    background: color-mix(in srgb, var(--success) 15%, transparent);
+    border-color: color-mix(in srgb, var(--success) 50%, transparent);
+    color: var(--success);
   }
 
   .sio-listen-dot {
-    width: 6px;
-    height: 6px;
+    width: 0.375rem;
+    height: 0.375rem;
     border-radius: 50%;
     background: currentColor;
     opacity: 0.8;
   }
-
-  .sio-del-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--text-secondary, #999);
-    font-size: 16px;
-    line-height: 1;
-    padding: 2px 4px;
-    border-radius: 3px;
-  }
-  .sio-del-btn:hover { color: var(--text-danger, #e53); background: var(--hover-bg, rgba(0,0,0,0.05)); }
 </style>

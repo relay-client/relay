@@ -24,7 +24,7 @@
     <span>The page origin to emulate, for example http://localhost:5173.</span>
     {#if vm.collectionSettingDefaultNote('browserOrigin')}<em class:setting-default-muted={!vm.collectionSettingIsInherited('browserOrigin')}>{vm.collectionSettingDefaultNote('browserOrigin')}</em>{/if}
   </span>
-  <input class="kv-input setting-proxy" type="text" placeholder="http://localhost:5173" bind:value={vm.browserOrigin} spellcheck="false" autocomplete="off" oninput={() => vm.markRequestSettingOverride('browserOrigin')} />
+  <input class="field field-mono kv-input setting-proxy" type="text" placeholder="http://localhost:5173" bind:value={vm.browserOrigin} spellcheck="false" autocomplete="off" oninput={() => vm.markRequestSettingOverride('browserOrigin')} />
 </label>
 
 <label class="postman-setting">
@@ -74,5 +74,5 @@
     <span>Use the page policy, for example default-src 'self'; connect-src https://api.example.com.</span>
     {#if vm.collectionSettingDefaultNote('browserCSP')}<em class:setting-default-muted={!vm.collectionSettingIsInherited('browserCSP')}>{vm.collectionSettingDefaultNote('browserCSP')}</em>{/if}
   </span>
-  <textarea class="setting-textarea" bind:value={vm.browserCSP} spellcheck="false" oninput={() => vm.markRequestSettingOverride('browserCSP')}></textarea>
+  <textarea class="field field-area setting-textarea" bind:value={vm.browserCSP} spellcheck="false" oninput={() => vm.markRequestSettingOverride('browserCSP')}></textarea>
 </label>

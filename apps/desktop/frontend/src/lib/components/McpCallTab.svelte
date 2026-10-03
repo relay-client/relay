@@ -95,7 +95,7 @@
           />
         {:else}
           <input
-            class="mcp-name-input"
+            class="field field-md mcp-name-input"
             type="text"
             spellcheck="false"
             autocomplete="off"
@@ -108,7 +108,7 @@
     {/if}
 
     <button
-      class="btn-secondary mcp-discover"
+      class="btn btn-secondary btn-lg mcp-discover"
       type="button"
       onclick={() => void vm.discoverMcpServer()}
       disabled={vm.mcpCatalogLoading}
@@ -162,17 +162,17 @@
   .mcp-call {
     display: flex;
     flex-direction: column;
-    gap: 9px;
+    gap: var(--space-2);
     min-height: 0;
     height: 100%;
-    padding: 14px 16px 16px;
+    padding: var(--space-3) var(--space-4) var(--space-4);
     overflow: hidden;
   }
 
   .mcp-call-bar {
     display: flex;
     align-items: flex-end;
-    gap: 10px;
+    gap: var(--space-2-5);
     flex: 0 0 auto;
     flex-wrap: wrap;
   }
@@ -180,23 +180,23 @@
   .mcp-field {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-2);
     min-width: 0;
   }
 
   .mcp-field-method {
     flex: 0 0 auto;
-    width: 180px;
+    width: 11.25rem;
   }
 
   .mcp-field-name {
-    flex: 1 1 260px;
+    flex: 1 1 16.25rem;
   }
 
   .mcp-field-label {
     color: var(--text);
-    font-size: 12px;
-    font-weight: 700;
+    font-size: var(--text-label);
+    font-weight: var(--weight-semibold);
   }
 
   .mcp-call :global(.mcp-select),
@@ -204,36 +204,18 @@
     width: 100%;
   }
 
-
   .mcp-name-input {
     width: 100%;
-    height: 30px;
-    padding: 0 10px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--bg);
-    color: var(--text);
     font: inherit;
-    font-size: 12.5px;
-  }
-
-  .mcp-name-input:focus-visible {
-    outline: none;
-    border-color: var(--accent);
   }
 
   .mcp-discover {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
     flex: 0 0 auto;
-    height: 34px;
-    min-width: 108px;
+    min-width: 6.75rem;
   }
 
   .mcp-discover:disabled {
-    opacity: 0.6;
+    opacity: var(--opacity-disabled);
     cursor: default;
   }
 
@@ -241,8 +223,8 @@
     flex: 0 0 auto;
     margin: 0;
     color: var(--text-3);
-    font-size: 12px;
-    line-height: 1.5;
+    font-size: var(--text-label);
+    line-height: var(--leading-normal);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -250,12 +232,12 @@
 
   .mcp-server-name {
     color: var(--text-2);
-    font-weight: 600;
+    font-weight: var(--weight-semibold);
   }
 
   .mcp-server-version {
     font-family: var(--font-mono);
-    font-size: 11.5px;
+    font-size: var(--text-caption);
   }
 
   .mcp-server-meta,
@@ -268,8 +250,8 @@
     flex: 0 0 auto;
     margin: 0;
     color: var(--text-3);
-    font-size: 12px;
-    line-height: 1.5;
+    font-size: var(--text-label);
+    line-height: var(--leading-normal);
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     line-clamp: 2;
@@ -283,7 +265,7 @@
   .mcp-arguments {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--space-1-5);
     flex: 1 1 auto;
     min-height: 0;
   }
@@ -291,20 +273,20 @@
   .mcp-arguments-head {
     display: flex;
     align-items: baseline;
-    gap: 8px;
-    margin-bottom: 2px;
+    gap: var(--space-2);
+    margin-bottom: var(--space-0-5);
   }
 
   .mcp-arguments-hint {
     color: var(--text-3);
-    font-size: 11.5px;
+    font-size: var(--text-caption);
   }
 
   .mcp-editor {
     flex: 1 1 auto;
     min-height: 0;
     border: 1px solid var(--border);
-    border-radius: 7px;
+    border-radius: var(--radius-md);
     overflow: hidden;
   }
 

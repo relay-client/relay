@@ -191,7 +191,7 @@
     if (start < 0 || before.lastIndexOf('}}') > start) return null;
 
     const raw = before.slice(start + 2);
-    if (raw.length > 80 || /[{}\r\n]/.test(raw) || !/^\s*[A-Za-z0-9_.-]*$/.test(raw)) return null;
+    if (raw.length > 80 || /[{}\r\n]/.test(raw) || !/^\s*[\p{L}\p{N}_.:-]*$/u.test(raw)) return null;
     const prefix = raw.trimStart();
     return { from: start + 2 + raw.length - prefix.length, to: value.slice(pos, pos + 2) === '}}' ? pos + 2 : pos, prefix };
   }
@@ -440,7 +440,7 @@
   {#if pickerOpen && pickerMatches.length}
     <div
       use:portal
-      class="variable-menu input-picker-menu"
+      class="menu variable-menu input-picker-menu"
       role="listbox"
       aria-label={pickerLabel}
       style="--picker-top: {pickerTop}px; --picker-left: {pickerLeft}px; --picker-width: {pickerWidth}px; --picker-max-height: {pickerMaxHeight}px"
@@ -448,7 +448,7 @@
       {#each pickerMatches as option, index (option)}
         <button
           class:active={index === pickerActiveIndex}
-          class="input-picker-option"
+          class="menu-item input-picker-option"
           type="button"
           role="option"
           aria-selected={index === pickerActiveIndex}
@@ -461,9 +461,9 @@
     </div>
   {/if}
   {#if open && matches.length}
-    <div class="variable-menu" role="listbox" aria-label="Environment variables">
+    <div class="menu variable-menu" role="listbox" aria-label="Environment variables">
       {#each matches as variable, index (variable.key)}
-        <button
+        <button class="menu-item"
           class:active={index === activeIndex}
           type="button"
           role="option"

@@ -120,8 +120,8 @@
       <p>{summary}. {storedInGit ? 'Stored in a Git repository.' : 'Stored on this machine.'}</p>
     </div>
     <div class="overview-actions">
-      <button class="overview-text-btn" type="button" onclick={renameWorkspace} disabled={workspaceBlocked}>Rename</button>
-      <button class="overview-text-btn" type="button" onclick={createWorkspace}>New workspace</button>
+      <button class="btn btn-ghost overview-text-btn" type="button" onclick={renameWorkspace} disabled={workspaceBlocked}>Rename</button>
+      <button class="btn btn-ghost overview-text-btn" type="button" onclick={createWorkspace}>New workspace</button>
     </div>
   </header>
 
@@ -130,9 +130,9 @@
       <h2>Send your first request</h2>
       <p>Open a new request and paste a URL or a whole cURL command — Relay fills in the method, headers and body. Or bring in what you already have.</p>
       <div class="overview-first-run-actions">
-        <button class="btn-primary btn-sm" type="button" onclick={() => createNewRequest()} disabled={workspaceBlocked}>New request</button>
-        <button class="btn-secondary btn-sm" type="button" onclick={openImport} disabled={workspaceBlocked}>Import collection</button>
-        <button class="btn-secondary btn-sm" type="button" onclick={createCollection} disabled={workspaceBlocked}>New collection</button>
+        <button class="btn btn-primary" type="button" onclick={() => createNewRequest()} disabled={workspaceBlocked}>New request</button>
+        <button class="btn btn-secondary" type="button" onclick={openImport} disabled={workspaceBlocked}>Import collection</button>
+        <button class="btn btn-secondary" type="button" onclick={createCollection} disabled={workspaceBlocked}>New collection</button>
       </div>
       <p class="overview-first-run-note">Import reads Postman, Insomnia, OpenAPI, Bruno / OpenCollection and HAR.</p>
     </div>
@@ -164,7 +164,7 @@
             {#each collectionGroups as group (group.collection.id)}
               {@const folders = countFolders(group.folders)}
               <button class="overview-row overview-collection-row" type="button" onclick={() => openCollection(group.collection.id)} disabled={workspaceBlocked || group.collection.isInvalid}>
-                <svg class="overview-row-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true">
+                <svg class="overview-row-icon" width="1rem" height="1rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true">
                   <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                 </svg>
                 <span class="overview-row-name">{group.collection.name}</span>
@@ -217,7 +217,7 @@
         <h2><label for="overview-notes">Notes</label></h2>
         <textarea
           id="overview-notes"
-          class="overview-notes"
+          class="field field-area overview-notes"
           value={activeWorkspace?.description ?? ''}
           oninput={(event) => updateWorkspaceDescription(inputValue(event))}
           placeholder="Conventions, auth hints, links — anything the next person opening this workspace should know."

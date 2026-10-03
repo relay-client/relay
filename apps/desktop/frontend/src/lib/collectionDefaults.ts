@@ -108,8 +108,12 @@ export function collectionVariableValues(collection: Collection | undefined): Re
   return values;
 }
 
-export function valuesWithBrunoPriority(collection: Collection | undefined, environmentValues: Record<string, string>): Record<string, string> {
-  return { ...collectionVariableValues(collection), ...environmentValues };
+export function valuesWithBrunoPriority(
+  collection: Collection | undefined,
+  environmentValues: Record<string, string>,
+  globalValues: Record<string, string> = {},
+): Record<string, string> {
+  return { ...globalValues, ...collectionVariableValues(collection), ...environmentValues };
 }
 
 export function collectionSecretVariableKeys(collection: Collection | undefined): string[] {

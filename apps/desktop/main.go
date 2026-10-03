@@ -126,11 +126,20 @@ func buildWindowsOptions(resolvedTheme string) *winopts.Options {
 	}
 }
 
+func viewMenu(app *api.App) *menu.MenuItem {
+	return menu.SubMenu("View", menu.NewMenuFromItems(
+		menu.Text("Actual Size", keys.CmdOrCtrl("0"), func(_ *menu.CallbackData) { app.MenuZoom("reset") }),
+		menu.Text("Zoom In", keys.CmdOrCtrl("="), func(_ *menu.CallbackData) { app.MenuZoom("in") }),
+		menu.Text("Zoom Out", keys.CmdOrCtrl("-"), func(_ *menu.CallbackData) { app.MenuZoom("out") }),
+	))
+}
+
 func buildMenu(app *api.App) *menu.Menu {
 	if runtime.GOOS == "darwin" {
 		return menu.NewMenuFromItems(
 			menu.AppMenu(),
 			menu.EditMenu(),
+			viewMenu(app),
 			menu.WindowMenu(),
 		)
 	}
@@ -142,6 +151,7 @@ func buildMenu(app *api.App) *menu.Menu {
 	relay.AddText("Hide Window", nil, func(_ *menu.CallbackData) { app.Hide() })
 	relay.AddSeparator()
 	relay.AddText("Quit", keys.CmdOrCtrl("q"), func(_ *menu.CallbackData) { app.Quit() })
+	appMenu.Append(viewMenu(app))
 
 	return appMenu
 }

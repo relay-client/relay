@@ -35,7 +35,7 @@
 {#if busy}
   <span class="git-action-spinner"></span>
 {:else}
-  <svg class="git-action-icon" width={size} height={size} viewBox="0 0 16 16" aria-hidden="true">
+  <svg class="git-action-icon" width="{size / 16}rem" height="{size / 16}rem" viewBox="0 0 16 16" aria-hidden="true">
     {#if name === 'refresh'}
       <path d="M13 5V2h-3" />
       <path d="M12.3 5A5 5 0 0 0 3.6 3.8" />

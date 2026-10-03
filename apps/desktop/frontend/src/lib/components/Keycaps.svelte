@@ -34,7 +34,7 @@
   .keycaps {
     display: inline-flex;
     align-items: center;
-    gap: 3px;
+    gap: var(--space-1);
     vertical-align: middle;
     white-space: nowrap;
   }
@@ -42,45 +42,45 @@
   .keycap {
     display: inline-grid;
     place-items: center;
-    min-width: 20px;
-    height: 20px;
-    padding: 0 5px;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    padding: 0 var(--space-1-5);
     border: 1px solid var(--border);
     border-bottom-width: 2px;
-    border-radius: 5px;
+    border-radius: var(--radius-sm);
     background: color-mix(in srgb, var(--elevated) 70%, transparent);
     color: var(--text-2);
     font-family: var(--font-ui);
-    font-size: 11px;
-    font-weight: 600;
-    line-height: 1;
+    font-size: var(--text-caption);
+    font-weight: var(--weight-semibold);
+    line-height: var(--leading-none);
     letter-spacing: 0;
   }
 
   .keycap-glyph {
-    font-size: 12.5px;
-    font-weight: 500;
+    font-size: 0.78125rem;
+    font-weight: var(--weight-medium);
   }
 
   .keycaps-md .keycap {
-    min-width: 24px;
-    height: 24px;
-    padding: 0 7px;
-    font-size: 12px;
+    min-width: 1.5rem;
+    height: 1.5rem;
+    padding: 0 var(--space-2);
+    font-size: var(--text-label);
     color: var(--text);
   }
 
   .keycaps-md .keycap-glyph {
-    font-size: 13.5px;
+    font-size: 0.84375rem;
   }
 
   .keycap-icon {
-    width: 10px;
-    height: 10px;
+    width: 0.625rem;
+    height: 0.625rem;
   }
 
   .keycaps-md .keycap-icon {
-    width: 12px;
-    height: 12px;
+    width: 0.75rem;
+    height: 0.75rem;
   }
 </style>

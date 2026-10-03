@@ -254,7 +254,7 @@
         {/if}
         {#if listenEventCount === 0}
           <span class="sse-summary-dot"></span>
-          <button class="sio-not-listening-inline" type="button" onclick={() => onGoToEvents?.()}>
+          <button class="btn-link sio-not-listening-inline" type="button" onclick={() => onGoToEvents?.()}>
             Not listening to events
           </button>
         {/if}
@@ -279,8 +279,8 @@
     </div>
 
     {#if searchOpen}
-      <div class="response-search-box">
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+      <div class="field field-md field-wrap response-search-box">
+        <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none" aria-hidden="true">
           <circle cx="5.8" cy="5.8" r="3.8" stroke="currentColor" stroke-width="1.3"/>
           <path d="M8.7 8.7l2.7 2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
         </svg>
@@ -301,7 +301,7 @@
 
     <div class="ws-filter-menu" onfocusout={closeFilterMenuOnFocusOut}>
       <button
-        class="ws-filter-button"
+        class="field select-trigger ws-filter-button"
         class:open={filterMenuOpen}
         type="button"
         aria-haspopup="listbox"
@@ -309,14 +309,14 @@
         onclick={() => (filterMenuOpen = !filterMenuOpen)}
       >
         {filterLabel()}
-        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+        <svg width="0.625rem" height="0.375rem" viewBox="0 0 10 6" fill="none" aria-hidden="true">
           <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
       </button>
       {#if filterMenuOpen}
-        <div class="ws-filter-list" role="listbox" aria-label="Message filter">
+        <div class="menu ws-filter-list" role="listbox" aria-label="Message filter">
           {#each filterOptions as opt, eachIndex (eachIndex)}
-            <button
+            <button class="menu-item"
               class:active={messageFilter === opt.value}
               role="option"
               aria-selected={messageFilter === opt.value}
@@ -332,22 +332,22 @@
     </div>
 
     <div class="resp-actions">
-      <button class="btn-icon" title="Search response" aria-label="Search response" aria-pressed={searchOpen} onclick={() => (searchOpen = !searchOpen)} type="button">
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+      <button class="btn btn-icon" title="Search response" aria-label="Search response" aria-pressed={searchOpen} onclick={() => (searchOpen = !searchOpen)} type="button">
+        <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none">
           <circle cx="5.8" cy="5.8" r="3.8" stroke="currentColor" stroke-width="1.3"/>
           <path d="M8.7 8.7l2.7 2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
         </svg>
       </button>
       {#if canRestore}
-        <button class="sse-clear-btn sse-restore-btn" type="button" onclick={onRestore}>
-          <svg width="12" height="12" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+        <button class="btn btn-secondary btn-sm sse-clear-btn sse-restore-btn" type="button" onclick={onRestore}>
+          <svg width="0.75rem" height="0.75rem" viewBox="0 0 13 13" fill="none" aria-hidden="true">
             <path d="M3 6a3.5 3.5 0 116.1 2.3M3 6H1.5M3 6V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           Restore
         </button>
       {/if}
-      <button class="btn-icon" type="button" onclick={onClear} disabled={messages.length === 0} title="Clear events" aria-label="Clear events">
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+      <button class="btn btn-icon" type="button" onclick={onClear} disabled={messages.length === 0} title="Clear events" aria-label="Clear events">
+        <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none" aria-hidden="true">
           <path d="M2 3h9M5 3V2h3v1M4 3v7a1 1 0 001 1h3a1 1 0 001-1V3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
@@ -360,8 +360,8 @@
   <div class="sse-event-list ws-message-list" bind:this={listEl} onscroll={onScroll} role="log" aria-live="polite">
     {#if !atTop && newMessagesBadge > 0}
       <div class="sio-new-top-wrap">
-        <button class="sse-new-messages-btn" type="button" onclick={jumpToTop}>
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+        <button class="btn btn-primary btn-sm sse-new-messages-btn" type="button" onclick={jumpToTop}>
+          <svg width="0.75rem" height="0.75rem" viewBox="0 0 12 12" fill="none" aria-hidden="true">
             <path d="M6 10V2M3 5l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           {newMessagesBadge > 999 ? '999+' : newMessagesBadge} new event{newMessagesBadge !== 1 ? 's' : ''}
@@ -370,15 +370,15 @@
     {/if}
 
     {#if messages.length === 0}
-      <div class="sse-empty-state">
+      <div class="empty-state sse-empty-state">
         {#if status === 'connected'}
-          <span>No events yet</span>
+          <span class="empty-state-title">No events yet</span>
         {:else}
           <span>Connect to send and receive events</span>
         {/if}
       </div>
     {:else if filteredMessages.length === 0}
-      <div class="sse-empty-state"><span>{filterEmptyLabel()}</span></div>
+      <div class="empty-state sse-empty-state"><span class="empty-state-title">{filterEmptyLabel()}</span></div>
     {:else}
       {#each visibleReversedMessages as message (message.id || message.timestamp)}
         {@const key = message.id}
@@ -405,15 +405,15 @@
               aria-hidden="true"
             >
               {#if message.direction === 'outgoing'}
-                <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none">
                   <path d="M6.5 11V2M3 5l3.5-3L10 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               {:else if message.direction === 'incoming'}
-                <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none">
                   <path d="M6.5 2v9M3 8l3.5 3L10 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               {:else}
-                <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none">
                   <circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/>
                   <path d="M6.5 4v3.5M6.5 9.5v.3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
                 </svg>
@@ -428,7 +428,7 @@
             <span class="sse-event-time">{formatTime(message.timestamp)}</span>
             {#if expandable}
               <span class="sse-expand-chevron" style="transform: rotate({expanded ? 180 : 0}deg)" aria-hidden="true">
-                <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
+                <svg width="0.625rem" height="0.375rem" viewBox="0 0 10 6" fill="none">
                   <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                 </svg>
               </span>
@@ -445,13 +445,13 @@
                     <div class="sio-hs-connected">{message.message}</div>
                   {/if}
 
-                  <div class="sio-hs-section-title">Handshake Details</div>
+                  <div class="sio-hs-section-title">Handshake details</div>
                   <div class="sio-hs-row">
                     <span class="sio-hs-key">Request URL</span>
                     <span class="sio-hs-val">{message.handshake.url}</span>
                   </div>
                   <div class="sio-hs-row">
-                    <span class="sio-hs-key">Request Method</span>
+                    <span class="sio-hs-key">Request method</span>
                     <span class="sio-hs-val sio-hs-method">{message.handshake.method}</span>
                   </div>
                   {#if message.handshake.statusCode}
@@ -462,7 +462,7 @@
                   {/if}
 
                   {#if message.handshake.requestHeaders && message.handshake.requestHeaders.length > 0}
-                    <div class="sio-hs-section-title">Request Headers</div>
+                    <div class="sio-hs-section-title">Request headers</div>
                     {#each message.handshake.requestHeaders as h, eachIndex (eachIndex)}
                       <div class="sio-hs-header-row">
                         <span class="sio-hs-hkey">{h.key}</span>
@@ -472,7 +472,7 @@
                   {/if}
 
                   {#if message.handshake.responseHeaders && message.handshake.responseHeaders.length > 0}
-                    <div class="sio-hs-section-title">Response Headers</div>
+                    <div class="sio-hs-section-title">Response headers</div>
                     {#each message.handshake.responseHeaders as h, eachIndex (eachIndex)}
                       <div class="sio-hs-header-row">
                         <span class="sio-hs-hkey">{h.key}</span>
@@ -484,7 +484,7 @@
               {:else if isDisconnectedMessage(message)}
                 <div class="rt-handshake">
                   <div class="rt-detail-message rt-detail-error">{message.message}</div>
-                  <div class="rt-detail-section-title">Connection Details</div>
+                  <div class="rt-detail-section-title">Connection details</div>
                   {#if message.details?.connectedUrl}
                     <div class="rt-detail-row">
                       <span class="rt-detail-key">Request URL</span>
@@ -522,7 +522,7 @@
       {/each}
       {#if hiddenMessageCount > 0}
         <div class="sse-pagination-row">
-          <button type="button" onclick={() => (visibleMessageCount = Math.min(filteredMessages.length, visibleMessageCount + REALTIME_PAGE_SIZE))}>
+          <button class="btn btn-secondary btn-sm" type="button" onclick={() => (visibleMessageCount = Math.min(filteredMessages.length, visibleMessageCount + REALTIME_PAGE_SIZE))}>
             Load {Math.min(REALTIME_PAGE_SIZE, hiddenMessageCount).toLocaleString()} older
           </button>
           <span>Showing {visibleReversedMessages.length.toLocaleString()} of {filteredMessages.length.toLocaleString()}</span>
@@ -536,20 +536,20 @@
 <style>
   .sio-ns-label {
     font-family: var(--font-mono);
-    font-size: 11px;
-    background: var(--badge-bg, rgba(99,102,241,0.12));
-    color: var(--accent, #6366f1);
-    border-radius: 3px;
-    padding: 1px 5px;
+    font-size: var(--text-caption);
+    background: var(--accent-dim);
+    color: var(--accent);
+    border-radius: var(--radius-xs);
+    padding: 1px var(--space-1-5);
   }
   .sio-event-name-badge {
-    background: color-mix(in srgb, #6366f1 15%, transparent);
-    color: #818cf8;
-    border: 1px solid color-mix(in srgb, #6366f1 30%, transparent);
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+    color: var(--accent-hover);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
   }
   .sio-expanded-body {
     font-family: var(--font-mono);
-    font-size: 12px;
+    font-size: var(--text-label);
     white-space: pre-wrap;
     word-break: break-all;
     margin: 0;
@@ -557,39 +557,31 @@
   }
 
   .sio-handshake {
-    padding: 12px 14px;
-    font-size: 12px;
+    padding: var(--space-3) var(--space-3);
+    font-size: var(--text-label);
     font-family: var(--font-mono);
-    line-height: 1.6;
+    line-height: var(--leading-relaxed);
   }
   .sio-hs-error {
-    color: var(--delete, #f87171);
-    font-weight: 500;
-    margin-bottom: 12px;
+    color: var(--delete);
+    font-weight: var(--weight-medium);
+    margin-bottom: var(--space-3);
     font-family: inherit;
   }
   .sio-hs-connected {
-    color: #34d399;
-    font-weight: 500;
-    margin-bottom: 12px;
+    color: var(--success);
+    font-weight: var(--weight-medium);
+    margin-bottom: var(--space-3);
     font-family: inherit;
   }
-  .sio-hs-status-ok { color: #34d399; }
+  .sio-hs-status-ok { color: var(--success); }
 
   .sio-listen-count {
-    color: var(--accent, #6366f1);
+    color: var(--accent);
     opacity: 0.8;
   }
 
   .sio-not-listening-inline {
-    background: none;
-    border: none;
-    padding: 0;
-    font-size: inherit;
-    color: var(--accent, #6366f1);
-    cursor: pointer;
-    text-decoration: underline;
-    text-underline-offset: 2px;
     opacity: 0.85;
   }
   .sio-not-listening-inline:hover { opacity: 1; }
@@ -597,7 +589,7 @@
   .sio-new-top-wrap {
     display: flex;
     justify-content: center;
-    padding: 6px 0 2px;
+    padding: var(--space-1-5) 0 var(--space-0-5);
     position: sticky;
     top: 0;
     z-index: 5;
@@ -607,49 +599,49 @@
     pointer-events: all;
   }
   .sio-hs-section-title {
-    color: var(--accent, #6366f1);
-    font-size: 11px;
-    font-weight: 600;
+    color: var(--accent);
+    font-size: var(--text-caption);
+    font-weight: var(--weight-semibold);
     text-transform: none;
     letter-spacing: 0;
-    margin: 10px 0 4px;
+    margin: var(--space-2-5) 0 var(--space-1);
     font-family: var(--font-ui);
   }
   .sio-hs-row {
     display: flex;
-    gap: 8px;
+    gap: var(--space-2);
     padding: 1px 0;
     color: var(--text);
   }
   .sio-hs-key {
     color: var(--text-2);
     white-space: nowrap;
-    min-width: 140px;
+    min-width: 8.75rem;
     flex-shrink: 0;
   }
   .sio-hs-url {
-    color: var(--accent, #6366f1);
+    color: var(--accent);
     word-break: break-all;
     text-decoration: none;
   }
   .sio-hs-url:hover { text-decoration: underline; }
-  .sio-hs-method { color: #34d399; }
-  .sio-hs-status { color: #f87171; }
+  .sio-hs-method { color: var(--success); }
+  .sio-hs-status { color: var(--danger); }
   .sio-hs-val { word-break: break-all; }
 
   .sio-hs-header-row {
     display: flex;
-    gap: 8px;
-    padding: 1px 12px;
+    gap: var(--space-2);
+    padding: 1px var(--space-3);
   }
   .sio-hs-hkey {
     color: var(--text-3);
     white-space: nowrap;
-    min-width: 200px;
+    min-width: 12.5rem;
     flex-shrink: 0;
   }
   .sio-hs-hval {
-    color: var(--accent, #6366f1);
+    color: var(--accent);
     word-break: break-all;
   }
 </style>

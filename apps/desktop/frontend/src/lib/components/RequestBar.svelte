@@ -241,14 +241,14 @@
     />
     {#if showSave}
       <div class="request-meta-actions">
-        <button class="save-btn revert-btn" class:dirty={canRevert} type="button" onclick={onRevert} title="Revert unsaved changes" aria-label="Revert unsaved changes" disabled={!canRevert}>
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+        <button class="btn btn-ghost btn-icon btn-sm save-btn revert-btn" class:dirty={canRevert} type="button" onclick={onRevert} title="Revert unsaved changes" aria-label="Revert unsaved changes" disabled={!canRevert}>
+          <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none" aria-hidden="true">
             <path d="M4.2 3.2H2v-2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M2.3 3.1A4.5 4.5 0 117 11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
           </svg>
         </button>
-        <button class="save-btn" class:dirty={saveDirty} type="button" onclick={onSave} title={saveShortcut ? `Save (${saveShortcut})` : 'Save'} disabled={!saveDirty}>
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+        <button class="btn btn-ghost btn-sm save-btn" class:dirty={saveDirty} type="button" onclick={onSave} title={saveShortcut ? `Save (${saveShortcut})` : 'Save'} disabled={!saveDirty}>
+          <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none" aria-hidden="true">
             <path d="M2 2h7.5L11 3.5V11H2V2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
             <rect x="4" y="7.5" width="5" height="3" rx="0.5" stroke="currentColor" stroke-width="1.1"/>
             <rect x="4.5" y="2" width="3.5" height="2.5" rx="0.5" stroke="currentColor" stroke-width="1.1"/>
@@ -276,19 +276,19 @@
         >
           <span>{pickerLabel}</span>
           {#if pickerInteractive}
-            <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+            <svg width="0.625rem" height="0.375rem" viewBox="0 0 10 6" fill="none" aria-hidden="true">
               <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
             </svg>
           {/if}
         </button>
         {#if methodMenuOpen && pickerInteractive}
-          <div class="method-menu" role="listbox" aria-label="Method and protocol">
+          <div class="menu method-menu" role="listbox" aria-label="Method and protocol">
             <div class="method-menu-group" role="group" aria-label="HTTP">
               <span class="method-menu-label" aria-hidden="true">HTTP</span>
               {#each methods as option, eachIndex (eachIndex)}
                 <button
+                  class={`menu-item ${methodColor(option)}`}
                   class:active={isHTTP && method === option}
-                  class={methodColor(option)}
                   role="option"
                   aria-selected={isHTTP && method === option}
                   type="button"
@@ -304,7 +304,7 @@
               {#if requestTypeEditable}
                 {#each protocolTypes as option, eachIndex (eachIndex)}
                   <button
-                    class="method-menu-protocol"
+                    class="menu-item method-menu-protocol"
                     class:active={requestType === option}
                     role="option"
                     aria-selected={requestType === option}
@@ -340,7 +340,7 @@
     {#if isGRPC}
       <div class="grpc-method-wrap" onfocusout={closeGrpcMethodMenuOnFocusOut}>
         <button
-          class="grpc-method-trigger"
+          class="field field-xl select-trigger grpc-method-trigger"
           class:open={grpcMethodMenuOpen}
           type="button"
           bind:this={grpcMethodButtonRef}
@@ -351,22 +351,22 @@
         >
           <span class="grpc-method-icon" aria-hidden="true">↕</span>
           <span class="grpc-method-label" title={grpcMethod || grpcSelectedLabel}>{grpcSelectedLabel}</span>
-          <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+          <svg width="0.625rem" height="0.375rem" viewBox="0 0 10 6" fill="none" aria-hidden="true">
             <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
         </button>
 
         {#if grpcMethodMenuOpen}
           <div class="grpc-method-menu" role="listbox" aria-label="gRPC methods">
-            <div class="grpc-method-search">
-              <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+            <div class="field field-wrap grpc-method-search">
+              <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none" aria-hidden="true">
                 <circle cx="5.8" cy="5.8" r="3.8" stroke="currentColor" stroke-width="1.3"/>
                 <path d="M8.7 8.7l2.7 2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
               </svg>
               <input bind:value={grpcMethodFilter} onkeydown={onGrpcMethodSearchKeydown} placeholder="Search methods" aria-label="Search gRPC methods" />
             </div>
 
-            <button class="grpc-method-refresh" type="button" disabled={grpcServiceLoading} onclick={() => onGrpcDiscover()}>
+            <button class="btn btn-secondary grpc-method-refresh" type="button" disabled={grpcServiceLoading} onclick={() => onGrpcDiscover()}>
               {#if grpcServiceLoading}<span class="spinner spinner-inline"></span>{/if}
               <span>{grpcMethods.length ? 'Refresh methods' : 'Load methods'}</span>
             </button>
@@ -374,7 +374,7 @@
             {#if grpcFilteredMethods.length}
               <div class="grpc-method-options">
                 {#each grpcFilteredMethods as option, eachIndex (eachIndex)}
-                  <button
+                  <button class="grpc-method-option"
                     class:active={grpcMethod === option.fullName}
                     role="option"
                     aria-selected={grpcMethod === option.fullName}
@@ -486,22 +486,22 @@
             aria-expanded={sendMenuOpen}
             onclick={() => (sendMenuOpen = !sendMenuOpen)}
           >
-            <svg width="10" height="7" viewBox="0 0 10 7" fill="none" aria-hidden="true">
+            <svg width="0.625rem" height="0.4375rem" viewBox="0 0 10 7" fill="none" aria-hidden="true">
               <path d="M1.5 2L5 5.5L8.5 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
           {#if sendMenuOpen}
-            <div class="send-menu" role="menu" aria-label="Send options">
+            <div class="menu send-menu" role="menu" aria-label="Send options">
               <button
-                class="send-menu-item"
+                class="menu-item send-menu-item"
                 role="menuitem"
                 type="button"
                 onclick={() => { sendMenuOpen = false; onSendAndDownload(); }}
               >
-                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+                <svg width="0.9375rem" height="0.9375rem" viewBox="0 0 15 15" fill="none" aria-hidden="true">
                   <path d="M7.5 2v7m0 0L4.5 6m3 3l3-3M2.5 12h10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                Send and Download
+                Send and download
               </button>
             </div>
           {/if}

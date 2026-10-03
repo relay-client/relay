@@ -4,6 +4,7 @@
   import CodeEditor from '../CodeEditor.svelte';
   import BeautifyButton from './BeautifyButton.svelte';
   import { bodyPlaceholder } from '../bodyTemplates';
+  import { rem, toLogicalPx } from '../uiScale';
 
   let queryGridRef: HTMLDivElement | undefined = undefined;
   let queryEditor: { format: () => boolean } | undefined = undefined;
@@ -22,13 +23,13 @@
 
   let editorStackStyle = $derived(
     activePanel === 'query'
-      ? `grid-template-rows: minmax(0, 1fr) ${TOOLBAR_H}px`
-      : `grid-template-rows: ${TOOLBAR_H}px minmax(0, 1fr)`
+      ? `grid-template-rows: minmax(0, 1fr) ${rem(TOOLBAR_H)}`
+      : `grid-template-rows: ${rem(TOOLBAR_H)} minmax(0, 1fr)`
   );
 
   onMount(() => {
     if (!queryGridRef) return;
-    const width = queryGridRef.getBoundingClientRect().width;
+    const width = toLogicalPx(queryGridRef.getBoundingClientRect().width);
     explorerWidth = Math.round(Math.min(Math.max(width * 0.38, MIN_EXPLORER_WIDTH), MAX_EXPLORER_WIDTH));
   });
 
@@ -36,9 +37,9 @@
     if (!queryGridRef) return;
     event.preventDefault();
     const rect = queryGridRef.getBoundingClientRect();
-    const max = Math.max(MIN_EXPLORER_WIDTH, Math.min(MAX_EXPLORER_WIDTH, rect.width - MIN_EDITOR_WIDTH));
+    const max = Math.max(MIN_EXPLORER_WIDTH, Math.min(MAX_EXPLORER_WIDTH, toLogicalPx(rect.width) - MIN_EDITOR_WIDTH));
     const move = (next: PointerEvent) => {
-      explorerWidth = Math.round(Math.min(Math.max(next.clientX - rect.left, MIN_EXPLORER_WIDTH), max));
+      explorerWidth = Math.round(Math.min(Math.max(toLogicalPx(next.clientX - rect.left), MIN_EXPLORER_WIDTH), max));
     };
     const up = () => {
       window.removeEventListener('pointermove', move);
@@ -79,13 +80,13 @@
 <div
   class="graphql-query-grid"
   bind:this={queryGridRef}
-  style={`--graphql-explorer-width: ${explorerWidth}px;`}
+  style={`--graphql-explorer-width: ${rem(explorerWidth)};`}
 >
   <aside class="graphql-explorer-panel">
     {#if fields.length}
       <div class="graphql-explorer-toolbar">
         <span>Explore</span>
-        <button class="btn-secondary btn-sm" type="button" onclick={() => vm.fetchGraphQLSchema()} disabled={vm.graphqlSchemaLoading || !vm.url.trim()}>
+        <button class="btn btn-secondary" type="button" onclick={() => vm.fetchGraphQLSchema()} disabled={vm.graphqlSchemaLoading || !vm.url.trim()}>
           {#if vm.graphqlSchemaLoading}<span class="spinner spinner-inline"></span>{/if}
           Refresh
         </button>
@@ -115,7 +116,7 @@
         {#if vm.graphqlSchemaError}
           <div class="graphql-schema-error-card" role="alert">
             <div class="graphql-schema-error-header">
-              <svg class="graphql-schema-error-icon" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <svg class="graphql-schema-error-icon" width="1.125rem" height="1.125rem" viewBox="0 0 18 18" fill="none" aria-hidden="true">
                 <path d="M9 1L17 9L9 17L1 9L9 1Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
                 <path d="M9 6v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
                 <circle cx="9" cy="12.5" r="0.9" fill="currentColor"/>
@@ -124,7 +125,7 @@
             </div>
             <p class="graphql-schema-error-detail">{vm.graphqlSchemaError}</p>
             <button
-              class="graphql-schema-error-retry"
+              class="btn btn-secondary btn-danger btn-sm graphql-schema-error-retry"
               type="button"
               onclick={useGraphQLIntrospection}
               disabled={vm.graphqlSchemaLoading}
@@ -145,7 +146,7 @@
             {#if vm.graphqlSchemaLoading}
               <span class="spinner spinner-inline"></span>
             {:else}
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <svg width="1.25rem" height="1.25rem" viewBox="0 0 20 20" fill="none" aria-hidden="true">
                 <path d="M10 3v3M10 14v3M3 10h3M14 10h3M5.8 5.8l2.1 2.1M12.1 12.1l2.1 2.1M14.2 5.8l-2.1 2.1M7.9 12.1l-2.1 2.1" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
                 <circle cx="10" cy="10" r="2.6" stroke="currentColor" stroke-width="1.7"/>
               </svg>
@@ -158,14 +159,14 @@
         </div>
         <div class="graphql-explorer-empty-footer">
           <button class="graphql-explorer-footer-action" type="button" onclick={() => (vm.requestTab = 'schema')}>
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <svg width="1.125rem" height="1.125rem" viewBox="0 0 18 18" fill="none" aria-hidden="true">
               <path d="M5 2.5h5l3 3v10H5v-13Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
               <path d="M10 2.5v3h3M7 9h4M7 12h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             Use a GraphQL spec
           </button>
           <button class="graphql-explorer-footer-action" type="button" onclick={importGraphQLSchemaFile} disabled={vm.graphqlSchemaLoading}>
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <svg width="1.125rem" height="1.125rem" viewBox="0 0 18 18" fill="none" aria-hidden="true">
               <path d="M6.5 3h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2V7" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
               <path d="M3 3h3v3M3 3l5 5M11.5 6.5v4h-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -202,12 +203,12 @@
           class:active={activePanel === 'query'}
           type="button"
           onclick={() => { activePanel = 'query'; }}
-        >Query Editor</button>
+        >Query editor</button>
         {#if activePanel === 'query'}
           <BeautifyButton onbeautify={beautifyQuery} />
         {/if}
         <button
-          class="graphql-panel-toggle"
+          class="btn btn-ghost btn-icon btn-sm graphql-panel-toggle"
           type="button"
           aria-label={activePanel === 'query' ? 'Collapse query editor' : 'Expand query editor'}
           onclick={() => { activePanel = activePanel === 'query' ? 'variables' : 'query'; }}
@@ -215,7 +216,7 @@
           <svg
             class="graphql-chevron"
             class:open={activePanel === 'query'}
-            width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"
+            width="0.875rem" height="0.875rem" viewBox="0 0 14 14" fill="none" aria-hidden="true"
           >
             <path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
@@ -249,7 +250,7 @@
           onclick={() => { activePanel = 'variables'; }}
         >Variables</button>
         <button
-          class="graphql-panel-toggle"
+          class="btn btn-ghost btn-icon btn-sm graphql-panel-toggle"
           type="button"
           aria-label={activePanel === 'variables' ? 'Collapse variables' : 'Expand variables'}
           onclick={() => { activePanel = activePanel === 'variables' ? 'query' : 'variables'; }}
@@ -257,7 +258,7 @@
           <svg
             class="graphql-chevron"
             class:open={activePanel === 'variables'}
-            width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"
+            width="0.875rem" height="0.875rem" viewBox="0 0 14 14" fill="none" aria-hidden="true"
           >
             <path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>

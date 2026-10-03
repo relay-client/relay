@@ -301,15 +301,15 @@
 </script>
 
 <div class="cookie-backdrop" role="presentation" onmousedown={(event) => event.target === event.currentTarget && onClose()}>
-  <div class="cookie-modal postman-cookie-modal" role="dialog" aria-modal="true" aria-labelledby="cookie-jar-title" tabindex="-1" use:trapFocus>
-    <div class="cookie-head postman-cookie-head">
-      <h2 id="cookie-jar-title">Cookies</h2>
-      <button class="dialog-close" type="button" onclick={onClose} aria-label="Close cookie jar">×</button>
+  <div class="modal cookie-modal postman-cookie-modal" role="dialog" aria-modal="true" aria-labelledby="cookie-jar-title" tabindex="-1" use:trapFocus>
+    <div class="modal-head cookie-head postman-cookie-head">
+      <h2 class="modal-title" id="cookie-jar-title">Cookies</h2>
+      <button class="btn btn-ghost btn-icon dialog-close" type="button" onclick={onClose} aria-label="Close cookie jar">×</button>
     </div>
 
-    <div class="cookie-tabs" role="tablist" aria-label="Cookie jar sections" use:tabListKeyboard>
+    <div class="segmented cookie-tabs" role="tablist" aria-label="Cookie jar sections" use:tabListKeyboard>
       <button
-        class="cookie-tab"
+        class="segmented-item cookie-tab"
         class:active={tab === 'manage'}
         type="button"
         role="tab"
@@ -319,7 +319,7 @@
         onclick={() => (tab = 'manage')}
       >Manage cookies</button>
       <button
-        class="cookie-tab"
+        class="segmented-item cookie-tab"
         class:active={tab === 'sync'}
         type="button"
         role="tab"
@@ -347,7 +347,7 @@
             <strong>{syncHeadline}</strong>
             <span>{syncDetail}</span>
           </div>
-          <button class={sync.running ? 'btn-secondary' : 'btn-primary'} type="button" onclick={onToggleSync} disabled={syncBusy}>
+          <button class="btn" class:btn-secondary={sync.running} class:btn-primary={!sync.running} type="button" onclick={onToggleSync} disabled={syncBusy}>
             {sync.running ? 'Turn off' : 'Turn on'}
           </button>
         </div>
@@ -365,8 +365,8 @@
             </div>
             <span class="cookie-sync-approval-code">{syncPending.code}</span>
             <div class="cookie-sync-approval-actions">
-              <button class="btn-secondary" type="button" onclick={onDenySync} disabled={syncBusy}>Deny</button>
-              <button class="btn-primary" type="button" onclick={onApproveSync} disabled={syncBusy}>Allow</button>
+              <button class="btn btn-secondary btn-lg" type="button" onclick={onDenySync} disabled={syncBusy}>Deny</button>
+              <button class="btn btn-primary btn-lg" type="button" onclick={onApproveSync} disabled={syncBusy}>Allow</button>
             </div>
           </section>
         {/if}
@@ -379,7 +379,7 @@
                 <span class="cookie-sync-hint">
                   {sync.browser || 'A browser'} holds a key to this jar.
                 </span>
-                <button class="btn-secondary" type="button" onclick={onRevokeSync} disabled={syncBusy}>Disconnect it</button>
+                <button class="btn btn-secondary btn-lg" type="button" onclick={onRevokeSync} disabled={syncBusy}>Disconnect it</button>
               </div>
             </section>
           {/if}
@@ -388,7 +388,7 @@
             <summary>Pair manually</summary>
             <div class="cookie-sync-row">
               <code class="cookie-sync-code">{sync.pairingCode}</code>
-              <button class="btn-secondary" type="button" onclick={onCopySyncCode}>{syncCodeCopied ? 'Copied' : 'Copy'}</button>
+              <button class="btn btn-secondary btn-lg" type="button" onclick={onCopySyncCode}>{syncCodeCopied ? 'Copied' : 'Copy'}</button>
             </div>
             <p class="cookie-sync-hint">
               Only needed when the extension cannot find Relay by itself — a non-default port, say. The code carries
@@ -400,7 +400,7 @@
             <h3>Port</h3>
             <div class="cookie-sync-row">
               <input
-                class="cookie-sync-port"
+                class="field cookie-sync-port"
                 type="number"
                 min="1024"
                 max="65535"
@@ -416,20 +416,20 @@
         <section class="cookie-sync-block">
           <h3>Domains the browser may share</h3>
           <div class="cookie-sync-row">
-            <input
+            <input class="field"
               bind:value={syncDomainInput}
               placeholder="example.com"
               spellcheck="false"
               onkeydown={(event) => event.key === 'Enter' && addSyncDomain()}
             />
-            <button class="btn-secondary" type="button" onclick={addSyncDomain} disabled={syncBusy}>Add domain</button>
+            <button class="btn btn-secondary btn-lg" type="button" onclick={addSyncDomain} disabled={syncBusy}>Add domain</button>
           </div>
           {#if syncDomains.length}
             <div class="cookie-sync-chips">
               {#each syncDomains as domain (domain)}
                 <span class="cookie-sync-chip" class:unreadable={syncUnreadable.includes(domain)}>
                   {domain}
-                  <button type="button" aria-label="Stop syncing {domain}" onclick={() => onRemoveSyncDomain(domain)} disabled={syncBusy}>×</button>
+                  <button class="btn btn-ghost btn-icon btn-xs" type="button" aria-label="Stop syncing {domain}" onclick={() => onRemoveSyncDomain(domain)} disabled={syncBusy}>×</button>
                 </span>
               {/each}
             </div>
@@ -468,13 +468,13 @@
         <p class="cookie-sync-hint cookie-sync-footnote">
           A sync replaces whatever this jar held for those domains, so signing out in the browser clears the cookie
           here too.
-          <button class="cookie-sync-link" type="button" onclick={openSyncGuide}>How to install the extension</button>
+          <button class="btn-link cookie-sync-link" type="button" onclick={openSyncGuide}>How to install the extension</button>
         </p>
       </div>
     {:else}
     <div class="cookie-toolbar postman-cookie-toolbar">
-      <input bind:value={domainInput} placeholder="Type a domain name" spellcheck="false" onkeydown={(event) => event.key === 'Enter' && addDomain()} data-autofocus />
-      <button class="btn-secondary" type="button" onclick={addDomain}>Add domain</button>
+      <input class="field" bind:value={domainInput} placeholder="Type a domain name" spellcheck="false" onkeydown={(event) => event.key === 'Enter' && addDomain()} data-autofocus />
+      <button class="btn btn-secondary btn-lg" type="button" onclick={addDomain}>Add domain</button>
     </div>
 
     {#if visibleError}
@@ -489,9 +489,9 @@
           <div class="cookie-pagination" aria-label="Cookie domain pages">
             <span>Domains {rangeLabel(domainPage, COOKIE_DOMAIN_PAGE_SIZE, domainGroups.length)}</span>
             <div class="cookie-page-buttons">
-              <button type="button" onclick={() => (domainPage = Math.max(0, domainPage - 1))} disabled={domainPage === 0}>Prev</button>
+              <button class="btn btn-secondary btn-sm" type="button" onclick={() => (domainPage = Math.max(0, domainPage - 1))} disabled={domainPage === 0}>Prev</button>
               <span>{domainPage + 1}/{domainPageCount}</span>
-              <button type="button" onclick={() => (domainPage = Math.min(domainPageCount - 1, domainPage + 1))} disabled={domainPage + 1 >= domainPageCount}>Next</button>
+              <button class="btn btn-secondary btn-sm" type="button" onclick={() => (domainPage = Math.min(domainPageCount - 1, domainPage + 1))} disabled={domainPage + 1 >= domainPageCount}>Next</button>
             </div>
           </div>
         {/if}
@@ -504,7 +504,7 @@
                   <strong>{group.domain}</strong>
                   <span>{group.cookies.length} cookie{group.cookies.length === 1 ? '' : 's'}</span>
                 </button>
-                <button class="cookie-domain-delete" type="button" onclick={() => deleteDomain(group.domain)} aria-label="Delete domain cookies">×</button>
+                <button class="btn btn-ghost btn-icon cookie-domain-delete" type="button" onclick={() => deleteDomain(group.domain)} aria-label="Delete domain cookies">×</button>
               </div>
 
               <div class="cookie-chip-row">
@@ -526,10 +526,10 @@
 
               {#if editingDomain === group.domain && editorOpen}
                 <div class="cookie-raw-editor">
-                  <textarea bind:value={rawCookieText} spellcheck="false" aria-label="Raw cookie"></textarea>
+                  <textarea class="field field-area" bind:value={rawCookieText} spellcheck="false" aria-label="Raw cookie"></textarea>
                   <div class="cookie-raw-actions">
-                    <button class="btn-secondary" type="button" onclick={cancelEdit} disabled={saving}>Cancel</button>
-                    <button class="btn-primary" type="button" onclick={saveRawCookie} disabled={!canSave}>{saving ? 'Saving...' : 'Save'}</button>
+                    <button class="btn btn-secondary btn-lg" type="button" onclick={cancelEdit} disabled={saving}>Cancel</button>
+                    <button class="btn btn-primary btn-lg" type="button" onclick={saveRawCookie} disabled={!canSave}>{saving ? 'Saving...' : 'Save'}</button>
                   </div>
                 </div>
               {/if}
@@ -537,24 +537,24 @@
           {/each}
         </div>
       {:else}
-        <div class="cookie-empty cookie-empty-state" role="status">
-          <svg width="40" height="40" viewBox="0 0 32 32" fill="none" aria-hidden="true" opacity="0.4">
+        <div class="empty-state cookie-empty cookie-empty-state" role="status">
+          <svg width="2.5rem" height="2.5rem" viewBox="0 0 32 32" fill="none" aria-hidden="true" opacity="0.4">
             <circle cx="16" cy="16" r="12" stroke="currentColor" stroke-width="1.5"/>
             <circle cx="11.5" cy="13" r="1.4" fill="currentColor"/>
             <circle cx="20" cy="13.5" r="1.4" fill="currentColor"/>
             <circle cx="15" cy="20" r="1.4" fill="currentColor"/>
           </svg>
-          <p class="cookie-empty-title">No cookies yet</p>
-          <p class="cookie-empty-hint">Cookies appear here automatically after you send a request that sets one — or add a domain above to enter one manually.</p>
+          <p class="empty-state-title cookie-empty-title">No cookies yet</p>
+          <p class="empty-state-text cookie-empty-hint">Cookies appear here automatically after you send a request that sets one — or add a domain above to enter one manually.</p>
         </div>
       {/if}
     </div>
 
-    <div class="cookie-footer-actions">
-      <button class="btn-secondary danger" type="button" onclick={clearAll} disabled={(!cookies.length && !manualDomains.length && !rawCookieText) || loading || saving}>
+    <div class="modal-foot cookie-footer-actions">
+      <button class="btn btn-secondary btn-danger btn-lg" type="button" onclick={clearAll} disabled={(!cookies.length && !manualDomains.length && !rawCookieText) || loading || saving}>
         Clear all cookies
       </button>
-      <button class="btn-secondary" type="button" onclick={() => onRefresh()} disabled={loading}>Refresh</button>
+      <button class="btn btn-secondary btn-lg" type="button" onclick={() => onRefresh()} disabled={loading}>Refresh</button>
     </div>
     {/if}
   </div>

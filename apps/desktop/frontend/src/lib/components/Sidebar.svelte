@@ -4,6 +4,7 @@
   import SidebarRequestRow from './SidebarRequestRow.svelte';
   import MenuIcon from './MenuIcon.svelte';
   import { virtualizeRows } from '../sidebarVirtual';
+  import { uiScale } from '../uiScale';
   import { MAX_FOLDER_DEPTH, MAX_FOLDER_REQUESTS } from '../constants';
   import type {
     Collection,
@@ -197,11 +198,11 @@
 
   const collectionRowHeights = new SvelteMap<string, number>();
   let collectionRows = $derived(buildCollectionRows());
-  let visibleCollectionRows = $derived(virtualizeRows(collectionRows, collectionScrollTop, collectionViewportHeight, VIRTUAL_OVERSCAN, ROW_HEIGHT, collectionRowHeights));
+  let visibleCollectionRows = $derived(virtualizeRows(collectionRows, collectionScrollTop, collectionViewportHeight, VIRTUAL_OVERSCAN * $uiScale, ROW_HEIGHT * $uiScale, collectionRowHeights, $uiScale));
   let historyRows = $derived(buildHistoryRows());
-  let visibleHistoryRows = $derived(virtualizeRows(historyRows, historyScrollTop, historyViewportHeight, VIRTUAL_OVERSCAN, ROW_HEIGHT));
+  let visibleHistoryRows = $derived(virtualizeRows(historyRows, historyScrollTop, historyViewportHeight, VIRTUAL_OVERSCAN * $uiScale, ROW_HEIGHT * $uiScale, undefined, $uiScale));
   let environmentRows = $derived(buildEnvironmentRows());
-  let visibleEnvironmentRows = $derived(virtualizeRows(environmentRows, environmentScrollTop, environmentViewportHeight, VIRTUAL_OVERSCAN, ROW_HEIGHT));
+  let visibleEnvironmentRows = $derived(virtualizeRows(environmentRows, environmentScrollTop, environmentViewportHeight, VIRTUAL_OVERSCAN * $uiScale, ROW_HEIGHT * $uiScale, undefined, $uiScale));
 
   $effect(() => {
     if (!editingCollectionId || !editingCollectionInput) return;
@@ -479,8 +480,8 @@
 
   {#if sidebarView === 'collections'}
     <div class="collections-panel">
-      <div class="sidebar-search">
-        <svg width="12" height="12" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+      <div class="field field-md field-wrap sidebar-search">
+        <svg width="0.75rem" height="0.75rem" viewBox="0 0 13 13" fill="none" aria-hidden="true">
           <circle cx="5.8" cy="5.8" r="3.8" stroke="currentColor" stroke-width="1.3"/>
           <path d="M8.7 8.7l2.7 2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
         </svg>
@@ -489,10 +490,10 @@
       <div class="collections-head">
         <span>Collections</span>
         <div class="collections-head-actions">
-          <button class="collection-add" type="button" onclick={openPostmanImport} aria-label="Import collection" title="Import collection" disabled={workspaceBlocked}>
-            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><path d="M6.5 1.5v6M4 5l2.5 2.5L9 5M2 9.5v1.2c0 .4.3.8.8.8h7.4c.5 0 .8-.4.8-.8V9.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <button class="btn btn-ghost btn-icon btn-sm collection-add" type="button" onclick={openPostmanImport} aria-label="Import collection" title="Import collection" disabled={workspaceBlocked}>
+            <svg width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none" aria-hidden="true"><path d="M6.5 1.5v6M4 5l2.5 2.5L9 5M2 9.5v1.2c0 .4.3.8.8.8h7.4c.5 0 .8-.4.8-.8V9.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
-          <button class="collection-add" type="button" onclick={createCollection} aria-label="New collection" disabled={workspaceBlocked}>+</button>
+          <button class="btn btn-ghost btn-icon btn-sm collection-add" type="button" onclick={createCollection} aria-label="New collection" disabled={workspaceBlocked}>+</button>
         </div>
       </div>
       <div class="collection-list" role="list" bind:this={collectionListEl} onscroll={onCollectionScroll}>
@@ -501,14 +502,14 @@
           <div class="sidebar-vrow" use:measureRow={row.key}>
           {#if row.type === 'onboarding'}
             <div class="sidebar-onboarding" role="status">
-              <svg width="34" height="34" viewBox="0 0 32 32" fill="none" aria-hidden="true" opacity="0.4">
+              <svg width="2.125rem" height="2.125rem" viewBox="0 0 32 32" fill="none" aria-hidden="true" opacity="0.4">
                 <path d="M5 9h6l2 2h14v15a2 2 0 01-2 2H5a2 2 0 01-2-2V11a2 2 0 012-2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
               </svg>
               <p class="sidebar-onboarding-title">No collections yet</p>
               <p class="sidebar-onboarding-hint">Organize requests into collections — or import from Bruno/OpenCollection, Postman, Insomnia, OpenAPI, or HAR.</p>
               <div class="sidebar-onboarding-actions">
-                <button class="btn-primary btn-sm" type="button" onclick={createCollection} disabled={workspaceBlocked}>New collection</button>
-                <button class="btn-secondary btn-sm" type="button" onclick={openPostmanImport} disabled={workspaceBlocked}>Import collection</button>
+                <button class="btn btn-primary" type="button" onclick={createCollection} disabled={workspaceBlocked}>New collection</button>
+                <button class="btn btn-secondary" type="button" onclick={openPostmanImport} disabled={workspaceBlocked}>Import collection</button>
               </div>
             </div>
           {:else if row.type === 'pinned-head'}
@@ -519,7 +520,7 @@
               onclick={() => (pinnedCollapsed = !pinnedCollapsed)}
               aria-expanded={!row.collapsed}
             >
-              <svg class:collapsed={row.collapsed} width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+              <svg class:collapsed={row.collapsed} width="0.625rem" height="0.625rem" viewBox="0 0 10 10" fill="none" aria-hidden="true">
                 <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
               <span>Starred</span>
@@ -561,7 +562,7 @@
             >
               <div class="collection-folder" role="presentation" oncontextmenu={(event) => { if (workspaceBlocked || row.group.collection.isInvalid || event.target instanceof HTMLInputElement) return; event.preventDefault(); toggleCollectionMenu(row.group.collection.id, event); }}>
                 <span class="collection-drag-handle" aria-hidden="true">
-                  <svg width="10" height="14" viewBox="0 0 10 14" fill="none">
+                  <svg width="0.625rem" height="0.875rem" viewBox="0 0 10 14" fill="none">
                     <circle cx="3" cy="3" r="1" fill="currentColor"/>
                     <circle cx="7" cy="3" r="1" fill="currentColor"/>
                     <circle cx="3" cy="7" r="1" fill="currentColor"/>
@@ -571,11 +572,11 @@
                   </svg>
                 </span>
                 <button class="collection-collapse" type="button" onclick={() => toggleCollectionCollapsed(row.group.collection.id)} aria-label={row.group.collection.collapsed ? 'Expand collection' : 'Collapse collection'} disabled={workspaceBlocked}>
-                  <svg class:collapsed={row.group.collection.collapsed} width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                  <svg class:collapsed={row.group.collection.collapsed} width="0.625rem" height="0.625rem" viewBox="0 0 10 10" fill="none" aria-hidden="true">
                     <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </button>
-                <svg class="collection-root-icon" width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+                <svg class="collection-root-icon" width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none" aria-hidden="true">
                   <path d="M2 2.5h9v2H2v-2zM2 5.5h9v2H2v-2zM2 8.5h9v2H2v-2z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/>
                 </svg>
                 {#if editingCollectionId === row.group.collection.id}
@@ -611,18 +612,18 @@
                 {/if}
                 <span class="collection-count">{row.group.requests.length}</span>
                 {#if !row.group.collection.isInvalid}
-                  <button class="collection-menu-btn" type="button" onclick={(event) => toggleCollectionMenu(row.group.collection.id, event)} aria-label="Collection menu" disabled={workspaceBlocked}>•••</button>
+                  <button class="btn btn-ghost btn-icon btn-sm collection-menu-btn" type="button" onclick={(event) => toggleCollectionMenu(row.group.collection.id, event)} aria-label="Collection menu" disabled={workspaceBlocked}>•••</button>
                 {/if}
                 {#if !row.group.collection.isInvalid && openCollectionMenuId === row.group.collection.id}
-                  <div class="request-menu collection-menu">
-                    <button type="button" onclick={() => createNewRequest(row.group.collection.id)} disabled={workspaceBlocked}><MenuIcon name="request" />Add request</button>
-                    <button type="button" onclick={() => createFolderInCollection(row.group.collection.id)} disabled={workspaceBlocked}><MenuIcon name="folder" />Add folder</button>
-                    <div class="menu-sep" role="separator"></div>
-                    <button type="button" onclick={() => openCollectionSettings(row.group.collection.id)} disabled={workspaceBlocked}><MenuIcon name="settings" />Settings</button>
-                    <button type="button" onclick={() => renameCollection(row.group.collection.id)} disabled={workspaceBlocked}><MenuIcon name="rename" />Rename</button>
-                    <button type="button" onclick={() => exportCollection(row.group.collection.id)} disabled={workspaceBlocked}><MenuIcon name="export" />Export…</button>
-                    <div class="menu-sep" role="separator"></div>
-                    <button class="danger" type="button" onclick={() => deleteCollection(row.group.collection.id)} disabled={workspaceBlocked}><MenuIcon name="trash" />Delete collection</button>
+                  <div class="menu request-menu collection-menu">
+                    <button class="menu-item" type="button" onclick={() => createNewRequest(row.group.collection.id)} disabled={workspaceBlocked}><MenuIcon name="request" />Add request</button>
+                    <button class="menu-item" type="button" onclick={() => createFolderInCollection(row.group.collection.id)} disabled={workspaceBlocked}><MenuIcon name="folder" />Add folder</button>
+                    <div class="menu-separator" role="separator"></div>
+                    <button class="menu-item" type="button" onclick={() => openCollectionSettings(row.group.collection.id)} disabled={workspaceBlocked}><MenuIcon name="settings" />Settings</button>
+                    <button class="menu-item" type="button" onclick={() => renameCollection(row.group.collection.id)} disabled={workspaceBlocked}><MenuIcon name="rename" />Rename</button>
+                    <button class="menu-item" type="button" onclick={() => exportCollection(row.group.collection.id)} disabled={workspaceBlocked}><MenuIcon name="export" />Export…</button>
+                    <div class="menu-separator" role="separator"></div>
+                    <button class="menu-item danger" type="button" onclick={() => deleteCollection(row.group.collection.id)} disabled={workspaceBlocked}><MenuIcon name="trash" />Delete collection</button>
                   </div>
                 {/if}
               </div>
@@ -642,33 +643,33 @@
             <div class="collection-tree-node" style={`--tree-depth: ${row.depth}`}>
               <div class="collection-subfolder" role="presentation" oncontextmenu={(event) => { if (workspaceBlocked) return; event.preventDefault(); toggleFolderMenu(row.folder.key, event); }}>
                 <button class="subfolder-collapse" type="button" onclick={() => toggleFolderCollapsed(row.collectionId, row.folder.path)} aria-label={row.folder.collapsed ? 'Expand folder' : 'Collapse folder'} disabled={workspaceBlocked}>
-                  <svg class:collapsed={row.folder.collapsed} width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                  <svg class:collapsed={row.folder.collapsed} width="0.625rem" height="0.625rem" viewBox="0 0 10 10" fill="none" aria-hidden="true">
                     <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </button>
-                <svg class="folder-icon" width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><path d="M1.5 3.2h3l1.1 1.1h5.9v5.5a1.2 1.2 0 01-1.2 1.2H2.7a1.2 1.2 0 01-1.2-1.2V3.2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+                <svg class="folder-icon" width="0.8125rem" height="0.8125rem" viewBox="0 0 13 13" fill="none" aria-hidden="true"><path d="M1.5 3.2h3l1.1 1.1h5.9v5.5a1.2 1.2 0 01-1.2 1.2H2.7a1.2 1.2 0 01-1.2-1.2V3.2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
                 <span class="folder-title">{row.folder.name}</span>
                 <span class="collection-count">{row.folder.requestCount}</span>
-                <button class="folder-menu-btn" type="button" onclick={(event) => toggleFolderMenu(row.folder.key, event)} aria-label="Folder menu" disabled={workspaceBlocked}>•••</button>
+                <button class="btn btn-ghost btn-icon btn-sm folder-menu-btn" type="button" onclick={(event) => toggleFolderMenu(row.folder.key, event)} aria-label="Folder menu" disabled={workspaceBlocked}>•••</button>
                 {#if openFolderMenuKey === row.folder.key}
-                  <div class="request-menu folder-menu">
-                    <button
+                  <div class="menu request-menu folder-menu">
+                    <button class="menu-item"
                       type="button"
                       disabled={workspaceBlocked || !folderCanAcceptRequest(row.folder)}
                       title={folderCanAcceptRequest(row.folder) ? 'Add request' : `Limit: ${MAX_FOLDER_REQUESTS} requests in one folder`}
                       onclick={() => createRequestInFolder(row.collectionId, row.folder.path)}
                     ><MenuIcon name="request" />Add request</button>
-                    <button
+                    <button class="menu-item"
                       type="button"
                       disabled={workspaceBlocked || !folderCanAcceptSubfolder(row.folder)}
                       title={folderCanAcceptSubfolder(row.folder) ? 'Add subfolder' : `Limit: ${MAX_FOLDER_DEPTH} folder levels`}
                       onclick={() => createSubfolder(row.collectionId, row.folder.path)}
                     ><MenuIcon name="folder" />Add subfolder</button>
-                    <div class="menu-sep" role="separator"></div>
-                    <button type="button" onclick={() => runFolder(row.collectionId, row.folder.path)} disabled={workspaceBlocked}><MenuIcon name="play" />Run folder</button>
-                    <button type="button" onclick={() => renameFolder(row.collectionId, row.folder.path)} disabled={workspaceBlocked}><MenuIcon name="rename" />Rename</button>
-                    <div class="menu-sep" role="separator"></div>
-                    <button class="danger" type="button" onclick={() => deleteFolder(row.collectionId, row.folder.path)} disabled={workspaceBlocked}><MenuIcon name="trash" />Delete folder</button>
+                    <div class="menu-separator" role="separator"></div>
+                    <button class="menu-item" type="button" onclick={() => runFolder(row.collectionId, row.folder.path)} disabled={workspaceBlocked}><MenuIcon name="play" />Run folder</button>
+                    <button class="menu-item" type="button" onclick={() => renameFolder(row.collectionId, row.folder.path)} disabled={workspaceBlocked}><MenuIcon name="rename" />Rename</button>
+                    <div class="menu-separator" role="separator"></div>
+                    <button class="menu-item danger" type="button" onclick={() => deleteFolder(row.collectionId, row.folder.path)} disabled={workspaceBlocked}><MenuIcon name="trash" />Delete folder</button>
                   </div>
                 {/if}
               </div>
@@ -698,24 +699,24 @@
     <div class="history-panel">
       <div class="history-head">
         <span>History</span>
-        <button class="history-menu-btn" type="button" onclick={toggleHistoryHeaderMenu} aria-label="History menu" disabled={workspaceBlocked}>•••</button>
+        <button class="btn btn-ghost btn-icon btn-sm history-menu-btn" type="button" onclick={toggleHistoryHeaderMenu} aria-label="History menu" disabled={workspaceBlocked}>•••</button>
         {#if historyHeaderMenuOpen}
-          <div class="request-menu history-header-menu">
-            <button class="danger" type="button" onclick={clearRequestHistory} disabled={workspaceBlocked}><MenuIcon name="trash" />Clear all</button>
+          <div class="menu request-menu history-header-menu">
+            <button class="menu-item danger" type="button" onclick={clearRequestHistory} disabled={workspaceBlocked}><MenuIcon name="trash" />Clear all</button>
           </div>
         {/if}
       </div>
       {#if historyGroups.length}
-        <div class="sidebar-search">
-          <svg width="12" height="12" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+        <div class="field field-md field-wrap sidebar-search">
+          <svg width="0.75rem" height="0.75rem" viewBox="0 0 13 13" fill="none" aria-hidden="true">
             <circle cx="5.8" cy="5.8" r="3.8" stroke="currentColor" stroke-width="1.3"/>
             <path d="M8.7 8.7l2.7 2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
           </svg>
           <input bind:value={historyQuery} placeholder="Filter by URL or name" aria-label="Filter history" spellcheck="false" />
         </div>
-        <div class="history-status-filter" role="radiogroup" aria-label="Status">
+        <div class="segmented history-status-filter" role="radiogroup" aria-label="Status">
           {#each HISTORY_STATUS_FILTERS as filter, eachIndex (eachIndex)}
-            <button type="button" role="radio" aria-checked={historyStatusFilter === filter} class:active={historyStatusFilter === filter} onclick={() => (historyStatusFilter = filter)}>{filter === 'all' ? 'All' : filter}</button>
+            <button class="segmented-item" type="button" role="radio" aria-checked={historyStatusFilter === filter} class:active={historyStatusFilter === filter} onclick={() => (historyStatusFilter = filter)}>{filter === 'all' ? 'All' : filter}</button>
           {/each}
         </div>
       {/if}
@@ -725,7 +726,7 @@
           {#each visibleHistoryRows.rows as row (row.key)}
             {#if row.type === 'day'}
               <button class="history-day-toggle" type="button" onclick={() => toggleHistoryDay(row.group.key)} aria-label={row.group.collapsed ? 'Expand history day' : 'Collapse history day'} disabled={workspaceBlocked}>
-                <svg class:collapsed={row.group.collapsed} width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                <svg class:collapsed={row.group.collapsed} width="0.625rem" height="0.625rem" viewBox="0 0 10 10" fill="none" aria-hidden="true">
                   <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
                 <span>{row.group.label}</span>
@@ -743,20 +744,20 @@
                     <span class="history-stored" title="Response saved — open the row menu to view it" aria-label="Response saved">&#9673;</span>
                   {/if}
                 </button>
-                <button class="history-entry-menu-btn" type="button" onclick={(event) => toggleHistoryEntryMenu(row.entry.id, event)} aria-label="History request menu" disabled={workspaceBlocked}>•••</button>
+                <button class="btn btn-ghost btn-icon btn-sm history-entry-menu-btn" type="button" onclick={(event) => toggleHistoryEntryMenu(row.entry.id, event)} aria-label="History request menu" disabled={workspaceBlocked}>•••</button>
                 {#if openHistoryMenuId === row.entry.id}
-                  <div class="request-menu history-entry-menu">
-                    <button type="button" onclick={() => openHistoryEntry(row.entry.id)} disabled={workspaceBlocked}><MenuIcon name="open" />Open in editor</button>
+                  <div class="menu request-menu history-entry-menu">
+                    <button class="menu-item" type="button" onclick={() => openHistoryEntry(row.entry.id)} disabled={workspaceBlocked}><MenuIcon name="open" />Open in editor</button>
                     {#if row.entry.responseStored && activeRequestId}
-                      <button type="button" onclick={() => saveHistoryEntryAsExample(row.entry.id)} disabled={workspaceBlocked}><MenuIcon name="example" />Save as example</button>
+                      <button class="menu-item" type="button" onclick={() => saveHistoryEntryAsExample(row.entry.id)} disabled={workspaceBlocked}><MenuIcon name="example" />Save as example</button>
                     {/if}
-                    <div class="menu-sep" role="separator"></div>
+                    <div class="menu-separator" role="separator"></div>
                     {#each activeWorkspaceCollections() as collection, eachIndex (eachIndex)}
-                      <button type="button" onclick={() => saveHistoryEntryToCollection(row.entry.id, collection.id)} disabled={workspaceBlocked}><MenuIcon name="collection" />Save to {collection.name}</button>
+                      <button class="menu-item" type="button" onclick={() => saveHistoryEntryToCollection(row.entry.id, collection.id)} disabled={workspaceBlocked}><MenuIcon name="collection" />Save to {collection.name}</button>
                     {/each}
-                    <button type="button" onclick={() => saveHistoryEntryToNewCollection(row.entry.id)} disabled={workspaceBlocked}><MenuIcon name="collection-add" />New collection…</button>
-                    <div class="menu-sep" role="separator"></div>
-                    <button class="danger" type="button" onclick={() => deleteHistoryEntry(row.entry.id)} disabled={workspaceBlocked}><MenuIcon name="trash" />Delete</button>
+                    <button class="menu-item" type="button" onclick={() => saveHistoryEntryToNewCollection(row.entry.id)} disabled={workspaceBlocked}><MenuIcon name="collection-add" />New collection…</button>
+                    <div class="menu-separator" role="separator"></div>
+                    <button class="menu-item danger" type="button" onclick={() => deleteHistoryEntry(row.entry.id)} disabled={workspaceBlocked}><MenuIcon name="trash" />Delete</button>
                   </div>
                 {/if}
               </div>
@@ -766,14 +767,14 @@
         </div>
       {:else}
         {#if historyGroups.length}
-          <div class="history-empty">
-            <span>Nothing matches this filter.</span>
-            <button class="btn-secondary btn-sm" type="button" onclick={() => { historyQuery = ''; historyStatusFilter = 'all'; }}>Clear filter</button>
+          <div class="empty-state history-empty">
+            <span class="empty-state-title">Nothing matches this filter.</span>
+            <button class="btn btn-secondary" type="button" onclick={() => { historyQuery = ''; historyStatusFilter = 'all'; }}>Clear filter</button>
           </div>
         {:else}
-        <div class="history-empty">
-          <span>No request history yet.</span>
-          <small>Sent requests will be stored here for 14 days.</small>
+        <div class="empty-state history-empty">
+          <span class="empty-state-title">No request history yet.</span>
+          <small class="empty-state-text">Sent requests will be stored here for 14 days.</small>
         </div>
         {/if}
       {/if}
@@ -782,7 +783,7 @@
     <div class="environment-panel">
       <div class="collections-head">
         <span>Environments</span>
-        <button class="collection-add" type="button" onclick={createEnvironment} aria-label="New environment" disabled={workspaceBlocked}>+</button>
+        <button class="btn btn-ghost btn-icon btn-sm collection-add" type="button" onclick={createEnvironment} aria-label="New environment" disabled={workspaceBlocked}>+</button>
       </div>
       <button class="environment-globals-item" class:active={topView === 'globals'} type="button" onclick={openGlobals} disabled={workspaceBlocked}>
         <span class="environment-dot environment-dot--globals" aria-hidden="true"></span>
@@ -818,10 +819,10 @@
           <div class="sidebar-virtual-spacer" style={`height: ${visibleEnvironmentRows.after}px`}></div>
         </div>
       {:else}
-        <div class="history-empty">
-          <span>No environments yet.</span>
-          <small>Create one and use values as {'{{baseUrl}}'} in requests.</small>
-          <button class="btn-secondary btn-sm" type="button" onclick={createEnvironment} disabled={workspaceBlocked}>Create environment</button>
+        <div class="empty-state history-empty">
+          <span class="empty-state-title">No environments yet.</span>
+          <small class="empty-state-text">Create one and use values as {'{{baseUrl}}'} in requests.</small>
+          <button class="btn btn-secondary" type="button" onclick={createEnvironment} disabled={workspaceBlocked}>Create environment</button>
         </div>
       {/if}
     </div>

@@ -103,7 +103,7 @@
   <aside class="mock-config">
     <div class="mock-title">
       <span class="mock-glyph" aria-hidden="true">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+        <svg width="1.1875rem" height="1.1875rem" viewBox="0 0 24 24" fill="none">
           <rect x="3" y="5" width="18" height="14" rx="2.4" stroke="currentColor" stroke-width="1.8"/>
           <path d="M3 10h18" stroke="currentColor" stroke-width="1.8"/>
           <circle cx="6.6" cy="7.5" r="0.95" fill="currentColor"/>
@@ -161,7 +161,7 @@
 
     <label class="mock-field">
       <span>Port</span>
-      <input
+      <input class="field"
         type="number"
         min="1"
         max="65535"
@@ -173,7 +173,7 @@
 
     <label class="mock-toggle-row">
       <input
-        class="kv-check"
+        class="check"
         type="checkbox"
         checked={simulateLatency}
         onchange={(event) => onSimulateLatencyChange(event.currentTarget instanceof HTMLInputElement && event.currentTarget.checked)}
@@ -192,9 +192,9 @@
 
     <div class="mock-actions">
       {#if status.running}
-        <button class="btn-secondary" type="button" onclick={onToggle} disabled={busy}>Stop</button>
+        <button class="btn btn-secondary btn-lg" type="button" onclick={onToggle} disabled={busy}>Stop</button>
       {:else}
-        <button class="btn-primary" type="button" onclick={onToggle} disabled={busy || !canStart}>
+        <button class="btn btn-primary btn-lg" type="button" onclick={onToggle} disabled={busy || !canStart}>
           Start server
         </button>
       {/if}
@@ -213,7 +213,7 @@
         <div class="mock-pane-head">
           <span class="mock-pane-title">Routes <span class="mock-count">{routes.length}</span></span>
           <input
-            class="mock-filter"
+            class="field field-md mock-filter"
             placeholder="Filter routes"
             value={filter}
             oninput={(event) => (filter = event.currentTarget instanceof HTMLInputElement ? event.currentTarget.value : '')}
@@ -221,12 +221,12 @@
         </div>
         <div class="mock-pane">
         {#if routes.length === 0}
-          <div class="mock-empty">
-            <strong>No examples in this collection</strong>
-            <span>Capture a response as an example and it becomes a route here.</span>
+          <div class="empty-state mock-empty">
+            <strong class="empty-state-title">No examples in this collection</strong>
+            <span class="empty-state-text">Capture a response as an example and it becomes a route here.</span>
           </div>
         {:else if filteredRoutes.length === 0}
-          <div class="mock-empty"><strong>No route matches “{filter}”</strong></div>
+          <div class="empty-state mock-empty"><strong class="empty-state-title">No route matches “{filter}”</strong></div>
         {:else}
           {#each filteredRoutes as route (route.exampleId)}
             <div class="mock-row" class:conflict={isConflicting(route)}>
@@ -246,7 +246,7 @@
               </button>
               {#if status.running}
                 <button
-                  class="mock-row-copy"
+                  class="btn btn-ghost btn-xs mock-row-copy"
                   type="button"
                   title="Copy this route's URL"
                   onclick={() => copy(routeUrl(route), route.exampleId)}
@@ -267,14 +267,14 @@
             {#if unmatchedCount > 0}<span class="mock-count-bad">· {unmatchedCount} unmatched</span>{/if}
           </span>
           {#if log.length}
-            <button class="btn-secondary btn-sm" type="button" onclick={onClearLog}>Clear</button>
+            <button class="btn btn-secondary" type="button" onclick={onClearLog}>Clear</button>
           {/if}
         </div>
         <div class="mock-pane">
         {#if log.length === 0}
-          <div class="mock-empty">
-            <strong>{status.running ? 'Waiting for the first request' : 'Not running'}</strong>
-            <span>
+          <div class="empty-state mock-empty">
+            <strong class="empty-state-title">{status.running ? 'Waiting for the first request' : 'Not running'}</strong>
+            <span class="empty-state-text">
               {status.running
                 ? 'Point a client at the base URL and every call shows up here.'
                 : 'Start the server to watch what your client asks for.'}

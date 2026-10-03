@@ -302,6 +302,10 @@ export function LogFilePath() {
   return window['go']['api']['App']['LogFilePath']();
 }
 
+export function MenuZoom(arg1) {
+  return window['go']['api']['App']['MenuZoom'](arg1);
+}
+
 export function MockServerLog() {
   return window['go']['api']['App']['MockServerLog']();
 }

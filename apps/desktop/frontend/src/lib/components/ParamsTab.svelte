@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { rem } from '../uiScale';
   import { vm } from '../stores/app.svelte';
   import { guardTrailing, removeRow, activeCount } from '../utils';
   import VariableInput from './VariableInput.svelte';
@@ -6,10 +7,10 @@
 </script>
 
 <div class="request-section-bar">
-  <span class="request-section-title">Query Params</span>
+  <span class="request-section-title">Query params</span>
   <span class="request-section-meta">{activeCount(vm.params)} active</span>
   <button
-    class="bulk-edit-toggle"
+    class="btn btn-secondary btn-xs bulk-edit-toggle"
     type="button"
     aria-pressed={vm.bulkEditTables.params}
     onclick={() => (vm.bulkEditTables.params = !vm.bulkEditTables.params)}
@@ -20,7 +21,7 @@
 {#if vm.bulkEditTables.params}
   <BulkEditPanel rows={vm.params} apply={(next) => { vm.params = next; vm.syncUrlFromParams(); }} />
 {:else}
-<div class="kv-table headers-kv-table" style="--kw: {vm.kvKeyW}px; --vw: {vm.kvValW}px">
+<div class="kv-table headers-kv-table" style="--kw: {rem(vm.kvKeyW)}; --vw: {rem(vm.kvValW)}">
   <div class="kv-head">
     <span></span>
     <span class="kv-head-cell">Key</span>
@@ -32,11 +33,11 @@
   <button class="kv-col-resizer kv-col-resizer--value" type="button" onmousedown={(e) => vm.startColResize('val', e)} aria-label="Resize value column"></button>
   {#each vm.params as row, i (row.id)}
     <div class="kv-row" data-testid="params-row" class:inactive-row={!row.enabled && (row.key || row.value || row.description)}>
-      <input type="checkbox" class="kv-check" bind:checked={row.enabled} onchange={() => vm.syncUrlFromParams()} aria-label="Enable" disabled={!row.key && !row.value} />
-      <VariableInput className="kv-input" bind:value={row.key} suggestions={vm.variableSuggestions} placeholder="Key" oninput={() => { guardTrailing(vm.params, i); vm.syncUrlFromParams(); }} />
-      <VariableInput className="kv-input" bind:value={row.value} suggestions={vm.variableSuggestions} placeholder="Value" oninput={() => { guardTrailing(vm.params, i); vm.syncUrlFromParams(); }} />
-      <input class="kv-input kv-desc" bind:value={row.description} placeholder="Description" />
-      <button class="kv-del" type="button" onclick={() => { removeRow(vm.params, i); vm.syncUrlFromParams(); }} aria-label="Remove">✕</button>
+      <input type="checkbox" class="check" bind:checked={row.enabled} onchange={() => vm.syncUrlFromParams()} aria-label="Enable" disabled={!row.key && !row.value} />
+      <VariableInput className="field field-bare kv-input" bind:value={row.key} suggestions={vm.variableSuggestions} placeholder="Key" oninput={() => { guardTrailing(vm.params, i); vm.syncUrlFromParams(); }} />
+      <VariableInput className="field field-bare kv-input" bind:value={row.value} suggestions={vm.variableSuggestions} placeholder="Value" oninput={() => { guardTrailing(vm.params, i); vm.syncUrlFromParams(); }} />
+      <input class="field field-bare kv-input kv-desc" bind:value={row.description} placeholder="Description" />
+      <button class="btn btn-ghost btn-icon btn-sm kv-del" type="button" onclick={() => { removeRow(vm.params, i); vm.syncUrlFromParams(); }} aria-label="Remove">✕</button>
     </div>
   {/each}
 </div>

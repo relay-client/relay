@@ -157,32 +157,32 @@
     <div class="runner-section-title">Timings</div>
     <label class="runner-field">
       <span>Delay between requests (ms)</span>
-      <input type="number" min="0" step="1" value={delayMs || ''} placeholder="e.g. 5" oninput={(event) => onSetDelayMs(inputValue(event))} disabled={running} />
+      <input class="field" type="number" min="0" step="1" value={delayMs || ''} placeholder="e.g. 5" oninput={(event) => onSetDelayMs(inputValue(event))} disabled={running} />
     </label>
 
     <div class="runner-section-title">Filters</div>
     <div class="runner-filter-grid">
       <label class="runner-field">
         <span>Include tags</span>
-        <input value={includeTags} placeholder="e.g., smoke, regression" oninput={(event) => onSetIncludeTags(inputValue(event))} disabled={running} />
+        <input class="field" value={includeTags} placeholder="e.g., smoke, regression" oninput={(event) => onSetIncludeTags(inputValue(event))} disabled={running} />
       </label>
       <label class="runner-field">
         <span>Exclude tags</span>
-        <input value={excludeTags} placeholder="e.g., slow, local" oninput={(event) => onSetExcludeTags(inputValue(event))} disabled={running} />
+        <input class="field" value={excludeTags} placeholder="e.g., slow, local" oninput={(event) => onSetExcludeTags(inputValue(event))} disabled={running} />
       </label>
     </div>
 
     <div class="runner-section-title muted">Run with data file</div>
     <div class="runner-file-row">
-      <button class="runner-file-btn" type="button" onclick={onSelectDataFile} disabled={running}>
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <button class="btn btn-secondary btn-lg runner-file-btn" type="button" onclick={onSelectDataFile} disabled={running}>
+        <svg width="0.875rem" height="0.875rem" viewBox="0 0 14 14" fill="none" aria-hidden="true">
           <path d="M3 1.5h5l3 3V12H3V1.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
           <path d="M8 1.7V4.5h2.8" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
         </svg>
         {dataFileName || 'Select CSV or JSON file'}
       </button>
       {#if dataFileName}
-        <button class="runner-file-clear" type="button" aria-label="Remove runner data file" onclick={onClearDataFile} disabled={running}>
+        <button class="btn btn-secondary btn-icon btn-lg runner-file-clear" type="button" aria-label="Remove runner data file" onclick={onClearDataFile} disabled={running}>
           ×
         </button>
       {/if}
@@ -196,19 +196,19 @@
 
     <label class="runner-field">
       <span>Iterations</span>
-      <input type="number" min="1" step="1" value={iterations} oninput={(event) => onSetIterations(inputValue(event))} disabled={running || dataRowCount > 0} />
+      <input class="field" type="number" min="1" step="1" value={iterations} oninput={(event) => onSetIterations(inputValue(event))} disabled={running || dataRowCount > 0} />
     </label>
 
-    <label class="runner-toggle">
+    <label class="switch-control runner-toggle">
       <input type="checkbox" checked={parallel} onchange={(event) => onSetParallel(inputChecked(event))} disabled={running} />
-      <span></span>
-      Run in parallel
+      <span class="switch-track"></span>
+      <span class="switch-label">Run in parallel</span>
     </label>
 
     {#if parallel}
       <label class="runner-field">
         <span>Max concurrent requests</span>
-        <input
+        <input class="field"
           type="number"
           min={MIN_RUNNER_CONCURRENCY}
           max={MAX_RUNNER_CONCURRENCY}
@@ -225,7 +225,7 @@
     {/if}
 
     <div class="runner-actions">
-      <button class="btn-ghost btn-sm" type="button" onclick={onReset} disabled={running}>Reset settings</button>
+      <button class="btn btn-ghost" type="button" onclick={onReset} disabled={running}>Reset settings</button>
     </div>
   </aside>
 
@@ -237,8 +237,8 @@
       </div>
       <div class="runner-page-actions">
         {#if hasResults}
-          <button class="btn-secondary btn-sm runner-report-btn" type="button" onclick={onDownloadReport} disabled={running}>
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <button class="btn btn-secondary runner-report-btn" type="button" onclick={onDownloadReport} disabled={running}>
+            <svg width="0.875rem" height="0.875rem" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M8 2v7m0 0 3-3m-3 3L5 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M3 11.5V13h10v-1.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -246,10 +246,10 @@
           </button>
         {/if}
         {#if running}
-          <button class="btn-secondary btn-sm danger" type="button" onclick={onStop}>Stop</button>
+          <button class="btn btn-secondary btn-danger" type="button" onclick={onStop}>Stop</button>
         {:else}
-          <button class="btn-primary btn-sm runner-run-btn" type="button" onclick={onRun} disabled={!selectedCount || !collections.length}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5v14l11-7z"/></svg>
+          <button class="btn btn-primary runner-run-btn" type="button" onclick={onRun} disabled={!selectedCount || !collections.length}>
+            <svg width="0.75rem" height="0.75rem" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5v14l11-7z"/></svg>
             Run {runCount} request{runCount === 1 ? '' : 's'}
           </button>
         {/if}
@@ -288,9 +288,9 @@
           <div class="runner-pagination runner-results-pagination" aria-label="Runner result pages">
             <span>Results {rangeLabel(resultPage, RUNNER_RESULT_PAGE_SIZE, results.length)}</span>
             <div class="runner-page-buttons">
-              <button type="button" onclick={() => (resultPage = Math.max(0, resultPage - 1))} disabled={resultPage === 0}>Prev</button>
+              <button class="btn btn-secondary btn-sm" type="button" onclick={() => (resultPage = Math.max(0, resultPage - 1))} disabled={resultPage === 0}>Prev</button>
               <span>{resultPage + 1}/{resultPageCount}</span>
-              <button type="button" onclick={() => (resultPage = Math.min(resultPageCount - 1, resultPage + 1))} disabled={resultPage + 1 >= resultPageCount}>Next</button>
+              <button class="btn btn-secondary btn-sm" type="button" onclick={() => (resultPage = Math.min(resultPageCount - 1, resultPage + 1))} disabled={resultPage + 1 >= resultPageCount}>Next</button>
             </div>
           </div>
         {/if}
@@ -330,25 +330,25 @@
         <strong>Requests to run</strong>
         <span class="runner-selection-count">{selectedCount} of {runnableCount} selected</span>
         <div class="runner-selection-actions">
-          <button type="button" onclick={onSelectAll} disabled={running || !runnableCount}>Select all</button>
-          <button type="button" onclick={onDeselectAll} disabled={running || !selectedCount}>Deselect all</button>
+          <button class="btn btn-ghost btn-sm" type="button" onclick={onSelectAll} disabled={running || !runnableCount}>Select all</button>
+          <button class="btn btn-ghost btn-sm" type="button" onclick={onDeselectAll} disabled={running || !selectedCount}>Deselect all</button>
         </div>
       </div>
       {#if filteredRequests.length > RUNNER_REQUEST_PAGE_SIZE}
         <div class="runner-pagination" aria-label="Runner request pages">
           <span>Requests {rangeLabel(requestPage, RUNNER_REQUEST_PAGE_SIZE, filteredRequests.length)}</span>
           <div class="runner-page-buttons">
-            <button type="button" onclick={() => (requestPage = Math.max(0, requestPage - 1))} disabled={requestPage === 0}>Prev</button>
+            <button class="btn btn-secondary btn-sm" type="button" onclick={() => (requestPage = Math.max(0, requestPage - 1))} disabled={requestPage === 0}>Prev</button>
             <span>{requestPage + 1}/{requestPageCount}</span>
-            <button type="button" onclick={() => (requestPage = Math.min(requestPageCount - 1, requestPage + 1))} disabled={requestPage + 1 >= requestPageCount}>Next</button>
+            <button class="btn btn-secondary btn-sm" type="button" onclick={() => (requestPage = Math.min(requestPageCount - 1, requestPage + 1))} disabled={requestPage + 1 >= requestPageCount}>Next</button>
           </div>
         </div>
       {/if}
       <div class="runner-request-list">
         {#if !collections.length}
-          <div class="runner-empty">No collections in this workspace</div>
+          <div class="empty-state runner-empty"><span class="empty-state-title">No collections in this workspace</span></div>
         {:else if !filteredRequests.length}
-          <div class="runner-empty">No requests match the current filters</div>
+          <div class="empty-state runner-empty"><span class="empty-state-title">No requests match the current filters</span></div>
         {:else}
           {#each visibleRequests as request (request.id)}
             {@const skipped = isRequestSkipped(request)}
@@ -357,7 +357,7 @@
             <label class="runner-request-row" data-testid="runner-request-row" class:selected={selectedSet.has(request.id)} class:skipped={skipped}>
               <input
                 type="checkbox"
-                class="kv-check"
+                class="check"
                 checked={selectedSet.has(request.id)}
                 disabled={running || skipped}
                 aria-label={`Select ${requestTabLabel(request)}`}

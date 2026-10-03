@@ -143,7 +143,9 @@ export const environmentFeature = {
   },
   resolveTemplate(this: EnvironmentHost, value: string, values = this.activeEnvironmentValues()) {
     if (!value || !value.includes('{{')) return value;
-    const substitute = (input: string) => input.replace(/\{\{\s*(\$?[A-Za-z0-9_.-]+)\s*\}\}/g, (match, key) => {
+    const substitute = (input: string) => input.replace(/\{\{([^{}]*)\}\}/g, (match, raw: string) => {
+      const key = raw.trim();
+      if (!key) return match;
       if (Object.prototype.hasOwnProperty.call(values, key)) return values[key];
       return resolveDynamicVariable(key) ?? match;
     });

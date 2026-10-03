@@ -4,7 +4,7 @@
   let { name }: { name: MenuIconName } = $props();
 </script>
 
-<svg class="menu-icon" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<svg class="menu-icon" width="0.9375rem" height="0.9375rem" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   {#if name === 'request'}
     <path d="M4 2.5h5l3 3v8H4z"/><path d="M9 2.5v3h3M8 8v4M6 10h4"/>
   {:else if name === 'folder'}

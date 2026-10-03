@@ -2186,3 +2186,24 @@ describe('examples through OpenCollection and Postman settings', () => {
     expect(requests[0].url).toBe('https://api.example.com/users/7');
   });
 });
+
+describe('OpenAPI servers on a path or operation', () => {
+  it('send those requests to their own server', () => {
+    const imported = openApiImportFromSpec({
+      openapi: '3.0.3',
+      info: { title: 'T', version: '1' },
+      servers: [{ url: 'https://api.example.test' }],
+      paths: {
+        '/users': { get: { operationId: 'list' } },
+        '/upload': { servers: [{ url: 'https://{region}.files.example.test', variables: { region: { default: 'eu' } } }], post: { operationId: 'upload' } },
+        '/report': { get: { operationId: 'report', servers: [{ url: 'https://reports.example.test/v2' }] } },
+      },
+    }, 'c1', 'T');
+    const urls = Object.fromEntries(imported.requests.map(req => [req.name, req.url]));
+    expect(urls).toEqual({
+      list: '{{baseUrl}}/users',
+      upload: 'https://eu.files.example.test/upload',
+      report: 'https://reports.example.test/v2/report',
+    });
+  });
+});

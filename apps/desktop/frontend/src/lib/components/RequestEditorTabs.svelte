@@ -200,9 +200,9 @@
   bind:this={tabsShellEl}
   use:observeTabsWidth
 >
-  <div class="tabs" role="tablist" use:tabListKeyboard bind:this={tabsEl}>
+  <div class="tab-bar tabs" role="tablist" use:tabListKeyboard bind:this={tabsEl}>
     {#each tabItems as item, eachIndex (eachIndex)}
-      <button
+      <button class="tab"
         role="tab"
         class:active={requestTab === item.id}
         aria-selected={requestTab === item.id}
@@ -221,7 +221,7 @@
 
   <div class="request-tab-compact-menu" onfocusout={closeCompactMenuOnFocusOut}>
     <button
-      class="request-tab-compact-trigger"
+      class="field select-trigger request-tab-compact-trigger"
       class:open={compactMenuOpen}
       type="button"
       aria-label="Request section"
@@ -233,15 +233,15 @@
       {#if activeTabItem.badge}
         <span class="badge" class:badge-on={activeTabItem.badgeKind === 'on'}>{activeTabItem.badge}</span>
       {/if}
-      <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+      <svg width="0.625rem" height="0.375rem" viewBox="0 0 10 6" fill="none" aria-hidden="true">
         <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
       </svg>
     </button>
 
     {#if compactMenuOpen}
-      <div class="request-tab-compact-list" role="listbox" aria-label="Request sections">
+      <div class="menu request-tab-compact-list" role="listbox" aria-label="Request sections">
         {#each tabItems as item, eachIndex (eachIndex)}
-          <button
+          <button class="menu-item"
             class:active={requestTab === item.id}
             role="option"
             aria-selected={requestTab === item.id}

@@ -67,16 +67,16 @@
       <p>
         Sent {sentLabel}
         {#if source}
-          · from <button class="history-detail-link" type="button" onclick={() => onGoToSource(source.id)} disabled={workspaceBlocked}>{source.location}</button>
+          · from <button class="btn-link history-detail-link" type="button" onclick={() => onGoToSource(source.id)} disabled={workspaceBlocked}>{source.location}</button>
         {/if}
       </p>
     </div>
     <div class="history-detail-actions">
       {#if canCopyCurl}
-        <button class="btn-secondary btn-sm" type="button" onclick={onCopyCurl}>Copy as cURL</button>
+        <button class="btn btn-secondary" type="button" onclick={onCopyCurl}>Copy as cURL</button>
       {/if}
-      <button class="btn-secondary btn-sm history-detail-delete" type="button" onclick={onDelete} disabled={workspaceBlocked}>Delete</button>
-      <button class="btn-primary btn-sm" type="button" onclick={onOpenInEditor} disabled={workspaceBlocked}>Open in editor</button>
+      <button class="btn btn-secondary history-detail-delete" type="button" onclick={onDelete} disabled={workspaceBlocked}>Delete</button>
+      <button class="btn btn-primary" type="button" onclick={onOpenInEditor} disabled={workspaceBlocked}>Open in editor</button>
     </div>
   </header>
 

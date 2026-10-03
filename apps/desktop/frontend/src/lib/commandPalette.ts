@@ -105,6 +105,11 @@ export function buildPaletteCommands(ctx: PaletteContext): PaletteCommand[] {
       run: () => ctx.runShortcut('toggle-right-sidebar'),
     });
   }
+  commands.push(
+    { id: 'view-zoom-in', group: 'View', label: 'Zoom in', keywords: 'interface size scale bigger larger font text', shortcut: 'zoom-in', run: () => ctx.runShortcut('zoom-in') },
+    { id: 'view-zoom-out', group: 'View', label: 'Zoom out', keywords: 'interface size scale smaller font text', shortcut: 'zoom-out', run: () => ctx.runShortcut('zoom-out') },
+    { id: 'view-zoom-reset', group: 'View', label: 'Reset zoom', keywords: 'interface size scale actual default 100', shortcut: 'zoom-reset', run: () => ctx.runShortcut('zoom-reset') },
+  );
   commands.push(ctx.responseLayout === 'right'
     ? { id: 'view-response-below', group: 'View', label: 'Show response below the request', keywords: 'layout split vertical bottom', run: () => ctx.setResponseLayout('below') }
     : { id: 'view-response-right', group: 'View', label: 'Show response beside the request', keywords: 'layout split horizontal right side', run: () => ctx.setResponseLayout('right') });

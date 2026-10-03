@@ -153,6 +153,8 @@ export function LoadWorkspaceDiagnostics():Promise<Array<api.WorkspaceDiagnostic
 
 export function LogFilePath():Promise<string>;
 
+export function MenuZoom(arg1:string):Promise<void>;
+
 export function MockServerLog():Promise<Array<model.MockRequestLog>>;
 
 export function MockServerStatus():Promise<model.MockServerStatus>;

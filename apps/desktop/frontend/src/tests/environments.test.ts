@@ -147,6 +147,13 @@ describe('nested variable resolution', () => {
     expect(environmentFeature.resolveTemplate.call(host, '{{a}}')).toContain('{{');
   });
 
+  it('resolves names with non-Latin letters, spaces and colons like Postman', () => {
+    const host = {
+      activeEnvironmentValues: () => ({ 'токен': 'ru', 'my var': 'spaced', 'api:key': 'colon' }),
+    } as never;
+    expect(environmentFeature.resolveTemplate.call(host, '{{токен}}/{{ my var }}/{{api:key}}/{{}}')).toBe('ru/spaced/colon/{{}}');
+  });
+
   it('still resolves dynamic variables reached through an environment value', () => {
     const host = {
       activeEnvironmentValues: () => ({ traceId: '{{$guid}}', header: 'trace={{traceId}}' }),

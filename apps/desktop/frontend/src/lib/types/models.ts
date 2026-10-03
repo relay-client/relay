@@ -131,6 +131,7 @@ export type ShortcutId =
   | 'search-sidebar' | 'duplicate-item' | 'rename-item' | 'copy-item' | 'paste-item' | 'delete-item'
   | 'next-item' | 'previous-item' | 'expand-item' | 'collapse-item' | 'expand-all' | 'collapse-all'
   | 'settings' | 'shortcut-help' | 'search' | 'toggle-left-sidebar' | 'toggle-right-sidebar'
+  | 'zoom-in' | 'zoom-out' | 'zoom-reset'
   | 'save-request';
 
 export type ShortcutDefinition = { id: ShortcutId; group: string; label: string; defaultCombo: string };

@@ -32,8 +32,8 @@
       </div>
 
       <div class="grpc-message-actions">
-        <button class="toolbar-btn" type="button" onclick={vm.useGrpcExampleMessage}>
-          Use Example Message
+        <button class="btn btn-secondary btn-sm toolbar-btn" type="button" onclick={vm.useGrpcExampleMessage}>
+          Use example message
         </button>
         <BeautifyButton onbeautify={() => editorRef?.format()} beautified={vm.beautifiedBody} disabled={vm.bodyLang !== 'json'} title="Beautify message" />
       </div>
@@ -57,20 +57,20 @@
 <style>
   .grpc-message-toolbar {
     justify-content: space-between;
-    gap: 10px;
+    gap: var(--space-2-5);
   }
 
   .grpc-message-actions {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-1-5);
     flex-shrink: 0;
   }
 
   .grpc-method-summary {
     display: flex;
     align-items: baseline;
-    gap: 8px;
+    gap: var(--space-2);
     min-width: 0;
     margin-right: auto;
   }
@@ -81,8 +81,8 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     color: var(--text);
-    font-size: 12px;
-    font-weight: 800;
+    font-size: var(--text-label);
+    font-weight: var(--weight-semibold);
   }
 
   .grpc-method-summary span {
@@ -92,7 +92,7 @@
     white-space: nowrap;
     color: var(--text-3);
     font-family: var(--font-mono);
-    font-size: 11px;
+    font-size: var(--text-caption);
   }
 
   .grpc-message-editor-wrap {

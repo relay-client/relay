@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { uiScale } from '../uiScale';
   import GitIcon from './GitIcon.svelte';
   import type { GitBranchEntry, GitBranchListResult, GitConflictFileResult, GitDiffResult, GitLogResult, GitWorkspaceStatus, WorkspaceDiagnostic } from '../backend';
   import { gitConflictHunks, parseGitConflictBlocks, replaceAllGitConflictHunks, replaceGitConflictHunk, type ConflictSide, type GitConflictBlock } from '../gitConflicts';
@@ -221,8 +222,8 @@
     : `${localBranchRows.length} local · ${remoteBranchRows.length} remote`);
   let commitRows = $derived(commits.commits ?? []);
   let commitCountLabel = $derived(`${commitRows.length}${commits.hasMore ? '+' : ''}`);
-  let fileWindow = $derived(virtualWindow(changedFiles.length, FILE_ROW_HEIGHT, fileScrollTop, fileListHeight));
-  let commitWindow = $derived(virtualWindow(commitRows.length, COMMIT_ROW_HEIGHT, commitScrollTop, commitListHeight));
+  let fileWindow = $derived(virtualWindow(changedFiles.length, FILE_ROW_HEIGHT * $uiScale, fileScrollTop, fileListHeight));
+  let commitWindow = $derived(virtualWindow(commitRows.length, COMMIT_ROW_HEIGHT * $uiScale, commitScrollTop, commitListHeight));
   let virtualChangedFiles = $derived(changedFiles.slice(fileWindow.start, fileWindow.end));
   let virtualCommitRows = $derived(commitRows.slice(commitWindow.start, commitWindow.end));
   let diffLines = $derived(diff.diff ? diff.diff.split('\n') : []);
@@ -699,14 +700,14 @@
                 {#if status.behind}<em class="behind">↓{status.behind}</em>{/if}
               </span>
             {/if}
-            <svg class="git-action-icon caret" width="10" height="10" viewBox="0 0 16 16" aria-hidden="true">
+            <svg class="git-action-icon caret" width="0.625rem" height="0.625rem" viewBox="0 0 16 16" aria-hidden="true">
               <path d="M3 6l5 5 5-5" />
             </svg>
           </button>
           {#if branchPickerOpen}
             <div class="git-branch-popover" role="dialog" aria-label="Switch branch" bind:this={branchPopoverEl}>
               <div class="git-branch-popover-head">
-                <input
+                <input class="field field-md"
                   bind:value={branchFilter}
                   type="search"
                   placeholder="Filter branches"
@@ -716,7 +717,7 @@
                   onkeydown={(event) => event.key === 'Escape' && closeBranchPicker()}
                 />
                 <button
-                  class="git-action-btn compact"
+                  class="btn btn-secondary btn-sm git-action-btn"
                   class:loading={isBusy('branch-create')}
                   type="button"
                   onclick={() => runAndClosePicker(() => onCreateBranch())}
@@ -743,7 +744,7 @@
                         aria-expanded={!item.collapsed}
                       >
                         <span>
-                          <svg class="git-branch-section-caret" width="10" height="10" viewBox="0 0 16 16" aria-hidden="true">
+                          <svg class="git-branch-section-caret" width="0.625rem" height="0.625rem" viewBox="0 0 16 16" aria-hidden="true">
                             <path d="M3 6l5 5 5-5" />
                           </svg>
                           {item.label}
@@ -771,7 +772,7 @@
                       </button>
                       <div class="git-branch-row-actions">
                         <button
-                          class="git-branch-row-menu-btn"
+                          class="btn btn-ghost btn-icon btn-sm git-branch-row-menu-btn"
                           type="button"
                           disabled={loading || workspaceRecoveryMode}
                           onclick={(event) => toggleBranchActionMenu(event, branch.key)}
@@ -792,16 +793,16 @@
               {#if activeBranchActionRow}
                 {@const row = activeBranchActionRow}
                 <div
-                  class="git-branch-row-menu floating"
+                  class="menu git-branch-row-menu floating"
                   role="menu"
                   style={`top: ${branchActionMenuTop}px; right: ${branchActionMenuRight}px;`}
                 >
-                  <button class="git-more-item" type="button" onclick={() => { const r = activeBranchActionRow; if (r) runBranchAction(() => onCreateBranch(r.startPoint)); }} role="menuitem">
+                  <button class="menu-item git-more-item" type="button" onclick={() => { const r = activeBranchActionRow; if (r) runBranchAction(() => onCreateBranch(r.startPoint)); }} role="menuitem">
                     <GitIcon name="branch-plus" />
                     Create from here
                   </button>
                   <button
-                    class="git-more-item"
+                    class="menu-item git-more-item"
                     type="button"
                     onclick={() => { const r = activeBranchActionRow; if (r) runBranchAction(() => onPullBranch(r.pullBranchName)); }}
                     disabled={row.pullDisabled}
@@ -814,7 +815,7 @@
                   <div class="git-more-sep"></div>
                   {#if !row.remote}
                     <button
-                      class="git-more-item"
+                      class="menu-item git-more-item"
                       type="button"
                       onclick={() => { const r = activeBranchActionRow; if (r) runBranchAction(() => onRenameBranch(r.label, false)); }}
                       disabled={loading || workspaceRecoveryMode}
@@ -827,7 +828,7 @@
                   {/if}
                   {#if row.remoteDeleteStartPoint}
                     <button
-                      class="git-more-item"
+                      class="menu-item git-more-item"
                       type="button"
                       onclick={() => { const r = activeBranchActionRow; if (r) runBranchAction(() => onRenameBranch(r.remoteDeleteStartPoint, true)); }}
                       disabled={loading || workspaceRecoveryMode}
@@ -841,7 +842,7 @@
                   <div class="git-more-sep"></div>
                   {#if !row.remote}
                     <button
-                      class="git-more-item danger"
+                      class="menu-item git-more-item danger"
                       type="button"
                       onclick={() => { const r = activeBranchActionRow; if (r) runBranchAction(() => onDeleteBranch(r.startPoint, false)); }}
                       disabled={row.deleteDisabled}
@@ -854,7 +855,7 @@
                   {/if}
                   {#if row.remoteDeleteStartPoint}
                     <button
-                      class="git-more-item danger"
+                      class="menu-item git-more-item danger"
                       type="button"
                       onclick={() => { const r = activeBranchActionRow; if (r) runBranchAction(() => onDeleteBranch(r.remoteDeleteStartPoint, true)); }}
                       disabled={loading || workspaceRecoveryMode}
@@ -869,7 +870,7 @@
               {/if}
               <div class="git-branch-popover-foot">
                 <small>{branchCountLabel}</small>
-                <button class="git-action-btn compact subtle" type="button" onclick={closeBranchPicker}>Close</button>
+                <button class="btn btn-ghost btn-sm git-action-btn" type="button" onclick={closeBranchPicker}>Close</button>
               </div>
             </div>
           {/if}
@@ -909,7 +910,7 @@
     <div class="git-toolbar-actions">
       {#if status.isRepo}
         <button
-          class="git-tool-btn"
+          class="btn btn-secondary git-tool-btn"
           class:loading={isBusy('fetch')}
           type="button"
           onclick={onFetch}
@@ -921,7 +922,7 @@
           Fetch
         </button>
         <button
-          class="git-tool-btn"
+          class="btn btn-secondary git-tool-btn"
           class:loading={isBusy('pull')}
           type="button"
           onclick={() => onPull()}
@@ -934,7 +935,7 @@
           {#if status.behind > 0}<span class="git-tool-badge">{status.behind}</span>{/if}
         </button>
         <button
-          class="git-tool-btn"
+          class="btn btn-secondary git-tool-btn"
           class:loading={isBusy('push')}
           type="button"
           onclick={onPush}
@@ -948,7 +949,7 @@
         </button>
         <div class="git-more-control">
           <button
-            class="git-tool-btn icon-only"
+            class="btn btn-ghost btn-icon git-tool-btn"
             type="button"
             onclick={() => (moreMenuOpen = !moreMenuOpen)}
             aria-haspopup="menu"
@@ -958,45 +959,45 @@
             <span class="git-more-dots">⋯</span>
           </button>
           {#if moreMenuOpen}
-            <div class="git-more-menu" role="menu">
-              <button class="git-more-item" type="button" onclick={() => runAndCloseMore(onRefresh)} disabled={loading} role="menuitem">
+            <div class="menu git-more-menu" role="menu">
+              <button class="menu-item git-more-item" type="button" onclick={() => runAndCloseMore(onRefresh)} disabled={loading} role="menuitem">
                 <GitIcon name="refresh" />
                 Refresh status
               </button>
-              <button class="git-more-item" type="button" onclick={() => runAndCloseMore(onViewOutgoing)} disabled={!canRepoAction} role="menuitem">
+              <button class="menu-item git-more-item" type="button" onclick={() => runAndCloseMore(onViewOutgoing)} disabled={!canRepoAction} role="menuitem">
                 <GitIcon name="eye" />
                 View outgoing
               </button>
               <div class="git-more-sep"></div>
-              <button class="git-more-item" type="button" onclick={() => runAndCloseMore(() => onPull('merge'))} disabled={!canPullWithHistoryStrategy} role="menuitem">
+              <button class="menu-item git-more-item" type="button" onclick={() => runAndCloseMore(() => onPull('merge'))} disabled={!canPullWithHistoryStrategy} role="menuitem">
                 <GitIcon name="merge" />
                 Pull (merge)
               </button>
-              <button class="git-more-item" type="button" onclick={() => runAndCloseMore(() => onPull('rebase'))} disabled={!canPullWithHistoryStrategy} role="menuitem">
+              <button class="menu-item git-more-item" type="button" onclick={() => runAndCloseMore(() => onPull('rebase'))} disabled={!canPullWithHistoryStrategy} role="menuitem">
                 <GitIcon name="rebase" />
                 Pull (rebase)
               </button>
-              <button class="git-more-item" type="button" onclick={() => runAndCloseMore(() => onPull('autostash'))} disabled={!canAutostashPull} role="menuitem" title="Stash uncommitted edits, rebase onto upstream, then re-apply">
+              <button class="menu-item git-more-item" type="button" onclick={() => runAndCloseMore(() => onPull('autostash'))} disabled={!canAutostashPull} role="menuitem" title="Stash uncommitted edits, rebase onto upstream, then re-apply">
                 <GitIcon name="rebase" />
                 Pull (rebase + autostash)
               </button>
               <div class="git-more-sep"></div>
-              <button class="git-more-item" type="button" onclick={() => runAndCloseMore(onStash)} disabled={!canStash} role="menuitem" title="Stash Relay-managed YAML changes">
+              <button class="menu-item git-more-item" type="button" onclick={() => runAndCloseMore(onStash)} disabled={!canStash} role="menuitem" title="Stash Relay-managed YAML changes">
                 <GitIcon name="archive" />
                 Stash Relay changes
               </button>
-              <button class="git-more-item" type="button" onclick={() => runAndCloseMore(() => onPopStash())} disabled={!canPopStash} role="menuitem" title="Apply the latest Git stash">
+              <button class="menu-item git-more-item" type="button" onclick={() => runAndCloseMore(() => onPopStash())} disabled={!canPopStash} role="menuitem" title="Apply the latest Git stash">
                 <GitIcon name="download" />
                 Apply latest stash
                 {#if stashCount}<em class="git-more-count">{stashCount}</em>{/if}
               </button>
-              <button class="git-more-item danger" type="button" onclick={() => runAndCloseMore(onForcePush)} disabled={!canRepoAction} role="menuitem">
+              <button class="menu-item git-more-item danger" type="button" onclick={() => runAndCloseMore(onForcePush)} disabled={!canRepoAction} role="menuitem">
                 <GitIcon name="force-push" />
                 Force push (with lease)
               </button>
               <div class="git-more-sep"></div>
               <button
-                class="git-more-item"
+                class="menu-item git-more-item"
                 type="button"
                 onclick={() => runAndCloseMore(onUseLocal)}
                 disabled={loading}
@@ -1011,7 +1012,7 @@
         </div>
       {:else}
         <button
-          class="git-tool-btn"
+          class="btn btn-secondary git-tool-btn"
           class:loading={isBusy('refresh')}
           type="button"
           onclick={onRefresh}
@@ -1060,7 +1061,7 @@
                 <span>{diagnostic.message}</span>
               </div>
               <button
-                class="git-action-btn compact primary git-yaml-edit"
+                class="btn btn-primary btn-sm git-action-btn git-yaml-edit"
                 type="button"
                 onclick={() => onEditWorkspaceDiagnostic(diagnostic)}
                 title={`Edit ${diagnostic.path} to fix this error`}
@@ -1076,15 +1077,15 @@
             <small>Showing {visibleYamlDiagnostics.length} of {yamlDiagnosticTotal}</small>
             <div class="git-yaml-foot-actions">
               {#if yamlHiddenCount > 0}
-                <button class="git-action-btn compact" type="button" onclick={() => (yamlVisibleCount = Math.min(yamlDiagnosticTotal, yamlVisibleCount + YAML_PAGE_SIZE))}>
+                <button class="btn btn-secondary btn-sm git-action-btn" type="button" onclick={() => (yamlVisibleCount = Math.min(yamlDiagnosticTotal, yamlVisibleCount + YAML_PAGE_SIZE))}>
                   <GitIcon name="download" />
                   Show {yamlNextPage} more
                 </button>
-                <button class="git-action-btn compact subtle" type="button" onclick={() => (yamlVisibleCount = yamlDiagnosticTotal)}>
+                <button class="btn btn-ghost btn-sm git-action-btn" type="button" onclick={() => (yamlVisibleCount = yamlDiagnosticTotal)}>
                   Show all
                 </button>
               {:else}
-                <button class="git-action-btn compact subtle" type="button" onclick={() => (yamlVisibleCount = YAML_PAGE_SIZE)}>
+                <button class="btn btn-ghost btn-sm git-action-btn" type="button" onclick={() => (yamlVisibleCount = YAML_PAGE_SIZE)}>
                   Show less
                 </button>
               {/if}
@@ -1107,11 +1108,11 @@
           <small>{conflictedFiles.length ? 'Select a conflicted file, choose ours/theirs, or edit the conflict content manually.' : 'Continue the Git operation to finish.'}</small>
         </div>
         <div class="git-provider-actions">
-          <button class="git-action-btn" class:loading={isBusy('operation-continue')} type="button" onclick={onContinueOperation} disabled={!canContinueOperation} aria-busy={isBusy('operation-continue')} title="Continue the current Git operation">
+          <button class="btn btn-secondary git-action-btn" class:loading={isBusy('operation-continue')} type="button" onclick={onContinueOperation} disabled={!canContinueOperation} aria-busy={isBusy('operation-continue')} title="Continue the current Git operation">
             <GitIcon name="play" busy={isBusy('operation-continue')} />
             Continue
           </button>
-          <button class="git-action-btn danger" class:loading={isBusy('operation-abort')} type="button" onclick={onAbortOperation} disabled={loading} aria-busy={isBusy('operation-abort')} title="Abort the current Git operation">
+          <button class="btn btn-secondary btn-danger git-action-btn" class:loading={isBusy('operation-abort')} type="button" onclick={onAbortOperation} disabled={loading} aria-busy={isBusy('operation-abort')} title="Abort the current Git operation">
             <GitIcon name="x" busy={isBusy('operation-abort')} />
             Abort
           </button>
@@ -1127,11 +1128,11 @@
           <small>Add and check an upstream remote before push and pull.</small>
         </div>
         <div class="git-provider-actions">
-          <button class="git-action-btn" class:loading={isBusy('remote')} type="button" onclick={onAddRemote} disabled={!canRepoAction} aria-busy={isBusy('remote')} title="Add an upstream remote">
+          <button class="btn btn-secondary git-action-btn" class:loading={isBusy('remote')} type="button" onclick={onAddRemote} disabled={!canRepoAction} aria-busy={isBusy('remote')} title="Add an upstream remote">
             <GitIcon name="link" busy={isBusy('remote')} />
             Add remote
           </button>
-          <button class="git-action-btn" class:loading={isBusy('remote-test')} type="button" onclick={onTestRemote} disabled={!canRepoAction} aria-busy={isBusy('remote-test')} title="Test remote access">
+          <button class="btn btn-secondary git-action-btn" class:loading={isBusy('remote-test')} type="button" onclick={onTestRemote} disabled={!canRepoAction} aria-busy={isBusy('remote-test')} title="Test remote access">
             <GitIcon name="check" busy={isBusy('remote-test')} />
             Test remote
           </button>
@@ -1146,7 +1147,7 @@
           <code class="git-local-path" title={storagePath}>{storagePath}</code>
           {#if isAppStoragePath || workspaceMissing}
             <button
-              class="git-action-btn primary git-local-cta"
+              class="btn btn-primary btn-lg git-action-btn git-local-cta"
               class:loading={isBusy('local-create')}
               type="button"
               onclick={onCreateLocal}
@@ -1159,7 +1160,7 @@
             </button>
           {:else}
             <button
-              class="git-action-btn primary git-local-cta"
+              class="btn btn-primary btn-lg git-action-btn git-local-cta"
               class:loading={isBusy('init')}
               type="button"
               onclick={onInit}
@@ -1180,24 +1181,24 @@
         </div>
         <div class="git-local-options">
           {#if !isAppStoragePath && !workspaceMissing}
-            <button class="git-local-option" class:loading={isBusy('local-create')} type="button" onclick={onCreateLocal} disabled={loading} aria-busy={isBusy('local-create')}>
+            <button class="option-card git-local-option" class:loading={isBusy('local-create')} type="button" onclick={onCreateLocal} disabled={loading} aria-busy={isBusy('local-create')}>
               <GitIcon name="folder-plus" busy={isBusy('local-create')} />
               <strong>New folder workspace</strong>
               <small>Create an empty workspace or copy the current one</small>
             </button>
           {/if}
-          <button class="git-local-option" class:loading={isBusy('open')} type="button" onclick={onOpen} disabled={loading} aria-busy={isBusy('open')}>
+          <button class="option-card git-local-option" class:loading={isBusy('open')} type="button" onclick={onOpen} disabled={loading} aria-busy={isBusy('open')}>
             <GitIcon name="folder-open" busy={isBusy('open')} />
             <strong>Open existing repo</strong>
             <small>Pick a folder that already contains <code>.git/</code></small>
           </button>
-          <button class="git-local-option" class:loading={isBusy('clone')} type="button" onclick={onClone} disabled={loading || gitUnavailable} aria-busy={isBusy('clone')}>
+          <button class="option-card git-local-option" class:loading={isBusy('clone')} type="button" onclick={onClone} disabled={loading || gitUnavailable} aria-busy={isBusy('clone')}>
             <GitIcon name="clone" busy={isBusy('clone')} />
             <strong>Clone from URL</strong>
             <small>{gitUnavailable ? 'Needs Git installed on this machine' : 'Download a remote repository to a chosen folder'}</small>
           </button>
           {#if isAppStoragePath}
-            <button class="git-local-option" class:loading={isBusy('init')} type="button" onclick={onInit} disabled={loading || gitUnavailable} aria-busy={isBusy('init')}>
+            <button class="option-card git-local-option" class:loading={isBusy('init')} type="button" onclick={onInit} disabled={loading || gitUnavailable} aria-busy={isBusy('init')}>
               <GitIcon name="init" busy={isBusy('init')} />
               <strong>Init Git here</strong>
               <small>{gitUnavailable ? 'Needs Git installed on this machine' : 'Initialize Git in the current workspace folder (advanced)'}</small>
@@ -1215,7 +1216,7 @@
           <div class="git-panel-actions">
             {#if changeCount && !selectedFileCount}
               <button
-                class="git-action-btn compact primary"
+                class="btn btn-primary btn-sm git-action-btn"
                 class:loading={isBusy('commit')}
                 type="button"
                 onclick={() => onCommit()}
@@ -1226,11 +1227,11 @@
                 <GitIcon name="commit" busy={isBusy('commit')} />
                 Commit all
               </button>
-              <button class="git-action-btn compact ghost icon-only" type="button" onclick={toggleAllFileSelection} disabled={loading} title="Select all changed files" aria-label="Select all">
+              <button class="btn btn-ghost btn-icon btn-sm git-action-btn" type="button" onclick={toggleAllFileSelection} disabled={loading} title="Select all changed files" aria-label="Select all">
                 <GitIcon name="check-square" />
               </button>
               <button
-                class="git-action-btn compact ghost danger icon-only"
+                class="btn btn-ghost btn-danger btn-icon btn-sm git-action-btn"
                 class:loading={isBusy('discard-all')}
                 type="button"
                 onclick={onDiscardAll}
@@ -1248,7 +1249,7 @@
           <div class="git-selection-bar">
             <small>{selectedFileLabel}</small>
             <button
-              class="git-action-btn compact primary"
+              class="btn btn-primary btn-sm git-action-btn"
               class:loading={isBusy('commit-selected')}
               type="button"
               onclick={commitSelectedFiles}
@@ -1260,7 +1261,7 @@
               Commit
             </button>
             <button
-              class="git-action-btn compact danger icon-only"
+              class="btn btn-secondary btn-danger btn-icon btn-sm git-action-btn"
               class:loading={isBusy('discard-selected')}
               type="button"
               onclick={discardSelectedFiles}
@@ -1271,13 +1272,13 @@
             >
               <GitIcon name="trash" busy={isBusy('discard-selected')} />
             </button>
-            <button class="git-action-btn compact subtle icon-only" type="button" onclick={clearFileSelection} disabled={loading} title="Clear file selection" aria-label="Clear selection">
+            <button class="btn btn-ghost btn-icon btn-sm git-action-btn" type="button" onclick={clearFileSelection} disabled={loading} title="Clear file selection" aria-label="Clear selection">
               <GitIcon name="x" />
             </button>
           </div>
         {/if}
         {#if !changeCount}
-          <div class="git-empty">No changed files</div>
+          <div class="empty-state git-empty"><span class="empty-state-title">No changed files</span></div>
         {:else}
           <div
             class="git-file-list virtual"
@@ -1288,7 +1289,7 @@
             {#each virtualChangedFiles as file (file.path)}
               <div class="git-file-row" class:active={selectedPath === file.path} class:selected={selectedFileSet.has(file.path)} role="listitem">
                 <input
-                  class="git-file-check kv-check"
+                  class="git-file-check check"
                   type="checkbox"
                   checked={selectedFileSet.has(file.path)}
                   aria-label={`Select ${file.path}`}
@@ -1319,7 +1320,7 @@
           <div class="git-panel-actions">
             {#if diff.truncated}<small>truncated</small>{/if}
             <button
-              class="git-action-btn compact ghost"
+              class="btn btn-ghost btn-sm git-action-btn"
               type="button"
               onclick={() => selectedFileIsConflict ? openConflictResolver() : (expandedPanel = 'diff')}
               disabled={selectedFileIsConflict ? !conflict.path : (!diff.diff && !diffLoading)}
@@ -1330,7 +1331,7 @@
             </button>
             {#if selectedChangedFile && selectedPath !== 'Outgoing changes'}
               <button
-                class="git-action-btn compact ghost danger"
+                class="btn btn-ghost btn-danger btn-sm git-action-btn"
                 class:loading={isBusy('discard-file')}
                 type="button"
                 onclick={onDiscardFile}
@@ -1351,26 +1352,26 @@
               <small>{conflict.truncated ? 'Content truncated' : selectedPath}</small>
             </div>
             <div class="git-conflict-buttons">
-              <button class="git-action-btn compact" class:loading={isBusy('resolve-ours')} type="button" onclick={() => onResolveConflict('ours', selectedPath)} disabled={loading || !conflictReady} aria-busy={isBusy('resolve-ours')} title={conflictSideTitle('ours')}>
+              <button class="btn btn-secondary btn-sm git-action-btn" class:loading={isBusy('resolve-ours')} type="button" onclick={() => onResolveConflict('ours', selectedPath)} disabled={loading || !conflictReady} aria-busy={isBusy('resolve-ours')} title={conflictSideTitle('ours')}>
                 <GitIcon name="pull" busy={isBusy('resolve-ours')} />
                 {fullConflictSideActionLabel('ours')}
               </button>
-              <button class="git-action-btn compact" class:loading={isBusy('resolve-theirs')} type="button" onclick={() => onResolveConflict('theirs', selectedPath)} disabled={loading || !conflictReady} aria-busy={isBusy('resolve-theirs')} title={conflictSideTitle('theirs')}>
+              <button class="btn btn-secondary btn-sm git-action-btn" class:loading={isBusy('resolve-theirs')} type="button" onclick={() => onResolveConflict('theirs', selectedPath)} disabled={loading || !conflictReady} aria-busy={isBusy('resolve-theirs')} title={conflictSideTitle('theirs')}>
                 <GitIcon name="fetch" busy={isBusy('resolve-theirs')} />
                 {fullConflictSideActionLabel('theirs')}
               </button>
-              <button class="git-action-btn compact primary-soft" class:loading={isBusy('resolve-manual')} type="button" onclick={() => onResolveConflict('manual', selectedPath, conflictDraft)} disabled={loading || conflict.binary || !conflictReady} aria-busy={isBusy('resolve-manual')} title="Save the edited conflict content as resolved">
+              <button class="btn btn-secondary btn-sm git-action-btn" class:loading={isBusy('resolve-manual')} type="button" onclick={() => onResolveConflict('manual', selectedPath, conflictDraft)} disabled={loading || conflict.binary || !conflictReady} aria-busy={isBusy('resolve-manual')} title="Save the edited conflict content as resolved">
                 <GitIcon name="save" busy={isBusy('resolve-manual')} />
                 Save resolved
               </button>
-              <button class="git-action-btn compact" type="button" onclick={openConflictResolver} disabled={loading || conflict.binary || !conflictReady} title="Open a large three-way resolver">
+              <button class="btn btn-secondary btn-sm git-action-btn" type="button" onclick={openConflictResolver} disabled={loading || conflict.binary || !conflictReady} title="Open a large three-way resolver">
                 <GitIcon name="expand" />
                 Open resolver
               </button>
             </div>
           </div>
           {#if conflict.binary}
-            <div class="git-empty">Binary conflict. Use ours/theirs or resolve in an external editor.</div>
+            <div class="empty-state git-empty">Binary conflict. Use ours/theirs or resolve in an external editor.</div>
           {:else}
             <div class="git-conflict-review">
               <div class="git-conflict-side">
@@ -1392,11 +1393,11 @@
           {/if}
         {/if}
         {#if diffLoading}
-          <div class="git-empty">Loading diff...</div>
+          <div class="empty-state git-empty">Loading diff...</div>
         {:else if diff.error}
           <div class="git-empty error">{diff.error}</div>
         {:else if diff.binary}
-          <div class="git-empty">Binary file</div>
+          <div class="empty-state git-empty">Binary file</div>
         {:else if diff.diff && hasSplitDiff}
           <div class="git-diff-code" role="region" aria-label="Git diff">
             {#if stagedDiffLines.length}
@@ -1431,7 +1432,7 @@
             {/each}
           </div>
         {:else}
-          <div class="git-empty">{selectedPath ? 'No text diff' : 'Select a file'}</div>
+          <div class="empty-state git-empty">{selectedPath ? 'No text diff' : 'Select a file'}</div>
         {/if}
       </div>
 
@@ -1440,7 +1441,7 @@
           <span class="git-panel-title">History</span>
           <div class="git-panel-actions">
             <small>{commitCountLabel}</small>
-            <button class="git-action-btn compact ghost icon-only" class:loading={isBusy('log')} type="button" onclick={onRefreshLog} disabled={loading} aria-busy={isBusy('log')} title="Refresh commit history" aria-label="Refresh commit history">
+            <button class="btn btn-ghost btn-icon btn-sm git-action-btn" class:loading={isBusy('log')} type="button" onclick={onRefreshLog} disabled={loading} aria-busy={isBusy('log')} title="Refresh commit history" aria-label="Refresh commit history">
               <GitIcon name="refresh" busy={isBusy('log')} />
             </button>
           </div>
@@ -1471,14 +1472,14 @@
           </div>
           {#if commits.hasMore}
             <div class="git-list-footer">
-              <button class="git-action-btn compact" class:loading={isBusy('log-more')} type="button" onclick={onLoadMoreLog} disabled={loading} aria-busy={isBusy('log-more')} title="Load more commits">
+              <button class="btn btn-secondary btn-sm git-action-btn" class:loading={isBusy('log-more')} type="button" onclick={onLoadMoreLog} disabled={loading} aria-busy={isBusy('log-more')} title="Load more commits">
                 <GitIcon name="download" busy={isBusy('log-more')} />
                 Load more
               </button>
             </div>
           {/if}
         {:else}
-          <div class="git-empty">No commits yet</div>
+          <div class="empty-state git-empty">No commits yet</div>
         {/if}
       </div>
     </div>
@@ -1494,27 +1495,27 @@
 
   {#if expandedPanel}
     <div class="dialog-backdrop git-review-backdrop" role="presentation" onmousedown={(event) => event.target === event.currentTarget && closeExpandedPanel()}>
-      <div class="git-review-modal" class:conflict={expandedPanel === 'conflict'} role="dialog" aria-modal="true" aria-labelledby="git-review-title" tabindex="-1" onkeydown={(event) => event.key === 'Escape' && closeExpandedPanel()}>
-        <div class="dialog-head git-review-head">
+      <div class="modal git-review-modal" class:conflict={expandedPanel === 'conflict'} role="dialog" aria-modal="true" aria-labelledby="git-review-title" tabindex="-1" onkeydown={(event) => event.key === 'Escape' && closeExpandedPanel()}>
+        <div class="modal-head dialog-head git-review-head">
           <div>
             {#if expandedPanel === 'diff'}
-              <h2 id="git-review-title">{selectedCommit ? diffTitle : pathName(diffTitle)}</h2>
+              <h2 class="modal-title" id="git-review-title">{selectedCommit ? diffTitle : pathName(diffTitle)}</h2>
               <p>{selectedCommit ? 'Commit diff' : (pathFolder(diffTitle) || 'Review workspace changes')}</p>
             {:else}
               <h2 id="git-review-title">Resolve conflict{selectedPath ? ` · ${pathName(selectedPath)}` : ''}</h2>
               <p>{selectedPath ? (pathFolder(selectedPath) || selectedPath) : 'Choose a conflicted Relay file'}</p>
             {/if}
           </div>
-          <button type="button" class="dialog-close" onclick={closeExpandedPanel} aria-label="Close review">×</button>
+          <button type="button" class="btn btn-ghost btn-icon dialog-close" onclick={closeExpandedPanel} aria-label="Close review">×</button>
         </div>
         {#if expandedPanel === 'diff'}
           <div class="git-review-body">
             {#if diffLoading}
-              <div class="git-empty">Loading diff...</div>
+              <div class="empty-state git-empty">Loading diff...</div>
             {:else if diff.error}
               <div class="git-empty error">{diff.error}</div>
             {:else if diff.binary}
-              <div class="git-empty">Binary file</div>
+              <div class="empty-state git-empty">Binary file</div>
             {:else if diff.diff && hasSplitDiff}
               <div class="git-diff-code expanded" role="region" aria-label="Expanded Git diff">
                 {#if stagedDiffLines.length}
@@ -1549,13 +1550,13 @@
                 {/each}
               </div>
             {:else}
-              <div class="git-empty">{selectedPath ? 'No text diff' : 'Select a file'}</div>
+              <div class="empty-state git-empty">{selectedPath ? 'No text diff' : 'Select a file'}</div>
             {/if}
           </div>
         {:else if expandedPanel === 'conflict'}
           <div class="git-review-body conflict">
             {#if conflict.binary}
-              <div class="git-empty">Binary conflict. Use ours/theirs or resolve in an external editor.</div>
+              <div class="empty-state git-empty">Binary conflict. Use ours/theirs or resolve in an external editor.</div>
             {:else}
               <div class="git-conflict-workbench">
                 <aside class="git-conflict-file-rail" aria-label="Conflicted files">
@@ -1580,30 +1581,30 @@
                 <div class="git-conflict-main">
                   <div class="git-conflict-resolver-toolbar">
                     <div class="git-conflict-hunk-nav">
-                      <button class="git-action-btn compact icon-only" type="button" onclick={() => jumpConflict(-1)} disabled={!currentConflict || currentConflictIndex === 0} title="Previous conflict hunk" aria-label="Previous conflict hunk">
+                      <button class="btn btn-secondary btn-icon btn-sm git-action-btn" type="button" onclick={() => jumpConflict(-1)} disabled={!currentConflict || currentConflictIndex === 0} title="Previous conflict hunk" aria-label="Previous conflict hunk">
                         <span aria-hidden="true">&larr;</span>
                       </button>
                       <span>{currentConflict ? `Hunk ${currentConflictIndex + 1} of ${conflictHunks.length} · lines ${currentConflict.startLine}-${currentConflict.endLine}` : 'Unmerged file without inline markers'}</span>
-                      <button class="git-action-btn compact icon-only" type="button" onclick={() => jumpConflict(1)} disabled={!currentConflict || currentConflictIndex >= conflictHunks.length - 1} title="Next conflict hunk" aria-label="Next conflict hunk">
+                      <button class="btn btn-secondary btn-icon btn-sm git-action-btn" type="button" onclick={() => jumpConflict(1)} disabled={!currentConflict || currentConflictIndex >= conflictHunks.length - 1} title="Next conflict hunk" aria-label="Next conflict hunk">
                         <span aria-hidden="true">&rarr;</span>
                       </button>
                     </div>
                     <div class="git-conflict-resolver-actions">
-                      <button class="git-action-btn compact" type="button" onclick={() => useConflictSide('ours')} disabled={loading || !selectedPath || (!currentConflict && !conflictReady)} title={conflictSideTitle('ours')}>
+                      <button class="btn btn-secondary btn-sm git-action-btn" type="button" onclick={() => useConflictSide('ours')} disabled={loading || !selectedPath || (!currentConflict && !conflictReady)} title={conflictSideTitle('ours')}>
                         <span aria-hidden="true">&larr;</span>
                         {resolverConflictSideActionLabel('ours')}
                       </button>
-                      <button class="git-action-btn compact" type="button" onclick={() => useConflictSide('theirs')} disabled={loading || !selectedPath || (!currentConflict && !conflictReady)} title={conflictSideTitle('theirs')}>
+                      <button class="btn btn-secondary btn-sm git-action-btn" type="button" onclick={() => useConflictSide('theirs')} disabled={loading || !selectedPath || (!currentConflict && !conflictReady)} title={conflictSideTitle('theirs')}>
                         {resolverConflictSideActionLabel('theirs')}
                         <span aria-hidden="true">&rarr;</span>
                       </button>
-                      <button class="git-action-btn compact subtle" type="button" onclick={() => acceptAllConflicts('ours')} disabled={!conflictHunks.length} title="Resolve every hunk with local changes">
+                      <button class="btn btn-ghost btn-sm git-action-btn" type="button" onclick={() => acceptAllConflicts('ours')} disabled={!conflictHunks.length} title="Resolve every hunk with local changes">
                         All ours
                       </button>
-                      <button class="git-action-btn compact subtle" type="button" onclick={() => acceptAllConflicts('theirs')} disabled={!conflictHunks.length} title="Resolve every hunk with remote changes">
+                      <button class="btn btn-ghost btn-sm git-action-btn" type="button" onclick={() => acceptAllConflicts('theirs')} disabled={!conflictHunks.length} title="Resolve every hunk with remote changes">
                         All theirs
                       </button>
-                      <button class="git-action-btn compact primary-soft" class:loading={isBusy('resolve-manual')} type="button" onclick={saveManualResolution} disabled={loading || conflict.binary || !conflictReady || hasInlineConflictMarkers} aria-busy={isBusy('resolve-manual')} title={hasInlineConflictMarkers ? 'Resolve all conflict markers before saving' : 'Save the middle result and mark file resolved'}>
+                      <button class="btn btn-secondary btn-sm git-action-btn" class:loading={isBusy('resolve-manual')} type="button" onclick={saveManualResolution} disabled={loading || conflict.binary || !conflictReady || hasInlineConflictMarkers} aria-busy={isBusy('resolve-manual')} title={hasInlineConflictMarkers ? 'Resolve all conflict markers before saving' : 'Save the middle result and mark file resolved'}>
                         <GitIcon name="save" busy={isBusy('resolve-manual')} />
                         Save resolved
                       </button>
@@ -1621,9 +1622,9 @@
                     <section class="git-conflict-pane result" aria-label="Resolved result">
                       <div class="git-conflict-pane-head">
                         <strong>Result</strong>
-                        <div class="git-conflict-pane-switch" role="group" aria-label="Result editor mode">
-                          <button type="button" class:active={!conflictRawMode} onclick={() => (conflictRawMode = false)}>Visual</button>
-                          <button type="button" class:active={conflictRawMode} onclick={() => { conflictRawMode = true; queueMicrotask(focusCurrentConflict); }}>Raw markers</button>
+                        <div class="segmented git-conflict-pane-switch" role="group" aria-label="Result editor mode">
+                          <button class="segmented-item" type="button" class:active={!conflictRawMode} onclick={() => (conflictRawMode = false)}>Visual</button>
+                          <button class="segmented-item" type="button" class:active={conflictRawMode} onclick={() => { conflictRawMode = true; queueMicrotask(focusCurrentConflict); }}>Raw markers</button>
                         </div>
                         <small>{conflictProgressLabel}</small>
                       </div>
@@ -1636,13 +1637,13 @@
                               <strong>Unmerged without inline markers</strong>
                               <p>Git still needs a resolution, but this file has no <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> block in the working copy. Pick a full-file side or save the current result.</p>
                               <div>
-                                <button type="button" onclick={() => resolveAndClose('ours')} title={conflictSideTitle('ours')}>
+                                <button class="btn btn-secondary btn-sm" type="button" onclick={() => resolveAndClose('ours')} title={conflictSideTitle('ours')}>
                                   <span aria-hidden="true">&larr;</span> {fullConflictSideActionLabel('ours')}
                                 </button>
-                                <button type="button" onclick={() => resolveAndClose('theirs')} title={conflictSideTitle('theirs')}>
+                                <button class="btn btn-secondary btn-sm" type="button" onclick={() => resolveAndClose('theirs')} title={conflictSideTitle('theirs')}>
                                   {fullConflictSideActionLabel('theirs')} <span aria-hidden="true">&rarr;</span>
                                 </button>
-                                <button type="button" onclick={saveManualResolution}>Save current result</button>
+                                <button class="btn btn-secondary btn-sm" type="button" onclick={saveManualResolution}>Save current result</button>
                               </div>
                             </div>
                           {/if}
@@ -1664,16 +1665,16 @@
                                 <div class="git-conflict-inline-head">
                                   <strong>Conflict {block.index + 1}</strong>
                                   <small>lines {block.startLine}-{block.endLine}</small>
-                                  <button type="button" onclick={() => selectConflict(block.index)}>Focus</button>
+                                  <button class="btn btn-ghost btn-xs" type="button" onclick={() => selectConflict(block.index)}>Focus</button>
                                 </div>
                                 <div class="git-conflict-inline-choice ours">
-                                  <button type="button" onclick={(event) => { event.stopPropagation(); acceptConflict(block.index, 'ours'); }} title="Apply local lines to the result">
+                                  <button class="git-conflict-choice-btn" type="button" onclick={(event) => { event.stopPropagation(); acceptConflict(block.index, 'ours'); }} title="Apply local lines to the result">
                                     <span aria-hidden="true">&larr;</span> Use ours
                                   </button>
                                   <pre>{block.ours.join('\n') || '(empty)'}</pre>
                                 </div>
                                 <div class="git-conflict-inline-choice theirs">
-                                  <button type="button" onclick={(event) => { event.stopPropagation(); acceptConflict(block.index, 'theirs'); }} title="Apply remote lines to the result">
+                                  <button class="git-conflict-choice-btn" type="button" onclick={(event) => { event.stopPropagation(); acceptConflict(block.index, 'theirs'); }} title="Apply remote lines to the result">
                                     Use theirs <span aria-hidden="true">&rarr;</span>
                                   </button>
                                   <pre>{block.theirs.join('\n') || '(empty)'}</pre>

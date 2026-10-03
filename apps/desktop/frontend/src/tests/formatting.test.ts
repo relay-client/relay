@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildResponseMatchOffsets,
+  countLineMatches,
   countMatches,
   countMatchesAsync,
   renderResponseBodyLines,
@@ -66,5 +67,23 @@ describe('HTML formatting', () => {
     ));
     expect(tokenDenseJson.length).toBeLessThan(100_000);
     expect(shouldVirtualizeResponseBody(tokenDenseJson, 'json')).toBe(true);
+  });
+});
+
+describe('response search across highlighted tokens', () => {
+  it('highlights a match that spans JSON tokens as the counted match', () => {
+    const line = '{"name": "Alice", "nick": "al"}';
+    const query = 'name": "al';
+    const [rendered] = renderResponseBodyLines(line, 'json', query, 0);
+    expect(countLineMatches(line, query)).toBe(1);
+    expect(rendered.hasCurrentMatch).toBe(true);
+    const marks = rendered.html.match(/<mark class="rsp-search-hit rsp-search-current">([^<]*)<\/mark>/g) ?? [];
+    expect(marks.map(mark => mark.replace(/<[^>]+>/g, '')).join('').replace(/&quot;/g, '"')).toBe('name": "Al');
+  });
+
+  it('marks only the current match as current when several share a line', () => {
+    const [rendered] = renderResponseBodyLines('<a href="x">x</a>', 'html', 'x', 1);
+    expect(rendered.html.match(/rsp-search-hit/g)).toHaveLength(2);
+    expect(rendered.html.match(/rsp-search-current/g)).toHaveLength(1);
   });
 });
