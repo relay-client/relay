@@ -1,13 +1,3 @@
-
-
-
-
-
-
-
-
-
-
 name: web-deploy
 
 on:
@@ -20,16 +10,17 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: true
+  group: web-deploy
+  cancel-in-progress: false
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://relayclient.dev
     steps:
       - uses: actions/checkout@v7
 
@@ -43,9 +34,6 @@ jobs:
 
       - name: Build site
         env:
-
-
-
           RELAY_SITE_URL: ${{ vars.RELAY_SITE_URL }}
           RELAY_SITE_BASE: ${{ vars.RELAY_SITE_BASE }}
         run: npm run web:build
@@ -53,17 +41,43 @@ jobs:
       - name: Check docs
         run: npm run web:check-docs
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v5
-        with:
-          path: apps/web/dist
+      - name: Publish
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          SITE_ROOT: /srv/relayclient.dev
+          KEEP_RELEASES: '5'
+        run: |
+          set -euo pipefail
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v5
+          install -d -m 0700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 0600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 0644 ~/.ssh/known_hosts
+
+          SSH="ssh -i $HOME/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
+          RELEASE="$(date -u +%Y%m%d%H%M%S)"
+          TARGET="$SITE_ROOT/releases/$RELEASE"
+
+          $SSH "$DEPLOY_HOST" "mkdir -p '$TARGET'"
+
+          rsync -az --delete \
+            --rsh="$SSH" \
+            --link-dest="$SITE_ROOT/current" \
+            apps/web/dist/ "$DEPLOY_HOST:$TARGET/"
+
+          $SSH "$DEPLOY_HOST" bash -s <<REMOTE
+          set -euo pipefail
+          ln -sfn '$TARGET' '$SITE_ROOT/current.tmp'
+          mv -Tf '$SITE_ROOT/current.tmp' '$SITE_ROOT/current'
+          cd '$SITE_ROOT/releases'
+          ls -1dt */ | tail -n +$((KEEP_RELEASES + 1)) | xargs -r rm -rf
+          REMOTE
+
+          echo "published $RELEASE"
+
+      - name: Remove the deploy key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

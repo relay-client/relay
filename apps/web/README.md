@@ -30,17 +30,17 @@ npm run web:build      # outputs to apps/web/dist/
 npm run web:preview    # serves the production build locally
 ```
 
-## Deploy options
+## Deploy
 
-The build output is a static site (`apps/web/dist/`). Pick whichever host you prefer:
+`relayclient.dev` is served by nginx on a VPS behind Cloudflare. `.github/workflows/web-deploy.yml` builds the site and rsyncs it into a timestamped release directory, then flips a symlink, so publishing is atomic. It runs on every push to `main` that touches `apps/web/**`, and reads the host, the deploy key and the pinned host key from Actions secrets — nothing about the origin server is stated in this repository.
 
-- **GitHub Pages** — push `dist/` to `gh-pages`, or use the workflow stub at `.github/workflows/web-deploy.yml`. Cheapest if you already use GitHub.
-- **Cloudflare Pages** — connect the source repo, set build command `npm run web:build`, output dir `apps/web/dist`. Free TLS, fast CDN.
-- **Netlify / Vercel** — same idea, slightly different DX. Set the build root to `apps/web`.
+Provisioning, the nginx site, TLS issuance and rollback live in the private `relay-client/infra` repository, which also has a `publish.sh` for deploying from a workstation.
 
-### Custom domain
+### Where the domain lives
 
-In `astro.config.mjs` set `site` to the canonical URL (e.g. `https://relay.app`). For GitHub Pages, also add a `CNAME` file under `apps/web/public/`.
+`site.config.mjs` holds `PRIMARY_DOMAIN` and everything derived from it — `astro.config.mjs`, the structured data and `src/pages/robots.txt.ts` all read from there, so moving the site is one line plus DNS.
+
+`RELAY_SITE_URL` and `RELAY_SITE_BASE` override it at build time for staging. Empty values count as unset, which matters because GitHub Actions passes an unconfigured repository variable through as an empty string.
 
 ## Maintenance notes
 
