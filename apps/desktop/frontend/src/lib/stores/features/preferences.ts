@@ -91,6 +91,12 @@ type PreferencesHost = {
 };
 
 const SETTINGS_STORAGE_KEY = 'relay.request.settings.v1';
+
+export function storableRequestSettings<T extends Partial<RequestSettings>>(settings: T): Omit<T, 'clientKeyPassword'> {
+  const copy = { ...settings };
+  delete copy.clientKeyPassword;
+  return copy;
+}
 const SHORTCUT_STORAGE_KEY = 'relay.shortcuts.v1';
 const AUTOSAVE_STORAGE_KEY = 'relay.autosave.v1';
 const PROXY_STORAGE_KEY = 'relay.proxy.v1';
@@ -278,13 +284,16 @@ export const preferencesFeature = {
   loadRequestSettings(this: PreferencesHost) {
     try {
       const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
-      if (raw) this.applyRequestSettings(JSON.parse(raw));
+      if (!raw) return;
+      const stored = JSON.parse(raw) as Partial<RequestSettings>;
+      if ('clientKeyPassword' in stored) localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(storableRequestSettings(stored)));
+      this.applyRequestSettings(storableRequestSettings(stored));
     } catch {
       this.applyRequestSettings(DEFAULT_REQUEST_SETTINGS);
     }
   },
   saveRequestSettings(this: PreferencesHost) {
-    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(this.currentRequestSettings()));
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(storableRequestSettings(this.currentRequestSettings())));
     this.settingsSaved = true;
     setTimeout(() => (this.settingsSaved = false), 1600);
   },

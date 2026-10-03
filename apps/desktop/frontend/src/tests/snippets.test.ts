@@ -130,6 +130,19 @@ describe('snippet bodies', () => {
     expect(out).not.toMatch(/Content-Type["']?\s*[:,=]\s*["']?multipart\/form-data["']/);
   });
 
+  it('encodes quotes and line breaks in Swift multipart names as browsers do', () => {
+    const out = buildSnippet('swift', request({
+      method: 'POST',
+      bodyType: 'form',
+      formData: [
+        { key: 'dir\\', value: 'x', enabled: true },
+        { key: 'say "hi"\r\n', value: '/tmp/a.txt', enabled: true, isFile: true, fileName: 'a\\"b.txt' },
+      ],
+    }), () => '');
+    expect(out).toContain('name=\\"dir\\\\\\"');
+    expect(out).toContain('name=\\"say %22hi%22%0D%0A\\"; filename=\\"a\\\\%22b.txt\\"');
+  });
+
   it.each(['javascript', 'python', 'go', 'php', 'ruby', 'httpie'] as const)('%s sends a file body', language => {
     const out = buildSnippet(language, request({ method: 'PUT', bodyType: 'binary', bodyFilePath: '/tmp/blob.bin' }), () => '');
     expect(out).toContain('/tmp/blob.bin');

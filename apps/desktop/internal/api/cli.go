@@ -264,7 +264,7 @@ func runCLI(opts cliOptions) int {
 	tokens := newOAuth2TokenCache()
 	defer httpTransports.closeAll()
 
-	results := make([]cliRunResult, 0, len(selected)*iterations)
+	results := make([]cliRunResult, 0, len(selected))
 	start := time.Now()
 	firstRequest := true
 
