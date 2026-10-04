@@ -5,6 +5,15 @@ description: Notable Kurlo changes and links to the exact notes for each publish
 
 This page summarizes the notable-change log maintained in the source repository. For the exact notes and artifacts attached to every published tag, use the [Kurlo releases page](https://github.com/stormhop/kurlo/releases).
 
+## 2.2.0
+
+### Changed
+
+- **A new app icon:** a pigeon in Kurlo's blue, in the app, the installers, the browser extension and on this site.
+- **The macOS disk image is quieter and sharp on Retina displays** — a small wordmark, an arrow to Applications and one line of instructions.
+- **The Windows installer artwork follows the new icon.**
+- **The documentation lives only at [kurlo.dev](https://kurlo.dev).**
+
 ## 2.1.1
 
 ### Added

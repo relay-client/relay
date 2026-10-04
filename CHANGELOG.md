@@ -5,6 +5,15 @@ All notable changes to Kurlo are documented here. This project follows
 
 ---
 
+## [2.2.0] - 2026-10-04
+
+### Changed
+
+- **A new app icon.** A pigeon in Kurlo's blue replaces the chevron mark everywhere it appears: the app and its Dock icon, the Windows icons, the browser extension, the site's favicon and social preview, and the installers.
+- **The macOS disk image is quieter and sharp on Retina displays.** The window keeps only what the drag needs — a small wordmark, a dotted arrow from Kurlo to Applications and one line of instructions — instead of panels drawn behind the icons. Its background ships at 1× and 2× in one HiDPI image, so text and lines stay crisp on a Retina screen rather than being scaled up.
+- **The Windows installer artwork follows the new icon.**
+- **The documentation lives only at [kurlo.dev](https://kurlo.dev).** The copy that GitHub Pages used to serve, and the workflow that published it, are gone.
+
 ## [2.1.1] - 2026-10-04
 
 ### Added
@@ -514,7 +523,8 @@ this repository.
 - Configurable keyboard shortcuts throughout, global search (`⌘K`), quick send (`⌘Enter`), and tab switching (`⌘1`–`⌘9`).
 - Settings search and full keyboard navigation, theme previews, and onboarding empty states.
 
-[Unreleased]: https://github.com/stormhop/kurlo/compare/v2.1.1...HEAD
+[Unreleased]: https://github.com/stormhop/kurlo/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/stormhop/kurlo/compare/v2.1.1...v2.2.0
 [2.1.1]: https://github.com/stormhop/kurlo/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/stormhop/kurlo/compare/v2.0.3...v2.1.0
 [2.0.3]: https://github.com/stormhop/kurlo/compare/v2.0.2...v2.0.3
