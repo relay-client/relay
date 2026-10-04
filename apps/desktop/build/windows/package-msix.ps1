@@ -3,12 +3,12 @@ param(
   [string]$Version = "0.0.0",
   [ValidateSet("amd64", "arm64")]
   [string]$Architecture = "amd64",
-  [string]$IdentityName = "com.relayclient.relay",
-  [string]$Publisher = "CN=Relay Client",
-  [string]$PublisherDisplayName = "Relay Client",
-  [string]$DisplayName = "Relay",
+  [string]$IdentityName = "dev.kurlo.app",
+  [string]$Publisher = "CN=Kurlo",
+  [string]$PublisherDisplayName = "Kurlo",
+  [string]$DisplayName = "Kurlo",
   [string]$Description = "Cross-platform desktop API client",
-  [string]$ExecutablePath = "build/bin/relay.exe",
+  [string]$ExecutablePath = "build/bin/kurlo.exe",
   [string]$IconPath = "build/windows/appicon.png",
   [string]$OutputPath = "",
   [string]$CertificatePath = "",
@@ -150,13 +150,13 @@ if (-not (Test-Path -LiteralPath $icon -PathType Leaf)) {
 }
 
 if ([string]::IsNullOrWhiteSpace($OutputPath)) {
-  $OutputPath = "build/bin/relay-$msixVersion-windows-$Architecture.msix"
+  $OutputPath = "build/bin/kurlo-$msixVersion-windows-$Architecture.msix"
 }
 $output = Resolve-DesktopPath $OutputPath
 $outputDir = Split-Path -Parent $output
 New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
 
-$stageRoot = Join-Path $DesktopRoot "build/msix/Relay"
+$stageRoot = Join-Path $DesktopRoot "build/msix/Kurlo"
 $assetsDir = Join-Path $stageRoot "Assets"
 if (Test-Path -LiteralPath $stageRoot) {
   Remove-Item -LiteralPath $stageRoot -Recurse -Force
@@ -195,7 +195,7 @@ $manifest = @"
     <Resource Language="en-us" />
   </Resources>
   <Applications>
-    <Application Id="Relay" Executable="$(Escape-Xml $exeName)" EntryPoint="Windows.FullTrustApplication">
+    <Application Id="Kurlo" Executable="$(Escape-Xml $exeName)" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements DisplayName="$(Escape-Xml $DisplayName)" Description="$(Escape-Xml $Description)" BackgroundColor="transparent" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png" />
     </Application>
   </Applications>

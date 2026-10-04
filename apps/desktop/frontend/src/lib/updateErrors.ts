@@ -47,10 +47,10 @@ export function friendlyUpdateError(raw: unknown, action: string): string {
     'econnreset',
     'enotfound',
   ])) {
-    return `${base} Relay could not reach the update service. Check your internet connection and try again.`;
+    return `${base} Kurlo could not reach the update service. Check your internet connection and try again.`;
   }
   if (containsAny(lower, ['permission', 'access denied', 'operation not permitted'])) {
-    return `${base} Relay does not have permission to replace the app. Try again after restarting the app.`;
+    return `${base} Kurlo does not have permission to replace the app. Try again after restarting the app.`;
   }
   if (lower.includes('no release asset')) {
     return `${base} No compatible update package is available for this device yet.`;

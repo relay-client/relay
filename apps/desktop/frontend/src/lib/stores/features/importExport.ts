@@ -152,7 +152,7 @@ export const importExportFeature = {
     const entered = await this.openPromptDialog(
       'Import from URL',
       '',
-      'Paste a link to an OpenAPI 3.x or Swagger 2.0 document. Relay fetches it and builds a collection from the paths it declares.',
+      'Paste a link to an OpenAPI 3.x or Swagger 2.0 document. Kurlo fetches it and builds a collection from the paths it declares.',
       'https://api.example.com/openapi.json',
       'Import',
     );
@@ -357,7 +357,7 @@ export const importExportFeature = {
     const format = await this.openSelectDialog('Export collection', 'Choose the export format:', [
       { value: 'opencollection', label: 'OpenCollection YAML folder', icon: 'bruno', description: 'Export a Bruno v3-compatible folder with opencollection.yml and request .yml files.' },
       { value: 'postman', label: 'Postman collection v2.1', icon: 'postman', description: 'Export a single Postman collection JSON file.' },
-      { value: 'insomnia', label: 'Insomnia Export v4', icon: 'insomnia', description: 'Export an Insomnia workspace JSON file with Relay request metadata.' },
+      { value: 'insomnia', label: 'Insomnia Export v4', icon: 'insomnia', description: 'Export an Insomnia workspace JSON file with Kurlo request metadata.' },
       { value: 'openapi3', label: 'OpenAPI 3.0 JSON', icon: 'openapi', description: 'Export HTTP requests as an OpenAPI document.' },
       { value: 'swagger2', label: 'Swagger 2.0 JSON', icon: 'openapi', description: 'Export HTTP requests as a Swagger 2.0 document.' },
     ], 'Export');
@@ -377,7 +377,7 @@ export const importExportFeature = {
     }
     const includeSecrets = await this.chooseCollectionSecretExportMode(reqs, 'OpenCollection export');
     if (includeSecrets === null) return;
-    const folderName = await this.openPromptDialog('OpenCollection folder', fileSegmentForExport(col.name), 'Relay will create this folder inside the parent directory you choose next.');
+    const folderName = await this.openPromptDialog('OpenCollection folder', fileSegmentForExport(col.name), 'Kurlo will create this folder inside the parent directory you choose next.');
     if (!folderName) return;
     const parentDir = await openDirectoryDialog(`Choose parent folder for ${folderName}`, await this.defaultWorkspaceParentForDialogs());
     if (!parentDir) return;

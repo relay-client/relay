@@ -10,7 +10,7 @@ The desktop frontend's full Playwright flow can populate the core guide screensh
 make screenshots
 ```
 
-Capture mode writes only when `RELAY_DOCS_SCREENSHOT_DIR` is set; a normal E2E run does not
+Capture mode writes only when `KURLO_DOCS_SCREENSHOT_DIR` is set; a normal E2E run does not
 modify documentation assets.
 
 Three rules keep the set consistent, and all three live in `captureDocsScreenshot`:
@@ -21,7 +21,7 @@ Three rules keep the set consistent, and all three live in `captureDocsScreensho
   its only breakpoint being 700px. The pixel density is separate: most displays showing
   these pages have two device pixels per CSS pixel, and a 1× capture has nothing to give
   the second one. `playwright.config.ts` switches `deviceScaleFactor` to 2 only when
-  `RELAY_DOCS_SCREENSHOT_DIR` is set, so ordinary E2E runs are unaffected.
+  `KURLO_DOCS_SCREENSHOT_DIR` is set, so ordinary E2E runs are unaffected.
 - **A modal is cropped to itself**, plus 26px of the app behind it. A settings dialog inside
   a full-window shot is unreadable at page scale; on its own it renders close to 1:1. Any
   `[role="dialog"][aria-modal="true"]` is detected and cropped automatically, and a capture

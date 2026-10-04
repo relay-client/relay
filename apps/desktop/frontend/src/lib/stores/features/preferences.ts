@@ -90,17 +90,17 @@ type PreferencesHost = {
   setUiScale: (scale: number) => void;
 };
 
-const SETTINGS_STORAGE_KEY = 'relay.request.settings.v1';
+const SETTINGS_STORAGE_KEY = 'kurlo.request.settings.v1';
 
 export function storableRequestSettings<T extends Partial<RequestSettings>>(settings: T): Omit<T, 'clientKeyPassword'> {
   const copy = { ...settings };
   delete copy.clientKeyPassword;
   return copy;
 }
-const SHORTCUT_STORAGE_KEY = 'relay.shortcuts.v1';
-const AUTOSAVE_STORAGE_KEY = 'relay.autosave.v1';
-const PROXY_STORAGE_KEY = 'relay.proxy.v1';
-const SCRIPT_ENGINE_STORAGE_KEY = 'relay.scriptEngine.v1';
+const SHORTCUT_STORAGE_KEY = 'kurlo.shortcuts.v1';
+const AUTOSAVE_STORAGE_KEY = 'kurlo.autosave.v1';
+const PROXY_STORAGE_KEY = 'kurlo.proxy.v1';
+const SCRIPT_ENGINE_STORAGE_KEY = 'kurlo.scriptEngine.v1';
 
 export function shortcutPlatform(runtime = ''): string {
   const fromRuntime = runtime.split('/')[0];

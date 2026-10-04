@@ -8,8 +8,8 @@ import { filesystemNameFromName } from './normalizers';
 import { DEFAULT_GRPC_MESSAGE } from './requestBodyDefaults';
 import { safeExportRow, safeExportUrl, safeExportValue, sanitizeExportExample } from './secretExport';
 
-const RELAY_REQUEST_TYPES = new Set<RequestType>(['http', 'graphql', 'ws', 'socketio', 'grpc', 'mcp']);
-const RELAY_REQUEST_TABS = new Set<RequestTab>(['docs', 'params', 'query', 'auth', 'headers', 'metadata', 'body', 'schema', 'service', 'events', 'scripts', 'settings']);
+const KURLO_REQUEST_TYPES = new Set<RequestType>(['http', 'graphql', 'ws', 'socketio', 'grpc', 'mcp']);
+const KURLO_REQUEST_TABS = new Set<RequestTab>(['docs', 'params', 'query', 'auth', 'headers', 'metadata', 'body', 'schema', 'service', 'events', 'scripts', 'settings']);
 
 function resourceType(resource: Record<string, unknown>) {
   return asText(resource.type || resource._type);
@@ -162,26 +162,26 @@ function bodyFromResource(resource: Record<string, unknown>) {
   return result;
 }
 
-function relayExtension(resource: Record<string, unknown>): Record<string, unknown> {
-  const value = resource.relay ?? resource['x-relay'];
+function kurloExtension(resource: Record<string, unknown>): Record<string, unknown> {
+  const value = resource.kurlo ?? resource['x-kurlo'];
   return isRecord(value) ? value : {};
 }
 
-function relayRequestType(value: unknown): RequestType | '' {
+function kurloRequestType(value: unknown): RequestType | '' {
   const type = asText(value).toLowerCase();
-  return RELAY_REQUEST_TYPES.has(type as RequestType) ? type as RequestType : '';
+  return KURLO_REQUEST_TYPES.has(type as RequestType) ? type as RequestType : '';
 }
 
-function relayRequestTab(value: unknown): RequestTab | '' {
+function kurloRequestTab(value: unknown): RequestTab | '' {
   const tab = asText(value).toLowerCase();
-  return RELAY_REQUEST_TABS.has(tab as RequestTab) ? tab as RequestTab : '';
+  return KURLO_REQUEST_TABS.has(tab as RequestTab) ? tab as RequestTab : '';
 }
 
-function relaySettings(value: unknown): Partial<RequestSettings> {
+function kurloSettings(value: unknown): Partial<RequestSettings> {
   return isRecord(value) ? value as Partial<RequestSettings> : {};
 }
 
-function relaySIOArgs(value: unknown): SIOArg[] {
+function kurloSIOArgs(value: unknown): SIOArg[] {
   return asArray(value).map(item => {
     if (!isRecord(item)) return null;
     return {
@@ -213,19 +213,19 @@ export function insomniaRequestsFromResources(payload: unknown, collectionId: st
     const headers = insomniaRows(resource.headers);
     const url = asText(resource.url);
     const socketIO = socketIOImportDetails(url);
-    const relay = relayExtension(resource);
-    const requestType = relayRequestType(relay.requestType) || (isGrpcResource(resource) ? 'grpc' : body.bodyType === 'graphql' ? 'graphql' : socketIO || isSocketIOResource(resource) ? 'socketio' : isWebSocketResource(resource) || isWebSocketUrl(url) ? 'ws' : 'http');
+    const kurlo = kurloExtension(resource);
+    const requestType = kurloRequestType(kurlo.requestType) || (isGrpcResource(resource) ? 'grpc' : body.bodyType === 'graphql' ? 'graphql' : socketIO || isSocketIOResource(resource) ? 'socketio' : isWebSocketResource(resource) || isWebSocketUrl(url) ? 'ws' : 'http');
     const params = requestType === 'socketio' ? filterSocketIOTransportParams(insomniaRows(resource.parameters)) : insomniaRows(resource.parameters);
-    const sioArgs = requestType === 'socketio' && relaySIOArgs(relay.sioArgs).length
-      ? relaySIOArgs(relay.sioArgs)
+    const sioArgs = requestType === 'socketio' && kurloSIOArgs(kurlo.sioArgs).length
+      ? kurloSIOArgs(kurlo.sioArgs)
       : requestType === 'socketio' && body.bodyContent.trim()
       ? [{ id: newRequestId(), content: body.bodyContent, bodyType: body.rawBodyType, encoding: 'base64' as const }]
       : undefined;
     const id = newRequestId();
     const name = asText(resource.name) || 'Imported Request';
-    const grpcMethod = asText(relay.grpcMethod ?? relay.fullMethod ?? resource.protoMethodName ?? resource.grpcMethod);
-    const grpcMetadata = insomniaRows(relay.grpcMetadata ?? relay.metadata ?? resource.metadata);
-    const relayTab = relayRequestTab(relay.requestTab);
+    const grpcMethod = asText(kurlo.grpcMethod ?? kurlo.fullMethod ?? resource.protoMethodName ?? resource.grpcMethod);
+    const grpcMetadata = insomniaRows(kurlo.grpcMetadata ?? kurlo.metadata ?? resource.metadata);
+    const kurloTab = kurloRequestTab(kurlo.requestTab);
     return {
       id,
       name,
@@ -235,32 +235,32 @@ export function insomniaRequestsFromResources(payload: unknown, collectionId: st
       folderPath: folderPathFor(resource, byId),
       requestType,
       method: (requestType === 'graphql' || requestType === 'grpc' ? 'POST' : asText(resource.method).toUpperCase() || 'GET') as Method,
-      url: asText(relay.url) || socketIO?.url || url,
-      requestTab: relayTab || (requestType === 'grpc' ? 'body' : requestType === 'socketio' ? 'events' : requestType === 'ws' ? 'body' : requestType === 'graphql' ? 'query' : body.bodyType !== 'none' ? 'body' : headers.length ? 'headers' : params.length ? 'params' : 'docs'),
+      url: asText(kurlo.url) || socketIO?.url || url,
+      requestTab: kurloTab || (requestType === 'grpc' ? 'body' : requestType === 'socketio' ? 'events' : requestType === 'ws' ? 'body' : requestType === 'graphql' ? 'query' : body.bodyType !== 'none' ? 'body' : headers.length ? 'headers' : params.length ? 'params' : 'docs'),
       params,
       headers,
       auth: authConfig(resource),
       bodyType: requestType === 'grpc' && body.bodyType === 'none' ? 'json' : body.bodyType,
       rawBodyType: body.rawBodyType,
-      bodyContent: requestType === 'grpc' ? asText(relay.message) || body.bodyContent : body.bodyContent || asText(relay.message),
+      bodyContent: requestType === 'grpc' ? asText(kurlo.message) || body.bodyContent : body.bodyContent || asText(kurlo.message),
       bodyFilePath: body.bodyFilePath,
       bodyFileName: body.bodyFileName,
       formRows: body.formRows,
       ...(sioArgs ? { sioArgs } : {}),
-      ...(Array.isArray(relay.sioEvents) ? { sioEvents: insomniaRows(relay.sioEvents) } : {}),
-      ...(typeof relay.sioAck === 'boolean' ? { sioAck: relay.sioAck } : {}),
+      ...(Array.isArray(kurlo.sioEvents) ? { sioEvents: insomniaRows(kurlo.sioEvents) } : {}),
+      ...(typeof kurlo.sioAck === 'boolean' ? { sioAck: kurlo.sioAck } : {}),
       ...(requestType === 'grpc' ? {
         grpcMethod,
         grpcMetadata,
-        grpcUseReflection: typeof relay.grpcUseReflection === 'boolean' ? relay.grpcUseReflection : undefined,
-        grpcProtoFilePath: asText(relay.grpcProtoFilePath),
-        grpcProtoFileName: asText(relay.grpcProtoFileName),
-        grpcProtoImportPaths: asArray(relay.grpcProtoImportPaths).map(asText).filter(Boolean),
+        grpcUseReflection: typeof kurlo.grpcUseReflection === 'boolean' ? kurlo.grpcUseReflection : undefined,
+        grpcProtoFilePath: asText(kurlo.grpcProtoFilePath),
+        grpcProtoFileName: asText(kurlo.grpcProtoFileName),
+        grpcProtoImportPaths: asArray(kurlo.grpcProtoImportPaths).map(asText).filter(Boolean),
       } : {}),
       preRequestScript: '',
       testScript: '',
       requestNotes: asText(resource.description),
-      settings: { ...DEFAULT_REQUEST_SETTINGS, ...(socketIO?.settings ?? {}), ...relaySettings(relay.settings) },
+      settings: { ...DEFAULT_REQUEST_SETTINGS, ...(socketIO?.settings ?? {}), ...kurloSettings(kurlo.settings) },
     };
   });
 }
@@ -367,7 +367,7 @@ function exportBodyLikeValue(source: string, bodyType: string, stripFn: (source:
   return safeExportValue('body', stripped, includeSecrets);
 }
 
-function relayExtensionFromRequest(req: SavedRequest, stripFn: (source: string, bodyType: string) => string, includeSecrets = false) {
+function kurloExtensionFromRequest(req: SavedRequest, stripFn: (source: string, bodyType: string) => string, includeSecrets = false) {
   const requestType = req.requestType ?? 'http';
   const extension: Record<string, unknown> = {
     requestType,
@@ -420,7 +420,7 @@ function requestResource(req: SavedRequest, parentId: string, stripFn: (source: 
       protoMethodName: req.grpcMethod ?? '',
       metadata: (req.grpcMetadata ?? []).filter(row => row.key || row.value).map(row => insomniaRow(row, includeSecrets)),
     } : {}),
-    relay: relayExtensionFromRequest(req, stripFn, includeSecrets),
+    kurlo: kurloExtensionFromRequest(req, stripFn, includeSecrets),
   };
 }
 
@@ -456,7 +456,7 @@ export function buildInsomniaExport(collectionName: string, collectionDescriptio
     _type: 'export',
     __export_format: 4,
     __export_date: new Date().toISOString(),
-    __export_source: 'relay.desktop',
+    __export_source: 'kurlo.desktop',
     resources,
   };
 }

@@ -110,7 +110,7 @@ describe('routeImportedScripts', () => {
 });
 
 describe('preferences script engine persistence', () => {
-  const STORAGE_KEY = 'relay.scriptEngine.v1';
+  const STORAGE_KEY = 'kurlo.scriptEngine.v1';
   let store: Record<string, string>;
 
   beforeEach(() => {
@@ -163,7 +163,7 @@ describe('preferences script engine persistence', () => {
   });
 
   it('loads an explicit autosave preference', () => {
-    store['relay.autosave.v1'] = 'true';
+    store['kurlo.autosave.v1'] = 'true';
     const host = { autosave: false };
     preferencesFeature.loadAutosaveSettings.call(host as never);
     expect(host.autosave).toBe(true);

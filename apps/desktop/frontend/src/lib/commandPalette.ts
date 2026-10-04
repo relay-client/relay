@@ -129,7 +129,7 @@ export function buildPaletteCommands(ctx: PaletteContext): PaletteCommand[] {
   }
   commands.push(
     { id: 'help-support', group: 'Help', label: 'Report an issue', keywords: 'support bug diagnostics logs', run: () => ctx.openSettings('support') },
-    { id: 'help-about', group: 'Help', label: 'About Relay', keywords: 'version', run: () => ctx.openSettings('about') },
+    { id: 'help-about', group: 'Help', label: 'About Kurlo', keywords: 'version', run: () => ctx.openSettings('about') },
   );
   return GROUP_ORDER.flatMap(group => commands.filter(command => command.group === group));
 }

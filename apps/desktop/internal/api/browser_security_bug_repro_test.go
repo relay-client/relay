@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 func TestNormalizeBrowserOriginStripsDefaultPort(t *testing.T) {

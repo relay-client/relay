@@ -120,7 +120,7 @@
             {/each}
           </dl>
         {:else}
-          <p class="history-detail-note">No headers of its own. Relay adds Host, User-Agent and the like when sending.</p>
+          <p class="history-detail-note">No headers of its own. Kurlo adds Host, User-Agent and the like when sending.</p>
         {/if}
         {#if authLabel && request.auth?.type !== 'none' && request.auth?.type !== 'inherit'}
           <h3>Auth</h3>
@@ -169,7 +169,7 @@
             <p class="history-detail-note">Empty body.</p>
           {/if}
         {:else}
-          <p class="history-detail-note">The response was not kept. Relay stores responses up to 2 MB and skips binary bodies.</p>
+          <p class="history-detail-note">The response was not kept. Kurlo stores responses up to 2 MB and skips binary bodies.</p>
         {/if}
       </section>
     </div>

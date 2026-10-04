@@ -40,7 +40,7 @@
   let sidebarActive = (view: SidebarView) => !sidebarHidden && sidebarView === view;
 </script>
 
-<nav class="activity-rail" aria-label="Relay">
+<nav class="activity-rail" aria-label="Kurlo">
   <div class="activity-rail-titlebar titlebar-drag-region"></div>
 
   <div class="activity-rail-group">

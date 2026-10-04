@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://relay.dev/schemas/relay-workspace-yaml-v1.schema.json",
-  "title": "Relay Workspace YAML v1",
-  "description": "Public contract for Relay workspace YAML files stored with path layout yaml-filesystem-names.v1.",
+  "$id": "https://kurlo.dev/schemas/kurlo-workspace-yaml-v1.schema.json",
+  "title": "Kurlo Workspace YAML v1",
+  "description": "Public contract for Kurlo workspace YAML files stored with path layout yaml-filesystem-names.v1.",
   "type": "object",
   "oneOf": [
     { "$ref": "#/$defs/rootFile" },
@@ -51,7 +51,7 @@
         "key": { "type": "string" },
         "value": {
           "type": "string",
-          "description": "May be a relay secret placeholder such as {{relaySecret:request:req-main:auth:bearerToken}}."
+          "description": "May be a kurlo secret placeholder such as {{kurloSecret:request:req-main:auth:bearerToken}}."
         },
         "description": { "type": "string" },
         "isFile": { "type": "boolean" },
@@ -294,7 +294,7 @@
       "required": ["version", "format", "workspaceOrder"],
       "properties": {
         "version": { "$ref": "#/$defs/fileVersion" },
-        "format": { "type": "string", "const": "relay.workspace.yaml.v1" },
+        "format": { "type": "string", "const": "kurlo.workspace.yaml.v1" },
         "workspaceOrder": {
           "type": "array",
           "items": { "$ref": "#/$defs/id" }
@@ -421,7 +421,7 @@
       }
     }
   },
-  "x-relay-format": "relay.workspace.yaml.v1",
-  "x-relay-path-layout": "yaml-filesystem-names.v1",
-  "x-relay-storage-kind": "workspace-yaml"
+  "x-kurlo-format": "kurlo.workspace.yaml.v1",
+  "x-kurlo-path-layout": "yaml-filesystem-names.v1",
+  "x-kurlo-storage-kind": "workspace-yaml"
 }

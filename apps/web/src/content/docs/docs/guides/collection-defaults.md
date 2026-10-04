@@ -7,7 +7,7 @@ Collection defaults reduce repeated configuration while preserving request-level
 
 ![Collection settings with reusable default HTTP headers](../../../../assets/screenshots/collection-defaults.png)
 
-Defaults are applied when a request is sent. Relay currently supports defaults at the collection level; folders organize requests but do not define another inheritance layer.
+Defaults are applied when a request is sent. Kurlo currently supports defaults at the collection level; folders organize requests but do not define another inheritance layer.
 
 ## Available defaults
 
@@ -37,7 +37,7 @@ Collection variables are available as `{{name}}`. Active environment values over
 active environment > collection variable
 ```
 
-Values marked **Secret** are masked in the UI and participate in Relay's local secret handling for Git-backed workspaces.
+Values marked **Secret** are masked in the UI and participate in Kurlo's local secret handling for Git-backed workspaces.
 
 ### Authentication
 
@@ -47,7 +47,7 @@ See [Authentication](/docs/guides/authentication/) for each supported scheme.
 
 ### Scripts and tests
 
-Relay combines scripts in a defined order:
+Kurlo combines scripts in a defined order:
 
 1. Collection pre-request script.
 2. Request pre-request script.
@@ -77,6 +77,6 @@ Collection defaults are saved with the collection:
 
 - Local profile data is inside encrypted `requests.json`.
 - Folder and Git workspaces store shareable defaults in YAML.
-- Relay/OpenCollection export preserves supported collection defaults.
+- Kurlo/OpenCollection export preserves supported collection defaults.
 
-Real secret values remain in Relay's encrypted local profile when shared YAML uses `{{relaySecret:...}}` placeholders. See [Relay YAML format](/docs/reference/relay-yaml-format/) for the storage contract.
+Real secret values remain in Kurlo's encrypted local profile when shared YAML uses `{{kurloSecret:...}}` placeholders. See [Kurlo YAML format](/docs/reference/kurlo-yaml-format/) for the storage contract.

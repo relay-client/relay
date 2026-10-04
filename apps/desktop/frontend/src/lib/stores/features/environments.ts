@@ -19,7 +19,7 @@ import {
 } from '../../environmentMatrix';
 
 export type EnvironmentView = 'single' | 'matrix';
-export const ENVIRONMENT_VIEW_KEY = 'relay.environmentView.v1';
+export const ENVIRONMENT_VIEW_KEY = 'kurlo.environmentView.v1';
 
 export function readEnvironmentView(): EnvironmentView {
   try {

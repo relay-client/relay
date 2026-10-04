@@ -42,20 +42,20 @@ jobs:
         run: npm run frontend:check
 
       - name: Test frontend
-        run: npm --workspace @relay/desktop-frontend run test
+        run: npm --workspace @kurlo/desktop-frontend run test
 
       - name: Build frontend
         run: npm run frontend:build
 
       - name: Build web docs
         env:
-          RELAY_SITE_URL: ${{ vars.RELAY_SITE_URL }}
-          RELAY_SITE_BASE: ${{ vars.RELAY_SITE_BASE }}
+          KURLO_SITE_URL: ${{ vars.KURLO_SITE_URL }}
+          KURLO_SITE_BASE: ${{ vars.KURLO_SITE_BASE }}
         run: npm run web:build
 
       - name: Check web docs
         env:
-          RELAY_SITE_BASE: ${{ vars.RELAY_SITE_BASE }}
+          KURLO_SITE_BASE: ${{ vars.KURLO_SITE_BASE }}
         run: npm run web:check-docs
 
       - name: Install Wails Linux dependencies
@@ -166,12 +166,12 @@ jobs:
       - name: Run E2E tests
         run: npm run frontend:e2e
         env:
-          RELAY_E2E_ARTIFACT_DIR: ${{ runner.temp }}/playwright
+          KURLO_E2E_ARTIFACT_DIR: ${{ runner.temp }}/playwright
 
       - name: Run E2E tests in WebKit
         run: npm run frontend:e2e:webkit
         env:
-          RELAY_E2E_ARTIFACT_DIR: ${{ runner.temp }}/playwright-webkit
+          KURLO_E2E_ARTIFACT_DIR: ${{ runner.temp }}/playwright-webkit
 
       - name: Upload Playwright report
         if: ${{ !cancelled() }}

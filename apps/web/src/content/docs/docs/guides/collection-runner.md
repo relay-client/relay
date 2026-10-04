@@ -16,7 +16,7 @@ Open it from:
 - The play icon in the activity rail on the left.
 - The workspace overview quick action.
 
-Relay opens the runner workspace and selects runnable requests from the current collection. Realtime sessions (`SSE`, WebSocket, Socket.IO) are skipped because they do not naturally finish. HTTP, GraphQL, and gRPC requests can run.
+Kurlo opens the runner workspace and selects runnable requests from the current collection. Realtime sessions (`SSE`, WebSocket, Socket.IO) are skipped because they do not naturally finish. HTTP, GraphQL, and gRPC requests can run.
 
 ## Selecting requests
 
@@ -87,11 +87,11 @@ After a run, click **Download report** to save an HTML report. It includes:
 - Every request result.
 - Test names and failures.
 
-Reports are local files; Relay does not upload them anywhere.
+Reports are local files; Kurlo does not upload them anywhere.
 
 ## Last run
 
-Relay remembers the most recent finished run of each collection — every request's status, time, checks and error, up to 500 results. Open the runner on that collection, or switch its *Collection* picker back to it, and the results are there with *Last run* and when it happened above them, until you run again. The collection's own page shows the same run as one line — *Last run 2 hours ago · 12 of 13 passed* — and the link opens the runner.
+Kurlo remembers the most recent finished run of each collection — every request's status, time, checks and error, up to 500 results. Open the runner on that collection, or switch its *Collection* picker back to it, and the results are there with *Last run* and when it happened above them, until you run again. The collection's own page shows the same run as one line — *Last run 2 hours ago · 12 of 13 passed* — and the link opens the runner.
 
 A run where every request was skipped is not recorded. The results live in the encrypted local profile next to your history, never in the workspace YAML, so they are not committed to Git and stay on this device.
 
@@ -99,5 +99,5 @@ A run where every request was skipped is not recorded. The results live in the e
 
 - **No runnable requests:** the selected collection only contains realtime requests or empty folders.
 - **gRPC request fails immediately:** select a gRPC method before running it.
-- **Environment values changed:** scripts can call `pm.environment.set`; after the run Relay merges the final environment state back into the active environment.
+- **Environment values changed:** scripts can call `pm.environment.set`; after the run Kurlo merges the final environment state back into the active environment.
 - **Cookies changed:** the cookie jar is refreshed after the run, just like after normal sends.

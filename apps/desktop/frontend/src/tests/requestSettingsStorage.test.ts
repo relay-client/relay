@@ -3,7 +3,7 @@ import { DEFAULT_REQUEST_SETTINGS } from '../lib/constants';
 import { preferencesFeature } from '../lib/stores/features/preferences';
 import type { RequestSettings } from '../lib/types/models';
 
-const KEY = 'relay.request.settings.v1';
+const KEY = 'kurlo.request.settings.v1';
 
 describe('request settings in localStorage', () => {
   let store: Map<string, string>;

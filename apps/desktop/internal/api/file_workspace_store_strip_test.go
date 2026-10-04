@@ -122,7 +122,7 @@ func TestSanitizeRequestsForFilesystemTreatsOAuthRefreshTokenAsSecret(t *testing
 				"oauth2GrantType":    "authorization_code",
 				"oauth2AuthURL":      "https://auth.example.test/authorize",
 				"oauth2TokenURL":     "https://auth.example.test/token",
-				"oauth2ClientID":     "relay-client",
+				"oauth2ClientID":     "stormhop",
 				"oauth2Secret":       "client-secret",
 				"oauth2Scope":        "openid profile",
 				"oauth2Token":        "access-token",
@@ -140,16 +140,16 @@ func TestSanitizeRequestsForFilesystemTreatsOAuthRefreshTokenAsSecret(t *testing
 	}
 
 	refreshKey := "request.req-oauth.auth.oauth2RefreshToken"
-	if got, want := auth["oauth2RefreshToken"], relaySecretPlaceholder(refreshKey); got != want {
+	if got, want := auth["oauth2RefreshToken"], kurloSecretPlaceholder(refreshKey); got != want {
 		t.Fatalf("oauth2RefreshToken = %q, want %q", got, want)
 	}
 	if got, want := secrets[refreshKey], "refresh-token"; got != want {
 		t.Fatalf("stored refresh token = %q, want %q", got, want)
 	}
-	if got, want := auth["oauth2Secret"], relaySecretPlaceholder("request.req-oauth.auth.oauth2Secret"); got != want {
+	if got, want := auth["oauth2Secret"], kurloSecretPlaceholder("request.req-oauth.auth.oauth2Secret"); got != want {
 		t.Fatalf("oauth2Secret = %q, want %q", got, want)
 	}
-	if got, want := auth["oauth2Token"], relaySecretPlaceholder("request.req-oauth.auth.oauth2Token"); got != want {
+	if got, want := auth["oauth2Token"], kurloSecretPlaceholder("request.req-oauth.auth.oauth2Token"); got != want {
 		t.Fatalf("oauth2Token = %q, want %q", got, want)
 	}
 

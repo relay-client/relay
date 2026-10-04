@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/relay-client/relay/apps/desktop/internal/api/auth"
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/api/auth"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -74,7 +74,7 @@ func (m *websocketManager) connectWithCallbacks(appCtx context.Context, sessionI
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				log.Printf("relay: websocket session %s panicked: %v", sessionID, r)
+				log.Printf("kurlo: websocket session %s panicked: %v", sessionID, r)
 			}
 			m.mu.Lock()
 			if sess, ok := m.sessions[sessionID]; ok && sess.id == seq {
@@ -252,7 +252,7 @@ func (m *websocketManager) runConnectionOnceWithCallbacks(ctx context.Context, s
 	if browserSecurityActive(req) {
 		headers.Set("User-Agent", browserLikeUserAgent)
 	} else {
-		headers.Set("User-Agent", "Relay/"+appVersion)
+		headers.Set("User-Agent", "Kurlo/"+appVersion)
 	}
 	_, _ = applyUserHeaders(headers, req.Headers)
 	if notice := websocketHandshakeHeaderNotice(dropWebSocketHandshakeHeaders(headers)); notice != "" {
@@ -469,7 +469,7 @@ func websocketHandshakeHeaderNotice(names []string) string {
 	if len(names) == 0 {
 		return ""
 	}
-	return "Not sent: " + strings.Join(names, ", ") + ". Relay negotiates these itself during the WebSocket handshake."
+	return "Not sent: " + strings.Join(names, ", ") + ". Kurlo negotiates these itself during the WebSocket handshake."
 }
 
 func websocketReadIdleTimeout(req model.HttpRequest) time.Duration {

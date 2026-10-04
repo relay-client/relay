@@ -121,7 +121,7 @@ const backend = vi.hoisted(() => {
       }
       return response(404, { error: `Unhandled ${req.method} ${req.url}` }, [{ name: 'handled', passed: false, error: 'No mock route' }]);
     }),
-    sendHttpRequestToFile: vi.fn(async (req: HttpRequest) => ({ response: await backend.sendHttpRequest(req), savedPath: '/tmp/relay-response.json' })),
+    sendHttpRequestToFile: vi.fn(async (req: HttpRequest) => ({ response: await backend.sendHttpRequest(req), savedPath: '/tmp/kurlo-response.json' })),
     sendGrpcRequest: vi.fn(async (): Promise<GrpcResponse> => ({
       status: 'OK',
       grpcCode: 'OK',

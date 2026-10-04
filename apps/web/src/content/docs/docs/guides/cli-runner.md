@@ -1,16 +1,16 @@
 ---
-title: CLI runner (relay run)
-description: Run a Relay YAML workspace's requests and test scripts from the terminal or CI, with pretty, JSON, or JUnit output.
+title: CLI runner (kurlo run)
+description: Run a Kurlo YAML workspace's requests and test scripts from the terminal or CI, with pretty, JSON, or JUnit output.
 ---
 
-`relay run` executes a [Git-backed YAML workspace](/docs/guides/git-workspaces/) from the command line — the same requests and JavaScript test scripts you run in the app, without the window. It's built for CI: a non-zero exit code fails the build when a request errors or an assertion fails.
+`kurlo run` executes a [Git-backed YAML workspace](/docs/guides/git-workspaces/) from the command line — the same requests and JavaScript test scripts you run in the app, without the window. It's built for CI: a non-zero exit code fails the build when a request errors or an assertion fails.
 
-The desktop binary is the CLI. There is nothing extra to install — the app you already have responds to `relay run`.
+The desktop binary is the CLI. There is nothing extra to install — the app you already have responds to `kurlo run`.
 
 ## Quick start
 
 ```bash
-relay run ./my-workspace --env Staging
+kurlo run ./my-workspace --env Staging
 ```
 
 ```
@@ -20,7 +20,7 @@ relay run ./my-workspace --env Staging
 2 requests, 2 passed, 0 failed · 3/3 assertions · 131ms
 ```
 
-The first argument is the workspace directory (the folder that contains `relay.yml`); it defaults to the current directory, so inside a workspace you can just run `relay run --env Staging`.
+The first argument is the workspace directory (the folder that contains `kurlo.yml`); it defaults to the current directory, so inside a workspace you can just run `kurlo run --env Staging`.
 
 ## What it runs
 
@@ -55,7 +55,7 @@ When a grant needs a browser and there is no refresh token to fall back on, the 
 Keep the client secret out of the workspace and pass it in:
 
 ```bash
-relay run . --env CI --var oauthClientSecret="$OAUTH_CLIENT_SECRET"
+kurlo run . --env CI --var oauthClientSecret="$OAUTH_CLIENT_SECRET"
 ```
 
 ## Variables
@@ -73,7 +73,7 @@ The full set of dynamic variables (`{{$guid}}`, `{{$timestamp}}`, `{{$randomEmai
 Secrets are the reason `--var` and `--env-file` exist: keep them out of the committed workspace and inject them from the CI environment.
 
 ```bash
-relay run . --env CI --var authToken="$API_TOKEN" --env-file .ci.env
+kurlo run . --env CI --var authToken="$API_TOKEN" --env-file .ci.env
 ```
 
 ## Data-driven runs
@@ -81,7 +81,7 @@ relay run . --env CI --var authToken="$API_TOKEN" --env-file .ci.env
 Point `--data` at a CSV or JSON file to run the selected requests once per row. Each row's columns become variables for that iteration, and the row is also readable in scripts as `pm.iterationData.get("column")` — the same as Postman/Newman.
 
 ```bash
-relay run . --env CI --data users.csv
+kurlo run . --env CI --data users.csv
 ```
 
 ```
@@ -108,7 +108,7 @@ Run one or more reporters with `--reporters` (comma-separated). Each can go to s
 
 ```bash
 # CLI summary on screen, JSON and JUnit written to files
-relay run . --env CI --reporters cli,json,junit \
+kurlo run . --env CI --reporters cli,json,junit \
   --reporter-json-export report.json \
   --reporter-junit-export report.xml
 ```
@@ -120,7 +120,7 @@ relay run . --env CI --reporters cli,json,junit \
 Write the final variable state (including whatever tests set during the run) to a Postman-compatible file:
 
 ```bash
-relay run . --env CI --export-environment final-env.json --export-globals final-globals.json
+kurlo run . --env CI --export-environment final-env.json --export-globals final-globals.json
 ```
 
 The exported file reads back through `--env-file` or `--globals`, and imports into Postman.
@@ -128,8 +128,8 @@ The exported file reads back through `--env-file` or `--globals`, and imports in
 ## Selecting what to run
 
 ```bash
-relay run . --env CI --collection "Billing"          # one collection, by name
-relay run . --env CI --folder "Billing/Refunds"      # a folder subtree
+kurlo run . --env CI --collection "Billing"          # one collection, by name
+kurlo run . --env CI --folder "Billing/Refunds"      # a folder subtree
 ```
 
 ## All flags
@@ -172,11 +172,11 @@ relay run . --env CI --folder "Billing/Refunds"      # a folder subtree
 
 ```yaml
 - name: API smoke tests
-  run: relay run ./workspace --env CI --reporter junit --var token="${{ secrets.API_TOKEN }}" > results.xml
+  run: kurlo run ./workspace --env CI --reporter junit --var token="${{ secrets.API_TOKEN }}" > results.xml
 ```
 
 ## Related
 
 - [Collection Runner](/docs/guides/collection-runner/) — the same idea inside the app, with a data file and parallelism.
-- [Git-backed workspaces](/docs/guides/git-workspaces/) — the YAML format `relay run` reads.
+- [Git-backed workspaces](/docs/guides/git-workspaces/) — the YAML format `kurlo run` reads.
 - [Scripting API](/docs/reference/scripting-api/) — the `pm.*` API your test scripts use.

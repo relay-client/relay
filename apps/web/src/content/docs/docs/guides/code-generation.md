@@ -9,7 +9,7 @@ The **Code** side panel turns the currently-open request into a runnable snippet
 
 ## Supported targets
 
-Relay currently exposes 14 choices:
+Kurlo currently exposes 14 choices:
 
 | Family | Targets |
 |--------|---------|
@@ -25,13 +25,13 @@ Snippets are generated from the currently open HTTP/GraphQL request:
 - Non-secret variables are expanded from the active environment and collection variables.
 - Secret variables stay as `{{name}}` placeholders so copying a snippet does not silently disclose them.
 - URL params, enabled headers, and supported bodies are represented.
-- Bearer, API key, Basic, and OAuth 2.0 auth are emitted in every language. Basic becomes an `Authorization: Basic …` header; an OAuth 2.0 request carries the access token Relay currently holds, and the snippet says so, because that token expires.
+- Bearer, API key, Basic, and OAuth 2.0 auth are emitted in every language. Basic becomes an `Authorization: Basic …` header; an OAuth 2.0 request carries the access token Kurlo currently holds, and the snippet says so, because that token expires.
 - cURL goes further where curl itself can: `-u` for Basic, `--digest` for Digest, and `--aws-sigv4` with the access key for AWS Signature v4, so the copied command signs itself rather than carrying a signature that is already stale.
 
 ## What's omitted
 
 - Pre-request scripts. Snippets show the wire-level request, not the steps that produced it. If your auth depends on a token fetched in a script, copy that call separately.
-- Test scripts — they're a Relay concept, not a client concept.
+- Test scripts — they're a Kurlo concept, not a client concept.
 - Digest and AWS Signature v4 outside cURL. Neither can be written as a fixed header — Digest answers a challenge, SigV4 signs each request — so the snippet opens with a comment saying which scheme it is and what to reach for in that language, rather than looking complete and returning 401.
 - Binary and multipart file handling varies by target; cURL has the most complete file-body output.
 

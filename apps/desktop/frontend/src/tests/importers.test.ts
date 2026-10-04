@@ -634,7 +634,7 @@ describe('insomniaRequestsFromResources', () => {
     });
   });
 
-  it('round-trips all Relay request types through Insomnia export metadata', () => {
+  it('round-trips all Kurlo request types through Insomnia export metadata', () => {
     const exported = buildInsomniaExport('Mixed API', '', [
       testRequest({ id: 'req-http', name: 'HTTP', requestType: 'http', url: 'https://api.example.test/ping' }),
       testRequest({
@@ -847,7 +847,7 @@ paths:
 });
 
 describe('buildOpenApiDocument', () => {
-  it('exports Relay requests as OpenAPI paths, parameters, JSON bodies, and auth', () => {
+  it('exports Kurlo requests as OpenAPI paths, parameters, JSON bodies, and auth', () => {
     const doc = buildOpenApiDocument('Shop API', 'Generated spec', [
       testRequest({
         id: 'req-users-get',
@@ -1175,7 +1175,7 @@ describe('buildPostmanCollection', () => {
     expect(JSON.parse(String(item.body?.graphql?.variables))).toEqual({ id: '{{viewerId}}' });
   });
 
-  it('round-trips all Relay request types through Postman export metadata', () => {
+  it('round-trips all Kurlo request types through Postman export metadata', () => {
     const requests = [
       testRequest({ id: 'req-http', name: 'HTTP', requestType: 'http', url: 'https://api.example.test/ping' }),
       testRequest({
@@ -1291,7 +1291,7 @@ describe('openCollectionBundleFromFiles', () => {
     const bundle = openCollectionBundleFromFiles([
       {
         path: 'opencollection.yml',
-        content: `info:\n  name: Bruno API\ndocs: |-\n  Collection docs.\nvariables:\n  - name: workspace\n    value: core\nheaders:\n  - name: X-Collection\n    value: relay\nauth:\n  type: bearer\n  token: "{{collectionToken}}"\nruntime:\n  scripts:\n    - type: before-request\n      code: |-\n        bru.setVar("collection", "yes");\nsettings:\n  timeout: 9000\n  sslVerification: false\n  proxyUrl: http://localhost:8080\n`,
+        content: `info:\n  name: Bruno API\ndocs: |-\n  Collection docs.\nvariables:\n  - name: workspace\n    value: core\nheaders:\n  - name: X-Collection\n    value: kurlo\nauth:\n  type: bearer\n  token: "{{collectionToken}}"\nruntime:\n  scripts:\n    - type: before-request\n      code: |-\n        bru.setVar("collection", "yes");\nsettings:\n  timeout: 9000\n  sslVerification: false\n  proxyUrl: http://localhost:8080\n`,
       },
       {
         path: 'users/folder.yml',
@@ -1303,14 +1303,14 @@ describe('openCollectionBundleFromFiles', () => {
       },
       {
         path: 'environments/local.yml',
-        content: `info:\n  name: Local\nvariables:\n  - name: baseUrl\n    value: https://api.example.test\n  - name: token\n    value: "{{relaySecret:token}}"\n    secret: true\n`,
+        content: `info:\n  name: Local\nvariables:\n  - name: baseUrl\n    value: https://api.example.test\n  - name: token\n    value: "{{kurloSecret:token}}"\n    secret: true\n`,
       },
     ], 'collection-1', 'Fallback', 'workspace-1');
 
     expect(bundle.name).toBe('Bruno API');
     expect(bundle.description).toBe('Collection docs.');
     expect(bundle.defaults.variables[0]).toMatchObject({ key: 'workspace', value: 'core' });
-    expect(bundle.defaults.headers[0]).toMatchObject({ key: 'X-Collection', value: 'relay' });
+    expect(bundle.defaults.headers[0]).toMatchObject({ key: 'X-Collection', value: 'kurlo' });
     expect(bundle.defaults.auth).toMatchObject({ type: 'bearer', bearerToken: '{{collectionToken}}' });
     expect(bundle.defaults.preRequestScript).toContain('collection');
     expect(bundle.defaults.settings.timeoutMs).toBe(9000);
@@ -1591,7 +1591,7 @@ describe('buildOpenCollectionFiles', () => {
     expect(files.find(file => file.path === 'Parent/Empty-Child/folder.yml')?.content).toContain('name: Empty Child');
   });
 
-  it('round-trips all Relay request types through OpenCollection files', () => {
+  it('round-trips all Kurlo request types through OpenCollection files', () => {
     const files = buildOpenCollectionFiles('Mixed API', '', emptyCollectionDefaults(), [
       testRequest({ id: 'req-http', name: 'HTTP', requestType: 'http', url: 'https://api.example.test/ping' }),
       testRequest({
@@ -1665,7 +1665,7 @@ describe('buildSwaggerDocument', () => {
     ], strip);
 
     expect(doc.swagger).toBe('2.0');
-    expect(doc['x-relay-server']).toBe('{baseUrl}');
+    expect(doc['x-kurlo-server']).toBe('{baseUrl}');
     const login = operation(doc, '/login', 'post');
     expect(login.consumes).toEqual(['application/x-www-form-urlencoded']);
     expect(login.parameters).toEqual(expect.arrayContaining([
@@ -1981,7 +1981,7 @@ describe('examples from imports', () => {
     expect((saved[0].originalRequest as Record<string, unknown>).method).toBe('POST');
   });
 
-  it('round-trips a Postman example back into Relay', () => {
+  it('round-trips a Postman example back into Kurlo', () => {
     const original = testRequest({
       method: 'POST',
       examples: [{

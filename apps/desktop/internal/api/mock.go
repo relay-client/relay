@@ -15,7 +15,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 const (
@@ -456,7 +456,7 @@ func (m *mockServer) handle(w http.ResponseWriter, r *http.Request) {
 	if w.Header().Get("Content-Type") == "" && matched.route.BodyMediaType != "" {
 		w.Header().Set("Content-Type", matched.route.BodyMediaType)
 	}
-	w.Header().Set("X-Relay-Mock-Example", matched.route.ExampleName)
+	w.Header().Set("X-Kurlo-Mock-Example", matched.route.ExampleName)
 	mockExposeHeaders(w.Header())
 
 	w.WriteHeader(status)

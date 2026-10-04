@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Relay Cookie Sync",
+  "name": "Kurlo Cookie Sync",
   "version": "1.0.0",
-  "description": "Pushes browser cookies for the domains you allowlist in Relay into Relay's cookie jar.",
+  "description": "Pushes browser cookies for the domains you allowlist in Kurlo into Kurlo's cookie jar.",
   "permissions": ["cookies", "storage", "alarms"],
   "host_permissions": ["http://127.0.0.1/*", "http://localhost/*"],
   "optional_host_permissions": ["*://*/*"],
@@ -10,7 +10,7 @@
     "service_worker": "background.js"
   },
   "action": {
-    "default_title": "Relay Cookie Sync",
+    "default_title": "Kurlo Cookie Sync",
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon-16.png",

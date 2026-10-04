@@ -111,7 +111,7 @@ export function buildCollectionRunnerReportHtml(input: CollectionRunnerReportInp
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>${escapeHtml(input.title)} - Relay runner report</title>
+  <title>${escapeHtml(input.title)} - Kurlo runner report</title>
   <style>
     :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #202124; background: #f7f8fb; }
     body { margin: 0; padding: 32px; }
@@ -156,7 +156,7 @@ export function buildCollectionRunnerReportHtml(input: CollectionRunnerReportInp
     <header>
       <div>
         <h1>${escapeHtml(input.title)}</h1>
-        <p>Relay collection runner report generated ${escapeHtml(formatDate(generatedAt))}</p>
+        <p>Kurlo collection runner report generated ${escapeHtml(formatDate(generatedAt))}</p>
       </div>
       <span class="badge ${input.summary.failed > 0 ? 'failed' : ''}">${escapeHtml(runStatus(input.summary))}</span>
     </header>

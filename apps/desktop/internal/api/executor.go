@@ -21,11 +21,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/relay-client/relay/apps/desktop/internal/api/auth"
-	"github.com/relay-client/relay/apps/desktop/internal/api/state"
-	"github.com/relay-client/relay/apps/desktop/internal/model"
-	"github.com/relay-client/relay/apps/desktop/internal/script"
-	"github.com/relay-client/relay/apps/desktop/internal/util"
+	"github.com/stormhop/kurlo/apps/desktop/internal/api/auth"
+	"github.com/stormhop/kurlo/apps/desktop/internal/api/state"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/script"
+	"github.com/stormhop/kurlo/apps/desktop/internal/util"
 )
 
 const maxFileBodySize = 256 * 1024 * 1024
@@ -340,7 +340,7 @@ func doRequestWithBodySink(ctx context.Context, req model.HttpRequest, jar http.
 	if browserSecurityActive(req) {
 		httpReq.Header.Set("User-Agent", browserLikeUserAgent)
 	} else {
-		httpReq.Header.Set("User-Agent", "Relay/"+appVersion)
+		httpReq.Header.Set("User-Agent", "Kurlo/"+appVersion)
 	}
 	hostOverride, droppedHeaders := applyUserHeaders(httpReq.Header, req.Headers)
 	if hostOverride != "" {
@@ -1050,7 +1050,7 @@ func reconcileMultipartContentType(headers http.Header, generated string) string
 	if params["boundary"] == "" {
 		return ""
 	}
-	return "Content-Type boundary replaced: the form body is built by Relay, so it is sent with the boundary Relay generated for it."
+	return "Content-Type boundary replaced: the form body is built by Kurlo, so it is sent with the boundary Kurlo generated for it."
 }
 
 func isReservedFramingHeader(name string) bool {
@@ -1068,7 +1068,7 @@ func droppedHeaderNotice(names []string) string {
 		return ""
 	}
 	return fmt.Sprintf(
-		"Not sent: %s. These headers control how the request is framed on the connection, so Relay sets them itself.",
+		"Not sent: %s. These headers control how the request is framed on the connection, so Kurlo sets them itself.",
 		strings.Join(names, ", "),
 	)
 }

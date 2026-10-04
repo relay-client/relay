@@ -20,7 +20,7 @@ const CODE_PANEL_MIN_WORKSPACE_WIDTH = 560;
 const ACTIVITY_RAIL_WIDTH = 52;
 
 export type ResponseLayout = 'right' | 'below';
-export const RESPONSE_LAYOUT_KEY = 'relay.responseLayout.v1';
+export const RESPONSE_LAYOUT_KEY = 'kurlo.responseLayout.v1';
 export const RESPONSE_RIGHT_MIN_WIDTH = 1000;
 const SPLIT_MIN_RATIO = 0.28;
 const SPLIT_MAX_RATIO = 0.72;

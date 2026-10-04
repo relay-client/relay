@@ -3,7 +3,7 @@ title: Environments & variables
 description: Switch between staging, prod, and local without rewriting every request.
 ---
 
-Variables in Relay use the `{{name}}` template syntax. They expand in URLs, headers, query params, request bodies, and auth fields just before send.
+Variables in Kurlo use the `{{name}}` template syntax. They expand in URLs, headers, query params, request bodies, and auth fields just before send.
 
 ![Environment editor with a base URL and masked secret token](../../../../assets/screenshots/environments-panel.png)
 
@@ -14,7 +14,7 @@ A name is looked up in four scopes; when the same name exists in several, the la
 1. **Globals** — **Environments → Globals**, plus values scripts write with `pm.globals.set(...)` or `pm.variables.set(...)`.
 2. **Collection variables** — defaults saved with the collection.
 3. **Active environment variables** — the selected environment for the workspace.
-4. **Data row** — the current row of a data file in the [Collection Runner](/docs/guides/collection-runner/) or [`relay run --data`](/docs/guides/cli-runner/#data-driven-runs).
+4. **Data row** — the current row of a data file in the [Collection Runner](/docs/guides/collection-runner/) or [`kurlo run --data`](/docs/guides/cli-runner/#data-driven-runs).
 
 If nothing matches, the literal `{{name}}` is left untouched so the unresolved template is visible.
 
@@ -26,7 +26,7 @@ A pre-request script runs before the templates are filled in for good. When it s
 
 ### Variables built from other variables
 
-A value may itself contain `{{...}}`, and Relay keeps resolving until nothing changes:
+A value may itself contain `{{...}}`, and Kurlo keeps resolving until nothing changes:
 
 ```
 scheme  = https
@@ -58,7 +58,7 @@ Every occurrence is generated independently — two `{{$guid}}` in one request p
 | Business | `$randomCompanyName`, `$randomBankAccount`, `$randomCreditCardMask`, `$randomPrice`, `$randomCurrencyCode`, `$randomCurrencyName`, `$randomCurrencySymbol` |
 | Files & colour | `$randomMimeType`, `$randomFileName`, `$randomFileExt`, `$randomColor`, `$randomHexColor` |
 
-The editor's `{{` autocomplete lists them alongside your own variables. A `{{$name}}` Relay doesn't implement is left as-is rather than sent as an empty value.
+The editor's `{{` autocomplete lists them alongside your own variables. A `{{$name}}` Kurlo doesn't implement is left as-is rather than sent as an empty value.
 
 ## Comparing environments
 
@@ -70,7 +70,7 @@ With two or more environments, the environment page has a **Matrix** view: every
 - Rename a variable in its row and it is renamed in every environment.
 - The lock marks a variable secret everywhere — masking it in one environment and showing it in another would leak it anyway. The eye shows the values while you look.
 - **+ Variable** adds a variable to every environment at once, empty; the bin removes it from all of them.
-- Click an environment's name to open it on its own. **Single** switches back to one environment at a time; Relay remembers which view you used.
+- Click an environment's name to open it on its own. **Single** switches back to one environment at a time; Kurlo remembers which view you used.
 
 ## Switching environments
 
@@ -85,7 +85,7 @@ pm.environment.set("authToken", body.access_token)
 pm.environment.unset("authToken")
 
 // Runtime-scoped:
-pm.variables.set("traceId", "relay-" + Date.now())
+pm.variables.set("traceId", "kurlo-" + Date.now())
 ```
 
 A common pattern: a "login" request fetches a token and stores it under `authToken`. Every other request uses `Authorization: Bearer {{authToken}}` and inherits the value.

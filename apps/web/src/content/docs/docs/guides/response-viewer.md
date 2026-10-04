@@ -25,7 +25,7 @@ The body view auto-detects how to render the payload:
 - **HTML** / **XML** — syntax-highlighted with line numbers.
 - **Plain text / unknown** — rendered verbatim. No reformatting.
 - **Binary or `application/octet-stream`** — preview is skipped; *Save response* writes the bytes untouched.
-- **Server-Sent Events (`text/event-stream`)** — Relay switches automatically to the SSE panel with streamed event rows.
+- **Server-Sent Events (`text/event-stream`)** — Kurlo switches automatically to the SSE panel with streamed event rows.
 - **WebSocket / Socket.IO / gRPC** — realtime and RPC requests use dedicated response surfaces for frames, events, metadata, status, and logs.
 
 ### Searching the body
@@ -52,9 +52,9 @@ Page navigation buttons (or the keyboard shortcuts mapped to "next/prev response
 
 ### Truncation
 
-If the server returns more than **100 MB**, Relay stops reading after the first 100 MB and marks the response with a banner such as *"response truncated — showing 100 MB of 450 MB"*. The status code and headers are unaffected.
+If the server returns more than **100 MB**, Kurlo stops reading after the first 100 MB and marks the response with a banner such as *"response truncated — showing 100 MB of 450 MB"*. The status code and headers are unaffected.
 
-The response-panel **Save response** action and **Send and download** currently write the body Relay retained, so they do not recover bytes beyond this 100 MB cap.
+The response-panel **Save response** action and **Send and download** currently write the body Kurlo retained, so they do not recover bytes beyond this 100 MB cap.
 
 ## Headers view
 
@@ -64,7 +64,7 @@ Hover any value to reveal a copy button. The header table is plain text — you 
 
 ## Timeline view
 
-The *Timeline* tab appears once a response carries connection details. It answers "where did the time go, and what did Relay actually send?".
+The *Timeline* tab appears once a response carries connection details. It answers "where did the time go, and what did Kurlo actually send?".
 
 - **Timeline** — connection requested, DNS lookup, TCP connect, TLS handshake, request sent, and first response byte, each stamped in milliseconds from the start of the send.
 - **Connection** — whether the connection was newly opened or reused from the pool, the local and remote addresses, every resolved address, and the negotiated TLS version, cipher suite, ALPN protocol, and SNI server name.
@@ -82,7 +82,7 @@ The *Diff* tab appears the second time you send the same request. It compares th
 - Long unchanged runs collapse to a `… unchanged lines` marker — *Show all lines* expands them.
 - *Clear baseline* forgets the previous response and hides the tab until the next send.
 
-Baselines are per-request and live in memory only; they are never written to the workspace and are dropped when Relay restarts.
+Baselines are per-request and live in memory only; they are never written to the workspace and are dropped when Kurlo restarts.
 
 You can also diff against a **saved example** instead of the previous response. That is what stops an example from going stale: an endpoint that no longer matches the contract shows up as a diff rather than passing unnoticed. If the example the baseline pointed at is deleted, it falls back to the previous response. See [Response examples](/docs/guides/examples/).
 
@@ -115,7 +115,7 @@ For the full script API, see the [Scripting API reference](/docs/reference/scrip
 
 ## Binary responses
 
-A body that is not text — an image, a PDF, an archive, a font — is not rendered as text. Relay inspects the actual bytes rather than trusting `Content-Type`, so a payload mislabelled as `text/html` is still recognised, and shows what it found (the sniffed type and the size) with buttons to open the [preview](#preview) or save the body to a file.
+A body that is not text — an image, a PDF, an archive, a font — is not rendered as text. Kurlo inspects the actual bytes rather than trusting `Content-Type`, so a payload mislabelled as `text/html` is still recognised, and shows what it found (the sniffed type and the size) with buttons to open the [preview](#preview) or save the body to a file.
 
 ## Preview
 

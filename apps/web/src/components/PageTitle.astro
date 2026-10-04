@@ -3,7 +3,7 @@ const { title, description } = Astro.locals.starlightRoute.entry.data;
 ---
 
 <h1 id="_top">{title}</h1>
-{description && <p class="relay-page-lead">{description}</p>}
+{description && <p class="kurlo-page-lead">{description}</p>}
 
 <style>
   h1 {
@@ -15,7 +15,7 @@ const { title, description } = Astro.locals.starlightRoute.entry.data;
     color: var(--sl-color-white);
     text-wrap: balance;
   }
-  .relay-page-lead {
+  .kurlo-page-lead {
     margin-top: 0.75rem;
     max-width: 42rem;
     font-size: 1.125rem;

@@ -2,14 +2,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { defineConfig, devices, type PlaywrightTestConfig } from '@playwright/test';
 
-const slowMoMs = Number.parseInt(process.env.RELAY_E2E_SLOWMO_MS ?? '0', 10);
+const slowMoMs = Number.parseInt(process.env.KURLO_E2E_SLOWMO_MS ?? '0', 10);
 const slowMo = Number.isFinite(slowMoMs) && slowMoMs > 0 ? slowMoMs : 0;
-const artifactDir = process.env.RELAY_E2E_ARTIFACT_DIR ?? join(tmpdir(), 'relay-playwright-artifacts');
-const reporter: PlaywrightTestConfig['reporter'] = process.env.CI || process.env.RELAY_E2E_HTML_REPORT === '1'
+const artifactDir = process.env.KURLO_E2E_ARTIFACT_DIR ?? join(tmpdir(), 'kurlo-playwright-artifacts');
+const reporter: PlaywrightTestConfig['reporter'] = process.env.CI || process.env.KURLO_E2E_HTML_REPORT === '1'
   ? [
       ['list'],
       ['./e2e/cleanup-reporter.ts', { artifactDir }],
-      ['html', { open: 'never', outputFolder: process.env.RELAY_E2E_REPORT_DIR ?? join(artifactDir, 'html-report') }],
+      ['html', { open: 'never', outputFolder: process.env.KURLO_E2E_REPORT_DIR ?? join(artifactDir, 'html-report') }],
     ]
   : [
       ['list'],
@@ -47,7 +47,7 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        deviceScaleFactor: process.env.RELAY_DOCS_SCREENSHOT_DIR || process.env.RELAY_README_SCREENSHOT ? 2 : 1,
+        deviceScaleFactor: process.env.KURLO_DOCS_SCREENSHOT_DIR || process.env.KURLO_README_SCREENSHOT ? 2 : 1,
       },
     },
     {

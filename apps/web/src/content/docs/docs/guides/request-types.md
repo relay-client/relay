@@ -1,9 +1,9 @@
 ---
 title: Request types
-description: HTTP, GraphQL, SSE, WebSocket, Socket.IO, gRPC, and MCP requests in Relay.
+description: HTTP, GraphQL, SSE, WebSocket, Socket.IO, gRPC, and MCP requests in Kurlo.
 ---
 
-Relay has separate request modes for protocols that behave differently on the wire. Each mode changes the editor tabs, send/connect controls, response panel, and export behavior to match.
+Kurlo has separate request modes for protocols that behave differently on the wire. Each mode changes the editor tabs, send/connect controls, response panel, and export behavior to match.
 
 A new request always starts as HTTP — the `+` in the tab bar, `Cmd/Ctrl N`, and **Add request** in the sidebar open it straight away, with no dialog. To use another protocol, pick it from the menu at the start of the address bar, or run **New GraphQL request**, **New WebSocket request**, **New Socket.IO request**, **New gRPC request**, or **New MCP request** from the command palette.
 
@@ -54,11 +54,11 @@ SSE is an HTTP request with long-lived streaming semantics:
 3. Enter the stream URL and any auth/headers.
 4. Press **Connect**.
 
-Relay adds `Accept: text/event-stream`, `Cache-Control: no-cache`, and `Connection: keep-alive` when building the request. Events appear as they arrive and the session is written to history once the stream connects or errors.
+Kurlo adds `Accept: text/event-stream`, `Cache-Control: no-cache`, and `Connection: keep-alive` when building the request. Events appear as they arrive and the session is written to history once the stream connects or errors.
 
 An SSE request has no Scripts tab: a subscription is opened rather than sent, and pre-request and test scripts do not run on that path. Reconnection is configurable — see [SSE-specific settings](/docs/guides/request-settings/#sse-specific-settings).
 
-The `SSE` method subscribes with a `GET` and no body. An endpoint that streams events back from a `POST` — the streaming mode of most LLM APIs — is sent as an ordinary `POST`: Relay reads the stream until the server closes it and shows the raw events as the response body, within the request timeout.
+The `SSE` method subscribes with a `GET` and no body. An endpoint that streams events back from a `POST` — the streaming mode of most LLM APIs — is sent as an ordinary `POST`: Kurlo reads the stream until the server closes it and shows the raw events as the response body, within the request timeout.
 
 The SSE event list keeps the latest events bounded for UI performance. Clear or restore visible events from the SSE panel while the session is open.
 
@@ -66,7 +66,7 @@ The SSE event list keeps the latest events bounded for UI performance. Clear or 
 
 ## WebSocket
 
-WebSocket requests connect to `ws://` or `wss://` URLs. Relay shows:
+WebSocket requests connect to `ws://` or `wss://` URLs. Kurlo shows:
 
 - A handshake record with request/response headers.
 - Incoming/outgoing frames.
@@ -93,7 +93,7 @@ Socket.IO events are displayed with namespace, direction, args, and system/error
 
 ## gRPC
 
-gRPC requests target `host:port` or a `grpc://` / `grpcs://` style target. Relay can discover services by reflection when enabled, or use a selected `.proto` file with import paths.
+gRPC requests target `host:port` or a `grpc://` / `grpcs://` style target. Kurlo can discover services by reflection when enabled, or use a selected `.proto` file with import paths.
 
 The request body is JSON in protobuf JSON shape. Metadata lives in its own tab. The response panel separates:
 
@@ -108,9 +108,9 @@ gRPC supports pre-request/test scripts, environment variables, collection defaul
 
 ## MCP
 
-An MCP request calls a [Model Context Protocol](https://modelcontextprotocol.io) server — the servers agents talk to — without an agent in the loop. Relay speaks protocol revision **2026-07-28**, which is stateless: every call is a single HTTP POST to the server's endpoint, so an MCP call is an ordinary saved request that can be replayed, diffed, scripted and committed.
+An MCP request calls a [Model Context Protocol](https://modelcontextprotocol.io) server — the servers agents talk to — without an agent in the loop. Kurlo speaks protocol revision **2026-07-28**, which is stateless: every call is a single HTTP POST to the server's endpoint, so an MCP call is an ordinary saved request that can be replayed, diffed, scripted and committed.
 
-Put the server's endpoint in the URL bar, then press **Discover**. Relay calls `server/discover` and follows it with `tools/list`, `resources/list` and `prompts/list` for the capabilities the server actually declares, so a server with no prompts is never asked for any. The panel then names the server, its version and what it holds.
+Put the server's endpoint in the URL bar, then press **Discover**. Kurlo calls `server/discover` and follows it with `tools/list`, `resources/list` and `prompts/list` for the capabilities the server actually declares, so a server with no prompts is never asked for any. The panel then names the server, its version and what it holds.
 
 Choose a method and, for `tools/call`, `resources/read` or `prompts/get`, the tool, resource or prompt to address. Picking a tool seeds the **Arguments** editor from the tool's own input schema, and the arguments are checked for being a JSON object before anything is sent.
 
@@ -122,15 +122,15 @@ The response panel has three views:
 - **Raw exchange** — the JSON-RPC envelope exactly as it arrived, including the individual frames when the server answered with a stream. This is the view that makes a failing tool call diagnosable.
 - **Notifications** — the progress and log notifications a streamed answer carried before its result.
 
-What Relay checks on your behalf:
+What Kurlo checks on your behalf:
 
 - **A tool that contradicts its own output schema is called out.** If the server publishes an `outputSchema` and its `structuredContent` does not match, the mismatch is listed as a warning — and the content is still shown, because the server is the one at fault.
-- **A tool whose `x-mcp-header` annotations the specification forbids cannot be called.** Relay names the reason instead of quietly dropping the tool from the list, which is what a conforming agent client does.
+- **A tool whose `x-mcp-header` annotations the specification forbids cannot be called.** Kurlo names the reason instead of quietly dropping the tool from the list, which is what a conforming agent client does.
 - **Headers the protocol derives from the body are yours to read, not to set.** `Mcp-Method`, `Mcp-Name`, `MCP-Protocol-Version` and the `Mcp-Param-*` headers are built from the call; a header of the same name in the Headers tab is replaced and you are told so, because a server must reject a request whose headers and body disagree.
 
 Auth, proxy, client certificates, redirects and the response cap are the ordinary HTTP ones — an MCP call is an HTTP request, and it carries the same settings.
 
-Not in this release: the **stdio** transport, so servers launched as a local command (`npx some-server`) cannot be reached yet; the protocol revisions before `2026-07-28`; `subscriptions/listen`; and sampling, which Relay declines because it has no model and is not going to acquire one.
+Not in this release: the **stdio** transport, so servers launched as a local command (`npx some-server`) cannot be reached yet; the protocol revisions before `2026-07-28`; `subscriptions/listen`; and sampling, which Kurlo declines because it has no model and is not going to acquire one.
 
 ## Import and export notes
 
@@ -142,4 +142,4 @@ Not in this release: the **stdio** transport, so servers launched as a local com
 | All-data backup | All request types |
 | Git/YAML workspace | All request types |
 
-When a format cannot represent a request type, Relay skips it and shows an in-app message instead of writing a misleading partial export.
+When a format cannot represent a request type, Kurlo skips it and shows an in-app message instead of writing a misleading partial export.

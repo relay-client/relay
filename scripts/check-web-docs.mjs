@@ -90,7 +90,7 @@ function checkInternalLinks(files) {
 }
 
 function checkBasePrefixedLinks() {
-  const base = process.env.RELAY_SITE_BASE ?? '/';
+  const base = process.env.KURLO_SITE_BASE ?? '/';
   const normalized = base.endsWith('/') ? base.slice(0, -1) : base;
   if (!normalized) return;
 
@@ -126,8 +126,8 @@ function checkPagefind() {
 function checkCodeBackedDocs() {
   const stripGo = read(join(root, 'apps/desktop/internal/api/file_workspace_store_strip.go'));
   const secretsGo = read(join(root, 'apps/desktop/internal/api/file_workspace_store.go'));
-  const schema = read(join(root, 'schemas/relay-workspace-yaml-v1.schema.json'));
-  const yamlDoc = read(join(contentRoot, 'docs/reference/relay-yaml-format.md'));
+  const schema = read(join(root, 'schemas/kurlo-workspace-yaml-v1.schema.json'));
+  const yamlDoc = read(join(contentRoot, 'docs/reference/kurlo-yaml-format.md'));
   const coverage = read(join(webRoot, 'DOCS_COVERAGE.md'));
 
   for (const field of ['oauth2GrantType', 'oauth2AuthURL', 'oauth2RefreshToken', 'oauth2TokenExpiry', 'oauth2UsePKCE']) {

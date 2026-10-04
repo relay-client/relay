@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -160,7 +160,7 @@ func cookieSyncPairingCode(port int, token string) string {
 	if token == "" || port <= 0 {
 		return ""
 	}
-	return fmt.Sprintf("relay-%d-%s", port, token)
+	return fmt.Sprintf("kurlo-%d-%s", port, token)
 }
 
 func normalizeCookieSyncDomain(input string) string {
@@ -363,7 +363,7 @@ func (s *cookieSyncServer) stopServer() {
 	s.mu.Unlock()
 
 	for _, session := range sessions {
-		session.closeWith(websocket.CloseGoingAway, "relay is closing the bridge")
+		session.closeWith(websocket.CloseGoingAway, "kurlo is closing the bridge")
 	}
 	if server != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), cookieSyncShutdownTimeout)
@@ -433,7 +433,7 @@ func (s *cookieSyncServer) revokePairing() model.CookieSyncStatus {
 	s.mu.Unlock()
 
 	for _, session := range sessions {
-		session.closeWith(websocket.ClosePolicyViolation, "relay disconnected this browser")
+		session.closeWith(websocket.ClosePolicyViolation, "kurlo disconnected this browser")
 	}
 	return status
 }
@@ -494,7 +494,7 @@ func (s *cookieSyncServer) handle(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Vary", "Origin")
 	}
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "content-type, x-relay-cookie-sync")
+	w.Header().Set("Access-Control-Allow-Headers", "content-type, x-kurlo-cookie-sync")
 	w.Header().Set("Cache-Control", "no-store")
 	if r.Method == http.MethodOptions {
 		w.Header().Set("Access-Control-Max-Age", "600")
@@ -522,7 +522,7 @@ func (s *cookieSyncServer) handleDiscover(w http.ResponseWriter, _ *http.Request
 	paired := s.paired
 	s.mu.RUnlock()
 	writeCookieSyncJSON(w, http.StatusOK, map[string]any{
-		"app":     "relay",
+		"app":     "kurlo",
 		"version": appVersion,
 		"port":    port,
 		"paired":  paired,
@@ -553,7 +553,7 @@ func (s *cookieSyncServer) handlePairRequest(w http.ResponseWriter, r *http.Requ
 		wait := int(s.cooldownUntil.Sub(now).Seconds()) + 1
 		s.mu.Unlock()
 		writeCookieSyncJSON(w, http.StatusTooManyRequests, map[string]any{
-			"error":      "Relay turned down the last request — wait before asking again",
+			"error":      "Kurlo turned down the last request — wait before asking again",
 			"retryAfter": wait,
 		})
 		return
@@ -686,7 +686,7 @@ func (s *cookieSyncServer) handleSocket(w http.ResponseWriter, r *http.Request) 
 
 	_ = session.send(map[string]any{
 		"type":    "hello",
-		"app":     "relay",
+		"app":     "kurlo",
 		"version": appVersion,
 		"domains": domains,
 	})

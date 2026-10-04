@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 func issueCert(t *testing.T, commonName string) (certPEM, keyPEM []byte, cert tls.Certificate) {
@@ -96,7 +96,7 @@ func TestClientCertificateIsPresentedForMutualTLS(t *testing.T) {
 	httpTransports.closeAll()
 	t.Cleanup(httpTransports.closeAll)
 
-	certPEM, keyPEM, clientCert := issueCert(t, "relay-client")
+	certPEM, keyPEM, clientCert := issueCert(t, "stormhop")
 	pool := x509.NewCertPool()
 	pool.AddCert(clientCert.Leaf)
 	server := mTLSServer(t, pool)
@@ -112,13 +112,13 @@ func TestClientCertificateIsPresentedForMutualTLS(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}
-	if resp.Body != "client=relay-client" {
+	if resp.Body != "client=stormhop" {
 		t.Fatalf("server did not see the client cert: %q", resp.Body)
 	}
 }
 
 func TestMutualTLSServerRejectsRequestWithoutCert(t *testing.T) {
-	_, _, clientCert := issueCert(t, "relay-client")
+	_, _, clientCert := issueCert(t, "stormhop")
 	pool := x509.NewCertPool()
 	pool.AddCert(clientCert.Leaf)
 	server := mTLSServer(t, pool)

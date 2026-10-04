@@ -28,9 +28,9 @@ describe('git pull summary toast', () => {
       git: { head: 'abc1234' } as never,
       error: '',
       output: '',
-      files: ['relay.yml', 'workspaces/Main/collections/API.yml'],
+      files: ['kurlo.yml', 'workspaces/Main/collections/API.yml'],
     }))
-      .toBe('Commit complete: 2 Relay files committed · abc1234');
+      .toBe('Commit complete: 2 Kurlo files committed · abc1234');
   });
 
   it('formats pushed commits and changed files', () => {

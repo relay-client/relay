@@ -1,40 +1,40 @@
 ---
 title: Installation
-description: Install Relay on macOS, Windows or Linux, and get past the first-run prompts.
+description: Install Kurlo on macOS, Windows or Linux, and get past the first-run prompts.
 ---
 
 import { Steps } from '@astrojs/starlight/components';
 
-Relay publishes a build for each platform on the [releases page](https://github.com/relay-client/relay/releases/latest). Code signing differs by platform and file, so each section below ends with what to expect on the first launch.
+Kurlo publishes a build for each platform on the [releases page](https://github.com/stormhop/kurlo/releases/latest). Code signing differs by platform and file, so each section below ends with what to expect on the first launch.
 
 ## macOS
 
-**Requirements:** macOS 12 (Monterey) or later, with system updates installed — Relay draws its window with the system WebKit and needs the version that ships with Safari 16.2 or newer. Apple Silicon and Intel are both supported.
+**Requirements:** macOS 12 (Monterey) or later, with system updates installed — Kurlo draws its window with the system WebKit and needs the version that ships with Safari 16.2 or newer. Apple Silicon and Intel are both supported.
 
 <Steps>
 
-1. Download `relay-<version>-darwin-universal.dmg`.
+1. Download `kurlo-<version>-darwin-universal.dmg`.
 
-2. Open the disk image and drag **Relay.app** to `/Applications`.
+2. Open the disk image and drag **Kurlo.app** to `/Applications`.
 
-3. Launch Relay from Spotlight or the Applications folder.
+3. Launch Kurlo from Spotlight or the Applications folder.
 
 </Steps>
 
-Current builds are not Apple-notarized. On the first launch, right-click **Relay.app** and choose **Open**, or use *System Settings → Privacy & Security → Open Anyway*. See the [troubleshooting guide](/docs/troubleshooting/#macos-relay-cant-be-opened-because-apple-cannot-check-it-for-malicious-software).
+Current builds are not Apple-notarized. On the first launch, right-click **Kurlo.app** and choose **Open**, or use *System Settings → Privacy & Security → Open Anyway*. See the [troubleshooting guide](/docs/troubleshooting/#macos-kurlo-cant-be-opened-because-apple-cannot-check-it-for-malicious-software).
 
 ## Windows
 
 **Requirements:** Windows 10 1903+ or Windows 11, on x64 or Arm64. Pick the files ending in `amd64` for an Intel or AMD processor and `arm64` for a Snapdragon or other Arm processor; *Settings → System → About → System type* says which one you have.
 
-<div class="relay-tiles">
-  <div class="relay-tile">
-    <span class="relay-tile-title">Installer (recommended)</span>
-    <span class="relay-tile-text"><code>relay-&lt;version&gt;-windows-amd64-installer.exe</code> installs for you alone into <code>%LOCALAPPDATA%\Programs\Relay</code>. No administrator rights, and the in-app updater can replace the app later.</span>
+<div class="kurlo-tiles">
+  <div class="kurlo-tile">
+    <span class="kurlo-tile-title">Installer (recommended)</span>
+    <span class="kurlo-tile-text"><code>kurlo-&lt;version&gt;-windows-amd64-installer.exe</code> installs for you alone into <code>%LOCALAPPDATA%\Programs\Kurlo</code>. No administrator rights, and the in-app updater can replace the app later.</span>
   </div>
-  <div class="relay-tile">
-    <span class="relay-tile-title">MSIX package</span>
-    <span class="relay-tile-text"><code>relay-&lt;version&gt;-windows-amd64.msix</code> installs through App Installer, which lists one permission — <em>Uses all system resources</em> — that every packaged desktop app needs.</span>
+  <div class="kurlo-tile">
+    <span class="kurlo-tile-title">MSIX package</span>
+    <span class="kurlo-tile-text"><code>kurlo-&lt;version&gt;-windows-amd64.msix</code> installs through App Installer, which lists one permission — <em>Uses all system resources</em> — that every packaged desktop app needs.</span>
   </div>
 </div>
 
@@ -46,13 +46,13 @@ If an older copy installed for all users in Program Files is found, the installe
 
 <Steps>
 
-1. Download `relay-<version>-linux-amd64.AppImage`.
+1. Download `kurlo-<version>-linux-amd64.AppImage`.
 
 2. Make it executable and run it:
 
    ```sh
-   chmod +x relay-*.AppImage
-   ./relay-*.AppImage
+   chmod +x kurlo-*.AppImage
+   ./kurlo-*.AppImage
    ```
 
 </Steps>
@@ -62,12 +62,12 @@ If an older copy installed for all users in Program Files is found, the installe
 SHA-256 checksums are published in `SHA256SUMS.txt`; auto-updates use the values embedded in `latest.json`. Verify before running:
 
 ```sh
-shasum -a 256 relay-*.dmg
+shasum -a 256 kurlo-*.dmg
 # Compare against the value on the releases page.
 ```
 
 ## Auto-updates
 
-Relay checks `latest.json` from `relay-client/relay` after launch. Open **Settings → Updates** to check and install by hand. **Settings → About → Automatically install updates** controls whether a discovered update installs in the background.
+Kurlo checks `latest.json` from `stormhop/kurlo` after launch. Open **Settings → Updates** to check and install by hand. **Settings → About → Automatically install updates** controls whether a discovered update installs in the background.
 
 Updates are verified against both the SHA-256 value and the minisign signature from the manifest before they install.

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/relay-client/relay/apps/desktop/internal/model"
-	"github.com/relay-client/relay/apps/desktop/internal/script"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/script"
 )
 
 const (

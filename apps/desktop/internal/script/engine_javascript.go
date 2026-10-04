@@ -11,7 +11,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/dop251/goja"
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 const (
@@ -25,7 +25,7 @@ func runJS(src string, ctx *Context, hasResponse bool) string {
 	vm := goja.New()
 	vm.SetMaxCallStackSize(jsMaxCallStackSize)
 
-	if err := vm.Set("__relayHost", buildJSHost(vm, ctx, hasResponse)); err != nil {
+	if err := vm.Set("__kurloHost", buildJSHost(vm, ctx, hasResponse)); err != nil {
 		return "setup error: " + err.Error()
 	}
 	if _, err := vm.RunString(jsPrelude); err != nil {
@@ -477,7 +477,7 @@ func buildJSHost(vm *goja.Runtime, ctx *Context, hasResponse bool) map[string]in
 }
 
 const jsPrelude = `
-var __relayAPI = (function (host) {
+var __kurloAPI = (function (host) {
   function valStr(v) {
     if (v === undefined || v === null) return '';
     if (typeof v === 'string') return v;
@@ -847,7 +847,7 @@ var __relayAPI = (function (host) {
 
   pm.sendRequest = function (options, callback) {
     if (!host.canSend) {
-      var disabled = new Error('pm.sendRequest is disabled — turn on "Allow pm.sendRequest" in the Settings tab of this request, or pass --allow-send-request to relay run');
+      var disabled = new Error('pm.sendRequest is disabled — turn on "Allow pm.sendRequest" in the Settings tab of this request, or pass --allow-send-request to kurlo run');
       if (typeof callback === 'function') return callback(disabled, undefined);
       throw disabled;
     }
@@ -924,7 +924,7 @@ var __relayAPI = (function (host) {
     clearGlobalVariable: function (k) { pm.globals.unset(k); },
     clearGlobalVariables: function () { pm.globals.clear(); },
     getResponseHeader: function (k) { return pm.response ? pm.response.headers.get(k) : undefined; },
-    setNextRequest: function () { throw new Error("postman.setNextRequest is not supported — Relay's Collection Runner runs requests in their declared order"); }
+    setNextRequest: function () { throw new Error("postman.setNextRequest is not supported — Kurlo's Collection Runner runs requests in their declared order"); }
   };
 
   var legacy = { tests: {}, postman: postman, xml2Json: xml2Json };
@@ -937,9 +937,9 @@ var __relayAPI = (function (host) {
 
   function wordArray(hex) {
     return {
-      __relayDigestHex: hex,
+      __kurloDigestHex: hex,
       toString: function (encoder) {
-        if (encoder && encoder.__relayEnc && encoder.__relayEnc !== 'hex') return host.cryptoReencode(hex, encoder.__relayEnc);
+        if (encoder && encoder.__kurloEnc && encoder.__kurloEnc !== 'hex') return host.cryptoReencode(hex, encoder.__kurloEnc);
         return hex;
       }
     };
@@ -962,10 +962,10 @@ var __relayAPI = (function (host) {
     HmacSHA384: cryptoJSHmac('sha384'),
     HmacSHA512: cryptoJSHmac('sha512'),
     enc: {
-      Hex: { __relayEnc: 'hex', stringify: function (wa) { return wa.toString(); } },
-      Base64: { __relayEnc: 'base64', stringify: function (wa) { return wa.toString({ __relayEnc: 'base64' }); } },
+      Hex: { __kurloEnc: 'hex', stringify: function (wa) { return wa.toString(); } },
+      Base64: { __kurloEnc: 'base64', stringify: function (wa) { return wa.toString({ __kurloEnc: 'base64' }); } },
       Utf8: {
-        __relayEnc: 'hex',
+        __kurloEnc: 'hex',
         parse: function (s) { return valStr(s); },
         stringify: function (wa) { return wa.toString(); }
       }
@@ -1186,7 +1186,7 @@ var __relayAPI = (function (host) {
   var lodashModule = typeof Proxy === 'function' ? new Proxy(lodash, {
     get: function (target, name) {
       if (name in target || typeof name === 'symbol') return target[name];
-      throw new Error('lodash.' + String(name) + ' is not available in Relay\'s script sandbox');
+      throw new Error('lodash.' + String(name) + ' is not available in Kurlo\'s script sandbox');
     }
   }) : lodash;
 
@@ -1255,7 +1255,7 @@ var __relayAPI = (function (host) {
   function require(name) {
     var key = String(name);
     if (Object.prototype.hasOwnProperty.call(MODULES, key) && MODULES[key] !== undefined) return MODULES[key];
-    throw new Error('require("' + key + '") is not available in Relay\'s script sandbox (supported: ' +
+    throw new Error('require("' + key + '") is not available in Kurlo\'s script sandbox (supported: ' +
       Object.keys(MODULES).filter(function (k) { return MODULES[k] !== undefined; }).join(', ') + ')');
   }
 
@@ -1263,21 +1263,21 @@ var __relayAPI = (function (host) {
   function btoa(raw) { return host.cryptoBase64Encode(valStr(raw)); }
 
   return { pm: pm, expect: expect, console: console, CryptoJS: CryptoJS, require: require, _: lodashModule, tv4: tv4, Ajv: Ajv, atob: atob, btoa: btoa, legacy: legacy };
-})(__relayHost);
+})(__kurloHost);
 
 (function (globalScope) {
-  globalScope.pm = __relayAPI.pm;
-  globalScope.expect = __relayAPI.expect;
-  globalScope.console = __relayAPI.console;
-  globalScope.CryptoJS = __relayAPI.CryptoJS;
-  globalScope.require = __relayAPI.require;
-  globalScope._ = __relayAPI._;
-  globalScope.tv4 = __relayAPI.tv4;
-  globalScope.Ajv = __relayAPI.Ajv;
-  globalScope.atob = __relayAPI.atob;
-  globalScope.btoa = __relayAPI.btoa;
-  for (var name in __relayAPI.legacy) globalScope[name] = __relayAPI.legacy[name];
+  globalScope.pm = __kurloAPI.pm;
+  globalScope.expect = __kurloAPI.expect;
+  globalScope.console = __kurloAPI.console;
+  globalScope.CryptoJS = __kurloAPI.CryptoJS;
+  globalScope.require = __kurloAPI.require;
+  globalScope._ = __kurloAPI._;
+  globalScope.tv4 = __kurloAPI.tv4;
+  globalScope.Ajv = __kurloAPI.Ajv;
+  globalScope.atob = __kurloAPI.atob;
+  globalScope.btoa = __kurloAPI.btoa;
+  for (var name in __kurloAPI.legacy) globalScope[name] = __kurloAPI.legacy[name];
 })(typeof globalThis !== 'undefined' ? globalThis : this);
-__relayHost = undefined;
-__relayAPI = undefined;
+__kurloHost = undefined;
+__kurloAPI = undefined;
 `

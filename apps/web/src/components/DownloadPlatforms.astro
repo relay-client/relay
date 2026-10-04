@@ -1,5 +1,5 @@
 ---
-const releases = 'https://github.com/relay-client/relay/releases/latest';
+const releases = 'https://github.com/stormhop/kurlo/releases/latest';
 const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
 
 interface PlatformFile {
@@ -24,19 +24,19 @@ const platforms: Platform[] = [
     name: 'macOS',
     requirement: 'macOS 12 Monterey or later · Apple Silicon and Intel',
     files: [
-      { label: 'Universal disk image', file: 'relay-<version>-darwin-universal.dmg', match: '-darwin-universal.dmg', primary: true },
+      { label: 'Universal disk image', file: 'kurlo-<version>-darwin-universal.dmg', match: '-darwin-universal.dmg', primary: true },
     ],
-    note: 'Not Apple-notarized yet: on first launch, right-click Relay.app and choose Open.',
+    note: 'Not Apple-notarized yet: on first launch, right-click Kurlo.app and choose Open.',
   },
   {
     id: 'windows',
     name: 'Windows',
     requirement: 'Windows 10 1903+ or Windows 11 · x64 and Arm64',
     files: [
-      { label: 'Installer', file: 'relay-<version>-windows-amd64-installer.exe', match: '-windows-amd64-installer.exe', arch: 'x86', primary: true },
-      { label: 'MSIX package', file: 'relay-<version>-windows-amd64.msix', match: '-windows-amd64.msix', arch: 'x86' },
-      { label: 'Installer', file: 'relay-<version>-windows-arm64-installer.exe', match: '-windows-arm64-installer.exe', arch: 'arm', primary: true },
-      { label: 'MSIX package', file: 'relay-<version>-windows-arm64.msix', match: '-windows-arm64.msix', arch: 'arm' },
+      { label: 'Installer', file: 'kurlo-<version>-windows-amd64-installer.exe', match: '-windows-amd64-installer.exe', arch: 'x86', primary: true },
+      { label: 'MSIX package', file: 'kurlo-<version>-windows-amd64.msix', match: '-windows-amd64.msix', arch: 'x86' },
+      { label: 'Installer', file: 'kurlo-<version>-windows-arm64-installer.exe', match: '-windows-arm64-installer.exe', arch: 'arm', primary: true },
+      { label: 'MSIX package', file: 'kurlo-<version>-windows-arm64.msix', match: '-windows-arm64.msix', arch: 'arm' },
     ],
     note: 'SmartScreen may warn: the installer is not Authenticode-signed yet.',
   },
@@ -45,21 +45,21 @@ const platforms: Platform[] = [
     name: 'Linux',
     requirement: 'glibc 2.31+ · x64 · libgtk-3 and libwebkit2gtk-4.0',
     files: [
-      { label: 'Portable AppImage', file: 'relay-<version>-linux-amd64.AppImage', match: '-linux-amd64.AppImage', primary: true },
+      { label: 'Portable AppImage', file: 'kurlo-<version>-linux-amd64.AppImage', match: '-linux-amd64.AppImage', primary: true },
     ],
     note: 'Make it executable with chmod +x, then run it. Nothing to install.',
   },
 ];
 ---
 
-<div class="relay-platforms not-content">
+<div class="kurlo-platforms not-content">
   {platforms.map(platform => (
-    <section class="relay-platform" data-platform={platform.id} aria-labelledby={`platform-${platform.id}`}>
+    <section class="kurlo-platform" data-platform={platform.id} aria-labelledby={`platform-${platform.id}`}>
       <header>
         <h2 id={`platform-${platform.id}`}>{platform.name}</h2>
-        <span class="relay-platform-yours">Your system</span>
+        <span class="kurlo-platform-yours">Your system</span>
       </header>
-      <p class="relay-platform-req">{platform.requirement}</p>
+      <p class="kurlo-platform-req">{platform.requirement}</p>
       <ul>
         {platform.files.map(item => (
           <li data-arch={item.arch} hidden={item.arch === 'arm'}>
@@ -70,12 +70,12 @@ const platforms: Platform[] = [
           </li>
         ))}
       </ul>
-      <p class="relay-platform-note">{platform.note}</p>
-      <a class="relay-platform-cta" href={releases} data-cta>Download for {platform.name}</a>
+      <p class="kurlo-platform-note">{platform.note}</p>
+      <a class="kurlo-platform-cta" href={releases} data-cta>Download for {platform.name}</a>
     </section>
   ))}
 </div>
-<p class="relay-platforms-after not-content">
+<p class="kurlo-platforms-after not-content">
   <span data-release-line>Every file is on the <a href={releases}>latest release</a>.</span> First-run steps for each system are in <a href={`${base}docs/getting-started/installation/`}>Installation</a>.
 </p>
 
@@ -88,8 +88,8 @@ const platforms: Platform[] = [
       : (/linux/i.test(platform) || /Linux|X11/i.test(ua)) && !/Android/i.test(ua) ? 'linux'
       : '';
     if (!os) return;
-    document.documentElement.dataset.relayOs = os;
-    document.querySelector(`.relay-platform[data-platform="${os}"]`)?.classList.add('relay-platform-current');
+    document.documentElement.dataset.kurloOs = os;
+    document.querySelector(`.kurlo-platform[data-platform="${os}"]`)?.classList.add('kurlo-platform-current');
   })();
 </script>
 
@@ -97,7 +97,7 @@ const platforms: Platform[] = [
   import { findAsset, formatSize, latestRelease, type Release } from '../scripts/latest-release';
 
   async function applyArchitecture() {
-    if (document.documentElement.dataset.relayOs !== 'windows') return;
+    if (document.documentElement.dataset.kurloOs !== 'windows') return;
     const uaData = (navigator as Navigator & {
       userAgentData?: { getHighEntropyValues?: (hints: string[]) => Promise<{ architecture?: string }> };
     }).userAgentData;
@@ -105,7 +105,7 @@ const platforms: Platform[] = [
     try {
       const values = await uaData.getHighEntropyValues(['architecture']);
       if (values?.architecture !== 'arm') return;
-      for (const item of document.querySelectorAll<HTMLElement>('.relay-platform li[data-arch]')) {
+      for (const item of document.querySelectorAll<HTMLElement>('.kurlo-platform li[data-arch]')) {
         item.hidden = item.dataset.arch !== 'arm';
       }
     } catch {}
@@ -120,7 +120,7 @@ const platforms: Platform[] = [
       if (name) name.textContent = `${asset.name} · ${formatSize(asset.size)}`;
     }
 
-    for (const card of document.querySelectorAll('.relay-platform')) {
+    for (const card of document.querySelectorAll('.kurlo-platform')) {
       const primary = card.querySelector<HTMLElement>('li:not([hidden]) a[data-primary]');
       const cta = card.querySelector<HTMLAnchorElement>('[data-cta]');
       if (!primary || !cta) continue;
@@ -136,7 +136,7 @@ const platforms: Platform[] = [
       const published = release.published_at
         ? new Date(release.published_at).toLocaleDateString('en', { year: 'numeric', month: 'short', day: 'numeric' })
         : '';
-      line.textContent = `Relay ${release.tag_name}${published ? `, released ${published}` : ''}. Every file is on the `;
+      line.textContent = `Kurlo ${release.tag_name}${published ? `, released ${published}` : ''}. Every file is on the `;
       const anchor = document.createElement('a');
       anchor.href = releasePage;
       anchor.textContent = 'release page';
@@ -150,13 +150,13 @@ const platforms: Platform[] = [
 </script>
 
 <style>
-  .relay-platforms {
+  .kurlo-platforms {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
     gap: 0.75rem;
     margin-top: 1.5rem;
   }
-  .relay-platform {
+  .kurlo-platform {
     display: flex;
     flex-direction: column;
     gap: 0.85rem;
@@ -165,20 +165,20 @@ const platforms: Platform[] = [
     border-radius: 14px;
     background: var(--sl-color-black);
   }
-  .relay-platform header {
+  .kurlo-platform header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
   }
-  .relay-platform h2 {
+  .kurlo-platform h2 {
     margin: 0;
     font-size: 1.2rem;
     font-weight: 600;
     letter-spacing: -0.015em;
     color: var(--sl-color-white);
   }
-  .relay-platform-yours {
+  .kurlo-platform-yours {
     display: none;
     padding: 0.15rem 0.55rem;
     border-radius: 999px;
@@ -187,20 +187,20 @@ const platforms: Platform[] = [
     font-size: 0.75rem;
     font-weight: 600;
   }
-  :global(:root[data-theme='light']) .relay-platform-yours {
+  :global(:root[data-theme='light']) .kurlo-platform-yours {
     color: var(--sl-color-accent);
   }
-  .relay-platform-req,
-  .relay-platform-note {
+  .kurlo-platform-req,
+  .kurlo-platform-note {
     margin: 0;
     font-size: 0.875rem;
     line-height: 1.55;
     color: var(--sl-color-gray-2);
   }
-  .relay-platform-note {
+  .kurlo-platform-note {
     color: var(--sl-color-gray-3);
   }
-  .relay-platform ul {
+  .kurlo-platform ul {
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
@@ -208,31 +208,31 @@ const platforms: Platform[] = [
     padding: 0;
     list-style: none;
   }
-  .relay-platform li {
+  .kurlo-platform li {
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
     font-size: 0.875rem;
     color: var(--sl-color-white);
   }
-  .relay-platform li[hidden] {
+  .kurlo-platform li[hidden] {
     display: none;
   }
-  .relay-platform li a {
+  .kurlo-platform li a {
     color: inherit;
     text-decoration: none;
   }
-  .relay-platform li a:hover {
+  .kurlo-platform li a:hover {
     text-decoration: underline;
     text-underline-offset: 0.2em;
   }
-  .relay-platform code {
+  .kurlo-platform code {
     font-family: var(--sl-font-mono);
     font-size: 0.75rem;
     color: var(--sl-color-gray-3);
     overflow-wrap: anywhere;
   }
-  .relay-platform-cta {
+  .kurlo-platform-cta {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -240,34 +240,34 @@ const platforms: Platform[] = [
     margin-top: auto;
     border-radius: 10px;
     border: 1px solid var(--sl-color-hairline);
-    background: var(--relay-surface);
+    background: var(--kurlo-surface);
     color: var(--sl-color-white);
     font-size: 0.9rem;
     font-weight: 600;
     text-decoration: none;
     transition: border-color 0.15s ease, background 0.15s ease;
   }
-  .relay-platform-cta:hover {
+  .kurlo-platform-cta:hover {
     border-color: color-mix(in srgb, var(--sl-color-accent) 50%, var(--sl-color-hairline));
   }
-  .relay-platform-current {
+  .kurlo-platform-current {
     border-color: color-mix(in srgb, var(--sl-color-accent) 55%, var(--sl-color-hairline));
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--sl-color-accent) 12%, transparent);
   }
-  .relay-platform-current .relay-platform-yours {
+  .kurlo-platform-current .kurlo-platform-yours {
     display: inline-flex;
   }
-  .relay-platform-current .relay-platform-cta {
+  .kurlo-platform-current .kurlo-platform-cta {
     background: var(--sl-color-accent);
     border-color: var(--sl-color-accent);
     color: #ffffff;
   }
-  .relay-platforms-after {
+  .kurlo-platforms-after {
     margin-top: 1rem;
     font-size: 0.9rem;
     color: var(--sl-color-gray-3);
   }
-  .relay-platforms-after a {
+  .kurlo-platforms-after a {
     color: inherit;
     text-decoration: underline;
     text-underline-offset: 0.2em;

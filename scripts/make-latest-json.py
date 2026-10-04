@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate latest.json for the Relay auto-updater.
+"""Generate latest.json for the Kurlo auto-updater.
 
 Reads binary artifacts from a release directory, computes SHA256, and writes
 the manifest used by the in-app updater. When minisign signature files
@@ -10,7 +10,7 @@ Usage:
     make-latest-json.py \
         --release-dir release \
         --tag v0.1.5 \
-        --repo relay-client/relay \
+        --repo stormhop/kurlo \
         --notes-file release-notes.md \
         [--platforms darwin-universal,darwin-universal-app,windows-amd64,windows-arm64,linux-amd64]
 
@@ -27,11 +27,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 DEFAULT_ASSETS = {
-    "darwin-universal": "relay-darwin-universal",
-    "darwin-universal-app": "relay-darwin-universal.app.zip",
-    "windows-amd64": "relay-windows-amd64.exe",
-    "windows-arm64": "relay-windows-arm64.exe",
-    "linux-amd64": "relay-linux-amd64",
+    "darwin-universal": "kurlo-darwin-universal",
+    "darwin-universal-app": "kurlo-darwin-universal.app.zip",
+    "windows-amd64": "kurlo-windows-amd64.exe",
+    "windows-arm64": "kurlo-windows-arm64.exe",
+    "linux-amd64": "kurlo-linux-amd64",
 }
 
 

@@ -11,8 +11,8 @@ permissions:
 
 env:
   WAILS_VERSION: v2.13.0
-  GO_MODULE: github.com/relay-client/relay/apps/desktop/internal/api
-  UPDATE_REPOSITORY: relay-client/relay
+  GO_MODULE: github.com/stormhop/kurlo/apps/desktop/internal/api
+  UPDATE_REPOSITORY: stormhop/kurlo
   UPDATE_PUBLIC_KEY: ${{ vars.UPDATE_PUBLIC_KEY }}
 
 jobs:
@@ -128,14 +128,14 @@ jobs:
         run: |
           $certificatePath = ""
           if (-not [string]::IsNullOrWhiteSpace($env:MSIX_CERTIFICATE_BASE64)) {
-            $certificatePath = Join-Path $env:RUNNER_TEMP "relay-msix.pfx"
+            $certificatePath = Join-Path $env:RUNNER_TEMP "kurlo-msix.pfx"
             [System.IO.File]::WriteAllBytes($certificatePath, [Convert]::FromBase64String($env:MSIX_CERTIFICATE_BASE64))
           }
 
           ./build/windows/package-msix.ps1 `
             -Version "$env:VERSION" `
             -Architecture "${{ matrix.arch }}" `
-            -OutputPath "build/bin/relay-$env:VERSION-windows-${{ matrix.arch }}.msix" `
+            -OutputPath "build/bin/kurlo-$env:VERSION-windows-${{ matrix.arch }}.msix" `
             -CertificatePath "$certificatePath" `
             -CertificatePassword "$env:MSIX_CERTIFICATE_PASSWORD"
         working-directory: apps/desktop
@@ -153,8 +153,8 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           mkdir -p release
-          cp apps/desktop/build/bin/Relay.app/Contents/MacOS/relay release/relay-darwin-universal
-          (cd apps/desktop/build/bin && ditto -c -k --keepParent Relay.app "$GITHUB_WORKSPACE/release/relay-darwin-universal.app.zip")
+          cp apps/desktop/build/bin/Kurlo.app/Contents/MacOS/kurlo release/kurlo-darwin-universal
+          (cd apps/desktop/build/bin && ditto -c -k --keepParent Kurlo.app "$GITHUB_WORKSPACE/release/kurlo-darwin-universal.app.zip")
 
       - name: Package macOS DMG
         if: runner.os == 'macOS'
@@ -162,9 +162,9 @@ jobs:
           brew install create-dmg
           mkdir -p release
           apps/desktop/build/darwin/make-dmg.sh \
-            apps/desktop/build/bin/Relay.app \
-            "release/relay-${VERSION}-darwin-universal.dmg" \
-            "Relay ${VERSION}"
+            apps/desktop/build/bin/Kurlo.app \
+            "release/kurlo-${VERSION}-darwin-universal.dmg" \
+            "Kurlo ${VERSION}"
 
       - name: Package Windows artifacts
         if: runner.os == 'Windows'
@@ -174,21 +174,21 @@ jobs:
           New-Item -ItemType Directory -Force release | Out-Null
           $installer = Get-ChildItem apps\desktop\build\bin\*installer.exe -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $installer) { throw "NSIS installer not found in build\bin — check that NSIS is installed and wails build -nsis succeeded" }
-          Copy-Item $installer.FullName "release\relay-$env:VERSION-windows-${{ matrix.arch }}-installer.exe"
+          Copy-Item $installer.FullName "release\kurlo-$env:VERSION-windows-${{ matrix.arch }}-installer.exe"
           $msix = Get-ChildItem apps\desktop\build\bin\*.msix -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $msix) { throw "MSIX package not found in build\bin — check that package-msix.ps1 succeeded" }
-          Copy-Item $msix.FullName "release\relay-$env:VERSION-windows-${{ matrix.arch }}.msix"
+          Copy-Item $msix.FullName "release\kurlo-$env:VERSION-windows-${{ matrix.arch }}.msix"
 
           $raw = Get-ChildItem apps\desktop\build\bin\*.exe -Exclude *installer* -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $raw) { throw "Raw Windows binary not found in build\bin — auto-update artifact is required" }
-          Copy-Item $raw.FullName "release\relay-windows-${{ matrix.arch }}.exe"
+          Copy-Item $raw.FullName "release\kurlo-windows-${{ matrix.arch }}.exe"
 
       - name: Package Linux raw binary
         if: runner.os == 'Linux'
         run: |
           mkdir -p release
-          cp apps/desktop/build/bin/relay release/relay-linux-amd64
-          chmod +x release/relay-linux-amd64
+          cp apps/desktop/build/bin/kurlo release/kurlo-linux-amd64
+          chmod +x release/kurlo-linux-amd64
 
       - name: Package Linux AppImage
         if: runner.os == 'Linux'
@@ -199,62 +199,62 @@ jobs:
                    AppDir/usr/share/icons/hicolor/512x512/apps \
                    release
 
-          cp apps/desktop/build/bin/relay          AppDir/usr/bin/relay
-          cp apps/desktop/build/appicon.png        AppDir/usr/share/icons/hicolor/512x512/apps/relay.png
-          cp apps/desktop/build/appicon.png        AppDir/relay.png
+          cp apps/desktop/build/bin/kurlo          AppDir/usr/bin/kurlo
+          cp apps/desktop/build/appicon.png        AppDir/usr/share/icons/hicolor/512x512/apps/kurlo.png
+          cp apps/desktop/build/appicon.png        AppDir/kurlo.png
 
           printf '%s\n' \
             '[Desktop Entry]' \
             'Type=Application' \
-            'Name=Relay' \
-            'Exec=relay' \
-            'Icon=relay' \
+            'Name=Kurlo' \
+            'Exec=kurlo' \
+            'Icon=kurlo' \
             'Categories=Development;' \
             'Comment=Cross-platform desktop API client' \
-            > AppDir/relay.desktop
-          cp AppDir/relay.desktop AppDir/usr/share/applications/relay.desktop
+            > AppDir/kurlo.desktop
+          cp AppDir/kurlo.desktop AppDir/usr/share/applications/kurlo.desktop
 
           printf '%s\n' \
             '#!/bin/sh' \
             'HERE="$(dirname "$(readlink -f "$0")")"' \
-            'exec "$HERE/usr/bin/relay" "$@"' \
+            'exec "$HERE/usr/bin/kurlo" "$@"' \
             > AppDir/AppRun
-          chmod +x AppDir/AppRun AppDir/usr/bin/relay
+          chmod +x AppDir/AppRun AppDir/usr/bin/kurlo
 
           curl -fsSL -o appimagetool \
             https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool
           ARCH=x86_64 ./appimagetool --appimage-extract-and-run \
-            AppDir "release/relay-${VERSION}-linux-amd64.AppImage"
+            AppDir "release/kurlo-${VERSION}-linux-amd64.AppImage"
 
       - name: Smoke test the macOS binary
         if: runner.os == 'macOS'
         shell: bash
         run: |
           set -euo pipefail
-          output="$(release/relay-darwin-universal --version)"
+          output="$(release/kurlo-darwin-universal --version)"
           echo "$output"
           case "$output" in
             *"$VERSION"*) ;;
             *) echo "::error::built binary reports '$output', expected version $VERSION"; exit 1 ;;
           esac
-          release/relay-darwin-universal --diagnostics
+          release/kurlo-darwin-universal --diagnostics
           bundle_dir="$(mktemp -d)"
-          ditto -x -k release/relay-darwin-universal.app.zip "$bundle_dir"
-          bundle_version="$(plutil -extract CFBundleShortVersionString raw -o - "$bundle_dir/Relay.app/Contents/Info.plist")"
+          ditto -x -k release/kurlo-darwin-universal.app.zip "$bundle_dir"
+          bundle_version="$(plutil -extract CFBundleShortVersionString raw -o - "$bundle_dir/Kurlo.app/Contents/Info.plist")"
           if [ "$bundle_version" != "$VERSION" ]; then
             echo "::error::the app bundle reports version '$bundle_version', expected $VERSION"
             exit 1
           fi
-          test -f "$bundle_dir/Relay.app/Contents/Resources/iconfile.icns"
-          test -x "$bundle_dir/Relay.app/Contents/MacOS/relay"
+          test -f "$bundle_dir/Kurlo.app/Contents/Resources/iconfile.icns"
+          test -x "$bundle_dir/Kurlo.app/Contents/MacOS/kurlo"
 
       - name: Smoke test the Windows binary
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $out = Join-Path $env:RUNNER_TEMP "relay-version.txt"
-          $process = Start-Process -FilePath "release\relay-windows-${{ matrix.arch }}.exe" `
+          $out = Join-Path $env:RUNNER_TEMP "kurlo-version.txt"
+          $process = Start-Process -FilePath "release\kurlo-windows-${{ matrix.arch }}.exe" `
             -ArgumentList "--version" -Wait -PassThru -NoNewWindow -RedirectStandardOutput $out
           if ($process.ExitCode -ne 0) {
             throw "built binary exited with $($process.ExitCode)"
@@ -270,14 +270,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          output="$(release/relay-linux-amd64 --version)"
+          output="$(release/kurlo-linux-amd64 --version)"
           echo "$output"
           case "$output" in
             *"$VERSION"*) ;;
             *) echo "::error::built binary reports '$output', expected version $VERSION"; exit 1 ;;
           esac
-          release/relay-linux-amd64 --diagnostics
-          appimage="release/relay-${VERSION}-linux-amd64.AppImage"
+          release/kurlo-linux-amd64 --diagnostics
+          appimage="release/kurlo-${VERSION}-linux-amd64.AppImage"
           chmod +x "$appimage"
           packaged="$("$appimage" --appimage-extract-and-run --version)"
           echo "$packaged"
@@ -289,7 +289,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: relay-${{ matrix.artifact }}
+          name: kurlo-${{ matrix.artifact }}
           path: release/*
           if-no-files-found: error
           retention-days: 1
@@ -348,13 +348,13 @@ jobs:
           key_file="$(mktemp)"
           printf '%s\n' "$UPDATE_SIGNING_KEY" > "$key_file"
           trap 'rm -f "$key_file"' EXIT
-          for asset in release/relay-darwin-universal release/relay-darwin-universal.app.zip release/relay-windows-amd64.exe release/relay-windows-arm64.exe release/relay-linux-amd64; do
+          for asset in release/kurlo-darwin-universal release/kurlo-darwin-universal.app.zip release/kurlo-windows-amd64.exe release/kurlo-windows-arm64.exe release/kurlo-linux-amd64; do
             if [ ! -f "$asset" ]; then
               echo "::error::missing asset for signing: $asset"
               exit 1
             fi
 
-            minisign -S -W -s "$key_file" -t "relay $GITHUB_REF_NAME $(basename "$asset")" -m "$asset"
+            minisign -S -W -s "$key_file" -t "kurlo $GITHUB_REF_NAME $(basename "$asset")" -m "$asset"
             test -f "${asset}.minisig"
           done
 
@@ -411,20 +411,20 @@ jobs:
           UPDATE_REPOSITORY: ${{ env.UPDATE_REPOSITORY }}
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          URL="https://github.com/${UPDATE_REPOSITORY}/releases/download/v${VERSION}/relay-${VERSION}-darwin-universal.dmg"
+          URL="https://github.com/${UPDATE_REPOSITORY}/releases/download/v${VERSION}/kurlo-${VERSION}-darwin-universal.dmg"
           SHA="$(curl -fsSL "$URL" | shasum -a 256 | awk '{print $1}')"
           mkdir -p tap/Casks
-          cat > tap/Casks/relay.rb << RUBY
-          cask "relay" do
+          cat > tap/Casks/kurlo.rb << RUBY
+          cask "kurlo" do
             version "$VERSION"
             sha256 "$SHA"
 
             url "$URL"
-            name "Relay"
+            name "Kurlo"
             desc "Cross-platform desktop API client"
-            homepage "https://github.com/relay-client/relay"
+            homepage "https://github.com/stormhop/kurlo"
 
-            app "Relay.app"
+            app "Kurlo.app"
           end
           RUBY
 
@@ -433,6 +433,6 @@ jobs:
           cd tap
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Casks/relay.rb
-          git commit -m "Update Relay to ${GITHUB_REF_NAME}" || exit 0
+          git add Casks/kurlo.rb
+          git commit -m "Update Kurlo to ${GITHUB_REF_NAME}" || exit 0
           git push

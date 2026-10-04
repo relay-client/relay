@@ -9,7 +9,7 @@ import (
 )
 
 func VersionLine() string {
-	return fmt.Sprintf("Relay %s (%s/%s)", displayVersion(), runtime.GOOS, runtime.GOARCH)
+	return fmt.Sprintf("Kurlo %s (%s/%s)", displayVersion(), runtime.GOOS, runtime.GOARCH)
 }
 
 func displayVersion() string {
@@ -21,7 +21,7 @@ func displayVersion() string {
 
 func DiagnosticsReport() string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "Relay %s\n", displayVersion())
+	fmt.Fprintf(&b, "Kurlo %s\n", displayVersion())
 	fmt.Fprintf(&b, "Platform:     %s/%s\n", runtime.GOOS, runtime.GOARCH)
 	fmt.Fprintf(&b, "Go:           %s\n", runtime.Version())
 	fmt.Fprintf(&b, "Build:        %s\n", buildKind())

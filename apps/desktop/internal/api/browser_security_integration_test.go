@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 func defaultBrowserReq(serverURL string) model.HttpRequest {
@@ -736,8 +736,8 @@ func mustURL(raw string) *url.URL {
 }
 
 func TestIntegrationHTTPBinCORSEcho(t *testing.T) {
-	if os.Getenv("RELAY_NETWORK_INTEGRATION") != "1" {
-		t.Skip("set RELAY_NETWORK_INTEGRATION=1 to run network integration tests")
+	if os.Getenv("KURLO_NETWORK_INTEGRATION") != "1" {
+		t.Skip("set KURLO_NETWORK_INTEGRATION=1 to run network integration tests")
 	}
 
 	req := defaultBrowserReq("https://httpbin.org/get")
@@ -756,8 +756,8 @@ func TestIntegrationHTTPBinCORSEcho(t *testing.T) {
 }
 
 func TestIntegrationHTTPBinCORSPreflight(t *testing.T) {
-	if os.Getenv("RELAY_NETWORK_INTEGRATION") != "1" {
-		t.Skip("set RELAY_NETWORK_INTEGRATION=1 to run network integration tests")
+	if os.Getenv("KURLO_NETWORK_INTEGRATION") != "1" {
+		t.Skip("set KURLO_NETWORK_INTEGRATION=1 to run network integration tests")
 	}
 
 	req := defaultBrowserReq("https://httpbin.org/anything")
@@ -766,7 +766,7 @@ func TestIntegrationHTTPBinCORSPreflight(t *testing.T) {
 	req.Body = `{"hello":"world"}`
 	req.BrowserOrigin = "https://app.example.com"
 	req.BrowserEnforceCORS = true
-	req.Headers = []model.KeyValue{{Enabled: true, Key: "X-Relay-Probe", Value: "1"}}
+	req.Headers = []model.KeyValue{{Enabled: true, Key: "X-Kurlo-Probe", Value: "1"}}
 
 	resp := NewApp().SendRequest(req)
 	if resp.Error != "" {
@@ -778,8 +778,8 @@ func TestIntegrationHTTPBinCORSPreflight(t *testing.T) {
 }
 
 func TestIntegrationHTTPBinCSPSelfBlocks(t *testing.T) {
-	if os.Getenv("RELAY_NETWORK_INTEGRATION") != "1" {
-		t.Skip("set RELAY_NETWORK_INTEGRATION=1 to run network integration tests")
+	if os.Getenv("KURLO_NETWORK_INTEGRATION") != "1" {
+		t.Skip("set KURLO_NETWORK_INTEGRATION=1 to run network integration tests")
 	}
 
 	req := defaultBrowserReq("https://httpbin.org/get")

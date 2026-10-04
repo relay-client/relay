@@ -8,8 +8,8 @@ const RECONNECT_MAX_MS = 30000;
 const KEEPALIVE_MS = 20000;
 const MAX_SNAPSHOT_COOKIES = 5000;
 const MAX_SNAPSHOT_BYTES = 3 << 20;
-const RECONCILE_ALARM = 'relay-cookie-sync-reconcile';
-const RECONNECT_ALARM = 'relay-cookie-sync-reconnect';
+const RECONCILE_ALARM = 'kurlo-cookie-sync-reconcile';
+const RECONNECT_ALARM = 'kurlo-cookie-sync-reconnect';
 const RECONCILE_MINUTES = 5;
 
 let socket = null;
@@ -35,7 +35,7 @@ function extensionId() {
 }
 
 function parsePairingCode(code) {
-  const match = /^relay-(\d{2,5})-([A-Za-z0-9_-]{16,})$/.exec((code ?? '').trim());
+  const match = /^kurlo-(\d{2,5})-([A-Za-z0-9_-]{16,})$/.exec((code ?? '').trim());
   if (!match) return null;
   const port = Number(match[1]);
   if (!Number.isInteger(port) || port < 1 || port > 65535) return null;
@@ -46,7 +46,7 @@ function cookieOriginPattern(domain) {
   return `*://*.${domain}/*`;
 }
 
-function toRelayCookie(cookie) {
+function toKurloCookie(cookie) {
   return {
     name: cookie.name,
     value: cookie.value,
@@ -90,7 +90,7 @@ async function bridgeFetch(port, path, init = {}) {
     parsed = body ? JSON.parse(body) : null;
   } catch {}
   if (!response.ok) {
-    const message = parsed?.error ?? `Relay answered ${response.status}`;
+    const message = parsed?.error ?? `Kurlo answered ${response.status}`;
     const error = new Error(message);
     error.status = response.status;
     error.retryAfter = parsed?.retryAfter ?? 0;
@@ -105,7 +105,7 @@ async function discoverBridge() {
   for (const port of candidates) {
     try {
       const hello = await bridgeFetch(port, '/discover');
-      if (hello.app === 'relay') {
+      if (hello.app === 'kurlo') {
         if (state.port !== port) await setState({ port });
         return port;
       }
@@ -146,7 +146,7 @@ async function pollPairing() {
         return;
       }
       if (answer.status === 'denied') {
-        await setState({ pending: null, lastError: 'Relay turned this browser down.' });
+        await setState({ pending: null, lastError: 'Kurlo turned this browser down.' });
         return;
       }
       if (answer.status === 'expired') {
@@ -180,7 +180,7 @@ async function collectCookies(readable) {
       const key = `${cookie.domain}${cookie.path}${cookie.name}${cookie.hostOnly}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      cookies.push(toRelayCookie(cookie));
+      cookies.push(toKurloCookie(cookie));
     }
   }
   return cookies;
@@ -202,7 +202,7 @@ async function sendSnapshot() {
   const cookies = await collectCookies(readable);
   if (cookies.length > MAX_SNAPSHOT_COOKIES) {
     await setState({
-      lastError: `Those domains hold ${cookies.length} cookies, more than Relay accepts at once - list narrower domains.`,
+      lastError: `Those domains hold ${cookies.length} cookies, more than Kurlo accepts at once - list narrower domains.`,
     });
     return;
   }
@@ -236,7 +236,7 @@ async function flushChanges() {
       browser: browserLabel(),
       removed: change.removed,
       cause: change.cause,
-      cookie: toRelayCookie(change.cookie),
+      cookie: toKurloCookie(change.cookie),
     });
   }
 }
@@ -269,7 +269,7 @@ async function connect() {
   try {
     const port = await discoverBridge();
     if (!port) {
-      await setState({ lastError: 'Relay is not listening — turn on Sync Cookies in the app.' });
+      await setState({ lastError: 'Kurlo is not listening — turn on Sync Cookies in the app.' });
       scheduleReconnect();
       return;
     }
@@ -319,7 +319,7 @@ async function connect() {
         return;
       }
       if (message.type === 'error') {
-        await setState({ lastError: message.error ?? 'Relay refused that message.' });
+        await setState({ lastError: message.error ?? 'Kurlo refused that message.' });
       }
     };
 
@@ -330,7 +330,7 @@ async function connect() {
     };
 
     socket.onerror = () => {
-      void setState({ lastError: 'Lost the connection to Relay.' });
+      void setState({ lastError: 'Lost the connection to Kurlo.' });
     };
   } catch (error) {
     await setState({ lastError: error.message });
@@ -343,7 +343,7 @@ async function connect() {
 async function bridgeAnswers(port) {
   try {
     const hello = await bridgeFetch(port, '/discover');
-    return hello.app === 'relay';
+    return hello.app === 'kurlo';
   } catch {
     return false;
   }
@@ -351,14 +351,14 @@ async function bridgeAnswers(port) {
 
 async function handleSocketClose(code, opened) {
   if (code === 1008) {
-    await setState({ token: '', pending: null, lastError: 'Relay disconnected this browser - asking to connect again.' });
+    await setState({ token: '', pending: null, lastError: 'Kurlo disconnected this browser - asking to connect again.' });
     void connect();
     return;
   }
   if (!opened) {
     const state = await readState();
     if (state.port && (await bridgeAnswers(state.port))) {
-      await setState({ token: '', pending: null, lastError: 'Relay no longer accepts this browser - asking to connect again.' });
+      await setState({ token: '', pending: null, lastError: 'Kurlo no longer accepts this browser - asking to connect again.' });
       void connect();
       return;
     }
@@ -398,7 +398,7 @@ api.runtime.onStartup?.addListener(() => {
 });
 
 api.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message?.type === 'relay:state') {
+  if (message?.type === 'kurlo:state') {
     readState().then(async state => {
       sendResponse({
         ...state,
@@ -411,21 +411,21 @@ api.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     });
     return true;
   }
-  if (message?.type === 'relay:connect') {
+  if (message?.type === 'kurlo:connect') {
     connect().then(readState).then(sendResponse);
     return true;
   }
-  if (message?.type === 'relay:sync-now') {
+  if (message?.type === 'kurlo:sync-now') {
     connect()
       .then(() => sendSnapshot())
       .then(readState)
       .then(sendResponse);
     return true;
   }
-  if (message?.type === 'relay:pair-manually') {
+  if (message?.type === 'kurlo:pair-manually') {
     const pairing = parsePairingCode(message.code);
     if (!pairing) {
-      sendResponse({ ok: false, error: 'That is not a Relay pairing code.' });
+      sendResponse({ ok: false, error: 'That is not a Kurlo pairing code.' });
       return true;
     }
     setState({ port: pairing.port, token: pairing.token, pending: null, lastError: '' })
@@ -433,7 +433,7 @@ api.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       .then(() => sendResponse({ ok: true }));
     return true;
   }
-  if (message?.type === 'relay:forget') {
+  if (message?.type === 'kurlo:forget') {
     forget().then(() => sendResponse({ ok: true }));
     return true;
   }

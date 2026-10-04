@@ -135,7 +135,7 @@ func browserNetworkAccessWarnings(target *url.URL, remoteAddr string, proxied bo
 	var warnings []string
 	if !b.enforcesBrowserBlocking() {
 		if msg := browserMixedContent(target, b); msg != "" {
-			warnings = append(warnings, msg+". Relay sent it because no browser check is enforced.")
+			warnings = append(warnings, msg+". Kurlo sent it because no browser check is enforced.")
 		}
 	}
 	if b.kind != browserKindFetch {

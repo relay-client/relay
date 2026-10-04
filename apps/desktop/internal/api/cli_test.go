@@ -165,7 +165,7 @@ func writeYAMLWorkspace(t *testing.T, baseURL string) string {
 		}
 	}
 
-	write(filepath.Join(root, "relay.yml"), "version: 1\nformat: relay.workspace.yaml.v1\nworkspaceOrder:\n  - ws-demo\n")
+	write(filepath.Join(root, "kurlo.yml"), "version: 1\nformat: kurlo.workspace.yaml.v1\nworkspaceOrder:\n  - ws-demo\n")
 	wsDir := mkdir("workspaces", "Demo")
 	write(filepath.Join(wsDir, "workspace.yml"), "version: 1\nworkspace:\n  id: ws-demo\n  name: Demo\n  filesystemName: Demo\n  collectionOrder:\n    - col-smoke\n")
 
@@ -319,7 +319,7 @@ func TestRunCLIMissingWorkspace(t *testing.T) {
 	if code != 2 {
 		t.Fatalf("expected exit 2 for a non-workspace directory, got %d", code)
 	}
-	if !strings.Contains(out.String(), "not a Relay YAML workspace") {
+	if !strings.Contains(out.String(), "not a Kurlo YAML workspace") {
 		t.Fatalf("expected a clear error, got %q", out.String())
 	}
 }

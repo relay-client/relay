@@ -218,20 +218,20 @@ func saveWorkspaceAuth(root string, cfg gitWorkspaceAuth) error {
 	return os.WriteFile(gitAuthConfigPath(), payload, 0600)
 }
 
-var relayExePathOnce sync.Once
-var relayExePath string
+var kurloExePathOnce sync.Once
+var kurloExePath string
 
-func relayExecutablePath() string {
-	relayExePathOnce.Do(func() {
+func kurloExecutablePath() string {
+	kurloExePathOnce.Do(func() {
 		if exe, err := os.Executable(); err == nil {
-			relayExePath = exe
+			kurloExePath = exe
 		}
 	})
-	return relayExePath
+	return kurloExePath
 }
 
 func gitAuthGlobalArgs() []string {
-	exe := relayExecutablePath()
+	exe := kurloExecutablePath()
 	if strings.TrimSpace(exe) == "" {
 		return nil
 	}

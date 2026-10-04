@@ -94,7 +94,7 @@ func TestWriteCollectionTextFilesRejectsUnsafePathsAndSymlinkOverwrite(t *testin
 func TestEnsureWorkspaceGitignoreFollowsTheFilesLineEnding(t *testing.T) {
 	root := t.TempDir()
 	path := filepath.Join(root, ".gitignore")
-	if err := os.WriteFile(path, []byte(".relay-local/\r\n.env\r\n"), 0644); err != nil {
+	if err := os.WriteFile(path, []byte(".kurlo-local/\r\n.env\r\n"), 0644); err != nil {
 		t.Fatalf("write .gitignore: %v", err)
 	}
 
@@ -106,7 +106,7 @@ func TestEnsureWorkspaceGitignoreFollowsTheFilesLineEnding(t *testing.T) {
 	if strings.Contains(strings.ReplaceAll(content, "\r\n", ""), "\n") {
 		t.Fatalf("expected every line to end with CRLF, got %q", content)
 	}
-	for _, entry := range relayGitignoreEntries {
+	for _, entry := range kurloGitignoreEntries {
 		if !strings.Contains(content, entry) {
 			t.Fatalf("expected %q to be appended:\n%s", entry, content)
 		}
@@ -116,7 +116,7 @@ func TestEnsureWorkspaceGitignoreFollowsTheFilesLineEnding(t *testing.T) {
 func TestEnsureWorkspaceGitignoreKeepsLFWhereItFoundLF(t *testing.T) {
 	root := t.TempDir()
 	path := filepath.Join(root, ".gitignore")
-	if err := os.WriteFile(path, []byte(".relay-local/\n"), 0644); err != nil {
+	if err := os.WriteFile(path, []byte(".kurlo-local/\n"), 0644); err != nil {
 		t.Fatalf("write .gitignore: %v", err)
 	}
 

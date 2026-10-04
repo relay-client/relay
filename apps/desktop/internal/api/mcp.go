@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/relay-client/relay/apps/desktop/internal/model"
-	"github.com/relay-client/relay/apps/desktop/internal/script"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/script"
 )
 
 const (
@@ -82,7 +82,7 @@ func mcpRequestMeta(req model.HttpRequest) map[string]any {
 	return map[string]any{
 		mcpMetaProtocolVersion: mcpProtocolVersion(req),
 		mcpMetaClientInfo: map[string]any{
-			"name":    "Relay",
+			"name":    "Kurlo",
 			"version": appVersion,
 		},
 		mcpMetaClientCaps: map[string]any{
@@ -486,7 +486,7 @@ func mcpPrepareRequest(req model.HttpRequest, id int) (model.HttpRequest, []stri
 		return req, nil, fmt.Errorf("choose a method to send")
 	}
 	if !mcpMethodIsKnown(req.McpMethod) {
-		return req, nil, fmt.Errorf("%q is not a method Relay knows how to send", req.McpMethod)
+		return req, nil, fmt.Errorf("%q is not a method Kurlo knows how to send", req.McpMethod)
 	}
 	if req.McpMethod == mcpMethodToolsCall {
 		if reason := McpToolRejection(req.McpInputSchema); reason != "" {

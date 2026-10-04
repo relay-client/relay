@@ -22,12 +22,12 @@ const (
 	fileStoreVersion          = 1
 	localStoreVersion         = 4
 	workspaceStoreKind        = "workspace-yaml"
-	workspaceStoreFormat      = "relay.workspace.yaml.v1"
+	workspaceStoreFormat      = "kurlo.workspace.yaml.v1"
 	workspacePathLayout       = "yaml-filesystem-names.v1"
 	workspaceStorageModeGit   = "git"
 	workspaceStorageModeLocal = "local"
 	filesystemNameField       = "filesystemName"
-	fileStoreRootIndex        = "relay.yml"
+	fileStoreRootIndex        = "kurlo.yml"
 	fileStoreWorkspacesDir    = "workspaces"
 	fileStoreRootFileName     = "workspace.yml"
 	fileStoreCollectionsDir   = "collections"
@@ -35,8 +35,8 @@ const (
 	fileStoreRequestsDir      = "requests"
 	fileStoreEnvironmentsDir  = "environments"
 	fileStoreYAMLExt          = ".yml"
-	relaySecretPrefix         = "{{relaySecret:"
-	relaySecretSuffix         = "}}"
+	kurloSecretPrefix         = "{{kurloSecret:"
+	kurloSecretSuffix         = "}}"
 )
 
 var requestAuthSecretFields = []string{
@@ -167,7 +167,7 @@ type WorkspaceDiagnostic struct {
 	Blocking     bool   `json:"blocking"`
 }
 
-type relaySharedStore struct {
+type kurloSharedStore struct {
 	PathLayout       string                      `json:"pathLayout"`
 	Workspaces       []map[string]any            `json:"workspaces"`
 	Collections      []map[string]any            `json:"collections"`
@@ -176,8 +176,8 @@ type relaySharedStore struct {
 	WorkspaceCookies map[string][]map[string]any `json:"workspaceCookies,omitempty"`
 }
 
-func loadRelayStorePayload(localStorePath, workspaceRoot string) (string, error) {
-	payload, diagnostics, err := loadRelayStorePayloadWithDiagnostics(localStorePath, workspaceRoot)
+func loadKurloStorePayload(localStorePath, workspaceRoot string) (string, error) {
+	payload, diagnostics, err := loadKurloStorePayloadWithDiagnostics(localStorePath, workspaceRoot)
 	if err != nil {
 		return "", err
 	}
@@ -187,7 +187,7 @@ func loadRelayStorePayload(localStorePath, workspaceRoot string) (string, error)
 	return payload, nil
 }
 
-func loadRelayStorePayloadWithDiagnostics(localStorePath, workspaceRoot string) (string, []WorkspaceDiagnostic, error) {
+func loadKurloStorePayloadWithDiagnostics(localStorePath, workspaceRoot string) (string, []WorkspaceDiagnostic, error) {
 	localStore, _, localErr := loadLocalRequestStore(localStorePath)
 	localStoreAuthFailed := false
 	if localErr != nil && !errors.Is(localErr, os.ErrNotExist) {
@@ -205,7 +205,7 @@ func loadRelayStorePayloadWithDiagnostics(localStorePath, workspaceRoot string) 
 		if localStoreAuthFailed {
 			return "", nil, localErr
 		}
-		return "", nil, fmt.Errorf("workspace does not contain a Relay YAML workspace")
+		return "", nil, fmt.Errorf("workspace does not contain a Kurlo YAML workspace")
 	}
 
 	if localStore == nil {
@@ -251,11 +251,11 @@ func loadRelayStorePayloadWithDiagnostics(localStorePath, workspaceRoot string) 
 	return string(payload), diagnostics, nil
 }
 
-func saveRelayStorePayload(localStorePath, workspaceRoot, payload string) error {
-	return saveRelayStorePayloadPreserving(localStorePath, workspaceRoot, payload, nil)
+func saveKurloStorePayload(localStorePath, workspaceRoot, payload string) error {
+	return saveKurloStorePayloadPreserving(localStorePath, workspaceRoot, payload, nil)
 }
 
-func saveRelayStorePayloadPreserving(localStorePath, workspaceRoot, payload string, preserveDirs []string) error {
+func saveKurloStorePayloadPreserving(localStorePath, workspaceRoot, payload string, preserveDirs []string) error {
 	store, err := decodeJSONMap(payload)
 	if err != nil {
 		return err
@@ -304,11 +304,11 @@ func saveRelayStorePayloadPreserving(localStorePath, workspaceRoot, payload stri
 		}
 	}
 
-	localStore := buildLocalRelayStore(store, workspaceRoot, secrets, sharedHash, existingStorageMode)
-	return saveLocalRelayStore(localStorePath, localStore)
+	localStore := buildLocalKurloStore(store, workspaceRoot, secrets, sharedHash, existingStorageMode)
+	return saveLocalKurloStore(localStorePath, localStore)
 }
 
-func buildLocalRelayStore(store map[string]any, workspaceRoot string, secrets map[string]string, sharedHash string, storageMode string) map[string]any {
+func buildLocalKurloStore(store map[string]any, workspaceRoot string, secrets map[string]string, sharedHash string, storageMode string) map[string]any {
 	localStore := cloneMap(store)
 	localStore["version"] = localStoreVersion
 	if storageMode != workspaceStorageModeGit && storageMode != workspaceStorageModeLocal {
@@ -332,7 +332,7 @@ func buildLocalRelayStore(store map[string]any, workspaceRoot string, secrets ma
 	return localStore
 }
 
-func saveLocalRelayStore(path string, store map[string]any) error {
+func saveLocalKurloStore(path string, store map[string]any) error {
 	payload, err := json.MarshalIndent(store, "", "  ")
 	if err != nil {
 		return err
@@ -547,7 +547,7 @@ func pruneYAMLWorkspaceStore(root string, desiredFiles map[string]struct{}, pres
 		if info, err := os.Lstat(path); err != nil || info.Mode()&os.ModeSymlink != 0 {
 			return nil
 		}
-		if !isExampleBody && !isRelayManagedYAMLFile(path) {
+		if !isExampleBody && !isKurloManagedYAMLFile(path) {
 			return nil
 		}
 		return os.Remove(path)
@@ -608,7 +608,7 @@ func workspaceDirForPath(root, path string) string {
 	return filepath.Join(workspaceRoot, filepath.FromSlash(parts[0]))
 }
 
-func isRelayManagedYAMLFile(path string) bool {
+func isKurloManagedYAMLFile(path string) bool {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return false
@@ -667,7 +667,7 @@ func removeEmptyDirs(root string) error {
 	return nil
 }
 
-var relayGitignoreEntries = []string{".relay-local/", ".env", ".env.*", "*-????-??-??T??-??-??.html", ".DS_Store", "Thumbs.db", "Desktop.ini"}
+var kurloGitignoreEntries = []string{".kurlo-local/", ".env", ".env.*", "*-????-??-??T??-??-??.html", ".DS_Store", "Thumbs.db", "Desktop.ini"}
 
 func ensureWorkspaceGitignore(root string) error {
 	workspaceGitignoreMu.Lock()
@@ -678,7 +678,7 @@ func ensureWorkspaceGitignore(root string) error {
 		if !errors.Is(err, os.ErrNotExist) {
 			return err
 		}
-		content := strings.Join(append(append([]string{}, relayGitignoreEntries...), "!.env.example", "*.tmp", ""), "\n")
+		content := strings.Join(append(append([]string{}, kurloGitignoreEntries...), "!.env.example", "*.tmp", ""), "\n")
 		return os.WriteFile(path, []byte(content), 0644)
 	}
 	if info.Mode()&os.ModeSymlink != 0 {
@@ -697,7 +697,7 @@ func ensureWorkspaceGitignore(root string) error {
 		lineSet[strings.TrimSpace(line)] = struct{}{}
 	}
 	var missing []string
-	for _, entry := range relayGitignoreEntries {
+	for _, entry := range kurloGitignoreEntries {
 		if _, found := lineSet[entry]; !found {
 			missing = append(missing, entry)
 		}
@@ -1264,13 +1264,13 @@ func sanitizeRequestsForFilesystem(requests []map[string]any, existingSecrets, s
 			for _, field := range requestAuthSecretFields {
 				value := stringFromAny(auth[field])
 				key := requestSecretKey(id, field)
-				if placeholderKey, ok := relaySecretKeyFromPlaceholder(value); ok {
+				if placeholderKey, ok := kurloSecretKeyFromPlaceholder(value); ok {
 					if existingValue, exists := existingSecrets[placeholderKey]; exists {
 						secrets[placeholderKey] = existingValue
 					}
 				} else if value != "" {
 					secrets[key] = value
-					auth[field] = relaySecretPlaceholder(key)
+					auth[field] = kurloSecretPlaceholder(key)
 				}
 			}
 		}
@@ -1278,13 +1278,13 @@ func sanitizeRequestsForFilesystem(requests []map[string]any, existingSecrets, s
 			for _, field := range requestSettingSecretFields {
 				value := stringFromAny(settings[field])
 				key := requestSettingSecretKey(id, field)
-				if placeholderKey, ok := relaySecretKeyFromPlaceholder(value); ok {
+				if placeholderKey, ok := kurloSecretKeyFromPlaceholder(value); ok {
 					if existingValue, exists := existingSecrets[placeholderKey]; exists {
 						secrets[placeholderKey] = existingValue
 					}
 				} else if value != "" {
 					secrets[key] = value
-					settings[field] = relaySecretPlaceholder(key)
+					settings[field] = kurloSecretPlaceholder(key)
 				}
 			}
 		}
@@ -1307,13 +1307,13 @@ func sanitizeCollectionSecrets(collection map[string]any, existingSecrets, secre
 		for _, field := range requestAuthSecretFields {
 			value := stringFromAny(auth[field])
 			key := collectionSecretKey(collectionID, field)
-			if placeholderKey, ok := relaySecretKeyFromPlaceholder(value); ok {
+			if placeholderKey, ok := kurloSecretKeyFromPlaceholder(value); ok {
 				if existingValue, exists := existingSecrets[placeholderKey]; exists {
 					secrets[placeholderKey] = existingValue
 				}
 			} else if value != "" {
 				secrets[key] = value
-				auth[field] = relaySecretPlaceholder(key)
+				auth[field] = kurloSecretPlaceholder(key)
 			}
 		}
 	}
@@ -1321,13 +1321,13 @@ func sanitizeCollectionSecrets(collection map[string]any, existingSecrets, secre
 		for _, field := range requestSettingSecretFields {
 			value := stringFromAny(settings[field])
 			key := collectionSettingSecretKey(collectionID, field)
-			if placeholderKey, ok := relaySecretKeyFromPlaceholder(value); ok {
+			if placeholderKey, ok := kurloSecretKeyFromPlaceholder(value); ok {
 				if existingValue, exists := existingSecrets[placeholderKey]; exists {
 					secrets[placeholderKey] = existingValue
 				}
 			} else if value != "" {
 				secrets[key] = value
-				settings[field] = relaySecretPlaceholder(key)
+				settings[field] = kurloSecretPlaceholder(key)
 			}
 		}
 	}
@@ -1351,13 +1351,13 @@ func sanitizeCollectionSecretRows(defaults map[string]any, collectionID string, 
 			}
 			value := stringFromAny(row["value"])
 			key := collectionRowSecretKey(collectionID, field, rowID)
-			if placeholderKey, ok := relaySecretKeyFromPlaceholder(value); ok {
+			if placeholderKey, ok := kurloSecretKeyFromPlaceholder(value); ok {
 				if existingValue, exists := existingSecrets[placeholderKey]; exists {
 					secrets[placeholderKey] = existingValue
 				}
 			} else if value != "" {
 				secrets[key] = value
-				row["value"] = relaySecretPlaceholder(key)
+				row["value"] = kurloSecretPlaceholder(key)
 			}
 		}
 	}
@@ -1394,13 +1394,13 @@ func sanitizeRequestSecretRows(request map[string]any, requestID string, existin
 			}
 			value := stringFromAny(row["value"])
 			key := requestRowSecretKey(requestID, field, rowID)
-			if placeholderKey, ok := relaySecretKeyFromPlaceholder(value); ok {
+			if placeholderKey, ok := kurloSecretKeyFromPlaceholder(value); ok {
 				if existingValue, exists := existingSecrets[placeholderKey]; exists {
 					secrets[placeholderKey] = existingValue
 				}
 			} else if value != "" {
 				secrets[key] = value
-				row["value"] = relaySecretPlaceholder(key)
+				row["value"] = kurloSecretPlaceholder(key)
 			}
 		}
 	}
@@ -1423,13 +1423,13 @@ func sanitizeEnvironmentsForFilesystem(environments []map[string]any, existingSe
 				}
 				value := stringFromAny(row["value"])
 				key := environmentSecretKey(envID, rowID)
-				if placeholderKey, ok := relaySecretKeyFromPlaceholder(value); ok {
+				if placeholderKey, ok := kurloSecretKeyFromPlaceholder(value); ok {
 					if existingValue, exists := existingSecrets[placeholderKey]; exists {
 						secrets[placeholderKey] = existingValue
 					}
 				} else if value != "" {
 					secrets[key] = value
-					row["value"] = relaySecretPlaceholder(key)
+					row["value"] = kurloSecretPlaceholder(key)
 				}
 			}
 		}
@@ -1460,7 +1460,7 @@ func sanitizeWorkspaceCookiesForFilesystem(workspaceCookies map[string][]map[str
 
 func sanitizeWorkspaceCookieSecret(cookie map[string]any, workspaceID string, existingSecrets, secrets map[string]string) {
 	value := stringFromAny(cookie["value"])
-	if placeholderKey, ok := relaySecretKeyFromPlaceholder(value); ok {
+	if placeholderKey, ok := kurloSecretKeyFromPlaceholder(value); ok {
 		if existingValue, exists := existingSecrets[placeholderKey]; exists {
 			secrets[placeholderKey] = existingValue
 		}
@@ -1471,14 +1471,14 @@ func sanitizeWorkspaceCookieSecret(cookie map[string]any, workspaceID string, ex
 	}
 	key := workspaceCookieSecretKey(workspaceID, cookie)
 	secrets[key] = value
-	cookie["value"] = relaySecretPlaceholder(key)
+	cookie["value"] = kurloSecretPlaceholder(key)
 }
 
 func mergeRequestSecrets(request map[string]any, secrets map[string]string) {
 	auth := nestedMap(request, "auth")
 	if auth != nil {
 		for _, field := range requestAuthSecretFields {
-			if key, ok := relaySecretKeyFromPlaceholder(stringFromAny(auth[field])); ok {
+			if key, ok := kurloSecretKeyFromPlaceholder(stringFromAny(auth[field])); ok {
 				if value, exists := secrets[key]; exists {
 					auth[field] = value
 				}
@@ -1487,7 +1487,7 @@ func mergeRequestSecrets(request map[string]any, secrets map[string]string) {
 	}
 	if settings := nestedMap(request, "settings"); settings != nil {
 		for _, field := range requestSettingSecretFields {
-			if key, ok := relaySecretKeyFromPlaceholder(stringFromAny(settings[field])); ok {
+			if key, ok := kurloSecretKeyFromPlaceholder(stringFromAny(settings[field])); ok {
 				if value, exists := secrets[key]; exists {
 					settings[field] = value
 				}
@@ -1505,7 +1505,7 @@ func mergeCollectionSecrets(collection map[string]any, secrets map[string]string
 	auth := nestedMap(defaults, "auth")
 	if auth != nil {
 		for _, field := range requestAuthSecretFields {
-			if key, ok := relaySecretKeyFromPlaceholder(stringFromAny(auth[field])); ok {
+			if key, ok := kurloSecretKeyFromPlaceholder(stringFromAny(auth[field])); ok {
 				if value, exists := secrets[key]; exists {
 					auth[field] = value
 				}
@@ -1514,7 +1514,7 @@ func mergeCollectionSecrets(collection map[string]any, secrets map[string]string
 	}
 	if settings := nestedMap(defaults, "settings"); settings != nil {
 		for _, field := range requestSettingSecretFields {
-			if key, ok := relaySecretKeyFromPlaceholder(stringFromAny(settings[field])); ok {
+			if key, ok := kurloSecretKeyFromPlaceholder(stringFromAny(settings[field])); ok {
 				if value, exists := secrets[key]; exists {
 					settings[field] = value
 				}
@@ -1535,7 +1535,7 @@ func mergeCollectionSecretRows(defaults map[string]any, secrets map[string]strin
 			if !ok {
 				continue
 			}
-			if key, ok := relaySecretKeyFromPlaceholder(stringFromAny(row["value"])); ok {
+			if key, ok := kurloSecretKeyFromPlaceholder(stringFromAny(row["value"])); ok {
 				if value, exists := secrets[key]; exists {
 					row["value"] = value
 				}
@@ -1555,7 +1555,7 @@ func mergeRequestSecretRows(request map[string]any, secrets map[string]string) {
 			if !ok {
 				continue
 			}
-			if key, ok := relaySecretKeyFromPlaceholder(stringFromAny(row["value"])); ok {
+			if key, ok := kurloSecretKeyFromPlaceholder(stringFromAny(row["value"])); ok {
 				if value, exists := secrets[key]; exists {
 					row["value"] = value
 				}
@@ -1574,7 +1574,7 @@ func mergeEnvironmentSecrets(environment map[string]any, secrets map[string]stri
 		if !ok {
 			continue
 		}
-		if key, ok := relaySecretKeyFromPlaceholder(stringFromAny(row["value"])); ok {
+		if key, ok := kurloSecretKeyFromPlaceholder(stringFromAny(row["value"])); ok {
 			if value, exists := secrets[key]; exists {
 				row["value"] = value
 			}
@@ -1584,7 +1584,7 @@ func mergeEnvironmentSecrets(environment map[string]any, secrets map[string]stri
 
 func mergeWorkspaceCookieSecrets(cookies []map[string]any, secrets map[string]string) {
 	for _, cookie := range cookies {
-		if key, ok := relaySecretKeyFromPlaceholder(stringFromAny(cookie["value"])); ok {
+		if key, ok := kurloSecretKeyFromPlaceholder(stringFromAny(cookie["value"])); ok {
 			if value, exists := secrets[key]; exists {
 				cookie["value"] = value
 			}
@@ -1613,7 +1613,7 @@ func writeYAMLFile(path string, value any) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return err
 	}
-	tmp, err := os.CreateTemp(filepath.Dir(path), ".relay-*.tmp")
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".kurlo-*.tmp")
 	if err != nil {
 		return err
 	}
@@ -1668,7 +1668,7 @@ func readYAMLFile(path string, out any) error {
 }
 
 func sharedStoreHash(workspaces, collections, requests, environments []map[string]any, workspaceCookies map[string][]map[string]any) (string, error) {
-	payload, err := json.Marshal(relaySharedStore{
+	payload, err := json.Marshal(kurloSharedStore{
 		PathLayout:       workspacePathLayout,
 		Workspaces:       workspaces,
 		Collections:      collections,
@@ -1970,15 +1970,15 @@ func workspaceCookieSecretKey(workspaceID string, cookie map[string]any) string 
 	return "workspace." + workspaceID + ".cookies." + name + "." + shortHash(identity) + ".value"
 }
 
-func relaySecretPlaceholder(key string) string {
-	return relaySecretPrefix + key + relaySecretSuffix
+func kurloSecretPlaceholder(key string) string {
+	return kurloSecretPrefix + key + kurloSecretSuffix
 }
 
-func relaySecretKeyFromPlaceholder(value string) (string, bool) {
-	if !strings.HasPrefix(value, relaySecretPrefix) || !strings.HasSuffix(value, relaySecretSuffix) {
+func kurloSecretKeyFromPlaceholder(value string) (string, bool) {
+	if !strings.HasPrefix(value, kurloSecretPrefix) || !strings.HasSuffix(value, kurloSecretSuffix) {
 		return "", false
 	}
-	key := strings.TrimSuffix(strings.TrimPrefix(value, relaySecretPrefix), relaySecretSuffix)
+	key := strings.TrimSuffix(strings.TrimPrefix(value, kurloSecretPrefix), kurloSecretSuffix)
 	return key, key != ""
 }
 

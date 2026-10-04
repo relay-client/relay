@@ -167,10 +167,10 @@ records the media type and size and carries no body.
 
 ### Schema
 
-`schemas/relay-workspace-yaml-v1.schema.json` gains an `exampleFile` variant in
+`schemas/kurlo-workspace-yaml-v1.schema.json` gains an `exampleFile` variant in
 the top-level `oneOf` plus an `example` definition. No change to `requestFile`:
-examples never appear inline, so an old Relay reading a new workspace ignores a
-directory it does not know, and a new Relay reading an old workspace finds no
+examples never appear inline, so an old Kurlo reading a new workspace ignores a
+directory it does not know, and a new Kurlo reading an old workspace finds no
 examples. Both directions degrade to "no examples", which is the correct
 behaviour and needs no version bump.
 
@@ -186,7 +186,7 @@ Three layers, all reusing machinery that already exists:
 1. **Exact secret values.** The executor already knows
    `SecretEnvironmentValues` and uses them in `redactSecrets` for script output.
    On capture, every occurrence of a known secret value in the body or headers is
-   replaced with the same `{{relaySecret:…}}` placeholder the rest of the
+   replaced with the same `{{kurloSecret:…}}` placeholder the rest of the
    workspace uses. This is exact, not a guess.
 
 2. **Sensitive keys.** `lib/secretExport.ts` already carries
@@ -262,7 +262,7 @@ Two things the implementation changed from what is written above. The pruning
 pass only ever removed `*.yml`, so a deleted example would have left its body
 file behind for ever — it now also removes files sitting directly inside
 `examples/<request>/`. And `pathTemplateFromUrl` has to strip a leading
-`{{baseUrl}}`: a Relay URL usually opens with the host in a variable, and
+`{{baseUrl}}`: a Kurlo URL usually opens with the host in a variable, and
 without that the variable became the first path segment.
 
 **Phase 2 — the interface. Done.** An Examples tab with a master-detail list,
@@ -304,7 +304,7 @@ Two unrelated Postman losses were found in the same audit and fixed alongside:
 `protocolProfileBehavior` (per-request redirect and TLS switches) was read by
 nobody, so a collection that turned off redirects imported as one that followed
 them; and `url.variable` — the values behind `:pathVariable` — was dropped,
-leaving a URL that still said `:id` and could not be sent. Relay has no
+leaving a URL that still said `:id` and could not be sent. Kurlo has no
 per-request path variables, so those values are substituted into the URL.
 
 **Phase 4 — the diff. Done.** The response panel's Diff tab already compared the
@@ -344,5 +344,5 @@ tell what actually produced the response.
 **`match` exists from day one** even though nothing reads it. It costs two fields
 now and saves a workspace migration later.
 
-**No file version bump.** Examples are additive and live in files an older Relay
+**No file version bump.** Examples are additive and live in files an older Kurlo
 never opens.

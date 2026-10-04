@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 func mockRoute(method, path string, status int, body string) model.MockRoute {
@@ -437,7 +437,7 @@ func TestMockServerNamesTheHeadersItExposes(t *testing.T) {
 	defer resp.Body.Close()
 
 	exposed := resp.Header.Get("Access-Control-Expose-Headers")
-	for _, want := range []string{"X-Total-Count", "X-Relay-Mock-Example"} {
+	for _, want := range []string{"X-Total-Count", "X-Kurlo-Mock-Example"} {
 		if !strings.Contains(exposed, want) {
 			t.Errorf("Expose-Headers = %q, must name %s so a credentialed client can read it", exposed, want)
 		}

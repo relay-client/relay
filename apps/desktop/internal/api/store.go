@@ -56,5 +56,5 @@ func requestStoreDir() string {
 	if err != nil || dir == "" {
 		dir = "."
 	}
-	return filepath.Join(dir, "Relay")
+	return filepath.Join(dir, "Kurlo")
 }

@@ -72,7 +72,7 @@ func TestGitStatusReportsAMissingGitInsteadOfPretendingItIsNotARepository(t *tes
 	status := gitStatusForWorkspace(root)
 
 	if status.IsRepo {
-		t.Fatal("no Git means Relay cannot know it is a repository")
+		t.Fatal("no Git means Kurlo cannot know it is a repository")
 	}
 	if !status.GitMissing {
 		t.Fatal("expected gitMissing to be set so the interface can explain itself")
@@ -101,7 +101,7 @@ func TestGitStatusOnAPlainFolderStaysQuiet(t *testing.T) {
 
 func TestGitOperationsExplainAMissingGitBinary(t *testing.T) {
 	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, "relay.yml"), []byte("version: 1\nformat: relay.workspace.yaml.v1\n"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "kurlo.yml"), []byte("version: 1\nformat: kurlo.workspace.yaml.v1\n"), 0644); err != nil {
 		t.Fatalf("could not write the workspace file: %v", err)
 	}
 	withoutGit(t)

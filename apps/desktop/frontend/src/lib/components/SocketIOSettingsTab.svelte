@@ -16,7 +16,7 @@
       <span class="settings-subtitle">Applied during the handshake and while connected.</span>
     </div>
     <div class="settings-actions">
-      <button class="btn btn-ghost" type="button" onclick={vm.resetRequestSettings} title="Return every setting to Relay's defaults and forget the saved default">Reset</button>
+      <button class="btn btn-ghost" type="button" onclick={vm.resetRequestSettings} title="Return every setting to Kurlo's defaults and forget the saved default">Reset</button>
       <button class="btn btn-secondary" class:feedback-ok={vm.settingsSaved} type="button" onclick={vm.saveRequestSettings} title="New requests start with these settings">
         {vm.settingsSaved ? 'Saved as default' : 'Save as default'}
       </button>

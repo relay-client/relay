@@ -22,7 +22,7 @@ All notable changes are documented here.
 
 ### Added
 - Client certificates (mutual TLS).
-- \`relay run\` — a CLI runner for CI.
+- \`kurlo run\` — a CLI runner for CI.
   - Data-driven runs with \`--data\`.
 
 ### Fixed
@@ -149,7 +149,7 @@ describe('formatSectionBlocks', () => {
   it('keeps a nested bullet as a child of its parent', () => {
     const blocks = formatSectionBlocks(parseChangelog(CHANGELOG)[0].body);
     expect(blocks[0].items[1]).toEqual({
-      text: '`relay run` — a CLI runner for CI.',
+      text: '`kurlo run` — a CLI runner for CI.',
       children: ['Data-driven runs with `--data`.'],
     });
   });
@@ -173,8 +173,8 @@ describe('formatSectionBlocks', () => {
 
 describe('stripInlineMarkdown', () => {
   it('removes code ticks, bold, and link syntax', () => {
-    expect(stripInlineMarkdown('`relay run` is **new**, see [docs](https://x.dev)'))
-      .toBe('relay run is new, see docs');
+    expect(stripInlineMarkdown('`kurlo run` is **new**, see [docs](https://x.dev)'))
+      .toBe('kurlo run is new, see docs');
   });
 });
 
@@ -196,7 +196,7 @@ describe('release notes from a tag annotation', () => {
 
 describe('sectionIntro', () => {
   it('reads the prose above the first heading', () => {
-    expect(sectionIntro('Relay 2.0 is a new look.\nIt needs macOS 12.\n\n### Added\n- Palette')).toBe('Relay 2.0 is a new look. It needs macOS 12.');
+    expect(sectionIntro('Kurlo 2.0 is a new look.\nIt needs macOS 12.\n\n### Added\n- Palette')).toBe('Kurlo 2.0 is a new look. It needs macOS 12.');
   });
 
   it('is empty when a section starts with a heading or a bullet', () => {

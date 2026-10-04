@@ -34,14 +34,14 @@ func TestParseDigestChallengeMultipleParams(t *testing.T) {
 }
 
 func TestParseDigestChallengeUnquotedValues(t *testing.T) {
-	params := parseDigestChallenge(`realm=relay, nonce=abc123, algorithm=MD5`)
-	if params["realm"] != "relay" || params["nonce"] != "abc123" || params["algorithm"] != "MD5" {
+	params := parseDigestChallenge(`realm=kurlo, nonce=abc123, algorithm=MD5`)
+	if params["realm"] != "kurlo" || params["nonce"] != "abc123" || params["algorithm"] != "MD5" {
 		t.Fatalf("unexpected parse of unquoted challenge: %#v", params)
 	}
 }
 
 func TestComputeDigestAuthQOP(t *testing.T) {
-	params := parseDigestChallenge(`realm="relay", nonce="nonce-1", qop="auth", opaque="op-1"`)
+	params := parseDigestChallenge(`realm="kurlo", nonce="nonce-1", qop="auth", opaque="op-1"`)
 	header, err := computeDigestAuth("user", "pass", "GET", "/protected", params, nil)
 	if err != nil {
 		t.Fatalf("computeDigestAuth: %v", err)
@@ -65,7 +65,7 @@ func TestComputeDigestAuthQOP(t *testing.T) {
 		t.Fatalf("missing cnonce/response in header: %s", header)
 	}
 
-	ha1 := digestMD5("user:relay:pass")
+	ha1 := digestMD5("user:kurlo:pass")
 	ha2 := digestMD5("GET:/protected")
 	want := digestMD5(ha1 + ":nonce-1:00000001:" + cnonce + ":auth:" + ha2)
 	if response != want {
@@ -84,7 +84,7 @@ func extractDigestField(t *testing.T, header, field string) string {
 }
 
 func TestComputeDigestAuthSHA256(t *testing.T) {
-	params := parseDigestChallenge(`realm="relay", nonce="nonce-1", qop="auth", algorithm=SHA-256`)
+	params := parseDigestChallenge(`realm="kurlo", nonce="nonce-1", qop="auth", algorithm=SHA-256`)
 	header, err := computeDigestAuth("user", "pass", "GET", "/protected", params, nil)
 	if err != nil {
 		t.Fatalf("computeDigestAuth: %v", err)
@@ -95,7 +95,7 @@ func TestComputeDigestAuthSHA256(t *testing.T) {
 
 	cnonce := extractDigestField(t, header, "cnonce")
 	response := extractDigestField(t, header, "response")
-	ha1 := digestSHA256("user:relay:pass")
+	ha1 := digestSHA256("user:kurlo:pass")
 	ha2 := digestSHA256("GET:/protected")
 	want := digestSHA256(ha1 + ":nonce-1:00000001:" + cnonce + ":auth:" + ha2)
 	if response != want {
@@ -127,7 +127,7 @@ func TestComputeDigestAuthRFC7616Vector(t *testing.T) {
 }
 
 func TestComputeDigestAuthSessionVariant(t *testing.T) {
-	params := parseDigestChallenge(`realm="relay", nonce="nonce-1", qop="auth", algorithm=SHA-256-sess`)
+	params := parseDigestChallenge(`realm="kurlo", nonce="nonce-1", qop="auth", algorithm=SHA-256-sess`)
 	header, err := computeDigestAuth("user", "pass", "GET", "/x", params, nil)
 	if err != nil {
 		t.Fatalf("computeDigestAuth: %v", err)
@@ -135,7 +135,7 @@ func TestComputeDigestAuthSessionVariant(t *testing.T) {
 	cnonce := extractDigestField(t, header, "cnonce")
 	response := extractDigestField(t, header, "response")
 
-	base := digestSHA256("user:relay:pass")
+	base := digestSHA256("user:kurlo:pass")
 	ha1 := digestSHA256(base + ":nonce-1:" + cnonce)
 	ha2 := digestSHA256("GET:/x")
 	want := digestSHA256(ha1 + ":nonce-1:00000001:" + cnonce + ":auth:" + ha2)
@@ -149,7 +149,7 @@ func TestComputeDigestAuthSessionVariant(t *testing.T) {
 }
 
 func TestComputeDigestAuthSHA512256(t *testing.T) {
-	params := parseDigestChallenge(`realm="relay", nonce="n", qop="auth", algorithm=SHA-512-256`)
+	params := parseDigestChallenge(`realm="kurlo", nonce="n", qop="auth", algorithm=SHA-512-256`)
 	header, err := computeDigestAuth("user", "pass", "POST", "/y", params, nil)
 	if err != nil {
 		t.Fatalf("computeDigestAuth: %v", err)
@@ -160,14 +160,14 @@ func TestComputeDigestAuthSHA512256(t *testing.T) {
 }
 
 func TestComputeDigestAuthUnsupportedAlgorithm(t *testing.T) {
-	params := parseDigestChallenge(`realm="relay", nonce="n", algorithm=SHA-1`)
+	params := parseDigestChallenge(`realm="kurlo", nonce="n", algorithm=SHA-1`)
 	if _, err := computeDigestAuth("user", "pass", "GET", "/", params, nil); err == nil {
 		t.Fatal("expected an error for an unsupported algorithm")
 	}
 }
 
 func TestComputeDigestAuthAuthInt(t *testing.T) {
-	params := parseDigestChallenge(`realm="relay", nonce="n1", qop="auth-int", algorithm=SHA-256`)
+	params := parseDigestChallenge(`realm="kurlo", nonce="n1", qop="auth-int", algorithm=SHA-256`)
 	body := []byte(`{"hello":"world"}`)
 	header, err := computeDigestAuth("user", "pass", "POST", "/submit", params, body)
 	if err != nil {
@@ -177,7 +177,7 @@ func TestComputeDigestAuthAuthInt(t *testing.T) {
 		t.Errorf("header should use auth-int: %s", header)
 	}
 	cnonce := extractDigestField(t, header, "cnonce")
-	ha1 := digestSHA256("user:relay:pass")
+	ha1 := digestSHA256("user:kurlo:pass")
 	ha2 := digestSHA256("POST:/submit:" + digestSHA256(string(body)))
 	want := digestSHA256(ha1 + ":n1:00000001:" + cnonce + ":auth-int:" + ha2)
 	if got := extractDigestField(t, header, "response"); got != want {
@@ -186,7 +186,7 @@ func TestComputeDigestAuthAuthInt(t *testing.T) {
 }
 
 func TestComputeDigestAuthPrefersAuthOverAuthInt(t *testing.T) {
-	params := parseDigestChallenge(`realm="relay", nonce="n1", qop="auth,auth-int"`)
+	params := parseDigestChallenge(`realm="kurlo", nonce="n1", qop="auth,auth-int"`)
 	header, err := computeDigestAuth("user", "pass", "GET", "/", params, nil)
 	if err != nil {
 		t.Fatalf("computeDigestAuth: %v", err)
@@ -202,7 +202,7 @@ func TestComputeDigestAuthPrefersAuthOverAuthInt(t *testing.T) {
 }
 
 func TestComputeDigestAuthUserhash(t *testing.T) {
-	params := parseDigestChallenge(`realm="relay", nonce="n1", qop="auth", algorithm=SHA-256, userhash=true`)
+	params := parseDigestChallenge(`realm="kurlo", nonce="n1", qop="auth", algorithm=SHA-256, userhash=true`)
 	header, err := computeDigestAuth("user", "pass", "GET", "/", params, nil)
 	if err != nil {
 		t.Fatalf("computeDigestAuth: %v", err)
@@ -210,14 +210,14 @@ func TestComputeDigestAuthUserhash(t *testing.T) {
 	if !strings.Contains(header, "userhash=true") {
 		t.Errorf("header must declare userhash=true: %s", header)
 	}
-	wantUser := digestSHA256("user:relay")
+	wantUser := digestSHA256("user:kurlo")
 	if !strings.Contains(header, `username="`+wantUser+`"`) {
 		t.Errorf("username should be hashed as %s: %s", wantUser, header)
 	}
 }
 
 func TestComputeDigestAuthNoQOP(t *testing.T) {
-	params := parseDigestChallenge(`realm="relay", nonce="n1"`)
+	params := parseDigestChallenge(`realm="kurlo", nonce="n1"`)
 	header, err := computeDigestAuth("user", "pass", "GET", "/", params, nil)
 	if err != nil {
 		t.Fatalf("computeDigestAuth: %v", err)
@@ -225,7 +225,7 @@ func TestComputeDigestAuthNoQOP(t *testing.T) {
 	if strings.Contains(header, "qop=") || strings.Contains(header, "nc=") {
 		t.Errorf("RFC 2069 form must not carry qop/nc: %s", header)
 	}
-	ha1 := digestMD5("user:relay:pass")
+	ha1 := digestMD5("user:kurlo:pass")
 	ha2 := digestMD5("GET:/")
 	want := digestMD5(ha1 + ":n1:" + ha2)
 	if got := extractDigestField(t, header, "response"); got != want {
@@ -264,7 +264,7 @@ func TestResolveDigestAlgorithm(t *testing.T) {
 
 func TestDigestTransportSHA256EndToEnd(t *testing.T) {
 	const (
-		realm = "relay-test"
+		realm = "kurlo-test"
 		nonce = "server-nonce-42"
 		user  = "alice"
 		pass  = "s3cret"
@@ -306,7 +306,7 @@ func TestDigestTransportSHA256EndToEnd(t *testing.T) {
 
 func TestDigestTransportAuthIntEndToEnd(t *testing.T) {
 	const (
-		realm = "relay-test"
+		realm = "kurlo-test"
 		nonce = "n-auth-int"
 		user  = "bob"
 		pass  = "pw"

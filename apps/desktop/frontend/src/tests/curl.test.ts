@@ -68,11 +68,11 @@ describe('parseCurl', () => {
   });
 
   it('supports Windows cmd line continuations', () => {
-    const parsed = parseCurl('curl "https://example.test/products" ^\r\n  -H "Accept: application/json" ^\r\n  -A "RelayTest/1.0"');
+    const parsed = parseCurl('curl "https://example.test/products" ^\r\n  -H "Accept: application/json" ^\r\n  -A "KurloTest/1.0"');
 
     expect(parsed.url).toBe('https://example.test/products');
     expect(parsed.headers).toContainEqual({ key: 'Accept', value: 'application/json' });
-    expect(parsed.headers).toContainEqual({ key: 'User-Agent', value: 'RelayTest/1.0' });
+    expect(parsed.headers).toContainEqual({ key: 'User-Agent', value: 'KurloTest/1.0' });
   });
 
   it('imports curl -G data as query params instead of a request body', () => {

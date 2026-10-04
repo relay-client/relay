@@ -28,13 +28,13 @@ const (
 	maxGitLogPageLen     = 200
 )
 
-var relaySecretRefPattern = regexp.MustCompile(`\{\{relaySecret:([^}]+)\}\}`)
+var kurloSecretRefPattern = regexp.MustCompile(`\{\{kurloSecret:([^}]+)\}\}`)
 var gitRemoteNamePattern = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
 var gitCommitHashPattern = regexp.MustCompile(`^[0-9A-Fa-f]{4,64}$`)
 var gitStashRefPattern = regexp.MustCompile(`^stash@\{\d+\}$`)
 var gitCredentialURLPattern = regexp.MustCompile(`(https?://)[^/\s:@]+:[^/\s@]+@`)
 
-var relayRunnerReportArtifactPattern = regexp.MustCompile(`-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.html$`)
+var kurloRunnerReportArtifactPattern = regexp.MustCompile(`-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.html$`)
 
 var gitOperationMu sync.RWMutex
 var workspaceGitignoreMu sync.Mutex
@@ -686,7 +686,7 @@ func (a *App) UseLocalWorkspaceStore() WorkspaceOpenResult {
 	if err := persistActiveWorkspaceRootMode(root, workspaceStorageModeLocal); err != nil {
 		return WorkspaceOpenResult{Ok: false, Root: root, Error: err.Error(), Git: localWorkspaceGitStatus(root)}
 	}
-	payload, diagnostics, err := loadRelayStorePayloadWithDiagnostics(requestStorePath(), root)
+	payload, diagnostics, err := loadKurloStorePayloadWithDiagnostics(requestStorePath(), root)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return WorkspaceOpenResult{Ok: false, Root: root, Error: err.Error(), Git: localWorkspaceGitStatus(root), Diagnostics: diagnostics}
 	}
@@ -732,7 +732,7 @@ func (a *App) CreateLocalWorkspaceRoot(parentDir, directoryName, initMode string
 	if err := persistActiveWorkspaceRootMode(target, workspaceStorageModeLocal); err != nil {
 		return WorkspaceOpenResult{Ok: false, Root: target, Error: err.Error(), Git: localWorkspaceGitStatus(target)}
 	}
-	if err := saveRelayStorePayload(requestStorePath(), target, payload); err != nil {
+	if err := saveKurloStorePayload(requestStorePath(), target, payload); err != nil {
 		return WorkspaceOpenResult{Ok: false, Root: target, Error: err.Error(), Git: localWorkspaceGitStatus(target)}
 	}
 	result := a.openLocalWorkspaceRoot(target)
@@ -789,7 +789,7 @@ func (a *App) gitCloneWorkspace(remoteURL, parentDir, directoryName, initMode, s
 
 	cloneDest := target
 	if targetExists && overwrite {
-		cloneDest = filepath.Join(parent, fmt.Sprintf(".relay-clone-%d", time.Now().UnixNano()))
+		cloneDest = filepath.Join(parent, fmt.Sprintf(".kurlo-clone-%d", time.Now().UnixNano()))
 	}
 	output, err := gitOutputEnv(parent, cloneEnv, "clone", "--", cleanedRemoteURL, cloneDest)
 	if err != nil {
@@ -804,7 +804,7 @@ func (a *App) gitCloneWorkspace(remoteURL, parentDir, directoryName, initMode, s
 
 	backupDir := ""
 	if cloneDest != target {
-		backupDir = filepath.Join(parent, fmt.Sprintf(".relay-backup-%d", time.Now().UnixNano()))
+		backupDir = filepath.Join(parent, fmt.Sprintf(".kurlo-backup-%d", time.Now().UnixNano()))
 		if mvErr := os.Rename(target, backupDir); mvErr != nil {
 			_ = os.RemoveAll(cloneDest)
 			return WorkspaceOpenResult{Root: target, Error: "Could not replace the existing folder: " + mvErr.Error(), Output: output}
@@ -843,7 +843,7 @@ func (a *App) gitCloneWorkspace(remoteURL, parentDir, directoryName, initMode, s
 			rollback()
 			return WorkspaceOpenResult{Output: output, Error: err.Error()}
 		}
-		if err := saveRelayStorePayload(requestStorePath(), target, initPayload); err != nil {
+		if err := saveKurloStorePayload(requestStorePath(), target, initPayload); err != nil {
 			rollback()
 			return WorkspaceOpenResult{Output: output, Error: err.Error()}
 		}
@@ -891,7 +891,7 @@ func (a *App) SaveWorkspaceSecrets(values map[string]string) WorkspaceOpenResult
 	storage["root"] = root
 	storage["mode"] = fileWorkspaceStorageMode()
 	store["storage"] = storage
-	if err := saveLocalRelayStore(requestStorePath(), store); err != nil {
+	if err := saveLocalKurloStore(requestStorePath(), store); err != nil {
 		return WorkspaceOpenResult{Ok: false, Root: root, Error: err.Error(), Git: gitStatusForWorkspace(root)}
 	}
 	return a.openWorkspaceRoot(root)
@@ -907,7 +907,7 @@ func (a *App) openWorkspaceRootOpts(path string, ensureGitignore bool) Workspace
 		return WorkspaceOpenResult{Ok: false, Root: path, Error: friendlyWorkspaceRootError(err), Git: gitStatusForWorkspace(path)}
 	}
 	if !hasYAMLWorkspaceStore(root) {
-		return WorkspaceOpenResult{Ok: false, Root: root, Error: "Selected folder does not contain a Relay YAML workspace.", Git: gitStatusForWorkspace(root)}
+		return WorkspaceOpenResult{Ok: false, Root: root, Error: "Selected folder does not contain a Kurlo YAML workspace.", Git: gitStatusForWorkspace(root)}
 	}
 	if err := persistActiveWorkspaceRootMode(root, workspaceStorageModeGit); err != nil {
 		return WorkspaceOpenResult{Ok: false, Root: root, Error: err.Error(), Git: gitStatusForWorkspace(root)}
@@ -919,7 +919,7 @@ func (a *App) openWorkspaceRootOpts(path string, ensureGitignore bool) Workspace
 			return WorkspaceOpenResult{Ok: false, Root: root, Error: err.Error(), Git: status}
 		}
 	}
-	payload, diagnostics, err := loadRelayStorePayloadWithDiagnostics(requestStorePath(), root)
+	payload, diagnostics, err := loadKurloStorePayloadWithDiagnostics(requestStorePath(), root)
 	if err != nil {
 		return WorkspaceOpenResult{Ok: false, Root: root, Error: err.Error(), Git: gitStatusForWorkspace(root), Diagnostics: diagnostics}
 	}
@@ -955,12 +955,12 @@ func (a *App) openLocalWorkspaceRoot(path string) WorkspaceOpenResult {
 		return WorkspaceOpenResult{Ok: false, Root: path, Error: friendlyWorkspaceRootError(err), Git: localWorkspaceGitStatus(path)}
 	}
 	if !hasYAMLWorkspaceStore(root) {
-		return WorkspaceOpenResult{Ok: false, Root: root, Error: "Selected folder does not contain a Relay YAML workspace.", Git: localWorkspaceGitStatus(root)}
+		return WorkspaceOpenResult{Ok: false, Root: root, Error: "Selected folder does not contain a Kurlo YAML workspace.", Git: localWorkspaceGitStatus(root)}
 	}
 	if err := persistActiveWorkspaceRootMode(root, workspaceStorageModeLocal); err != nil {
 		return WorkspaceOpenResult{Ok: false, Root: root, Error: err.Error(), Git: localWorkspaceGitStatus(root)}
 	}
-	payload, diagnostics, err := loadRelayStorePayloadWithDiagnostics(requestStorePath(), root)
+	payload, diagnostics, err := loadKurloStorePayloadWithDiagnostics(requestStorePath(), root)
 	if err != nil {
 		return WorkspaceOpenResult{Ok: false, Root: root, Error: err.Error(), Git: localWorkspaceGitStatus(root), Diagnostics: diagnostics}
 	}
@@ -1002,7 +1002,7 @@ func persistActiveWorkspaceRootMode(root, mode string) error {
 	if _, ok := store["secrets"]; !ok {
 		store["secrets"] = map[string]string{}
 	}
-	return saveLocalRelayStore(requestStorePath(), store)
+	return saveLocalKurloStore(requestStorePath(), store)
 }
 
 func localWorkspaceGitStatus(root string) GitWorkspaceStatus {
@@ -1094,7 +1094,7 @@ func gitInitWorkspaceForRoot(root string) GitOperationResult {
 		return GitOperationResult{Ok: false, Error: friendlyWorkspaceRootError(err), Git: gitStatusForWorkspace(root)}
 	}
 	if !hasYAMLWorkspaceStore(workspaceRoot) {
-		return GitOperationResult{Ok: false, Git: gitStatusForWorkspace(workspaceRoot), Error: "Current folder does not contain a Relay YAML workspace."}
+		return GitOperationResult{Ok: false, Git: gitStatusForWorkspace(workspaceRoot), Error: "Current folder does not contain a Kurlo YAML workspace."}
 	}
 	status := gitStatusForWorkspace(workspaceRoot)
 	if status.IsRepo {
@@ -1419,7 +1419,7 @@ func gitStageWorkspaceFilesForRoot(root string) GitOperationResult {
 	}
 	files := managedChangedGitPaths(root, status)
 	if len(files) == 0 {
-		return GitOperationResult{Ok: true, Git: status, Files: []string{}, Output: "No Relay workspace file changes to stage."}
+		return GitOperationResult{Ok: true, Git: status, Files: []string{}, Output: "No Kurlo workspace file changes to stage."}
 	}
 	args := append([]string{"add", "--"}, files...)
 	output, err := runGit(status.Root, args...)
@@ -1445,9 +1445,9 @@ func gitCommitWorkspaceForRoot(root, message string) GitOperationResult {
 	if err != nil {
 		return GitOperationResult{Ok: false, Git: status, Error: err.Error()}
 	}
-	relayFiles, otherFiles := partitionManagedGitPaths(root, status.Root, staged)
+	kurloFiles, otherFiles := partitionManagedGitPaths(root, status.Root, staged)
 	if len(otherFiles) > 0 {
-		return GitOperationResult{Ok: false, Git: status, Error: "Unstage non-Relay files before committing from Relay: " + strings.Join(otherFiles, ", "), Files: relayFiles}
+		return GitOperationResult{Ok: false, Git: status, Error: "Unstage non-Kurlo files before committing from Kurlo: " + strings.Join(otherFiles, ", "), Files: kurloFiles}
 	}
 	filesToStage := managedChangedGitPaths(root, status)
 	if len(filesToStage) > 0 {
@@ -1461,18 +1461,18 @@ func gitCommitWorkspaceForRoot(root, message string) GitOperationResult {
 	if err != nil {
 		return GitOperationResult{Ok: false, Git: gitStatusForWorkspace(root), Error: err.Error(), Files: filesToStage}
 	}
-	relayFiles, otherFiles = partitionManagedGitPaths(root, status.Root, staged)
+	kurloFiles, otherFiles = partitionManagedGitPaths(root, status.Root, staged)
 	if len(otherFiles) > 0 {
-		return GitOperationResult{Ok: false, Git: gitStatusForWorkspace(root), Error: "Unstage non-Relay files before committing from Relay: " + strings.Join(otherFiles, ", "), Files: relayFiles}
+		return GitOperationResult{Ok: false, Git: gitStatusForWorkspace(root), Error: "Unstage non-Kurlo files before committing from Kurlo: " + strings.Join(otherFiles, ", "), Files: kurloFiles}
 	}
-	if len(relayFiles) == 0 {
-		return GitOperationResult{Ok: false, Git: status, Error: "No Relay workspace changes to commit.", Files: []string{}}
+	if len(kurloFiles) == 0 {
+		return GitOperationResult{Ok: false, Git: status, Error: "No Kurlo workspace changes to commit.", Files: []string{}}
 	}
 	output, err := runGit(status.Root, "commit", "-m", message)
 	if err != nil {
-		return GitOperationResult{Ok: false, Git: gitStatusForWorkspace(root), Error: friendlyGitError("commit", output, err), Output: output, Files: relayFiles}
+		return GitOperationResult{Ok: false, Git: gitStatusForWorkspace(root), Error: friendlyGitError("commit", output, err), Output: output, Files: kurloFiles}
 	}
-	return GitOperationResult{Ok: true, Git: gitStatusForWorkspace(root), Output: output, Files: relayFiles}
+	return GitOperationResult{Ok: true, Git: gitStatusForWorkspace(root), Output: output, Files: kurloFiles}
 }
 
 func gitCommitWorkspaceFilesForRoot(root string, paths []string, message string) GitOperationResult {
@@ -1492,7 +1492,7 @@ func gitCommitWorkspaceFilesForRoot(root string, paths []string, message string)
 		return GitOperationResult{Ok: false, Git: status, Error: err.Error()}
 	}
 	if len(files) == 0 {
-		return GitOperationResult{Ok: false, Git: status, Error: "No selected Relay workspace changes to commit.", Files: []string{}}
+		return GitOperationResult{Ok: false, Git: status, Error: "No selected Kurlo workspace changes to commit.", Files: []string{}}
 	}
 	addArgs := append([]string{"add", "--"}, files...)
 	addOutput, addErr := runGit(status.Root, addArgs...)
@@ -1517,11 +1517,11 @@ func gitStashWorkspaceForRoot(root, message string) GitOperationResult {
 	}
 	files := managedChangedGitPaths(root, status)
 	if len(files) == 0 {
-		return GitOperationResult{Ok: false, Git: status, Error: "No Relay workspace changes to stash.", Files: []string{}}
+		return GitOperationResult{Ok: false, Git: status, Error: "No Kurlo workspace changes to stash.", Files: []string{}}
 	}
 	message = strings.TrimSpace(message)
 	if message == "" {
-		message = "Relay workspace changes"
+		message = "Kurlo workspace changes"
 	}
 	args := append([]string{"stash", "push", "-u", "-m", message, "--"}, files...)
 	output, err := runGit(status.Root, args...)
@@ -1554,7 +1554,7 @@ func gitStashPopWorkspaceForRoot(root, ref string) GitOperationResult {
 		next := gitStatusForWorkspace(root)
 		message := friendlyGitError("stash pop", output, err)
 		if hasConflictedFiles(next) {
-			message = "Applying the stash stopped with conflicts. Resolve the conflicted Relay files, then continue or abort the Git operation."
+			message = "Applying the stash stopped with conflicts. Resolve the conflicted Kurlo files, then continue or abort the Git operation."
 		}
 		return GitOperationResult{Ok: false, Git: next, Error: message, Output: output}
 	}
@@ -1683,8 +1683,8 @@ func gitDiscardWorkspaceFileForRoot(root, path string) GitOperationResult {
 	if err != nil {
 		return GitOperationResult{Ok: false, Git: status, Error: err.Error()}
 	}
-	if !isDiscardableRelayGitPath(root, status.Root, relPath) {
-		return GitOperationResult{Ok: false, Git: status, Error: "Relay can only discard Relay workspace files and Relay-generated reports."}
+	if !isDiscardableKurloGitPath(root, status.Root, relPath) {
+		return GitOperationResult{Ok: false, Git: status, Error: "Kurlo can only discard Kurlo workspace files and Kurlo-generated reports."}
 	}
 	if !gitChangedPathExists(status.Files, relPath) {
 		return GitOperationResult{Ok: true, Git: status, Output: "No local changes for " + relPath + ".", Files: []string{}}
@@ -1711,7 +1711,7 @@ func gitDiscardWorkspaceChangesForRoot(root string) GitOperationResult {
 	}
 	files := discardableChangedGitPaths(root, status)
 	if len(files) == 0 {
-		return GitOperationResult{Ok: true, Git: status, Output: "No Relay workspace changes to discard.", Files: []string{}}
+		return GitOperationResult{Ok: true, Git: status, Output: "No Kurlo workspace changes to discard.", Files: []string{}}
 	}
 	if !gitRepositoryHasHead(status.Root) {
 		return GitOperationResult{Ok: false, Git: status, Error: "No committed baseline to restore from. Commit the initial workspace before using discard.", Files: files}
@@ -1733,7 +1733,7 @@ func gitDiscardWorkspaceFilesForRoot(root string, paths []string) GitOperationRe
 		return GitOperationResult{Ok: false, Git: status, Error: err.Error()}
 	}
 	if len(files) == 0 {
-		return GitOperationResult{Ok: true, Git: status, Output: "No selected Relay workspace changes to discard.", Files: []string{}}
+		return GitOperationResult{Ok: true, Git: status, Output: "No selected Kurlo workspace changes to discard.", Files: []string{}}
 	}
 	hasHead := gitRepositoryHasHead(status.Root)
 	if hasHead {
@@ -1800,7 +1800,7 @@ func gitOutgoingChangesForWorkspace(workspaceRoot string) GitDiffResult {
 		return GitDiffResult{Path: resultPath, Error: "Current workspace is not inside a Git repository."}
 	}
 	if _, err := gitOutput(status.Root, "rev-parse", "--verify", "HEAD"); err != nil {
-		return GitDiffResult{Path: resultPath, Diff: "No commits yet. Commit Relay workspace files before pushing."}
+		return GitDiffResult{Path: resultPath, Diff: "No commits yet. Commit Kurlo workspace files before pushing."}
 	}
 
 	pathspecs := managedWorkspaceGitPathspecs(workspaceRoot, status.Root)
@@ -1832,9 +1832,9 @@ func gitOutgoingChangesForWorkspace(workspaceRoot string) GitDiffResult {
 
 	patchOutput = strings.TrimSpace(patchOutput)
 	if patchOutput == "" {
-		message := "No committed Relay workspace changes to push."
+		message := "No committed Kurlo workspace changes to push."
 		if baseRef != "" {
-			message = "No committed Relay workspace changes ahead of " + baseRef + "."
+			message = "No committed Kurlo workspace changes ahead of " + baseRef + "."
 		}
 		return GitDiffResult{Path: resultPath, Diff: message}
 	}
@@ -1928,7 +1928,7 @@ func gitCommitDiffForRoot(root, commit string) GitDiffResult {
 	}
 	diff := strings.TrimSpace(normalizeGitDiffPaths(status.Root, output))
 	if diff == "" {
-		diff = "No Relay workspace changes in this commit."
+		diff = "No Kurlo workspace changes in this commit."
 	}
 	diff, truncated := truncateGitOutput(diff, maxGitDiffBytes)
 	return GitDiffResult{
@@ -1949,7 +1949,7 @@ func gitConflictFileForRoot(root, path string) GitConflictFileResult {
 		return GitConflictFileResult{Ok: false, Git: status, Error: err.Error()}
 	}
 	if !isManagedWorkspaceGitPath(root, status.Root, relPath) {
-		return GitConflictFileResult{Ok: false, Git: status, Path: relPath, Error: "Relay can only resolve Relay workspace files."}
+		return GitConflictFileResult{Ok: false, Git: status, Path: relPath, Error: "Kurlo can only resolve Kurlo workspace files."}
 	}
 	if gitStatusForPath(status.Files, relPath) != "conflicted" {
 		return GitConflictFileResult{Ok: false, Git: status, Path: relPath, Error: "Selected file is not conflicted."}
@@ -1993,7 +1993,7 @@ func gitResolveConflictFileForRoot(root, path, resolution, content string) GitOp
 		return GitOperationResult{Ok: false, Git: status, Error: err.Error()}
 	}
 	if !isManagedWorkspaceGitPath(root, status.Root, relPath) {
-		return GitOperationResult{Ok: false, Git: status, Error: "Relay can only resolve Relay workspace files."}
+		return GitOperationResult{Ok: false, Git: status, Error: "Kurlo can only resolve Kurlo workspace files."}
 	}
 	if gitStatusForPath(status.Files, relPath) != "conflicted" {
 		return GitOperationResult{Ok: false, Git: status, Error: "Selected file is not conflicted.", Files: []string{relPath}}
@@ -2191,7 +2191,7 @@ func gitContinueOperationForRoot(root, message string) GitOperationResult {
 	case "merge":
 		message = strings.TrimSpace(message)
 		if message == "" {
-			message = "Merge Relay workspace"
+			message = "Merge Kurlo workspace"
 		}
 		staged, err := stagedGitFiles(status.Root)
 		if err != nil {
@@ -2199,7 +2199,7 @@ func gitContinueOperationForRoot(root, message string) GitOperationResult {
 		}
 		_, otherFiles := partitionManagedGitPaths(root, status.Root, staged)
 		if len(otherFiles) > 0 {
-			return GitOperationResult{Ok: false, Git: status, Error: "Unstage non-Relay files before continuing the merge: " + strings.Join(otherFiles, ", ")}
+			return GitOperationResult{Ok: false, Git: status, Error: "Unstage non-Kurlo files before continuing the merge: " + strings.Join(otherFiles, ", ")}
 		}
 		output, err := runGit(status.Root, "commit", "-m", message)
 		if err != nil {
@@ -2693,7 +2693,7 @@ func discardGitPaths(repoRoot string, statusFiles []GitFileStatus, paths []strin
 		}
 	}
 	if len(outputParts) == 0 {
-		return "Discarded Relay workspace changes.", nil
+		return "Discarded Kurlo workspace changes.", nil
 	}
 	return strings.Join(outputParts, "\n"), nil
 }
@@ -2768,9 +2768,9 @@ func gitPullSummaryForRange(repoRoot, beforeHead, afterHead string) GitPullSumma
 
 func gitPullConflictMessage(status GitWorkspaceStatus) string {
 	if status.Operation != "" {
-		return "Pull stopped with conflicts. Resolve the conflicted Relay files, then continue or abort the Git operation."
+		return "Pull stopped with conflicts. Resolve the conflicted Kurlo files, then continue or abort the Git operation."
 	}
-	return "Pull applied remote changes, but your uncommitted edits conflicted while being re-applied. Resolve the conflicted Relay files; the resolved files will stay as local changes."
+	return "Pull applied remote changes, but your uncommitted edits conflicted while being re-applied. Resolve the conflicted Kurlo files; the resolved files will stay as local changes."
 }
 
 func parseGitPullSummary(output string) GitPullSummary {
@@ -3011,7 +3011,7 @@ func selectedManagedChangedGitPaths(workspaceRoot string, status GitWorkspaceSta
 			return nil, err
 		}
 		if !isManagedWorkspaceGitPath(workspaceRoot, status.Root, relPath) {
-			return nil, fmt.Errorf("Relay can only operate on Relay workspace files.")
+			return nil, fmt.Errorf("Kurlo can only operate on Kurlo workspace files.")
 		}
 		if _, ok := changed[relPath]; !ok {
 			continue
@@ -3057,7 +3057,7 @@ func isManagedWorkspaceGitPath(workspaceRoot, repoRoot, repoRelPath string) bool
 		(strings.HasPrefix(path, fileStoreWorkspacesDir+"/") && filepath.Ext(path) == fileStoreYAMLExt)
 }
 
-func isRelayGeneratedArtifactGitPath(workspaceRoot, repoRoot, repoRelPath string) bool {
+func isKurloGeneratedArtifactGitPath(workspaceRoot, repoRoot, repoRelPath string) bool {
 	prefix := workspaceGitPrefix(workspaceRoot, repoRoot)
 	path := filepath.ToSlash(strings.TrimSpace(repoRelPath))
 	if path == "" || strings.HasPrefix(path, "../") || path == ".." {
@@ -3069,12 +3069,12 @@ func isRelayGeneratedArtifactGitPath(workspaceRoot, repoRoot, repoRelPath string
 		}
 		path = strings.TrimPrefix(path, prefix+"/")
 	}
-	return relayRunnerReportArtifactPattern.MatchString(filepath.Base(path))
+	return kurloRunnerReportArtifactPattern.MatchString(filepath.Base(path))
 }
 
-func isDiscardableRelayGitPath(workspaceRoot, repoRoot, repoRelPath string) bool {
+func isDiscardableKurloGitPath(workspaceRoot, repoRoot, repoRelPath string) bool {
 	return isManagedWorkspaceGitPath(workspaceRoot, repoRoot, repoRelPath) ||
-		isRelayGeneratedArtifactGitPath(workspaceRoot, repoRoot, repoRelPath)
+		isKurloGeneratedArtifactGitPath(workspaceRoot, repoRoot, repoRelPath)
 }
 
 func discardableChangedGitPaths(workspaceRoot string, status GitWorkspaceStatus) []string {
@@ -3082,7 +3082,7 @@ func discardableChangedGitPaths(workspaceRoot string, status GitWorkspaceStatus)
 	var paths []string
 	for _, file := range status.Files {
 		path := filepath.ToSlash(file.Path)
-		if !isDiscardableRelayGitPath(workspaceRoot, status.Root, path) {
+		if !isDiscardableKurloGitPath(workspaceRoot, status.Root, path) {
 			continue
 		}
 		if _, exists := seen[path]; exists {
@@ -3107,8 +3107,8 @@ func selectedDiscardableChangedGitPaths(workspaceRoot string, status GitWorkspac
 		if err != nil {
 			return nil, err
 		}
-		if !isDiscardableRelayGitPath(workspaceRoot, status.Root, relPath) {
-			return nil, fmt.Errorf("Relay can only discard Relay workspace files and Relay-generated reports.")
+		if !isDiscardableKurloGitPath(workspaceRoot, status.Root, relPath) {
+			return nil, fmt.Errorf("Kurlo can only discard Kurlo workspace files and Kurlo-generated reports.")
 		}
 		if _, ok := changed[relPath]; !ok {
 			continue
@@ -3297,45 +3297,45 @@ func appendGitOutput(output, message string) string {
 func cloneInitializationPayload(initMode, workspaceName string) (string, string, error) {
 	switch strings.TrimSpace(initMode) {
 	case "", "empty":
-		payload, err := emptyRelayWorkspacePayload(workspaceName)
-		return payload, "Initialized an empty Relay YAML workspace in the cloned repository.", err
+		payload, err := emptyKurloWorkspacePayload(workspaceName)
+		return payload, "Initialized an empty Kurlo YAML workspace in the cloned repository.", err
 	case "copy":
-		payload, err := loadRelayStorePayload(requestStorePath(), fileWorkspaceStorePath())
+		payload, err := loadKurloStorePayload(requestStorePath(), fileWorkspaceStorePath())
 		if err != nil || strings.TrimSpace(payload) == "" {
 			if err == nil {
 				err = fmt.Errorf("current local workspace is empty")
 			}
-			return "", "", fmt.Errorf("repository was cloned, but Relay could not copy the current local workspace: %w", err)
+			return "", "", fmt.Errorf("repository was cloned, but Kurlo could not copy the current local workspace: %w", err)
 		}
-		return payload, "Copied the current Relay workspace into the cloned repository.", nil
+		return payload, "Copied the current Kurlo workspace into the cloned repository.", nil
 	default:
-		return "", "", fmt.Errorf("repository was cloned, but Relay workspace initialization was canceled")
+		return "", "", fmt.Errorf("repository was cloned, but Kurlo workspace initialization was canceled")
 	}
 }
 
 func localWorkspaceInitializationPayload(initMode, workspaceName string) (string, string, error) {
 	switch strings.TrimSpace(initMode) {
 	case "", "empty":
-		payload, err := emptyRelayWorkspacePayload(workspaceName)
-		return payload, "Created an empty Relay folder workspace.", err
+		payload, err := emptyKurloWorkspacePayload(workspaceName)
+		return payload, "Created an empty Kurlo folder workspace.", err
 	case "copy":
-		payload, err := loadRelayStorePayload(requestStorePath(), fileWorkspaceStorePath())
+		payload, err := loadKurloStorePayload(requestStorePath(), fileWorkspaceStorePath())
 		if err != nil || strings.TrimSpace(payload) == "" {
 			if err == nil {
 				err = fmt.Errorf("current local workspace is empty")
 			}
-			return "", "", fmt.Errorf("Relay could not copy the current workspace: %w", err)
+			return "", "", fmt.Errorf("Kurlo could not copy the current workspace: %w", err)
 		}
-		return payload, "Copied the current Relay workspace into a folder workspace.", nil
+		return payload, "Copied the current Kurlo workspace into a folder workspace.", nil
 	default:
-		return "", "", fmt.Errorf("Relay folder workspace creation was canceled")
+		return "", "", fmt.Errorf("Kurlo folder workspace creation was canceled")
 	}
 }
 
-func emptyRelayWorkspacePayload(workspaceName string) (string, error) {
+func emptyKurloWorkspacePayload(workspaceName string) (string, error) {
 	name := strings.TrimSpace(workspaceName)
 	if name == "" {
-		name = "Relay Workspace"
+		name = "Kurlo Workspace"
 	}
 	workspaceID := "workspace-" + pathSafeID(name)
 	collectionID := "collection-default"
@@ -3398,7 +3398,7 @@ func appendGitAuthHint(message string) string {
 	case strings.Contains(lower, "permission denied (publickey)"):
 		return message + "\n\nAuthentication hint: for private repositories, add your SSH public key to GitHub/GitLab/Bitbucket and make sure ssh-agent has the private key loaded with ssh-add."
 	case strings.Contains(lower, "could not read username") || strings.Contains(lower, "terminal prompts disabled"):
-		return message + "\n\nAuthentication hint: HTTPS private repositories need a Git credential helper or personal access token stored in your system Git credentials. Relay does not store Git tokens; SSH remote URLs are recommended."
+		return message + "\n\nAuthentication hint: HTTPS private repositories need a Git credential helper or personal access token stored in your system Git credentials. Kurlo does not store Git tokens; SSH remote URLs are recommended."
 	case strings.Contains(lower, "authentication failed"):
 		return message + "\n\nAuthentication hint: use an SSH remote URL or configure your system Git credential helper with a personal access token."
 	case strings.Contains(lower, "repository not found"):
@@ -3531,7 +3531,7 @@ func missingWorkspaceSecrets(root string, secrets map[string]string) []Workspace
 		if err != nil {
 			return
 		}
-		for _, match := range relaySecretRefPattern.FindAllSubmatch(data, -1) {
+		for _, match := range kurloSecretRefPattern.FindAllSubmatch(data, -1) {
 			if len(match) < 2 {
 				continue
 			}

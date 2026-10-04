@@ -16,8 +16,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/relay-client/relay/apps/desktop/internal/api/state"
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/api/state"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 const mcpServerLatestHandshakeVersion = "2025-11-25"
@@ -84,23 +84,23 @@ func RunMCPServer(args []string) int {
 		if err == flag.ErrHelp {
 			return 0
 		}
-		fmt.Fprintln(os.Stderr, "relay mcp:", err)
+		fmt.Fprintln(os.Stderr, "kurlo mcp:", err)
 		return 2
 	}
 	if !hasYAMLWorkspaceStore(opts.workspace) {
-		fmt.Fprintf(os.Stderr, "relay mcp: %q is not a Relay YAML workspace (no relay.yml found)\n", opts.workspace)
+		fmt.Fprintf(os.Stderr, "kurlo mcp: %q is not a Kurlo YAML workspace (no kurlo.yml found)\n", opts.workspace)
 		return 2
 	}
 	defer httpTransports.closeAll()
 	if err := newMCPServer(opts, os.Stdout).serve(os.Stdin); err != nil {
-		fmt.Fprintln(os.Stderr, "relay mcp:", err)
+		fmt.Fprintln(os.Stderr, "kurlo mcp:", err)
 		return 1
 	}
 	return 0
 }
 
 func parseMCPServerArgs(args []string, stderr io.Writer) (mcpServerOptions, error) {
-	fs := flag.NewFlagSet("relay mcp", flag.ContinueOnError)
+	fs := flag.NewFlagSet("kurlo mcp", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	var opts mcpServerOptions
 	fs.StringVar(&opts.env, "env", "", "environment to use when a tool call does not name one")
@@ -109,8 +109,8 @@ func parseMCPServerArgs(args []string, stderr io.Writer) (mcpServerOptions, erro
 	fs.BoolVar(&opts.insecure, "k", false, "alias for --insecure")
 	fs.BoolVar(&opts.allowSendRequest, "allow-send-request", false, "allow pm.sendRequest to make HTTP calls from scripts")
 	fs.Usage = func() {
-		fmt.Fprintln(stderr, "Usage: relay mcp [workspace] [flags]")
-		fmt.Fprint(stderr, "\nServe a Relay workspace to AI assistants as a Model Context Protocol server over stdio.\nWithout a workspace argument it serves the workspace the app has open.\n\n")
+		fmt.Fprintln(stderr, "Usage: kurlo mcp [workspace] [flags]")
+		fmt.Fprint(stderr, "\nServe a Kurlo workspace to AI assistants as a Model Context Protocol server over stdio.\nWithout a workspace argument it serves the workspace the app has open.\n\n")
 		fs.PrintDefaults()
 	}
 
@@ -290,11 +290,11 @@ func mcpServerStateless(params json.RawMessage) bool {
 }
 
 func (s *mcpServer) serverInfo() map[string]any {
-	return map[string]any{"name": "relay", "title": "Relay", "version": appVersion}
+	return map[string]any{"name": "kurlo", "title": "Kurlo", "version": appVersion}
 }
 
 func (s *mcpServer) instructions() string {
-	text := "Relay is an API client. This server exposes the saved requests, collections and environments of the Relay workspace at " + s.opts.workspace + ". " +
+	text := "Kurlo is an API client. This server exposes the saved requests, collections and environments of the Kurlo workspace at " + s.opts.workspace + ". " +
 		"Call list_requests to see what is saved and list_environments to see the environments, then run_request to send one saved request and read its response, " +
 		"run_collection to run a collection or folder with its test scripts, or send_request for a one-off HTTP call that can use the environment's {{variables}}. " +
 		"Values that scripts set with pm.environment.set or pm.collectionVariables.set are kept for later calls in this session, so a login request can hand its token to the requests after it. " +

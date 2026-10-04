@@ -20,8 +20,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/relay-client/relay/apps/desktop/internal/api/auth"
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/api/auth"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 func TestSendRequestDoesNotAutoSendEmptyRawBody(t *testing.T) {
@@ -105,7 +105,7 @@ func TestSendRequestDoesNotRedactJSONBodySecrets(t *testing.T) {
 	}
 }
 
-func TestSendRequestUsesRelayUserAgentByDefault(t *testing.T) {
+func TestSendRequestUsesKurloUserAgentByDefault(t *testing.T) {
 	var gotUserAgent string
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -129,8 +129,8 @@ func TestSendRequestUsesRelayUserAgentByDefault(t *testing.T) {
 	if resp.Error != "" {
 		t.Fatalf("unexpected response error: %s", resp.Error)
 	}
-	if gotUserAgent != "Relay/"+appVersion {
-		t.Fatalf("expected Relay user agent, got %q", gotUserAgent)
+	if gotUserAgent != "Kurlo/"+appVersion {
+		t.Fatalf("expected Kurlo user agent, got %q", gotUserAgent)
 	}
 }
 
@@ -238,11 +238,11 @@ func TestSendGraphQLRequestAppliesAuthModes(t *testing.T) {
 		},
 		{
 			name: "basic",
-			auth: model.AuthConfig{Type: "basic", Username: "relay", Password: "secret"},
+			auth: model.AuthConfig{Type: "basic", Username: "kurlo", Password: "secret"},
 			check: func(t *testing.T, r *http.Request, _ string) {
 				user, pass, ok := r.BasicAuth()
-				if !ok || user != "relay" || pass != "secret" {
-					t.Fatalf("expected basic auth relay/secret, got ok=%v user=%q pass=%q", ok, user, pass)
+				if !ok || user != "kurlo" || pass != "secret" {
+					t.Fatalf("expected basic auth kurlo/secret, got ok=%v user=%q pass=%q", ok, user, pass)
 				}
 			},
 		},
@@ -336,12 +336,12 @@ func TestSendGraphQLRequestUsesDigestAuth(t *testing.T) {
 			t.Fatalf("expected replayed GraphQL body %s, got %s", graphqlBody, string(body))
 		}
 		if attempts == 1 {
-			w.Header().Set("WWW-Authenticate", `Digest realm="relay", nonce="nonce-1", qop="auth"`)
+			w.Header().Set("WWW-Authenticate", `Digest realm="kurlo", nonce="nonce-1", qop="auth"`)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 		authHeader := r.Header.Get("Authorization")
-		if !strings.HasPrefix(authHeader, "Digest ") || !strings.Contains(authHeader, `username="relay"`) {
+		if !strings.HasPrefix(authHeader, "Digest ") || !strings.Contains(authHeader, `username="kurlo"`) {
 			t.Fatalf("expected digest authorization on retry, got %q", authHeader)
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -353,7 +353,7 @@ func TestSendGraphQLRequestUsesDigestAuth(t *testing.T) {
 	resp := NewApp().SendRequest(model.HttpRequest{
 		Method:                http.MethodPost,
 		URL:                   server.URL,
-		Auth:                  model.AuthConfig{Type: "digest", Username: "relay", Password: "secret"},
+		Auth:                  model.AuthConfig{Type: "digest", Username: "kurlo", Password: "secret"},
 		BodyType:              "graphql",
 		Body:                  graphqlBody,
 		FollowRedirects:       true,
@@ -1393,11 +1393,11 @@ func TestSaveRequestStoreRecoversUnreadableLocalMetadataForYAMLWorkspace(t *test
 	}
 
 	setTestRequestStoreKey(oldKey)
-	if err := saveRelayStorePayload(requestStorePath(), defaultFileWorkspaceStorePath(), relaySaveFlowPayload("/old", "token-a", []string{"req-main"}, "")); err != nil {
-		t.Fatalf("save initial relay store: %v", err)
+	if err := saveKurloStorePayload(requestStorePath(), defaultFileWorkspaceStorePath(), kurloSaveFlowPayload("/old", "token-a", []string{"req-main"}, "")); err != nil {
+		t.Fatalf("save initial kurlo store: %v", err)
 	}
 	setTestRequestStoreKey(newKey)
-	result := NewApp().SaveRequestStoreWithError(relaySaveFlowPayload("/new", "token-b", []string{"req-main"}, ""))
+	result := NewApp().SaveRequestStoreWithError(kurloSaveFlowPayload("/new", "token-b", []string{"req-main"}, ""))
 	if !result.Ok {
 		t.Fatalf("expected recovery save to succeed, got %q", result.Error)
 	}
@@ -1408,9 +1408,9 @@ func TestSaveRequestStoreRecoversUnreadableLocalMetadataForYAMLWorkspace(t *test
 	if len(backups) != 1 {
 		t.Fatalf("expected one recovery backup, got %d (%v)", len(backups), backups)
 	}
-	loaded, err := loadRelayStorePayload(requestStorePath(), defaultFileWorkspaceStorePath())
+	loaded, err := loadKurloStorePayload(requestStorePath(), defaultFileWorkspaceStorePath())
 	if err != nil {
-		t.Fatalf("load recovered relay store: %v", err)
+		t.Fatalf("load recovered kurlo store: %v", err)
 	}
 	if !strings.Contains(loaded, "/new") {
 		t.Fatalf("recovered store did not contain new payload:\n%s", loaded)
@@ -1454,7 +1454,7 @@ func TestRequestStoreKeychainDisabledEnvValues(t *testing.T) {
 	}
 }
 
-func TestRelayStoreSplitsRequestsIntoWorkspaceYAMLAndLocalEncryptedState(t *testing.T) {
+func TestKurloStoreSplitsRequestsIntoWorkspaceYAMLAndLocalEncryptedState(t *testing.T) {
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()
 	localPath := filepath.Join(dir, "requests.json")
@@ -1485,8 +1485,8 @@ func TestRelayStoreSplitsRequestsIntoWorkspaceYAMLAndLocalEncryptedState(t *test
   "workspaceCookies": {"workspace-main":[{"name":"scoped","value":"workspace-cookie-secret","domain":"example.test","path":"/","hostOnly":true,"session":true}]}
 }`
 
-	if err := saveRelayStorePayload(localPath, workspaceRoot, payload); err != nil {
-		t.Fatalf("save relay store: %v", err)
+	if err := saveKurloStorePayload(localPath, workspaceRoot, payload); err != nil {
+		t.Fatalf("save kurlo store: %v", err)
 	}
 
 	workspaceText := readAllText(t, workspaceRoot)
@@ -1498,25 +1498,25 @@ func TestRelayStoreSplitsRequestsIntoWorkspaceYAMLAndLocalEncryptedState(t *test
 			t.Fatalf("workspace YAML leaked secret %q:\n%s", secret, workspaceText)
 		}
 	}
-	if !strings.Contains(workspaceText, "{{relaySecret:request.req-login-user.auth.bearerToken}}") {
+	if !strings.Contains(workspaceText, "{{kurloSecret:request.req-login-user.auth.bearerToken}}") {
 		t.Fatalf("expected bearer token placeholder in workspace YAML:\n%s", workspaceText)
 	}
-	if !strings.Contains(workspaceText, "{{relaySecret:environment.environment-local.row.1.value}}") {
+	if !strings.Contains(workspaceText, "{{kurloSecret:environment.environment-local.row.1.value}}") {
 		t.Fatalf("expected environment secret placeholder in workspace YAML:\n%s", workspaceText)
 	}
-	if !strings.Contains(workspaceText, "{{relaySecret:request.req-login-user.headers.row.11.value}}") {
+	if !strings.Contains(workspaceText, "{{kurloSecret:request.req-login-user.headers.row.11.value}}") {
 		t.Fatalf("expected request row secret placeholder in workspace YAML:\n%s", workspaceText)
 	}
-	if !strings.Contains(workspaceText, "{{relaySecret:collection.collection-main.auth.apiKeyValue}}") {
+	if !strings.Contains(workspaceText, "{{kurloSecret:collection.collection-main.auth.apiKeyValue}}") {
 		t.Fatalf("expected collection auth secret placeholder in workspace YAML:\n%s", workspaceText)
 	}
-	if !strings.Contains(workspaceText, "{{relaySecret:collection.collection-main.headers.row.21.value}}") {
+	if !strings.Contains(workspaceText, "{{kurloSecret:collection.collection-main.headers.row.21.value}}") {
 		t.Fatalf("expected collection header secret placeholder in workspace YAML:\n%s", workspaceText)
 	}
-	if !strings.Contains(workspaceText, "{{relaySecret:collection.collection-main.variables.row.22.value}}") {
+	if !strings.Contains(workspaceText, "{{kurloSecret:collection.collection-main.variables.row.22.value}}") {
 		t.Fatalf("expected collection variable secret placeholder in workspace YAML:\n%s", workspaceText)
 	}
-	if !strings.Contains(workspaceText, "cookies:") || !strings.Contains(workspaceText, "{{relaySecret:workspace.workspace-main.cookies.scoped.") {
+	if !strings.Contains(workspaceText, "cookies:") || !strings.Contains(workspaceText, "{{kurloSecret:workspace.workspace-main.cookies.scoped.") {
 		t.Fatalf("expected workspace cookie placeholder in workspace YAML:\n%s", workspaceText)
 	}
 
@@ -1548,9 +1548,9 @@ func TestRelayStoreSplitsRequestsIntoWorkspaceYAMLAndLocalEncryptedState(t *test
 		}
 	}
 
-	loaded, err := loadRelayStorePayload(localPath, workspaceRoot)
+	loaded, err := loadKurloStorePayload(localPath, workspaceRoot)
 	if err != nil {
-		t.Fatalf("load relay store: %v", err)
+		t.Fatalf("load kurlo store: %v", err)
 	}
 	for _, expected := range []string{"user-token", "admin-password", "header-secret", "env-secret-token", "collection-header-secret", "collection-var-secret", "collection-api-secret", "workspace-cookie-secret"} {
 		if !strings.Contains(loaded, expected) {
@@ -1562,7 +1562,7 @@ func TestRelayStoreSplitsRequestsIntoWorkspaceYAMLAndLocalEncryptedState(t *test
 	}
 }
 
-func TestRelayStorePreservesMissingSecretPlaceholdersAfterCloneLoad(t *testing.T) {
+func TestKurloStorePreservesMissingSecretPlaceholdersAfterCloneLoad(t *testing.T) {
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()
 	sourceLocalPath := filepath.Join(dir, "source-requests.json")
@@ -1578,29 +1578,29 @@ func TestRelayStorePreservesMissingSecretPlaceholdersAfterCloneLoad(t *testing.T
   ],
   "environments": []
 }`
-	if err := saveRelayStorePayload(sourceLocalPath, workspaceRoot, payload); err != nil {
+	if err := saveKurloStorePayload(sourceLocalPath, workspaceRoot, payload); err != nil {
 		t.Fatalf("save source workspace: %v", err)
 	}
 
-	loadedWithoutSecrets, err := loadRelayStorePayload(clonedLocalPath, workspaceRoot)
+	loadedWithoutSecrets, err := loadKurloStorePayload(clonedLocalPath, workspaceRoot)
 	if err != nil {
 		t.Fatalf("load cloned workspace without local secrets: %v", err)
 	}
 	for _, placeholder := range []string{
-		"{{relaySecret:request.req-main.auth.bearerToken}}",
-		"{{relaySecret:request.req-main.headers.row.7.value}}",
+		"{{kurloSecret:request.req-main.auth.bearerToken}}",
+		"{{kurloSecret:request.req-main.headers.row.7.value}}",
 	} {
 		if !strings.Contains(loadedWithoutSecrets, placeholder) {
 			t.Fatalf("expected missing secret placeholder %q to remain in loaded payload:\n%s", placeholder, loadedWithoutSecrets)
 		}
 	}
-	if err := saveRelayStorePayload(clonedLocalPath, workspaceRoot, loadedWithoutSecrets); err != nil {
+	if err := saveKurloStorePayload(clonedLocalPath, workspaceRoot, loadedWithoutSecrets); err != nil {
 		t.Fatalf("save cloned workspace without local secrets: %v", err)
 	}
 	workspaceText := readAllText(t, workspaceRoot)
 	for _, placeholder := range []string{
-		"{{relaySecret:request.req-main.auth.bearerToken}}",
-		"{{relaySecret:request.req-main.headers.row.7.value}}",
+		"{{kurloSecret:request.req-main.auth.bearerToken}}",
+		"{{kurloSecret:request.req-main.headers.row.7.value}}",
 	} {
 		if !strings.Contains(workspaceText, placeholder) {
 			t.Fatalf("workspace YAML lost missing secret placeholder %q:\n%s", placeholder, workspaceText)
@@ -1608,7 +1608,7 @@ func TestRelayStorePreservesMissingSecretPlaceholdersAfterCloneLoad(t *testing.T
 	}
 }
 
-func TestRelayStorePersistsCollectionFolderPathsInWorkspaceYAML(t *testing.T) {
+func TestKurloStorePersistsCollectionFolderPathsInWorkspaceYAML(t *testing.T) {
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()
 	localPath := filepath.Join(dir, "requests.json")
@@ -1635,8 +1635,8 @@ func TestRelayStorePersistsCollectionFolderPathsInWorkspaceYAML(t *testing.T) {
   "environments": []
 }`
 
-	if err := saveRelayStorePayload(localPath, workspaceRoot, payload); err != nil {
-		t.Fatalf("save relay store: %v", err)
+	if err := saveKurloStorePayload(localPath, workspaceRoot, payload); err != nil {
+		t.Fatalf("save kurlo store: %v", err)
 	}
 
 	collectionPath := filepath.Join(workspaceRoot, "workspaces", "Main", "collections", "Core", "collection.yml")
@@ -1650,9 +1650,9 @@ func TestRelayStorePersistsCollectionFolderPathsInWorkspaceYAML(t *testing.T) {
 		}
 	}
 
-	loaded, err := loadRelayStorePayload(localPath, workspaceRoot)
+	loaded, err := loadKurloStorePayload(localPath, workspaceRoot)
 	if err != nil {
-		t.Fatalf("load relay store: %v", err)
+		t.Fatalf("load kurlo store: %v", err)
 	}
 	for _, expected := range []string{
 		`"folderPaths":`,
@@ -1667,7 +1667,7 @@ func TestRelayStorePersistsCollectionFolderPathsInWorkspaceYAML(t *testing.T) {
 	}
 }
 
-func TestRelayStoreUsesFilesystemNamesForDuplicateRequestNames(t *testing.T) {
+func TestKurloStoreUsesFilesystemNamesForDuplicateRequestNames(t *testing.T) {
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()
 	localPath := filepath.Join(dir, "requests.json")
@@ -1682,8 +1682,8 @@ func TestRelayStoreUsesFilesystemNamesForDuplicateRequestNames(t *testing.T) {
   ]
 }`
 
-	if err := saveRelayStorePayload(localPath, workspaceRoot, payload); err != nil {
-		t.Fatalf("save relay store: %v", err)
+	if err := saveKurloStorePayload(localPath, workspaceRoot, payload); err != nil {
+		t.Fatalf("save kurlo store: %v", err)
 	}
 
 	var files []string
@@ -1705,29 +1705,29 @@ func TestRelayStoreUsesFilesystemNamesForDuplicateRequestNames(t *testing.T) {
 		t.Fatalf("expected duplicate request names to produce unique filesystem names %v, got %v", want, files)
 	}
 
-	loaded, err := loadRelayStorePayload(localPath, workspaceRoot)
+	loaded, err := loadKurloStorePayload(localPath, workspaceRoot)
 	if err != nil {
-		t.Fatalf("load relay store: %v", err)
+		t.Fatalf("load kurlo store: %v", err)
 	}
 	if strings.Count(loaded, `"name": "Login"`) != 2 {
 		t.Fatalf("expected both duplicate request names after load:\n%s", loaded)
 	}
 }
 
-func TestRelayStorePreservesEmptyFilesystemStoreAsArrays(t *testing.T) {
+func TestKurloStorePreservesEmptyFilesystemStoreAsArrays(t *testing.T) {
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()
 	localPath := filepath.Join(dir, "requests.json")
 	workspaceRoot := filepath.Join(dir, "workspaces")
 	payload := `{"version":2,"workspaces":[],"collections":[],"requests":[],"environments":[]}`
 
-	if err := saveRelayStorePayload(localPath, workspaceRoot, payload); err != nil {
-		t.Fatalf("save relay store: %v", err)
+	if err := saveKurloStorePayload(localPath, workspaceRoot, payload); err != nil {
+		t.Fatalf("save kurlo store: %v", err)
 	}
 
-	loaded, err := loadRelayStorePayload(localPath, workspaceRoot)
+	loaded, err := loadKurloStorePayload(localPath, workspaceRoot)
 	if err != nil {
-		t.Fatalf("load relay store: %v", err)
+		t.Fatalf("load kurlo store: %v", err)
 	}
 	for _, field := range []string{"workspaces", "collections", "requests", "environments"} {
 		if !strings.Contains(loaded, `"`+field+`": []`) {
@@ -1736,53 +1736,53 @@ func TestRelayStorePreservesEmptyFilesystemStoreAsArrays(t *testing.T) {
 	}
 }
 
-func TestRelayStoreLocalOnlySaveDoesNotRewriteWorkspaceYAML(t *testing.T) {
+func TestKurloStoreLocalOnlySaveDoesNotRewriteWorkspaceYAML(t *testing.T) {
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()
 	localPath := filepath.Join(dir, "requests.json")
 	workspaceRoot := filepath.Join(dir, "workspaces")
 
-	if err := saveRelayStorePayload(localPath, workspaceRoot, relaySaveFlowPayload("/saved", "token-a", []string{"req-main"}, "")); err != nil {
-		t.Fatalf("save initial relay store: %v", err)
+	if err := saveKurloStorePayload(localPath, workspaceRoot, kurloSaveFlowPayload("/saved", "token-a", []string{"req-main"}, "")); err != nil {
+		t.Fatalf("save initial kurlo store: %v", err)
 	}
 	before := readAllText(t, workspaceRoot)
 
-	if err := saveRelayStorePayload(localPath, workspaceRoot, relaySaveFlowPayload("/saved", "token-a", []string{"req-main", "req-transient"}, "")); err != nil {
-		t.Fatalf("save local-only relay store: %v", err)
+	if err := saveKurloStorePayload(localPath, workspaceRoot, kurloSaveFlowPayload("/saved", "token-a", []string{"req-main", "req-transient"}, "")); err != nil {
+		t.Fatalf("save local-only kurlo store: %v", err)
 	}
 	after := readAllText(t, workspaceRoot)
 	if after != before {
 		t.Fatalf("local-only save rewrote workspace YAML\nbefore:\n%s\nafter:\n%s", before, after)
 	}
 
-	loaded, err := loadRelayStorePayload(localPath, workspaceRoot)
+	loaded, err := loadKurloStorePayload(localPath, workspaceRoot)
 	if err != nil {
-		t.Fatalf("load relay store: %v", err)
+		t.Fatalf("load kurlo store: %v", err)
 	}
 	if !strings.Contains(loaded, `"req-transient"`) {
 		t.Fatalf("local-only state was not preserved:\n%s", loaded)
 	}
 }
 
-func TestRelayStoreManualAndAutosaveUpdatesReachWorkspaceYAML(t *testing.T) {
+func TestKurloStoreManualAndAutosaveUpdatesReachWorkspaceYAML(t *testing.T) {
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()
 	localPath := filepath.Join(dir, "requests.json")
 	workspaceRoot := filepath.Join(dir, "workspaces")
 
-	if err := saveRelayStorePayload(localPath, workspaceRoot, relaySaveFlowPayload("/saved", "token-a", []string{"req-main"}, "")); err != nil {
-		t.Fatalf("save initial relay store: %v", err)
+	if err := saveKurloStorePayload(localPath, workspaceRoot, kurloSaveFlowPayload("/saved", "token-a", []string{"req-main"}, "")); err != nil {
+		t.Fatalf("save initial kurlo store: %v", err)
 	}
-	if err := saveRelayStorePayload(localPath, workspaceRoot, relaySaveFlowPayload("/manual-save", "token-a", []string{"req-main"}, "")); err != nil {
-		t.Fatalf("save manual relay store: %v", err)
+	if err := saveKurloStorePayload(localPath, workspaceRoot, kurloSaveFlowPayload("/manual-save", "token-a", []string{"req-main"}, "")); err != nil {
+		t.Fatalf("save manual kurlo store: %v", err)
 	}
 	manualText := readAllText(t, workspaceRoot)
 	if !strings.Contains(manualText, "/manual-save") || strings.Contains(manualText, "/saved") {
 		t.Fatalf("manual save did not update workspace YAML:\n%s", manualText)
 	}
 
-	if err := saveRelayStorePayload(localPath, workspaceRoot, relaySaveFlowPayload("/autosave", "token-a", []string{"req-main"}, "")); err != nil {
-		t.Fatalf("save autosave relay store: %v", err)
+	if err := saveKurloStorePayload(localPath, workspaceRoot, kurloSaveFlowPayload("/autosave", "token-a", []string{"req-main"}, "")); err != nil {
+		t.Fatalf("save autosave kurlo store: %v", err)
 	}
 	autosaveText := readAllText(t, workspaceRoot)
 	if !strings.Contains(autosaveText, "/autosave") || strings.Contains(autosaveText, "/manual-save") {
@@ -1790,23 +1790,23 @@ func TestRelayStoreManualAndAutosaveUpdatesReachWorkspaceYAML(t *testing.T) {
 	}
 }
 
-func TestRelayStoreAutosaveCollectionRenameKeepsFilesystemNameStable(t *testing.T) {
+func TestKurloStoreAutosaveCollectionRenameKeepsFilesystemNameStable(t *testing.T) {
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()
 	localPath := filepath.Join(dir, "requests.json")
 	workspaceRoot := filepath.Join(dir, "workspaces")
 
-	if err := saveRelayStorePayload(localPath, workspaceRoot, relaySaveFlowPayload("/saved", "token-a", []string{"req-main"}, "")); err != nil {
-		t.Fatalf("save initial relay store: %v", err)
+	if err := saveKurloStorePayload(localPath, workspaceRoot, kurloSaveFlowPayload("/saved", "token-a", []string{"req-main"}, "")); err != nil {
+		t.Fatalf("save initial kurlo store: %v", err)
 	}
-	loadedBeforeRename, err := loadRelayStorePayload(localPath, workspaceRoot)
+	loadedBeforeRename, err := loadKurloStorePayload(localPath, workspaceRoot)
 	if err != nil {
-		t.Fatalf("load initial relay store: %v", err)
+		t.Fatalf("load initial kurlo store: %v", err)
 	}
 	renamedPayload := strings.ReplaceAll(loadedBeforeRename, `"name": "Core"`, `"name": "Renamed Core"`)
 	renamedPayload = strings.ReplaceAll(renamedPayload, `"collection": "Core"`, `"collection": "Renamed Core"`)
-	if err := saveRelayStorePayload(localPath, workspaceRoot, renamedPayload); err != nil {
-		t.Fatalf("save renamed relay store: %v", err)
+	if err := saveKurloStorePayload(localPath, workspaceRoot, renamedPayload); err != nil {
+		t.Fatalf("save renamed kurlo store: %v", err)
 	}
 
 	collectionPath := filepath.Join(workspaceRoot, "workspaces", "Main", "collections", "Core", "collection.yml")
@@ -1835,21 +1835,21 @@ func TestRelayStoreAutosaveCollectionRenameKeepsFilesystemNameStable(t *testing.
 	}
 }
 
-func TestRelayStoreWorkspaceRenameKeepsFilesystemNameStable(t *testing.T) {
+func TestKurloStoreWorkspaceRenameKeepsFilesystemNameStable(t *testing.T) {
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()
 	localPath := filepath.Join(dir, "requests.json")
 	workspaceRoot := filepath.Join(dir, "workspaces")
 
-	if err := saveRelayStorePayload(localPath, workspaceRoot, relaySaveFlowPayload("/saved", "token-a", []string{"req-main"}, "")); err != nil {
-		t.Fatalf("save initial relay store: %v", err)
+	if err := saveKurloStorePayload(localPath, workspaceRoot, kurloSaveFlowPayload("/saved", "token-a", []string{"req-main"}, "")); err != nil {
+		t.Fatalf("save initial kurlo store: %v", err)
 	}
-	loadedBeforeRename, err := loadRelayStorePayload(localPath, workspaceRoot)
+	loadedBeforeRename, err := loadKurloStorePayload(localPath, workspaceRoot)
 	if err != nil {
-		t.Fatalf("load initial relay store: %v", err)
+		t.Fatalf("load initial kurlo store: %v", err)
 	}
 	renamedPayload := strings.Replace(loadedBeforeRename, `"name": "Main",`, `"name": "Renamed Main",`, 1)
-	if err := saveRelayStorePayload(localPath, workspaceRoot, renamedPayload); err != nil {
+	if err := saveKurloStorePayload(localPath, workspaceRoot, renamedPayload); err != nil {
 		t.Fatalf("save renamed workspace store: %v", err)
 	}
 
@@ -1870,7 +1870,7 @@ func TestRelayStoreWorkspaceRenameKeepsFilesystemNameStable(t *testing.T) {
 	}
 }
 
-func TestRelayStoreDerivesFilesystemNameFromPathWhenAbsentInBody(t *testing.T) {
+func TestKurloStoreDerivesFilesystemNameFromPathWhenAbsentInBody(t *testing.T) {
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()
 	localPath := filepath.Join(dir, "requests.json")
@@ -1881,12 +1881,12 @@ func TestRelayStoreDerivesFilesystemNameFromPathWhenAbsentInBody(t *testing.T) {
 	if err := os.MkdirAll(requestsDir, 0755); err != nil {
 		t.Fatalf("create workspace layout: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(workspaceRoot, "relay.yml"), []byte(`version: 1
-format: relay.workspace.yaml.v1
+	if err := os.WriteFile(filepath.Join(workspaceRoot, "kurlo.yml"), []byte(`version: 1
+format: kurlo.workspace.yaml.v1
 workspaceOrder:
   - workspace-main
 `), 0644); err != nil {
-		t.Fatalf("write relay index: %v", err)
+		t.Fatalf("write kurlo index: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(workspaceDir, "workspace.yml"), []byte(`version: 1
 workspace:
@@ -1919,7 +1919,7 @@ request:
 		t.Fatalf("write request: %v", err)
 	}
 
-	payload, err := loadRelayStorePayload(localPath, workspaceRoot)
+	payload, err := loadKurloStorePayload(localPath, workspaceRoot)
 	if err != nil {
 		t.Fatalf("load store: %v", err)
 	}
@@ -1934,20 +1934,20 @@ request:
 	}
 }
 
-func TestRelayStoreLoadsValidDataWithDiagnosticsForInvalidRequestYAML(t *testing.T) {
+func TestKurloStoreLoadsValidDataWithDiagnosticsForInvalidRequestYAML(t *testing.T) {
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()
 	localPath := filepath.Join(dir, "requests.json")
 	workspaceRoot := filepath.Join(dir, "workspaces")
-	if err := saveRelayStorePayload(localPath, workspaceRoot, relaySaveFlowPayload("/saved", "token-a", []string{"req-main"}, "")); err != nil {
-		t.Fatalf("save relay store: %v", err)
+	if err := saveKurloStorePayload(localPath, workspaceRoot, kurloSaveFlowPayload("/saved", "token-a", []string{"req-main"}, "")); err != nil {
+		t.Fatalf("save kurlo store: %v", err)
 	}
 	brokenPath := filepath.Join(workspaceRoot, "workspaces", "Main", "collections", "Core", "requests", "Broken.yml")
 	if err := os.WriteFile(brokenPath, []byte("version: 1\nrequest:\n  id: req-broken\n  name: \"Broken\n"), 0644); err != nil {
 		t.Fatalf("write broken request: %v", err)
 	}
 
-	payload, diagnostics, err := loadRelayStorePayloadWithDiagnostics(localPath, workspaceRoot)
+	payload, diagnostics, err := loadKurloStorePayloadWithDiagnostics(localPath, workspaceRoot)
 	if err != nil {
 		t.Fatalf("load with diagnostics: %v", err)
 	}
@@ -1964,25 +1964,25 @@ func TestRelayStoreLoadsValidDataWithDiagnosticsForInvalidRequestYAML(t *testing
 	if !strings.Contains(got.Path, "Broken.yml") || got.Line == 0 || !strings.Contains(got.Message, "line") {
 		t.Fatalf("diagnostic did not point at broken YAML: %#v", got)
 	}
-	if _, err := loadRelayStorePayload(localPath, workspaceRoot); err == nil {
+	if _, err := loadKurloStorePayload(localPath, workspaceRoot); err == nil {
 		t.Fatalf("strict load should fail while diagnostics are present")
 	}
 }
 
-func TestRelayStoreKeepsDiagnosticsWhenWorkspaceYAMLIsInvalid(t *testing.T) {
+func TestKurloStoreKeepsDiagnosticsWhenWorkspaceYAMLIsInvalid(t *testing.T) {
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()
 	localPath := filepath.Join(dir, "requests.json")
 	workspaceRoot := filepath.Join(dir, "workspaces")
-	if err := saveRelayStorePayload(localPath, workspaceRoot, relaySaveFlowPayload("/saved", "token-a", []string{"req-main"}, "")); err != nil {
-		t.Fatalf("save relay store: %v", err)
+	if err := saveKurloStorePayload(localPath, workspaceRoot, kurloSaveFlowPayload("/saved", "token-a", []string{"req-main"}, "")); err != nil {
+		t.Fatalf("save kurlo store: %v", err)
 	}
 	workspacePath := filepath.Join(workspaceRoot, "workspaces", "Main", "workspace.yml")
 	if err := os.WriteFile(workspacePath, []byte("version: 1\nworkspace:\n  id: workspace-main\n  name: \"Main\n"), 0644); err != nil {
 		t.Fatalf("write broken workspace: %v", err)
 	}
 
-	payload, diagnostics, err := loadRelayStorePayloadWithDiagnostics(localPath, workspaceRoot)
+	payload, diagnostics, err := loadKurloStorePayloadWithDiagnostics(localPath, workspaceRoot)
 	if err != nil {
 		t.Fatalf("load with diagnostics: %v", err)
 	}
@@ -1996,25 +1996,25 @@ func TestRelayStoreKeepsDiagnosticsWhenWorkspaceYAMLIsInvalid(t *testing.T) {
 	if got.Scope != "workspace" || !got.Blocking || got.WorkspaceID == "" || !strings.Contains(got.Path, "workspace.yml") {
 		t.Fatalf("unexpected workspace diagnostic: %#v", got)
 	}
-	if _, err := loadRelayStorePayload(localPath, workspaceRoot); err == nil {
+	if _, err := loadKurloStorePayload(localPath, workspaceRoot); err == nil {
 		t.Fatalf("strict load should fail while blocking diagnostics are present")
 	}
 }
 
-func TestRelayStoreSavePreservesInvalidWorkspaceDirectory(t *testing.T) {
+func TestKurloStoreSavePreservesInvalidWorkspaceDirectory(t *testing.T) {
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()
 	localPath := filepath.Join(dir, "requests.json")
 	workspaceRoot := filepath.Join(dir, "workspaces")
-	if err := saveRelayStorePayload(localPath, workspaceRoot, relaySaveFlowPayload("/saved", "token-a", []string{"req-main"}, "")); err != nil {
-		t.Fatalf("save relay store: %v", err)
+	if err := saveKurloStorePayload(localPath, workspaceRoot, kurloSaveFlowPayload("/saved", "token-a", []string{"req-main"}, "")); err != nil {
+		t.Fatalf("save kurlo store: %v", err)
 	}
 	workspacePath := filepath.Join(workspaceRoot, "workspaces", "Main", "workspace.yml")
 	collectionPath := filepath.Join(workspaceRoot, "workspaces", "Main", "collections", "Core", "collection.yml")
 	if err := os.WriteFile(workspacePath, []byte("version: 1\nworkspace:\n  id: workspace-main\n  name: \"Main\n"), 0644); err != nil {
 		t.Fatalf("write broken workspace: %v", err)
 	}
-	_, diagnostics, err := loadRelayStorePayloadWithDiagnostics(localPath, workspaceRoot)
+	_, diagnostics, err := loadKurloStorePayloadWithDiagnostics(localPath, workspaceRoot)
 	if err != nil {
 		t.Fatalf("load with diagnostics: %v", err)
 	}
@@ -2031,7 +2031,7 @@ func TestRelayStoreSavePreservesInvalidWorkspaceDirectory(t *testing.T) {
   "requests": [],
   "history": []
 }`
-	if err := saveRelayStorePayloadPreserving(localPath, workspaceRoot, recoveryPayload, diagnosticPreserveDirs(workspaceRoot, diagnostics)); err != nil {
+	if err := saveKurloStorePayloadPreserving(localPath, workspaceRoot, recoveryPayload, diagnosticPreserveDirs(workspaceRoot, diagnostics)); err != nil {
 		t.Fatalf("save recovery workspace: %v", err)
 	}
 	for _, path := range []string{
@@ -2043,7 +2043,7 @@ func TestRelayStoreSavePreservesInvalidWorkspaceDirectory(t *testing.T) {
 			t.Fatalf("expected %s to remain after save: %v", path, err)
 		}
 	}
-	rootIndex, err := os.ReadFile(filepath.Join(workspaceRoot, "relay.yml"))
+	rootIndex, err := os.ReadFile(filepath.Join(workspaceRoot, "kurlo.yml"))
 	if err != nil {
 		t.Fatalf("read root index: %v", err)
 	}
@@ -2059,8 +2059,8 @@ func TestWorkspaceYAMLEditorRepairsBlockingDiagnostic(t *testing.T) {
 	configDir := t.TempDir()
 	useTempConfigDir(t, configDir)
 	workspaceRoot := filepath.Join(t.TempDir(), "workspace")
-	if err := saveRelayStorePayload(requestStorePath(), workspaceRoot, relaySaveFlowPayload("/saved", "token-a", []string{"req-main"}, "")); err != nil {
-		t.Fatalf("save relay store: %v", err)
+	if err := saveKurloStorePayload(requestStorePath(), workspaceRoot, kurloSaveFlowPayload("/saved", "token-a", []string{"req-main"}, "")); err != nil {
+		t.Fatalf("save kurlo store: %v", err)
 	}
 	app := NewApp()
 	if result := app.openWorkspaceRoot(workspaceRoot); !result.Ok {
@@ -2091,13 +2091,13 @@ func TestWorkspaceYAMLEditorRepairsBlockingDiagnostic(t *testing.T) {
 	}
 }
 
-func TestRelayStoreReportsDanglingRequestOrderAsCollectionDiagnostic(t *testing.T) {
+func TestKurloStoreReportsDanglingRequestOrderAsCollectionDiagnostic(t *testing.T) {
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()
 	localPath := filepath.Join(dir, "requests.json")
 	workspaceRoot := filepath.Join(dir, "workspaces")
-	if err := saveRelayStorePayload(localPath, workspaceRoot, relaySaveFlowPayload("/saved", "token-a", []string{"req-main"}, "")); err != nil {
-		t.Fatalf("save relay store: %v", err)
+	if err := saveKurloStorePayload(localPath, workspaceRoot, kurloSaveFlowPayload("/saved", "token-a", []string{"req-main"}, "")); err != nil {
+		t.Fatalf("save kurlo store: %v", err)
 	}
 	collectionPath := filepath.Join(workspaceRoot, "workspaces", "Main", "collections", "Core", "collection.yml")
 	data, err := os.ReadFile(collectionPath)
@@ -2110,7 +2110,7 @@ func TestRelayStoreReportsDanglingRequestOrderAsCollectionDiagnostic(t *testing.
 		t.Fatalf("write collection: %v", err)
 	}
 
-	_, diagnostics, err := loadRelayStorePayloadWithDiagnostics(localPath, workspaceRoot)
+	_, diagnostics, err := loadKurloStorePayloadWithDiagnostics(localPath, workspaceRoot)
 	if err != nil {
 		t.Fatalf("load with diagnostics: %v", err)
 	}
@@ -2123,7 +2123,7 @@ func TestRelayStoreReportsDanglingRequestOrderAsCollectionDiagnostic(t *testing.
 	}
 }
 
-func TestRelayStoreRejectsSymlinkedYAMLFiles(t *testing.T) {
+func TestKurloStoreRejectsSymlinkedYAMLFiles(t *testing.T) {
 	requireSymlinks(t)
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()
@@ -2135,12 +2135,12 @@ func TestRelayStoreRejectsSymlinkedYAMLFiles(t *testing.T) {
 	if err := os.MkdirAll(requestsDir, 0755); err != nil {
 		t.Fatalf("create workspace layout: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(workspaceRoot, "relay.yml"), []byte(`version: 1
-format: relay.workspace.yaml.v1
+	if err := os.WriteFile(filepath.Join(workspaceRoot, "kurlo.yml"), []byte(`version: 1
+format: kurlo.workspace.yaml.v1
 workspaceOrder:
   - workspace-main
 `), 0644); err != nil {
-		t.Fatalf("write relay index: %v", err)
+		t.Fatalf("write kurlo index: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(workspaceDir, "workspace.yml"), []byte(`version: 1
 workspace:
@@ -2181,13 +2181,13 @@ request:
 		t.Skipf("symlinks are not available: %v", err)
 	}
 
-	_, err := loadRelayStorePayload(localPath, workspaceRoot)
+	_, err := loadKurloStorePayload(localPath, workspaceRoot)
 	if err == nil || !strings.Contains(err.Error(), "refusing to read symlink") {
 		t.Fatalf("expected symlinked YAML file to be rejected, got %v", err)
 	}
 }
 
-func TestRelayStoreRejectsSymlinkedManagedDirectory(t *testing.T) {
+func TestKurloStoreRejectsSymlinkedManagedDirectory(t *testing.T) {
 	requireSymlinks(t)
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()
@@ -2204,7 +2204,7 @@ func TestRelayStoreRejectsSymlinkedManagedDirectory(t *testing.T) {
 		t.Skipf("symlinks are not available: %v", err)
 	}
 
-	err := saveRelayStorePayload(localPath, workspaceRoot, relaySaveFlowPayload("/saved", "token-a", []string{"req-main"}, ""))
+	err := saveKurloStorePayload(localPath, workspaceRoot, kurloSaveFlowPayload("/saved", "token-a", []string{"req-main"}, ""))
 	if err == nil || !strings.Contains(err.Error(), "refusing to use symlink directory") {
 		t.Fatalf("expected symlinked managed directory to be rejected, got %v", err)
 	}
@@ -2261,23 +2261,23 @@ func TestFilesystemSegmentsUseNamesAndDisambiguateDuplicates(t *testing.T) {
 	}
 }
 
-func TestRelayStoreRequestAndEnvironmentRenamesKeepFilesystemNamesStable(t *testing.T) {
+func TestKurloStoreRequestAndEnvironmentRenamesKeepFilesystemNamesStable(t *testing.T) {
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()
 	localPath := filepath.Join(dir, "requests.json")
 	workspaceRoot := filepath.Join(dir, "workspaces")
 
-	if err := saveRelayStorePayload(localPath, workspaceRoot, relaySaveFlowPayload("/saved", "token-a", []string{"req-main"}, "")); err != nil {
-		t.Fatalf("save initial relay store: %v", err)
+	if err := saveKurloStorePayload(localPath, workspaceRoot, kurloSaveFlowPayload("/saved", "token-a", []string{"req-main"}, "")); err != nil {
+		t.Fatalf("save initial kurlo store: %v", err)
 	}
-	loadedBeforeRename, err := loadRelayStorePayload(localPath, workspaceRoot)
+	loadedBeforeRename, err := loadKurloStorePayload(localPath, workspaceRoot)
 	if err != nil {
-		t.Fatalf("load initial relay store: %v", err)
+		t.Fatalf("load initial kurlo store: %v", err)
 	}
 	renamedPayload := strings.Replace(loadedBeforeRename, `"name": "Main request"`, `"name": "Renamed request"`, 1)
 	renamedPayload = strings.Replace(renamedPayload, `"name": "Local"`, `"name": "Renamed Local"`, 1)
-	if err := saveRelayStorePayload(localPath, workspaceRoot, renamedPayload); err != nil {
-		t.Fatalf("save renamed relay store: %v", err)
+	if err := saveKurloStorePayload(localPath, workspaceRoot, renamedPayload); err != nil {
+		t.Fatalf("save renamed kurlo store: %v", err)
 	}
 
 	requestPath := filepath.Join(workspaceRoot, "workspaces", "Main", "collections", "Core", "requests", "Main-request.yml")
@@ -2307,35 +2307,35 @@ func TestRelayStoreRequestAndEnvironmentRenamesKeepFilesystemNamesStable(t *test
 	}
 }
 
-func TestRelayStoreSecretOnlySaveUpdatesEncryptedLocalStateWithoutRewritingWorkspaceYAML(t *testing.T) {
+func TestKurloStoreSecretOnlySaveUpdatesEncryptedLocalStateWithoutRewritingWorkspaceYAML(t *testing.T) {
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()
 	localPath := filepath.Join(dir, "requests.json")
 	workspaceRoot := filepath.Join(dir, "workspaces")
 
-	if err := saveRelayStorePayload(localPath, workspaceRoot, relaySaveFlowPayload("/saved", "token-a", []string{"req-main"}, "")); err != nil {
-		t.Fatalf("save initial relay store: %v", err)
+	if err := saveKurloStorePayload(localPath, workspaceRoot, kurloSaveFlowPayload("/saved", "token-a", []string{"req-main"}, "")); err != nil {
+		t.Fatalf("save initial kurlo store: %v", err)
 	}
 	before := readAllText(t, workspaceRoot)
 
-	if err := saveRelayStorePayload(localPath, workspaceRoot, relaySaveFlowPayload("/saved", "token-b", []string{"req-main"}, "")); err != nil {
-		t.Fatalf("save secret-only relay store: %v", err)
+	if err := saveKurloStorePayload(localPath, workspaceRoot, kurloSaveFlowPayload("/saved", "token-b", []string{"req-main"}, "")); err != nil {
+		t.Fatalf("save secret-only kurlo store: %v", err)
 	}
 	after := readAllText(t, workspaceRoot)
 	if after != before {
 		t.Fatalf("secret-only save should not rewrite workspace YAML\nbefore:\n%s\nafter:\n%s", before, after)
 	}
 
-	loaded, err := loadRelayStorePayload(localPath, workspaceRoot)
+	loaded, err := loadKurloStorePayload(localPath, workspaceRoot)
 	if err != nil {
-		t.Fatalf("load relay store: %v", err)
+		t.Fatalf("load kurlo store: %v", err)
 	}
 	if !strings.Contains(loaded, "token-b") || strings.Contains(loaded, "token-a") {
 		t.Fatalf("secret-only save did not update encrypted local state:\n%s", loaded)
 	}
 }
 
-func TestRelayStoreImportedCollectionWritesAllRequestsToWorkspaceYAML(t *testing.T) {
+func TestKurloStoreImportedCollectionWritesAllRequestsToWorkspaceYAML(t *testing.T) {
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()
 	localPath := filepath.Join(dir, "requests.json")
@@ -2355,13 +2355,13 @@ func TestRelayStoreImportedCollectionWritesAllRequestsToWorkspaceYAML(t *testing
   "history": []
 }`
 
-	if err := saveRelayStorePayload(localPath, workspaceRoot, payload); err != nil {
+	if err := saveKurloStorePayload(localPath, workspaceRoot, payload); err != nil {
 		t.Fatalf("save imported collection payload: %v", err)
 	}
 
 	workspaceText := readAllText(t, workspaceRoot)
 	for _, expected := range []string{
-		"relay.workspace.yaml.v1",
+		"kurlo.workspace.yaml.v1",
 		"Postman-Import/collection.yml",
 		"First-request.yml",
 		"Second-request.yml",
@@ -2373,7 +2373,7 @@ func TestRelayStoreImportedCollectionWritesAllRequestsToWorkspaceYAML(t *testing
 		}
 	}
 
-	loaded, err := loadRelayStorePayload(localPath, workspaceRoot)
+	loaded, err := loadKurloStorePayload(localPath, workspaceRoot)
 	if err != nil {
 		t.Fatalf("load imported collection payload: %v", err)
 	}
@@ -2382,7 +2382,7 @@ func TestRelayStoreImportedCollectionWritesAllRequestsToWorkspaceYAML(t *testing
 	}
 }
 
-func TestRelayStoreConcurrentSavesUseIsolatedTemporaryDirectories(t *testing.T) {
+func TestKurloStoreConcurrentSavesUseIsolatedTemporaryDirectories(t *testing.T) {
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()
 	localPath := filepath.Join(dir, "requests.json")
@@ -2395,7 +2395,7 @@ func TestRelayStoreConcurrentSavesUseIsolatedTemporaryDirectories(t *testing.T) 
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			errs <- saveRelayStorePayload(localPath, workspaceRoot, relaySaveFlowPayload(fmt.Sprintf("/concurrent-%02d", i), fmt.Sprintf("token-%02d", i), []string{"req-main"}, ""))
+			errs <- saveKurloStorePayload(localPath, workspaceRoot, kurloSaveFlowPayload(fmt.Sprintf("/concurrent-%02d", i), fmt.Sprintf("token-%02d", i), []string{"req-main"}, ""))
 		}()
 	}
 	wg.Wait()
@@ -2406,7 +2406,7 @@ func TestRelayStoreConcurrentSavesUseIsolatedTemporaryDirectories(t *testing.T) 
 		}
 	}
 
-	loaded, err := loadRelayStorePayload(localPath, workspaceRoot)
+	loaded, err := loadKurloStorePayload(localPath, workspaceRoot)
 	if err != nil {
 		t.Fatalf("load after concurrent saves: %v", err)
 	}
@@ -2591,10 +2591,10 @@ func TestRequestBodyBytesUsesGetBodyWithoutConsumingRequestBody(t *testing.T) {
 	}
 }
 
-func TestRelayYAMLFormatPublicContractFiles(t *testing.T) {
+func TestKurloYAMLFormatPublicContractFiles(t *testing.T) {
 	repoRoot := filepath.Clean(filepath.Join("..", "..", "..", ".."))
-	schemaPath := filepath.Join(repoRoot, "schemas", "relay-workspace-yaml-v1.schema.json")
-	docPath := filepath.Join(repoRoot, "apps", "web", "src", "content", "docs", "docs", "reference", "relay-yaml-format.md")
+	schemaPath := filepath.Join(repoRoot, "schemas", "kurlo-workspace-yaml-v1.schema.json")
+	docPath := filepath.Join(repoRoot, "apps", "web", "src", "content", "docs", "docs", "reference", "kurlo-yaml-format.md")
 
 	schemaBytes, err := os.ReadFile(schemaPath)
 	if err != nil {
@@ -2604,14 +2604,14 @@ func TestRelayYAMLFormatPublicContractFiles(t *testing.T) {
 	if err := json.Unmarshal(schemaBytes, &schema); err != nil {
 		t.Fatalf("schema must be valid JSON: %v", err)
 	}
-	if schema["x-relay-format"] != workspaceStoreFormat {
-		t.Fatalf("schema format = %q, want %q", schema["x-relay-format"], workspaceStoreFormat)
+	if schema["x-kurlo-format"] != workspaceStoreFormat {
+		t.Fatalf("schema format = %q, want %q", schema["x-kurlo-format"], workspaceStoreFormat)
 	}
-	if schema["x-relay-path-layout"] != workspacePathLayout {
-		t.Fatalf("schema path layout = %q, want %q", schema["x-relay-path-layout"], workspacePathLayout)
+	if schema["x-kurlo-path-layout"] != workspacePathLayout {
+		t.Fatalf("schema path layout = %q, want %q", schema["x-kurlo-path-layout"], workspacePathLayout)
 	}
-	if schema["x-relay-storage-kind"] != workspaceStoreKind {
-		t.Fatalf("schema storage kind = %q, want %q", schema["x-relay-storage-kind"], workspaceStoreKind)
+	if schema["x-kurlo-storage-kind"] != workspaceStoreKind {
+		t.Fatalf("schema storage kind = %q, want %q", schema["x-kurlo-storage-kind"], workspaceStoreKind)
 	}
 	schemaText := string(schemaBytes)
 	for _, token := range []string{
@@ -2622,7 +2622,7 @@ func TestRelayYAMLFormatPublicContractFiles(t *testing.T) {
 		`"environmentFile"`,
 		`"exampleFile"`,
 		`"filesystemName"`,
-		`"relay.workspace.yaml.v1"`,
+		`"kurlo.workspace.yaml.v1"`,
 	} {
 		if !strings.Contains(schemaText, token) {
 			t.Fatalf("schema is missing %s", token)
@@ -2689,7 +2689,7 @@ func readAllText(t *testing.T, root string) string {
 	return builder.String()
 }
 
-func relaySaveFlowPayload(url string, bearerToken string, openIDs []string, cookieValue string) string {
+func kurloSaveFlowPayload(url string, bearerToken string, openIDs []string, cookieValue string) string {
 	openIDPayload, _ := json.Marshal(openIDs)
 	workspaceCookies := "{}"
 	if cookieValue != "" {

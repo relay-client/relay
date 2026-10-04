@@ -46,7 +46,7 @@ export const REQUEST_HEADERS: HeaderDef[] = [
   { name: 'TE',               values: ['trailers'] },
   { name: 'Transfer-Encoding', values: ['chunked', 'gzip', 'compress', 'deflate', 'identity'] },
   { name: 'Upgrade' },
-  { name: 'User-Agent',       values: ['Mozilla/5.0 (compatible; Relay/1.0)', 'curl/7.68.0', 'PostmanRuntime/7.29.0'] },
+  { name: 'User-Agent',       values: ['Mozilla/5.0 (compatible; Kurlo/1.0)', 'curl/7.68.0', 'PostmanRuntime/7.29.0'] },
   { name: 'X-API-Key' },
   { name: 'X-Auth-Token' },
   { name: 'X-CSRF-Token' },

@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 func setPackagedInstallForTest(t *testing.T, packaged bool) {
@@ -28,12 +28,12 @@ func TestIsWindowsAppsPath(t *testing.T) {
 		exe  string
 		want bool
 	}{
-		{exe: `C:\Program Files\WindowsApps\com.relayclient.relay_2.0.2.0_x64__abc123\relay.exe`, want: true},
-		{exe: `c:\program files\windowsapps\com.relayclient.relay_2.0.2.0_arm64__abc123\relay.exe`, want: true},
-		{exe: `D:/WindowsApps/com.relayclient.relay_2.0.2.0_x64__abc123/relay.exe`, want: true},
-		{exe: `C:\Users\dev\AppData\Local\Programs\Relay\relay.exe`, want: false},
-		{exe: `C:\Program Files\Relay\relay.exe`, want: false},
-		{exe: `C:\Users\dev\MyWindowsApps\relay.exe`, want: false},
+		{exe: `C:\Program Files\WindowsApps\dev.kurlo.app_2.0.2.0_x64__abc123\kurlo.exe`, want: true},
+		{exe: `c:\program files\windowsapps\dev.kurlo.app_2.0.2.0_arm64__abc123\kurlo.exe`, want: true},
+		{exe: `D:/WindowsApps/dev.kurlo.app_2.0.2.0_x64__abc123/kurlo.exe`, want: true},
+		{exe: `C:\Users\dev\AppData\Local\Programs\Kurlo\kurlo.exe`, want: false},
+		{exe: `C:\Program Files\Kurlo\kurlo.exe`, want: false},
+		{exe: `C:\Users\dev\MyWindowsApps\kurlo.exe`, want: false},
 		{exe: "", want: false},
 	}
 	for _, tt := range tests {
@@ -44,8 +44,8 @@ func TestIsWindowsAppsPath(t *testing.T) {
 }
 
 func TestIsPackagedInstallTrustsEitherSignal(t *testing.T) {
-	installed := `C:\Users\dev\AppData\Local\Programs\Relay\relay.exe`
-	packaged := `C:\Program Files\WindowsApps\com.relayclient.relay_2.0.2.0_x64__abc123\relay.exe`
+	installed := `C:\Users\dev\AppData\Local\Programs\Kurlo\kurlo.exe`
+	packaged := `C:\Program Files\WindowsApps\dev.kurlo.app_2.0.2.0_x64__abc123\kurlo.exe`
 	if isPackagedInstall(false, installed) {
 		t.Fatal("a plain install without package identity must self-update")
 	}
@@ -90,7 +90,7 @@ func TestMSIXPackageURLPointsAtTheVersionsReleaseAsset(t *testing.T) {
 
 	for _, version := range []string{"2.1.0", "v2.1.0", " 2.1.0 "} {
 		got := msixPackageURL(version, "arm64")
-		want := "https://github.com/owner/project/releases/download/v2.1.0/relay-2.1.0-windows-arm64.msix"
+		want := "https://github.com/owner/project/releases/download/v2.1.0/kurlo-2.1.0-windows-arm64.msix"
 		if got != want {
 			t.Fatalf("msixPackageURL(%q) = %q, want %q", version, got, want)
 		}
@@ -103,7 +103,7 @@ func TestMSIXPackageURLMatchesTheReleaseWorkflowAssetName(t *testing.T) {
 	if err != nil {
 		t.Skipf("release workflow unavailable: %v", err)
 	}
-	asset := `"release\relay-$env:VERSION-windows-${{ matrix.arch }}.msix"`
+	asset := `"release\kurlo-$env:VERSION-windows-${{ matrix.arch }}.msix"`
 	if !strings.Contains(string(workflow), asset) {
 		t.Fatalf("release workflow no longer publishes %s; update msixPackageURL to match", asset)
 	}
@@ -111,7 +111,7 @@ func TestMSIXPackageURLMatchesTheReleaseWorkflowAssetName(t *testing.T) {
 		if !strings.Contains(string(workflow), "arch: "+arch) {
 			t.Fatalf("release workflow has no MSIX build for %s", arch)
 		}
-		if got := msixPackageURL("1.2.3", arch); !strings.HasSuffix(got, "/v1.2.3/relay-1.2.3-windows-"+arch+".msix") {
+		if got := msixPackageURL("1.2.3", arch); !strings.HasSuffix(got, "/v1.2.3/kurlo-1.2.3-windows-"+arch+".msix") {
 			t.Fatalf("unexpected MSIX url for %s: %q", arch, got)
 		}
 	}
@@ -122,7 +122,7 @@ func packagedTestManifest() *updateManifest {
 		Version: "v2.1.0",
 		Platforms: map[string]updatePlatform{
 			platformKey(): {
-				URL:    "https://github.com/relay-client/relay/releases/download/v2.1.0/relay-binary",
+				URL:    "https://github.com/stormhop/kurlo/releases/download/v2.1.0/kurlo-binary",
 				SHA256: "abc123",
 			},
 		},
@@ -174,8 +174,8 @@ func TestDownloadAndApplyRefusesPackagedInstallsBeforeDownloading(t *testing.T) 
 
 	err := downloadAndApply(context.Background(), &model.UpdateInfo{
 		Version:     "999.0.0",
-		DownloadURL: server.URL + "/relay-windows-amd64.exe",
-		AssetName:   "relay-windows-amd64.exe",
+		DownloadURL: server.URL + "/kurlo-windows-amd64.exe",
+		AssetName:   "kurlo-windows-amd64.exe",
 		SHA256:      "abc123",
 	})
 	if !errors.Is(err, errUpdateManagedByPackage) {

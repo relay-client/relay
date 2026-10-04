@@ -1,25 +1,25 @@
 ---
 title: Privacy & security
-description: Relay is local-first. What stays on your machine, what leaves it, and how your data is protected.
+description: Kurlo is local-first. What stays on your machine, what leaves it, and how your data is protected.
 ---
 
-Relay is a local-first desktop application. There is no Relay backend, account system, cloud sync, usage analytics, crash reporting, or telemetry. Network access occurs only for product features that require it, such as requests, Git operations, OAuth flows, schema introspection, and update checks.
+Kurlo is a local-first desktop application. There is no Kurlo backend, account system, cloud sync, usage analytics, crash reporting, or telemetry. Network access occurs only for product features that require it, such as requests, Git operations, OAuth flows, schema introspection, and update checks.
 
-This page documents exactly what data Relay stores, where, how it's protected, and the few cases where the app talks to a network on your behalf.
+This page documents exactly what data Kurlo stores, where, how it's protected, and the few cases where the app talks to a network on your behalf.
 
-None of it has to be taken on trust: Relay is open source under the MIT license, so every claim below can be checked against the code at [relay-client/relay](https://github.com/relay-client/relay), and the binaries can be reproduced from that source.
+None of it has to be taken on trust: Kurlo is open source under the MIT license, so every claim below can be checked against the code at [stormhop/kurlo](https://github.com/stormhop/kurlo), and the binaries can be reproduced from that source.
 
 ![Settings → About showing the app version and runtime info](../../assets/screenshots/settings-about.png)
 
-## What Relay stores on your machine
+## What Kurlo stores on your machine
 
-Workspace state, requests, environments, request history, cookies, secrets, and preferences are written to local disk. Request history records what was sent and what came back, including the response body, which is stored in its own file under `history/` and encrypted with the same key as the rest of the local profile. A response over 2 MB keeps only its head, and a binary response keeps no body at all. Relay is a single-tenant, file-based application:
+Workspace state, requests, environments, request history, cookies, secrets, and preferences are written to local disk. Request history records what was sent and what came back, including the response body, which is stored in its own file under `history/` and encrypted with the same key as the rest of the local profile. A response over 2 MB keeps only its head, and a binary response keeps no body at all. Kurlo is a single-tenant, file-based application:
 
 | Platform | Location |
 |----------|----------|
-| macOS    | `~/Library/Application Support/Relay/` |
-| Windows  | `%AppData%\Relay\` |
-| Linux    | `~/.config/Relay/` or `$XDG_CONFIG_HOME/Relay/` |
+| macOS    | `~/Library/Application Support/Kurlo/` |
+| Windows  | `%AppData%\Kurlo\` |
+| Linux    | `~/.config/Kurlo/` or `$XDG_CONFIG_HOME/Kurlo/` |
 
 Inside that directory you may find:
 
@@ -31,37 +31,37 @@ Inside that directory you may find:
 
 If you select another workspace folder or Git repository, its shared YAML files live at that selected path. Those files are intentionally human-readable and are not encrypted as a unit.
 
-You can move, back up, or delete this directory at any time. Deleting it returns Relay to a clean state on next launch.
+You can move, back up, or delete this directory at any time. Deleting it returns Kurlo to a clean state on next launch.
 
 ## Encryption at rest
 
 The request store is encrypted with **AES-256-GCM**:
 
-- A fresh 256-bit key is generated locally the first time Relay starts.
+- A fresh 256-bit key is generated locally the first time Kurlo starts.
 - The key is additionally stored in the OS credential store wherever possible:
   - **macOS** — Keychain (the same store used by Safari / login items)
   - **Windows** — DPAPI (current user; non-exportable to another user account)
   - **Linux** — libsecret via `secret-tool` (GNOME Keyring, KWallet, etc.)
-- Relay also keeps `request-store.key` as a recovery copy even when the credential-store write succeeds. This avoids losing encrypted data if the credential-store entry disappears.
+- Kurlo also keeps `request-store.key` as a recovery copy even when the credential-store write succeeds. This avoids losing encrypted data if the credential-store entry disappears.
 - The recovery file is owner-readable only, but it is not protected by another secret. Anyone who can read both `requests.json` and `request-store.key` can decrypt the local profile.
 - Every encrypted payload uses a unique random nonce. There is no nonce reuse across writes.
 
-For folder/Git workspaces, Relay replaces sensitive YAML values with `{{relaySecret:...}}` placeholders and stores the real values inside the encrypted local profile.
+For folder/Git workspaces, Kurlo replaces sensitive YAML values with `{{kurloSecret:...}}` placeholders and stores the real values inside the encrypted local profile.
 
 ## What leaves your machine
 
 A few bounded categories of network calls happen on your behalf:
 
-1. **Requests you send.** This is the whole point — when you press Send, Relay opens a connection to the host you typed in the URL bar. The request is built on your machine and sent directly unless you configured a system, global, or per-request proxy.
-2. **Auto-update checks.** On launch (and when you press *Check for updates*), Relay fetches `latest.json` from the public release repository (`github.com/relay-client/relay`) over HTTPS. Release builds verify the downloaded binary by SHA-256 and minisign signature. No usage data is included in the request.
-3. **OAuth 2.0 authorization and token calls.** Relay can open the provider's authorization page and call the authorization/token endpoints you configured.
-4. **GraphQL schema introspection.** When you load a GraphQL schema URL in the Schema tab, Relay sends a standard introspection query to that URL.
+1. **Requests you send.** This is the whole point — when you press Send, Kurlo opens a connection to the host you typed in the URL bar. The request is built on your machine and sent directly unless you configured a system, global, or per-request proxy.
+2. **Auto-update checks.** On launch (and when you press *Check for updates*), Kurlo fetches `latest.json` from the public release repository (`github.com/stormhop/kurlo`) over HTTPS. Release builds verify the downloaded binary by SHA-256 and minisign signature. No usage data is included in the request.
+3. **OAuth 2.0 authorization and token calls.** Kurlo can open the provider's authorization page and call the authorization/token endpoints you configured.
+4. **GraphQL schema introspection.** When you load a GraphQL schema URL in the Schema tab, Kurlo sends a standard introspection query to that URL.
 5. **Git remotes.** Clone, fetch, pull, push, remote tests, and remote branch actions contact the Git server you configured.
 6. **An OpenAPI spec you import from a URL.** *Import collection -> OpenAPI / Swagger from URL* fetches the link you paste, through the same sender your requests use, so it honours your proxy settings and the response cap. Cookies are not attached to it.
 
 Proxy settings can route these requests through your selected system or custom proxy. There is no separate telemetry channel or first-launch ping.
 
-## Ports Relay opens on your machine
+## Ports Kurlo opens on your machine
 
 Three features bind a local listener. All three are loopback-only (`127.0.0.1`), so nothing on your network can reach them, and none of them is open unless you start it.
 
@@ -81,7 +81,7 @@ Pre-request and test scripts run in a sandboxed JavaScript VM by default, with a
 
 ## Cookies
 
-By default Relay maintains a cookie jar across requests, just like a browser. Cookies are stored in encrypted `requests.json`. You can:
+By default Kurlo maintains a cookie jar across requests, just like a browser. Cookies are stored in encrypted `requests.json`. You can:
 
 - Inspect and edit cookies per domain in the Cookies modal (the icon next to the URL bar).
 - Clear all cookies from that modal.
@@ -89,14 +89,14 @@ By default Relay maintains a cookie jar across requests, just like a browser. Co
 
 Cookies are never transmitted anywhere except in the request to the domain that set them, following standard browser rules.
 
-**Cookie sync** (Cookies modal -> *Sync Cookies*) is off unless you turn it on. When on, Relay opens a listener bound to `127.0.0.1` that a browser extension can find and ask to connect to; you approve the request in Relay by matching a six-digit code, and only then does Relay hand over a token. The extension then holds a WebSocket to that port and pushes cookies for the domains you allowlist there, and only those. The token and the allowlist are stored in `preferences.json`. Cookies travel browser -> Relay over loopback only, and a snapshot replaces what the jar held for those domains. *Disconnect it* mints a new token and drops the browser immediately.
+**Cookie sync** (Cookies modal -> *Sync Cookies*) is off unless you turn it on. When on, Kurlo opens a listener bound to `127.0.0.1` that a browser extension can find and ask to connect to; you approve the request in Kurlo by matching a six-digit code, and only then does Kurlo hand over a token. The extension then holds a WebSocket to that port and pushes cookies for the domains you allowlist there, and only those. The token and the allowlist are stored in `preferences.json`. Cookies travel browser -> Kurlo over loopback only, and a snapshot replaces what the jar held for those domains. *Disconnect it* mints a new token and drops the browser immediately.
 
 ## Data export and deletion
 
 - **Export** - *Settings -> General -> Advanced data -> Export all data* writes workspace data, history, cookies, secrets, and selected preferences to a plaintext JSON file you choose. External Git repositories, the global proxy password, and some local UI preferences are not bundled. See [Backup & recovery](/docs/guides/backup-recovery/).
-- **Import** — replaces the current profile with a previous export. This is destructive; Relay shows a confirmation dialog before running.
-- **Delete** — quit Relay and remove the directory listed under [What Relay stores on your machine](#what-relay-stores-on-your-machine).
+- **Import** — replaces the current profile with a previous export. This is destructive; Kurlo shows a confirmation dialog before running.
+- **Delete** — quit Kurlo and remove the directory listed under [What Kurlo stores on your machine](#what-kurlo-stores-on-your-machine).
 
 ## Reporting a security issue
 
-If you find a vulnerability, please follow the process in our [security policy](https://github.com/relay-client/relay/blob/main/SECURITY.md). Please do not file public GitHub issues for security problems.
+If you find a vulnerability, please follow the process in our [security policy](https://github.com/stormhop/kurlo/blob/main/SECURITY.md). Please do not file public GitHub issues for security problems.
