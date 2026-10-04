@@ -58,7 +58,7 @@ await bmp(welcome, join(windows, 'welcome.bmp'));
 await sharp(welcome).png().toFile(join(windows, 'welcome.png'));
 await bmp(svg(300, 114, `<rect width="300" height="114" fill="#ffffff"/>${text(38, 70, 32, '#292d45', 'Relay', 'font-weight="bold"')}${logo(206, 21, 72)}`), join(windows, 'header.bmp'));
 
-await sharp(svg(720, 460, `
+const dmgBackground = svg(720, 460, `
   <defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#f8f9ff"/><stop offset="1" stop-color="#e9edff"/></linearGradient></defs>
   <rect width="720" height="460" fill="url(#bg)"/>
   ${logo(42, 34, 48)}
@@ -70,5 +70,7 @@ await sharp(svg(720, 460, `
   <path d="M321 254H396M380 238L396 254L380 270" fill="none" stroke="#5865f2" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
   ${text(360, 393, 20, '#232842', 'Drag Relay into Applications', 'text-anchor="middle" font-weight="bold"')}
   ${text(360, 424, 14, '#636b88', 'Then open Relay from your Applications folder.', 'text-anchor="middle"')}
-`)).png().toFile(join(darwin, 'dmg-background.png'));
+`);
+await sharp(dmgBackground).png().toFile(join(darwin, 'dmg-background.png'));
+await sharp(dmgBackground, { density: 144 }).withMetadata({ density: 144 }).png().toFile(join(darwin, 'dmg-background@2x.png'));
 console.log('Installer artwork regenerated.');
