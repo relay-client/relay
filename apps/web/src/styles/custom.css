@@ -15,8 +15,8 @@
   --sl-sidebar-width: 17rem;
   --sl-nav-height: 3.75rem;
 
-  --relay-hairline: color-mix(in srgb, var(--sl-color-gray-5) 70%, transparent);
-  --relay-surface: color-mix(in srgb, var(--sl-color-gray-6) 70%, var(--sl-color-black));
+  --kurlo-hairline: color-mix(in srgb, var(--sl-color-gray-5) 70%, transparent);
+  --kurlo-surface: color-mix(in srgb, var(--sl-color-gray-6) 70%, var(--sl-color-black));
 }
 
 :root[data-theme='dark'] {
@@ -38,9 +38,9 @@
   --sl-color-hairline: #222226;
   --sl-color-hairline-shade: #222226;
 
-  --relay-code-bg: #141417;
-  --relay-code-bar: #19191c;
-  --relay-shot-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03), 0 24px 50px -30px rgba(0, 0, 0, 0.85);
+  --kurlo-code-bg: #141417;
+  --kurlo-code-bar: #19191c;
+  --kurlo-shot-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03), 0 24px 50px -30px rgba(0, 0, 0, 0.85);
 }
 
 :root[data-theme='light'] {
@@ -63,9 +63,9 @@
   --sl-color-hairline: #e7e7ec;
   --sl-color-hairline-shade: #e7e7ec;
 
-  --relay-code-bg: #f7f7f9;
-  --relay-code-bar: #f0f0f3;
-  --relay-shot-shadow: 0 1px 2px rgba(22, 22, 26, 0.05), 0 24px 50px -34px rgba(22, 22, 26, 0.35);
+  --kurlo-code-bg: #f7f7f9;
+  --kurlo-code-bar: #f0f0f3;
+  --kurlo-shot-shadow: 0 1px 2px rgba(22, 22, 26, 0.05), 0 24px 50px -34px rgba(22, 22, 26, 0.35);
 }
 
 body {
@@ -102,7 +102,7 @@ site-search button[data-open-modal] {
   height: 2.25rem;
   border-radius: 9px;
   border: 1px solid var(--sl-color-hairline);
-  background: var(--relay-surface);
+  background: var(--kurlo-surface);
   color: var(--sl-color-gray-3);
   font-size: 0.875rem;
   transition: border-color 0.15s ease, color 0.15s ease;
@@ -164,7 +164,7 @@ starlight-theme-select select {
   transition: background 0.12s ease, color 0.12s ease;
 }
 .sidebar-content a:hover {
-  background: var(--relay-surface);
+  background: var(--kurlo-surface);
   color: var(--sl-color-white);
 }
 .sidebar-content a[aria-current='page'],
@@ -257,14 +257,14 @@ starlight-theme-select select {
   margin-block: 2.5rem;
 }
 
-.sl-markdown-content a:not(:where(.not-content *, .card a, .sl-link-card a, .sl-link-button, .relay-tile, .relay-tile a)) {
+.sl-markdown-content a:not(:where(.not-content *, .card a, .sl-link-card a, .sl-link-button, .kurlo-tile, .kurlo-tile a)) {
   color: var(--sl-color-accent-high);
   text-underline-offset: 0.22em;
   text-decoration-thickness: 1px;
   text-decoration-color: color-mix(in srgb, var(--sl-color-accent) 40%, transparent);
   transition: text-decoration-color 0.12s ease;
 }
-:root[data-theme='light'] .sl-markdown-content a:not(:where(.not-content *, .card a, .sl-link-card a, .sl-link-button, .relay-tile, .relay-tile a)) {
+:root[data-theme='light'] .sl-markdown-content a:not(:where(.not-content *, .card a, .sl-link-card a, .sl-link-button, .kurlo-tile, .kurlo-tile a)) {
   color: var(--sl-color-accent);
 }
 .sl-markdown-content a:hover {
@@ -275,7 +275,7 @@ starlight-theme-select select {
   padding: 0.12em 0.4em;
   border: 1px solid var(--sl-color-hairline);
   border-radius: 6px;
-  background: var(--relay-code-bg);
+  background: var(--kurlo-code-bg);
   font-size: 0.86em;
   color: var(--sl-color-white);
   overflow-wrap: anywhere;
@@ -287,7 +287,7 @@ starlight-theme-select select {
   border-radius: 12px;
   border: 1px solid var(--sl-color-hairline);
   background: var(--sl-color-black);
-  box-shadow: var(--relay-shot-shadow);
+  box-shadow: var(--kurlo-shot-shadow);
 }
 .sl-markdown-content p:has(> img:only-child) {
   margin-block: 1.75rem;
@@ -312,7 +312,7 @@ starlight-theme-select select {
   text-align: start;
 }
 .sl-markdown-content th {
-  background: var(--relay-surface);
+  background: var(--kurlo-surface);
   font-size: 0.8125rem;
   font-weight: 600;
   letter-spacing: 0;
@@ -378,7 +378,7 @@ starlight-theme-select select {
   font-size: 1.15rem;
   color: var(--sl-color-accent);
   border: 1px solid var(--sl-color-hairline);
-  background: var(--relay-surface);
+  background: var(--kurlo-surface);
 }
 .sl-markdown-content .card p {
   font-size: 0.9375rem;
@@ -395,7 +395,7 @@ starlight-theme-select select {
 }
 .sl-markdown-content .sl-link-card:hover {
   border-color: color-mix(in srgb, var(--sl-color-accent) 50%, var(--sl-color-hairline));
-  background: var(--relay-surface);
+  background: var(--kurlo-surface);
 }
 .sl-markdown-content .sl-link-card .title {
   font-weight: 600;
@@ -411,7 +411,7 @@ starlight-theme-select select {
 }
 .sl-markdown-content .sl-steps > li::before {
   border: 1px solid var(--sl-color-hairline);
-  background: var(--relay-surface);
+  background: var(--kurlo-surface);
   color: var(--sl-color-white);
   font-family: var(--sl-font-mono);
   font-size: 0.8rem;
@@ -462,7 +462,7 @@ footer .meta {
 }
 .pagination-links a:hover {
   border-color: color-mix(in srgb, var(--sl-color-accent) 50%, var(--sl-color-hairline));
-  background: var(--relay-surface);
+  background: var(--kurlo-surface);
 }
 .pagination-links a > span {
   font-size: 0.8125rem;
@@ -504,7 +504,7 @@ site-search .search-container,
   background: none;
 }
 #starlight__search {
-  --relay-search-row: 3rem;
+  --kurlo-search-row: 3rem;
   --pagefind-ui-primary: var(--sl-color-accent);
   --pagefind-ui-border: transparent;
   --pagefind-ui-border-width: 1px;
@@ -512,18 +512,18 @@ site-search .search-container,
   --pagefind-ui-font: var(--sl-font);
 }
 #starlight__search .pagefind-ui__form::before {
-  top: calc(var(--relay-search-row) / 2);
+  top: calc(var(--kurlo-search-row) / 2);
   margin-top: 0;
   transform: translateY(-50%);
   opacity: 0.55;
 }
 #starlight__search input.pagefind-ui__search-input {
   flex: 0 0 auto;
-  height: var(--relay-search-row);
+  height: var(--kurlo-search-row);
   padding-block: 0;
   border: 1px solid var(--sl-color-hairline);
   border-radius: 12px;
-  background: var(--relay-surface);
+  background: var(--kurlo-surface);
   font-size: 1rem;
   font-weight: 500;
 }
@@ -533,7 +533,7 @@ site-search .search-container,
   background: var(--sl-color-black);
 }
 #starlight__search .pagefind-ui__search-clear {
-  top: calc(var(--relay-search-row) / 2);
+  top: calc(var(--kurlo-search-row) / 2);
   inset-inline-end: calc(var(--sl-search-cancel-space, 0px) + 0.45rem);
   transform: translateY(-50%);
   width: 2rem;
@@ -545,7 +545,7 @@ site-search .search-container,
 }
 #starlight__search .pagefind-ui__search-clear:hover {
   color: var(--sl-color-white);
-  background: var(--relay-surface);
+  background: var(--kurlo-surface);
 }
 #starlight__search .pagefind-ui__drawer {
   flex: 1 1 auto;
@@ -633,13 +633,13 @@ site-search .search-container,
 .sl-markdown-content .sl-heading-wrapper.level-h3 h3[id^='fixed']::before { background: #d08a1e; }
 .sl-markdown-content .sl-heading-wrapper.level-h3 h3[id^='security']::before { background: #d4443a; }
 
-.relay-keys {
+.kurlo-keys {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.25rem;
 }
-.relay-keys kbd {
+.kurlo-keys kbd {
   display: inline-grid;
   place-items: center;
   min-width: 1.6rem;
@@ -648,7 +648,7 @@ site-search .search-container,
   border: 1px solid var(--sl-color-gray-5);
   border-bottom-width: 2px;
   border-radius: 6px;
-  background: var(--relay-surface);
+  background: var(--kurlo-surface);
   font-family: var(--sl-font);
   font-size: 0.78rem;
   font-weight: 600;
@@ -656,13 +656,13 @@ site-search .search-container,
   color: var(--sl-color-white);
 }
 
-.relay-tiles {
+.kurlo-tiles {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
   gap: 0.75rem;
   margin-block: 1.5rem 0.5rem;
 }
-.relay-tile {
+.kurlo-tile {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -673,25 +673,25 @@ site-search .search-container,
   text-decoration: none;
   transition: border-color 0.15s ease, background 0.15s ease;
 }
-a.relay-tile:hover {
+a.kurlo-tile:hover {
   border-color: color-mix(in srgb, var(--sl-color-accent) 50%, var(--sl-color-hairline));
-  background: var(--relay-surface);
+  background: var(--kurlo-surface);
 }
-.relay-tile-title {
+.kurlo-tile-title {
   font-size: 0.975rem;
   font-weight: 600;
   color: var(--sl-color-white);
 }
-.relay-tile-text {
+.kurlo-tile-text {
   font-size: 0.875rem;
   line-height: 1.55;
   color: var(--sl-color-gray-2);
 }
-.sl-markdown-content .relay-tiles > *,
-.sl-markdown-content .relay-tile > * {
+.sl-markdown-content .kurlo-tiles > *,
+.sl-markdown-content .kurlo-tile > * {
   margin-top: 0;
 }
-.sl-markdown-content .relay-tiles + * {
+.sl-markdown-content .kurlo-tiles + * {
   margin-top: 1rem;
 }
 

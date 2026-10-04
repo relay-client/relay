@@ -364,7 +364,7 @@ export function parseOpenApiResponse(body: string, contentType = ''): unknown {
     throw new Error('Could not read that document as JSON or YAML.');
   }
   if (!isOpenApiDocument(spec)) {
-    throw new Error('That document has no "openapi" or "swagger" version field, so it is not a spec Relay can import.');
+    throw new Error('That document has no "openapi" or "swagger" version field, so it is not a spec Kurlo can import.');
   }
   return spec as Record<string, unknown>;
 }
@@ -612,7 +612,7 @@ function openApiParamName(value: string) {
   return clean || 'param';
 }
 
-function relayTemplatesToOpenApi(value: string) {
+function kurloTemplatesToOpenApi(value: string) {
   return value.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_, name: string) => `{${openApiParamName(name)}}`);
 }
 
@@ -624,7 +624,7 @@ function normalizeOpenApiPath(value: string) {
   const clean = value.trim() || '/';
   const [pathOnly] = clean.split('?');
   const decoded = pathOnly.replace(/%7B/gi, '{').replace(/%7D/gi, '}');
-  const path = colonParamsToOpenApiPath(relayTemplatesToOpenApi(decoded));
+  const path = colonParamsToOpenApiPath(kurloTemplatesToOpenApi(decoded));
   return path.startsWith('/') ? path : `/${path}`;
 }
 
@@ -657,21 +657,21 @@ function normalizeExportUrl(rawUrl: string): ExportUrlParts {
 
   const absolute = source.match(/^([a-z][a-z0-9+.-]*:\/\/[^/?#]+)(.*)$/i);
   if (absolute) {
-    const serverUrl = relayTemplatesToOpenApi(absolute[1]);
+    const serverUrl = kurloTemplatesToOpenApi(absolute[1]);
     const { path, search } = splitPathAndQuery(absolute[2] || '/');
     return { serverUrl, path: normalizeOpenApiPath(path), queryRows: searchRows(search) };
   }
 
   const protocolRelative = source.match(/^\/\/([^/?#]+)(.*)$/);
   if (protocolRelative) {
-    const serverUrl = relayTemplatesToOpenApi(`https://${protocolRelative[1]}`);
+    const serverUrl = kurloTemplatesToOpenApi(`https://${protocolRelative[1]}`);
     const { path, search } = splitPathAndQuery(protocolRelative[2] || '/');
     return { serverUrl, path: normalizeOpenApiPath(path), queryRows: searchRows(search) };
   }
 
   const hostLike = source.match(/^((?:localhost|(?:\d{1,3}\.){3}\d{1,3}|\[[0-9a-f:.]+\]|[^/\s?.]+\.[^/\s?]+)(?::\d+)?)(.*)$/i);
   if (hostLike) {
-    const serverUrl = relayTemplatesToOpenApi(`http://${hostLike[1]}`);
+    const serverUrl = kurloTemplatesToOpenApi(`http://${hostLike[1]}`);
     const { path, search } = splitPathAndQuery(hostLike[2] || '/');
     return { serverUrl, path: normalizeOpenApiPath(path), queryRows: searchRows(search) };
   }
@@ -915,7 +915,7 @@ function securityForRequest(req: SavedRequest): SecurityExport | null {
       openapi: { type: 'apiKey', in: 'header', name: 'Authorization', description: 'AWS Signature Version 4 authorization header' },
       swagger: { type: 'apiKey', in: 'header', name: 'Authorization', description: 'AWS Signature Version 4 authorization header' },
       requirement: { awsSignatureV4: [] },
-      extension: { 'x-relay-auth': { type: 'aws', region: auth.awsRegion, service: auth.awsService } },
+      extension: { 'x-kurlo-auth': { type: 'aws', region: auth.awsRegion, service: auth.awsService } },
     };
   }
   return null;
@@ -982,7 +982,7 @@ function swaggerHostFromServer(url: string) {
       schemes: ['https'],
       host: 'api.example.com',
       basePath: '/',
-      'x-relay-server': url,
+      'x-kurlo-server': url,
     };
   }
 }
@@ -1035,7 +1035,7 @@ function openApiOperation(
       200: responseForRequest(req),
     },
     ...(security ? { security: [security.requirement] } : {}),
-    ...(req.method === 'SSE' ? { 'x-relay-method': 'SSE' } : {}),
+    ...(req.method === 'SSE' ? { 'x-kurlo-method': 'SSE' } : {}),
     ...(security?.extension ?? {}),
   };
   return operation;
@@ -1095,7 +1095,7 @@ function swaggerOperation(
       200: swaggerResponseForRequest(req),
     },
     ...(security ? { security: [security.requirement] } : {}),
-    ...(req.method === 'SSE' ? { 'x-relay-method': 'SSE' } : {}),
+    ...(req.method === 'SSE' ? { 'x-kurlo-method': 'SSE' } : {}),
     ...(security?.extension ?? {}),
   };
   return operation;
@@ -1138,7 +1138,7 @@ export function buildOpenApiDocument(
   return {
     openapi: '3.0.3',
     info: {
-      title: collectionName || 'Relay Collection',
+      title: collectionName || 'Kurlo Collection',
       version: '1.0.0',
       ...(collectionDescription ? { description: collectionDescription } : {}),
     },
@@ -1187,15 +1187,15 @@ export function buildSwaggerDocument(
   return {
     swagger: '2.0',
     info: {
-      title: collectionName || 'Relay Collection',
+      title: collectionName || 'Kurlo Collection',
       version: '1.0.0',
       ...(collectionDescription ? { description: collectionDescription } : {}),
     },
     schemes: server.schemes,
     host: server.host,
     basePath: server.basePath,
-    ...(server['x-relay-server'] ? { 'x-relay-server': server['x-relay-server'] } : {}),
-    ...(serverUrls.length > 1 ? { 'x-relay-servers': serverUrls } : {}),
+    ...(server['x-kurlo-server'] ? { 'x-kurlo-server': server['x-kurlo-server'] } : {}),
+    ...(serverUrls.length > 1 ? { 'x-kurlo-servers': serverUrls } : {}),
     ...(tagNames.size ? { tags: Array.from(tagNames).map(name => ({ name })) } : {}),
     paths,
     ...(Object.keys(swaggerSchemes).length ? { securityDefinitions: swaggerSchemes } : {}),

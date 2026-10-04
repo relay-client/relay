@@ -121,7 +121,7 @@
   {#if vm.mcpCatalogError}
     <p class="mcp-notice mcp-notice-bad" role="alert">{vm.mcpCatalogError}</p>
   {:else if needsName && rejection}
-    <p class="mcp-notice mcp-notice-bad" role="alert">Relay will not call this tool: {rejection}</p>
+    <p class="mcp-notice mcp-notice-bad" role="alert">Kurlo will not call this tool: {rejection}</p>
   {:else if catalog}
     <p class="mcp-server" title={summaryTitle}>
       <span class="mcp-server-name">{catalog.serverName || 'This server'}</span>

@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/relay-client/relay/apps/desktop/internal/api/state"
-	"github.com/relay-client/relay/apps/desktop/internal/model"
-	"github.com/relay-client/relay/apps/desktop/internal/script"
+	"github.com/stormhop/kurlo/apps/desktop/internal/api/state"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/script"
 )
 
 func TestScriptSenderDisabledReturnsNil(t *testing.T) {

@@ -1,4 +1,4 @@
-# Relay Performance Fixtures
+# Kurlo Performance Fixtures
 
 This folder contains reproducible fixture definitions for local performance testing. Generated payloads are intentionally ignored by Git because the default set can be hundreds of megabytes.
 
@@ -18,7 +18,7 @@ Outputs are written to `perf/fixtures/`:
 
 - `request-store-large.json` - local request store payload with many collections, folders, requests, history entries, environments, and cookies.
 - `huge-response.json` - large response body for response viewer rendering/search tests.
-- `relay-yaml-large/` - Git/YAML workspace fixture matching Relay's `workspace-yaml` layout.
+- `kurlo-yaml-large/` - Git/YAML workspace fixture matching Kurlo's `workspace-yaml` layout.
 - `manifest.json` - counts, generated paths, and suggested manual checks.
 
 Primary checks:
@@ -27,4 +27,4 @@ Primary checks:
 - Open the collections sidebar and verify folder expand/collapse/search stay responsive.
 - Switch to history and verify date collapse/search do not shift layout.
 - Open `huge-response.json` in a request response fixture and verify raw/view/search pagination.
-- Open `relay-yaml-large/` as a folder workspace and verify diagnostics remain clean.
+- Open `kurlo-yaml-large/` as a folder workspace and verify diagnostics remain clean.

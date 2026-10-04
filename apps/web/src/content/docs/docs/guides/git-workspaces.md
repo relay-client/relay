@@ -1,9 +1,9 @@
 ---
 title: Git-backed workspaces
-description: Store Relay workspaces as YAML files, keep secrets local, and collaborate through Git.
+description: Store Kurlo workspaces as YAML files, keep secrets local, and collaborate through Git.
 ---
 
-Relay can store workspace data in a folder instead of only inside the encrypted app profile. When that folder is a Git repository, the workspace becomes reviewable, branchable, and shareable with a team.
+Kurlo can store workspace data in a folder instead of only inside the encrypted app profile. When that folder is a Git repository, the workspace becomes reviewable, branchable, and shareable with a team.
 
 ![Workspace overview with quick actions](../../../../assets/screenshots/workspace-overview.png)
 
@@ -15,50 +15,50 @@ Use a Git-backed workspace when you want:
 - Stable YAML files instead of opaque JSON exports.
 - Local-only secrets.
 - Branches for API changes.
-- Diff, conflict, commit, pull, and push workflows inside Relay.
+- Diff, conflict, commit, pull, and push workflows inside Kurlo.
 
 Use the default app storage when the workspace is private, short-lived, or not meant to be shared.
 
 ## Requirements
 
-Relay runs the `git` command rather than bundling its own, so Git storage needs Git installed and on the PATH:
+Kurlo runs the `git` command rather than bundling its own, so Git storage needs Git installed and on the PATH:
 
 - **Windows** — install [Git for Windows](https://git-scm.com/downloads); Windows ships none.
 - **macOS** — run `xcode-select --install`. `/usr/bin/git` exists on a clean Mac but is only a stub until the Command Line Tools are installed.
 - **Linux** — install `git` from your distribution's package manager.
 
-Restart Relay after installing. Without Git, Relay says so on the Git screen and the folder still works as a local (non-Git) workspace — collections, environments, and requests all behave normally; only branches, commits, and remotes are unavailable.
+Restart Kurlo after installing. Without Git, Kurlo says so on the Git screen and the folder still works as a local (non-Git) workspace — collections, environments, and requests all behave normally; only branches, commits, and remotes are unavailable.
 
-## What Relay writes
+## What Kurlo writes
 
 Shared files:
 
 ```text
-relay.yml
+kurlo.yml
 .gitignore
 workspaces/**/*.yml
 ```
 
-The shared YAML contains workspaces, collections, explicit folder paths, requests, environments, defaults, scripts, and settings. Secret values are replaced with `{{relaySecret:...}}` placeholders. Their real values stay in Relay's encrypted local `requests.json` profile instead of the Git workspace.
+The shared YAML contains workspaces, collections, explicit folder paths, requests, environments, defaults, scripts, and settings. Secret values are replaced with `{{kurloSecret:...}}` placeholders. Their real values stay in Kurlo's encrypted local `requests.json` profile instead of the Git workspace.
 
-See [Relay YAML format](/docs/reference/relay-yaml-format/) for the public schema.
+See [Kurlo YAML format](/docs/reference/kurlo-yaml-format/) for the public schema.
 
 ## Starting a folder workspace
 
 From the workspace overview or Git workspace screen:
 
 1. Choose a folder you control.
-2. Let Relay write the workspace YAML files.
+2. Let Kurlo write the workspace YAML files.
 3. Optionally initialize Git in that folder.
 4. Add a remote when you are ready to share.
 
-Relay only manages its own files. Other project files in the same repository are left alone.
+Kurlo only manages its own files. Other project files in the same repository are left alone.
 
 ## Opening or cloning
 
-You can open an existing folder workspace or clone a remote repository. After opening, Relay reads the YAML store, merges local secrets where available, and shows diagnostics for files it could not fully understand.
+You can open an existing folder workspace or clone a remote repository. After opening, Kurlo reads the YAML store, merges local secrets where available, and shows diagnostics for files it could not fully understand.
 
-If the folder is missing or moved, Relay enters recovery mode and lets you choose another folder, open an existing repository, or clone again.
+If the folder is missing or moved, Kurlo enters recovery mode and lets you choose another folder, open an existing repository, or clone again.
 
 ## Daily Git flow
 
@@ -68,13 +68,13 @@ The Git workspace screen covers the common loop:
 
 1. **Fetch** to update remote refs.
 2. **Pull** using fast-forward, merge, or rebase strategy.
-3. Edit requests, environments, folders, and collection defaults in Relay.
+3. Edit requests, environments, folders, and collection defaults in Kurlo.
 4. Review changed YAML files and diffs.
-5. Stage selected files or all Relay files.
+5. Stage selected files or all Kurlo files.
 6. Commit with a message.
 7. Push to the configured upstream.
 
-Relay shows ahead/behind counts, current branch, upstream status, remotes, stashes, changed files, commit history, and outgoing commits.
+Kurlo shows ahead/behind counts, current branch, upstream status, remotes, stashes, changed files, commit history, and outgoing commits.
 
 ## Branches and stashes
 
@@ -86,11 +86,11 @@ Branch tools include:
 - Pull a specific branch.
 - Set tracking/upstream where needed.
 
-Stash tools are available when local changes would block a pull or branch operation. You can stash, pop a stash, or let Relay offer an autostash-style flow before pulling.
+Stash tools are available when local changes would block a pull or branch operation. You can stash, pop a stash, or let Kurlo offer an autostash-style flow before pulling.
 
 ## Conflicts
 
-When Git reports conflicts, Relay blocks normal workspace editing until the conflict is resolved. The conflict resolver can:
+When Git reports conflicts, Kurlo blocks normal workspace editing until the conflict is resolved. The conflict resolver can:
 
 - Show ours/theirs versions.
 - Parse inline conflict markers.
@@ -98,18 +98,18 @@ When Git reports conflicts, Relay blocks normal workspace editing until the conf
 - Accept ours, accept theirs, or edit the merged result.
 - Continue or abort the Git operation.
 
-This is intentionally conservative: Relay would rather pause than silently overwrite workspace YAML.
+This is intentionally conservative: Kurlo would rather pause than silently overwrite workspace YAML.
 
 ## Diagnostics
 
-Diagnostics appear when YAML exists but is incomplete, invalid, or references something Relay cannot load cleanly. A diagnostic does not always mean data is lost; often it means a third-party edit missed a required field.
+Diagnostics appear when YAML exists but is incomplete, invalid, or references something Kurlo cannot load cleanly. A diagnostic does not always mean data is lost; often it means a third-party edit missed a required field.
 
-Use diagnostics to jump to the affected workspace, collection, request, or environment. After fixing the item in Relay or editing the YAML, refresh the Git workspace status.
+Use diagnostics to jump to the affected workspace, collection, request, or environment. After fixing the item in Kurlo or editing the YAML, refresh the Git workspace status.
 
 ## Safety rules
 
-- Relay does not write real secret values into managed workspace YAML. Tokens, passwords, client secrets, AWS keys and session tokens, OAuth 2.0 refresh tokens and private keys, and the client-certificate passphrase are all replaced by a `{{relaySecret:…}}` placeholder in the file.
-- Local secret values remain in the encrypted Relay profile and are not staged by the Git workspace UI.
-- Relay does not discard unrelated repository files.
+- Kurlo does not write real secret values into managed workspace YAML. Tokens, passwords, client secrets, AWS keys and session tokens, OAuth 2.0 refresh tokens and private keys, and the client-certificate passphrase are all replaced by a `{{kurloSecret:…}}` placeholder in the file.
+- Local secret values remain in the encrypted Kurlo profile and are not staged by the Git workspace UI.
+- Kurlo does not discard unrelated repository files.
 - Destructive actions such as discard and force-push are explicit UI actions.
 - Unknown YAML fields are preserved where possible so future versions and third-party tools can coexist.

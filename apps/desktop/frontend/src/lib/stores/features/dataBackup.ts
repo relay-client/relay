@@ -4,19 +4,19 @@ import { normalizeThemeSettings, type AppTheme, type AppThemeMode } from '../../
 import { normalizeProxyConfig, proxyConfigForPersistence } from '../../proxy';
 import { downloadTextFile } from '../../utils';
 
-export type RelayBackupPreferences = {
+export type KurloBackupPreferences = {
   autosave?: boolean;
   appTheme?: AppTheme | AppThemeMode;
   shortcuts?: Record<string, string>;
   requestSettings?: Partial<RequestSettings>;
   proxyConfig?: ProxyConfig;
 };
-export type RelayBackupPayload = {
-  kind: 'relay.backup';
+export type KurloBackupPayload = {
+  kind: 'kurlo.backup';
   version: 1;
   exportedAt: string;
   store: RequestStore;
-  preferences: RelayBackupPreferences;
+  preferences: KurloBackupPreferences;
 };
 
 type DataBackupHost = {
@@ -54,7 +54,7 @@ type DataBackupHost = {
   syncDirtyRequestIds: (next: Set<string>) => void;
   loadRequestWorkspace: () => Promise<void>;
   showDataTransferStatus: (message: string, timeout?: number) => void;
-  relayBackupPayload: (store: RequestStore) => RelayBackupPayload;
+  kurloBackupPayload: (store: RequestStore) => KurloBackupPayload;
   requestStoreLooksImportable: (value: Record<string, unknown>) => boolean;
   parseAllDataBackup: (text: string) => { store: Partial<RequestStore>; preferences: unknown };
   applyImportedPreferences: (preferences: unknown) => void;
@@ -72,9 +72,9 @@ export const dataBackupFeature = {
       this.dataTransferStatusTimer = null;
     }, timeout);
   },
-  relayBackupPayload(this: DataBackupHost, store: RequestStore): RelayBackupPayload {
+  kurloBackupPayload(this: DataBackupHost, store: RequestStore): KurloBackupPayload {
     return {
-      kind: 'relay.backup',
+      kind: 'kurlo.backup',
       version: 1,
       exportedAt: new Date().toISOString(),
       store,
@@ -94,7 +94,7 @@ export const dataBackupFeature = {
   },
   parseAllDataBackup(this: DataBackupHost, text: string): { store: Partial<RequestStore>; preferences: unknown } {
     const parsed = JSON.parse(text) as unknown;
-    if (!this.isRecord(parsed)) throw new Error('Expected a Relay backup JSON file');
+    if (!this.isRecord(parsed)) throw new Error('Expected a Kurlo backup JSON file');
 
     if (this.isRecord(parsed.store) && this.requestStoreLooksImportable(parsed.store)) {
       return { store: parsed.store as Partial<RequestStore>, preferences: parsed.preferences };
@@ -102,7 +102,7 @@ export const dataBackupFeature = {
     if (this.requestStoreLooksImportable(parsed)) {
       return { store: parsed as Partial<RequestStore>, preferences: null };
     }
-    throw new Error('The selected file does not contain Relay request data');
+    throw new Error('The selected file does not contain Kurlo request data');
   },
   applyImportedPreferences(this: DataBackupHost, preferences: unknown) {
     if (!this.isRecord(preferences)) return;
@@ -145,9 +145,9 @@ export const dataBackupFeature = {
     await this.persistActiveRequestNow();
     const storeRequests = this.requestsForStore(this.requests);
     const store = this.requestStorePayload(storeRequests, this.activeRequestId, this.openRequestIds);
-    const payload = this.relayBackupPayload(store);
+    const payload = this.kurloBackupPayload(store);
     const stamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
-    const name = `relay-backup-${stamp}.json`;
+    const name = `kurlo-backup-${stamp}.json`;
     const content = JSON.stringify(payload, null, 2);
     try {
       if (!(await this.saveTextFile(name, content))) return;
@@ -171,7 +171,7 @@ export const dataBackupFeature = {
   },
   async importAllData(this: DataBackupHost) {
     this.closeFloatingMenus();
-    const path = await openFileDialog('Import Relay data backup');
+    const path = await openFileDialog('Import Kurlo data backup');
     if (!path) return;
     const confirmed = await this.openConfirmDialog('Import all data', 'This will replace workspaces, collections, requests, environments, history, and cookies in this app.', 'Import');
     if (!confirmed) return;

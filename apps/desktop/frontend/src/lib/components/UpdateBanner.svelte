@@ -36,7 +36,7 @@
     {/if}
   </svg>
   <span class="update-notif-text">
-    Relay <strong>{info.version}</strong> {statusLabel}
+    Kurlo <strong>{info.version}</strong> {statusLabel}
   </span>
   <button class="btn btn-primary btn-sm update-notif-btn" type="button" onclick={handleAction} disabled={installing}>{actionLabel}</button>
   <button class="btn btn-ghost btn-icon btn-sm update-notif-close" type="button" onclick={onDismiss} aria-label="Dismiss">

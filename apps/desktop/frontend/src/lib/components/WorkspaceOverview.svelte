@@ -128,7 +128,7 @@
   {#if isEmpty}
     <div class="overview-first-run">
       <h2>Send your first request</h2>
-      <p>Open a new request and paste a URL or a whole cURL command — Relay fills in the method, headers and body. Or bring in what you already have.</p>
+      <p>Open a new request and paste a URL or a whole cURL command — Kurlo fills in the method, headers and body. Or bring in what you already have.</p>
       <div class="overview-first-run-actions">
         <button class="btn btn-primary" type="button" onclick={() => createNewRequest()} disabled={workspaceBlocked}>New request</button>
         <button class="btn btn-secondary" type="button" onclick={openImport} disabled={workspaceBlocked}>Import collection</button>

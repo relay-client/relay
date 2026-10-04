@@ -3,12 +3,12 @@ import { cpSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const port = Number(process.env.RELAY_BRIDGE_PORT);
-const source = process.env.RELAY_EXTENSION_DIR;
-const domain = process.env.RELAY_COOKIE_DOMAIN ?? 'relay.test';
+const port = Number(process.env.KURLO_BRIDGE_PORT);
+const source = process.env.KURLO_EXTENSION_DIR;
+const domain = process.env.KURLO_COOKIE_DOMAIN ?? 'kurlo.test';
 
 if (!port || !source) {
-  console.error('RELAY_BRIDGE_PORT and RELAY_EXTENSION_DIR are required');
+  console.error('KURLO_BRIDGE_PORT and KURLO_EXTENSION_DIR are required');
   process.exit(2);
 }
 
@@ -31,14 +31,14 @@ async function until(check, ms, what) {
   }
 }
 
-const extensionDir = mkdtempSync(join(tmpdir(), 'relay-extension-'));
+const extensionDir = mkdtempSync(join(tmpdir(), 'kurlo-extension-'));
 cpSync(source, extensionDir, { recursive: true });
 const manifest = JSON.parse(readFileSync(join(extensionDir, 'manifest.json'), 'utf8'));
 manifest.host_permissions = [...manifest.host_permissions, `*://*.${domain}/*`];
 delete manifest.optional_host_permissions;
 writeFileSync(join(extensionDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
 
-const profile = mkdtempSync(join(tmpdir(), 'relay-profile-'));
+const profile = mkdtempSync(join(tmpdir(), 'kurlo-profile-'));
 const context = await chromium.launchPersistentContext(profile, {
   channel: 'chromium',
   args: [`--disable-extensions-except=${extensionDir}`, `--load-extension=${extensionDir}`],
@@ -55,7 +55,7 @@ try {
     await connect();
   }, port);
 
-  const firstToken = await until(async () => (await storage()).token, 30000, 'Relay to approve the first pairing');
+  const firstToken = await until(async () => (await storage()).token, 30000, 'Kurlo to approve the first pairing');
   say('paired', { token: `${firstToken.slice(0, 6)}…` });
 
   await context.addCookies([{
@@ -77,7 +77,7 @@ try {
   const repaired = await until(async () => {
     const state = await storage();
     return state.token && state.token !== firstToken ? state.token : '';
-  }, 45000, 'the extension to pair again after Relay disconnected it');
+  }, 45000, 'the extension to pair again after Kurlo disconnected it');
   say('repaired', { token: `${repaired.slice(0, 6)}…` });
 
   await context.addCookies([{

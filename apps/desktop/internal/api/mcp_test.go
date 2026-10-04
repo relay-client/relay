@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/relay-client/relay/apps/desktop/internal/api/state"
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/api/state"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 type mcpCapturedRequest struct {
@@ -100,7 +100,7 @@ func TestMcpSendsTheEnvelopeAndTheMirroredHeaders(t *testing.T) {
 		t.Error("the header and the body must agree, or a conforming server rejects the request")
 	}
 	if _, declared := meta[mcpMetaClientCaps].(map[string]any)["sampling"]; declared {
-		t.Error("Relay has no model and must never declare the sampling capability")
+		t.Error("Kurlo has no model and must never declare the sampling capability")
 	}
 
 	if len(resp.Content) != 1 || resp.Content[0].Text != "72F" {
@@ -563,7 +563,7 @@ func TestMcpRefusesAnIncompleteRequest(t *testing.T) {
 		{
 			"an unknown method",
 			model.HttpRequest{URL: "https://example.test/mcp", McpMethod: "sampling/createMessage"},
-			"not a method Relay knows",
+			"not a method Kurlo knows",
 		},
 		{
 			"a call with no tool name",

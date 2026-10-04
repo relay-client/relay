@@ -1,13 +1,13 @@
 ---
 title: Proxy configuration
-description: Configure Relay's global, collection, and request proxy behavior, including system settings, SOCKS5, authentication, and bypass rules.
+description: Configure Kurlo's global, collection, and request proxy behavior, including system settings, SOCKS5, authentication, and bypass rules.
 ---
 
-Relay can use a global proxy on this device and a proxy URL stored with a collection or request.
+Kurlo can use a global proxy on this device and a proxy URL stored with a collection or request.
 
 ## Precedence
 
-Relay resolves proxy configuration in this order:
+Kurlo resolves proxy configuration in this order:
 
 1. A non-empty proxy URL explicitly set on the request.
 2. A collection proxy URL inherited by a request that has not overridden that setting.
@@ -16,14 +16,14 @@ Relay resolves proxy configuration in this order:
 Clearing the proxy field on a request marks that field as a request override. The request then skips the collection proxy and falls back to the app-wide setting. Click **Reset** in the request Settings tab to clear its override markers and inherit collection defaults again.
 
 :::note
-Relay does not have a `direct://` per-request value. To connect directly, remove request and collection proxy URLs and set the global mode to **Off**.
+Kurlo does not have a `direct://` per-request value. To connect directly, remove request and collection proxy URLs and set the global mode to **Off**.
 :::
 
 ## Global modes
 
 Open **Settings -> Proxy** and choose:
 
-![Global proxy configured in Relay Settings](../../../../assets/screenshots/settings-proxy.png)
+![Global proxy configured in Kurlo Settings](../../../../assets/screenshots/settings-proxy.png)
 
 | Mode | Behavior |
 |------|----------|
@@ -31,7 +31,7 @@ Open **Settings -> Proxy** and choose:
 | **On** | Use the custom HTTP, HTTPS, or SOCKS5 proxy configured below. |
 | **System** | Use the standard `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` environment behavior. |
 
-When **On** is selected, Relay requires a hostname. If it is blank, requests fail instead of silently going direct.
+When **On** is selected, Kurlo requires a hostname. If it is blank, requests fail instead of silently going direct.
 
 For a custom proxy, configure:
 
@@ -41,7 +41,7 @@ For a custom proxy, configure:
 - **Auth**: optional username and password.
 - **Proxy Bypass**: hosts that must connect directly.
 
-The global proxy password is kept only in the running app. Relay deliberately removes it from persisted preferences and all-data backups, so you must enter it again after restarting Relay or restoring a backup.
+The global proxy password is kept only in the running app. Kurlo deliberately removes it from persisted preferences and all-data backups, so you must enter it again after restarting Kurlo or restoring a backup.
 
 ## Bypass rules
 
@@ -70,9 +70,9 @@ socks5://127.0.0.1:1080
 http://username:password@proxy.example.com:8080
 ```
 
-A request URL is the strongest override. A collection URL applies to requests that still inherit that setting. When the effective URL is empty, Relay uses the global mode.
+A request URL is the strongest override. A collection URL applies to requests that still inherit that setting. When the effective URL is empty, Kurlo uses the global mode.
 
-Credentials embedded in a request or collection proxy URL become part of that saved API data. Do not put them in a shareable workspace; use the device-local global proxy authentication fields instead. Relay does not expand `{{variables}}` inside proxy URLs.
+Credentials embedded in a request or collection proxy URL become part of that saved API data. Do not put them in a shareable workspace; use the device-local global proxy authentication fields instead. Kurlo does not expand `{{variables}}` inside proxy URLs.
 
 ## Troubleshooting
 

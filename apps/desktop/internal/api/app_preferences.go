@@ -98,9 +98,9 @@ func saveAppPreferences(preferences appPreferences) error {
 func defaultUserWorkspaceLocationPath() string {
 	home, err := os.UserHomeDir()
 	if err != nil || strings.TrimSpace(home) == "" {
-		return filepath.Join(requestStoreDir(), "Documents", "Relay")
+		return filepath.Join(requestStoreDir(), "Documents", "Kurlo")
 	}
-	return filepath.Join(home, "Documents", "Relay")
+	return filepath.Join(home, "Documents", "Kurlo")
 }
 
 func configuredDefaultWorkspaceLocation() string {

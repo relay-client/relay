@@ -286,7 +286,7 @@ export const workspaceDiagnosticsFeature = {
     const runtime = window.runtime;
     if (!runtime?.EventsOn) return;
     let pending: ReturnType<typeof setTimeout> | null = null;
-    runtime.EventsOn('relay:workspace-changed', (reason: string) => {
+    runtime.EventsOn('kurlo:workspace-changed', (reason: string) => {
       if (pending) clearTimeout(pending);
       pending = setTimeout(() => {
         pending = null;

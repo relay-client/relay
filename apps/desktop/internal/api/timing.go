@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 type responseTimingRecorder struct {

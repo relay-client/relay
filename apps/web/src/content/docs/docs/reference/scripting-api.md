@@ -45,12 +45,12 @@ pm.request.headers.set("X-Signature", pm.crypto.hmacSha256(pm.request.body.raw, 
 
 Two things to know:
 
-- A body written onto a request that has **no body** is sent anyway — Relay picks `json` or `text` from the content. The same applies to a **binary** request with no file chosen yet.
+- A body written onto a request that has **no body** is sent anyway — Kurlo picks `json` or `text` from the content. The same applies to a **binary** request with no file chosen yet.
 - A **binary** body read from a file is left alone. The script never sees those bytes, so it cannot replace them.
 
 ### Form and urlencoded bodies
 
-Those two modes are sent from their fields, not from raw text, so they are edited as a list. Writing `.raw` on them changes nothing, and Relay says so in the script log instead of dropping the write silently.
+Those two modes are sent from their fields, not from raw text, so they are edited as a list. Writing `.raw` on them changes nothing, and Kurlo says so in the script log instead of dropping the write silently.
 
 ```js
 // mode === "urlencoded"
@@ -73,7 +73,7 @@ const fields = pm.request.body.urlencoded.toObject()   // { grant_type: "...", s
 
 A file field keeps its attachment when a script rewrites its value; `type: "file"` marks it in the list. `pm.request.body.update({ mode: "urlencoded", urlencoded: [...] })` replaces every field at once.
 
-In Tengo the same surface is `pm.request.body`, `pm.request.body_type` (Relay's own names, not Postman's), and `pm.request.set_body(value)`. Tengo has no form-field API.
+In Tengo the same surface is `pm.request.body`, `pm.request.body_type` (Kurlo's own names, not Postman's), and `pm.request.set_body(value)`. Tengo has no form-field API.
 
 ## `pm.response` (test scripts only)
 
@@ -107,11 +107,11 @@ They differ in which scope they touch:
 | `pm.environment` | The active environment | The active environment |
 | `pm.collectionVariables` | The request's collection | The request's collection, saved back to the collection after the send |
 
-Relay has a single runtime variable scope, so `pm.globals` and `pm.variables.set` write to the same place — they are aliases, not two separate stores.
+Kurlo has a single runtime variable scope, so `pm.globals` and `pm.variables.set` write to the same place — they are aliases, not two separate stores.
 
 **`pm.variables.replaceIn(text)`** fills every `{{name}}` in a string from the scopes above, plus `{{$guid}}` and the other [dynamic variables](/docs/guides/environments/#dynamic-variables) — handy for signing the URL a request will actually hit. A name nothing defines is left as written.
 
-Globals persist. They are saved with your data, survive a restart, and are shared across every workspace. Edit them under **Environments → Globals** in the sidebar; a value a script writes appears there after the send. In [`relay run`](/docs/guides/cli-runner/) they come from `--globals` / `--global-var` and can be written back with `--export-globals`.
+Globals persist. They are saved with your data, survive a restart, and are shared across every workspace. Edit them under **Environments → Globals** in the sidebar; a value a script writes appears there after the send. In [`kurlo run`](/docs/guides/cli-runner/) they come from `--globals` / `--global-var` and can be written back with `--export-globals`.
 
 `pm.collectionVariables.set` persists: after the request finishes, the value is written onto the collection's variables (a Git-backed workspace records it in `collection.yml`). An existing row keeps its id, enabled state, secret flag, and description; only the value changes.
 
@@ -143,7 +143,7 @@ Read-only access to the cookies the request's jar would send for this URL. Domai
 
 ## `pm.execution.skipRequest()`
 
-Called from a **pre-request** script, skips the send entirely. The request is reported as skipped rather than failed, so a conditional request does not fail a collection run or a `relay run` exit code. Calling it from a test script does nothing — the response already exists.
+Called from a **pre-request** script, skips the send entirely. The request is reported as skipped rather than failed, so a conditional request does not fail a collection run or a `kurlo run` exit code. Calling it from a test script does nothing — the response already exists.
 
 ```js
 // Only hit the billing API when the environment opts in.
@@ -186,7 +186,7 @@ const b64 = CryptoJS.enc.Base64.stringify(CryptoJS.SHA256("payload"))
 
 ## `pm.sendRequest`
 
-Makes an HTTP call from a script — for fetching a token before the send, or chaining setup. **Off by default:** turn on **Allow pm.sendRequest** in the request's Settings tab, or pass `--allow-send-request` to [`relay run`](/docs/guides/cli-runner/). Without it, the call throws and explains how to enable it.
+Makes an HTTP call from a script — for fetching a token before the send, or chaining setup. **Off by default:** turn on **Allow pm.sendRequest** in the request's Settings tab, or pass `--allow-send-request` to [`kurlo run`](/docs/guides/cli-runner/). Without it, the call throws and explains how to enable it.
 
 Both Postman's callback form and a direct return value work; the call is synchronous, so the callback runs immediately rather than on a later tick.
 
@@ -217,7 +217,7 @@ Limits and deliberate omissions:
 
 ## Script timeout
 
-A script is capped at **2000 ms** by default. Raise it per request with **Script timeout** in the Settings tab, or for a whole run with `relay run --script-timeout`. The ceiling is 60000 ms, so a runaway loop can never wedge a send or a CI job.
+A script is capped at **2000 ms** by default. Raise it per request with **Script timeout** in the Settings tab, or for a whole run with `kurlo run --script-timeout`. The ceiling is 60000 ms, so a runaway loop can never wedge a send or a CI job.
 
 ## `pm.iterationData`
 
@@ -225,7 +225,7 @@ A script is capped at **2000 ms** by default. Raise it per request with **Script
 |--------|-------------|
 | `.get(key)` | Read the current data-row value for `key` (read-only) |
 
-During a data-driven run — the [Collection Runner](/docs/guides/collection-runner/) with a data file, or [`relay run --data`](/docs/guides/cli-runner/#data-driven-runs) — `pm.iterationData` exposes the current row. It's read-only; outside a data run every key is `undefined`.
+During a data-driven run — the [Collection Runner](/docs/guides/collection-runner/) with a data file, or [`kurlo run --data`](/docs/guides/cli-runner/#data-driven-runs) — `pm.iterationData` exposes the current row. It's read-only; outside a data run every key is `undefined`.
 
 ```js
 pm.test("greets the row's user", () => {
@@ -303,7 +303,7 @@ A failure names the path and the reason, for example `/items/1: missing required
 
 ## `require`
 
-JavaScript scripts can `require` a small set of stand-ins so imported Postman collections keep working. These are Relay implementations, not the npm packages.
+JavaScript scripts can `require` a small set of stand-ins so imported Postman collections keep working. These are Kurlo implementations, not the npm packages.
 
 | Module | What you get |
 |--------|--------------|
@@ -316,7 +316,7 @@ JavaScript scripts can `require` a small set of stand-ins so imported Postman co
 
 `_`, `tv4`, `Ajv`, `atob`, and `btoa` are also available as globals, and a script may shadow any of them (`const _ = require("lodash")` works).
 
-Anything outside that list fails with a message naming what was asked for — including an unsupported lodash member, so a missing helper surfaces as `lodash.debounce is not available in Relay's script sandbox` rather than a confusing `undefined is not a function`.
+Anything outside that list fails with a message naming what was asked for — including an unsupported lodash member, so a missing helper surfaces as `lodash.debounce is not available in Kurlo's script sandbox` rather than a confusing `undefined is not a function`.
 
 ## Postman legacy globals
 
@@ -342,7 +342,7 @@ JavaScript scripts written for Postman's older API run unchanged:
 - JavaScript is the default engine for new requests and Postman-style scripts.
 - Tengo is kept for older requests and teams that already wrote Tengo snippets.
 - Both engines use the same variable/environment mutation contract.
-- Both engines block module imports and host APIs; only the [bundled `require` stand-ins](#require) resolve. Use `pm.sendRequest`, Relay requests, and the Collection Runner for chained HTTP calls.
+- Both engines block module imports and host APIs; only the [bundled `require` stand-ins](#require) resolve. Use `pm.sendRequest`, Kurlo requests, and the Collection Runner for chained HTTP calls.
 
 ```js
 // blocked in JavaScript

@@ -10,7 +10,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/d5/tengo/v2"
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 const scriptMaxAllocs int64 = 250000

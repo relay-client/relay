@@ -223,13 +223,13 @@ body.landing {
 .console header code { font-size: 12.5px; text-align: right; overflow-wrap: anywhere; }
 .console footer { margin-top: auto; border-top: 1px solid var(--band-line); font-size: 14px; }
 .console-body { display: flex; flex-direction: column; gap: 12px; padding: 22px 18px; font-family: var(--font-mono); font-size: 14px; line-height: 1.55; overflow-wrap: anywhere; }
-.console-relay { border-color: #3d4180; background: #17182a; }
-.console-relay header, .console-relay footer { border-color: #2f3265; color: #c9ccf5; }
-.console-relay .console-body { counter-reset: step; }
-.console-relay li { counter-increment: step; display: flex; gap: 12px; }
-.console-relay li::before { content: counter(step); flex: 0 0 18px; color: var(--band-ink-2); }
+.console-kurlo { border-color: #3d4180; background: #17182a; }
+.console-kurlo header, .console-kurlo footer { border-color: #2f3265; color: #c9ccf5; }
+.console-kurlo .console-body { counter-reset: step; }
+.console-kurlo li { counter-increment: step; display: flex; gap: 12px; }
+.console-kurlo li::before { content: counter(step); flex: 0 0 18px; color: var(--band-ink-2); }
 .console-error { padding: 12px 14px; border-radius: 10px; background: rgba(242, 127, 118, 0.1); border: 1px solid rgba(242, 127, 118, 0.32); color: var(--err-ink); }
-.console-relay li.console-error::before { color: var(--err); }
+.console-kurlo li.console-error::before { color: var(--err); }
 .m-get { color: var(--get); font-weight: 600; }
 .m-options { color: var(--options); font-weight: 600; }
 .ok { color: var(--ok); }

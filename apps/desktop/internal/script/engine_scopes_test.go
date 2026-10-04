@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 func jsCtx() *Context {
@@ -219,7 +219,7 @@ func TestJSCryptoHMACVector(t *testing.T) {
 func TestJSCryptoBase64AndRandom(t *testing.T) {
 	ctx := jsCtx()
 	result := runPre(t, ctx, `
-		pm.test("encode", () => pm.expect(pm.crypto.base64Encode("relay")).to.equal("cmVsYXk="))
+		pm.test("encode", () => pm.expect(pm.crypto.base64Encode("kurlo")).to.equal("a3VybG8="))
 		pm.test("roundtrip", () => pm.expect(pm.crypto.base64Decode(pm.crypto.base64Encode("hello"))).to.equal("hello"))
 		pm.test("randomHex length", () => pm.expect(pm.crypto.randomHex(8)).to.have.lengthOf(16))
 		pm.test("randomHex differs", () => pm.expect(pm.crypto.randomHex(8)).to.not.equal(pm.crypto.randomHex(8)))
@@ -350,7 +350,7 @@ func TestJSSendRequestSynchronousForm(t *testing.T) {
 		}
 	}
 	runPre(t, ctx, `
-		const res = pm.sendRequest({ method: "POST", url: "https://auth.example.com/token", header: { "X-Client": "relay" }, body: "grant=x" })
+		const res = pm.sendRequest({ method: "POST", url: "https://auth.example.com/token", header: { "X-Client": "kurlo" }, body: "grant=x" })
 		pm.variables.set("token", res.json().token)
 		pm.variables.set("code", String(res.code))
 		pm.variables.set("ct", res.headers.get("content-type"))
@@ -358,7 +358,7 @@ func TestJSSendRequestSynchronousForm(t *testing.T) {
 	if got.Method != "POST" || got.URL != "https://auth.example.com/token" {
 		t.Errorf("request not passed through: %#v", got)
 	}
-	if got.Headers["X-Client"] != "relay" {
+	if got.Headers["X-Client"] != "kurlo" {
 		t.Errorf("headers not passed through: %#v", got.Headers)
 	}
 	if got.Body != "grant=x" {

@@ -33,7 +33,7 @@ function generateHugeJson(entryCount: number): string {
     email: `user${i}@example.com`,
     active: i % 2 === 0,
     score: Number((Math.sin(i) * 100).toFixed(4)),
-    tags: ['api', 'relay', `tag-${i % 10}`],
+    tags: ['api', 'kurlo', `tag-${i % 10}`],
     address: {
       street: `${i} Main St`,
       city: 'Springfield',

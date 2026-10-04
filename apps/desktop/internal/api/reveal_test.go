@@ -46,7 +46,7 @@ func TestOpenLogFolderReportsAFailedReveal(t *testing.T) {
 }
 
 func TestFileManagerCommandUsesTheNativeOpener(t *testing.T) {
-	dir := filepath.Join(t.TempDir(), "Application Support", "Relay", "logs")
+	dir := filepath.Join(t.TempDir(), "Application Support", "Kurlo", "logs")
 	cmd := fileManagerCommand(dir)
 
 	want := map[string]string{"darwin": "open", "windows": "explorer"}[goruntime.GOOS]

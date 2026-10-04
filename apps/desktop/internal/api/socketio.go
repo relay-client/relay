@@ -17,8 +17,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/relay-client/relay/apps/desktop/internal/api/auth"
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/api/auth"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -114,7 +114,7 @@ func (m *socketIOManager) connectWithCallbacks(appCtx context.Context, sessionID
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				log.Printf("relay: Socket.IO session %s panicked: %v", sessionID, r)
+				log.Printf("kurlo: Socket.IO session %s panicked: %v", sessionID, r)
 			}
 			cleared := false
 			m.mu.Lock()
@@ -393,7 +393,7 @@ func (m *socketIOManager) runConnectionOnce(ctx context.Context, sessionID strin
 	if browserSecurityActive(req) {
 		headers.Set("User-Agent", browserLikeUserAgent)
 	} else {
-		headers.Set("User-Agent", "Relay/"+appVersion)
+		headers.Set("User-Agent", "Kurlo/"+appVersion)
 	}
 	_, _ = applyUserHeaders(headers, req.Headers)
 	if notice := websocketHandshakeHeaderNotice(dropWebSocketHandshakeHeaders(headers)); notice != "" {

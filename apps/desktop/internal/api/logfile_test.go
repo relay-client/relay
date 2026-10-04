@@ -8,7 +8,7 @@ import (
 )
 
 func TestRotatingLogWriterAppendsAcrossReopens(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "relay.log")
+	path := filepath.Join(t.TempDir(), "kurlo.log")
 
 	first, err := newRotatingLogWriter(path, logMaxBytes)
 	if err != nil {
@@ -37,7 +37,7 @@ func TestRotatingLogWriterAppendsAcrossReopens(t *testing.T) {
 }
 
 func TestRotatingLogWriterKeepsOneGenerationAndStaysUnderTheCap(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "relay.log")
+	path := filepath.Join(t.TempDir(), "kurlo.log")
 	writer, err := newRotatingLogWriter(path, 64)
 	if err != nil {
 		t.Fatalf("open log: %v", err)
@@ -80,7 +80,7 @@ func TestRotatingLogWriterKeepsOneGenerationAndStaysUnderTheCap(t *testing.T) {
 }
 
 func TestRotatingLogWriterNeverSplitsAnEntry(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "relay.log")
+	path := filepath.Join(t.TempDir(), "kurlo.log")
 	writer, err := newRotatingLogWriter(path, 32)
 	if err != nil {
 		t.Fatalf("open log: %v", err)
@@ -103,7 +103,7 @@ func TestRotatingLogWriterNeverSplitsAnEntry(t *testing.T) {
 	}
 }
 
-func TestLogFilePathLivesUnderRelayAppData(t *testing.T) {
+func TestLogFilePathLivesUnderKurloAppData(t *testing.T) {
 	path := LogFilePath()
 
 	if filepath.Base(path) != logFileName {

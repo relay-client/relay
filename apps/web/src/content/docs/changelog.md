@@ -1,9 +1,15 @@
 ---
 title: Release notes
-description: Notable Relay changes and links to the exact notes for each published release.
+description: Notable Kurlo changes and links to the exact notes for each published release.
 ---
 
-This page summarizes the notable-change log maintained in the source repository. For the exact notes and artifacts attached to every published tag, use the [Relay releases page](https://github.com/relay-client/relay/releases).
+This page summarizes the notable-change log maintained in the source repository. For the exact notes and artifacts attached to every published tag, use the [Kurlo releases page](https://github.com/stormhop/kurlo/releases).
+
+## Unreleased
+
+### Changed
+
+- Relay is now Kurlo. CLI, workspace paths and application identity use the new name.
 
 ## 2.1.1
 

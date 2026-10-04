@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 const (
@@ -16,7 +16,7 @@ const (
 	packageStatusInsufficientBuffer = 122
 )
 
-var errUpdateManagedByPackage = errors.New("relay runs from a windows app package that cannot be replaced in place")
+var errUpdateManagedByPackage = errors.New("kurlo runs from a windows app package that cannot be replaced in place")
 
 var (
 	packagedInstallOverride func() bool
@@ -56,7 +56,7 @@ func isWindowsAppsPath(exe string) bool {
 
 func msixPackageURL(version, arch string) string {
 	version = strings.TrimPrefix(strings.TrimSpace(version), "v")
-	return fmt.Sprintf("https://github.com/%s/releases/download/v%s/relay-%s-windows-%s.msix", strings.Trim(githubRepo, "/"), version, version, arch)
+	return fmt.Sprintf("https://github.com/%s/releases/download/v%s/kurlo-%s-windows-%s.msix", strings.Trim(githubRepo, "/"), version, version, arch)
 }
 
 func withPackagedInstall(info *model.UpdateInfo, packaged bool, arch string) *model.UpdateInfo {

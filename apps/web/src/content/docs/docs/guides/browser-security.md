@@ -3,7 +3,7 @@ title: Browser security emulation
 description: Reproduce browser-like Origin headers, credentials mode, CORS preflights, and CSP connect-src blocking.
 ---
 
-Relay normally behaves like an API client, so it is not restricted by browser CORS or CSP rules. Browser security settings let you reproduce the result that frontend code would see without moving the request into a browser.
+Kurlo normally behaves like an API client, so it is not restricted by browser CORS or CSP rules. Browser security settings let you reproduce the result that frontend code would see without moving the request into a browser.
 
 Configure them in a request's **Settings** tab or as [collection defaults](/docs/guides/collection-defaults/).
 
@@ -18,7 +18,7 @@ http://localhost:5173
 https://app.example.com
 ```
 
-Relay accepts `http://`, `https://`, or the special CORS origin `null`. It normalizes host casing and removes default ports. CORS and CSP checks require an origin even if **Browser request emulation** itself is off.
+Kurlo accepts `http://`, `https://`, or the special CORS origin `null`. It normalizes host casing and removes default ports. CORS and CSP checks require an origin even if **Browser request emulation** itself is off.
 
 For CSP checks, use an HTTP or HTTPS origin; `null` cannot act as the protected page origin.
 
@@ -36,7 +36,7 @@ Enabling CORS or CSP checks also activates the browser-like user agent and origi
 
 **Include browser credentials** controls cross-origin cookie behavior and CORS validation:
 
-- Off: Relay suppresses cookie-jar cookies on an active cross-origin browser-security request.
+- Off: Kurlo suppresses cookie-jar cookies on an active cross-origin browser-security request.
 - On: cookies may be sent according to the normal cookie-jar rules, and CORS requires `Access-Control-Allow-Credentials: true`.
 
 With credentials enabled, `Access-Control-Allow-Origin: *` is rejected; the server must return the exact emulated origin.
@@ -47,7 +47,7 @@ This option does not enable the cookie jar by itself. The request's **Disable co
 
 For cross-origin HTTP requests, **Enforce CORS** validates the response as a browser would.
 
-For standard HTTP requests, Relay sends an `OPTIONS` preflight when the method or request headers are not CORS-safelisted. Safelisting looks at the value as well as the name, as the Fetch standard does:
+For standard HTTP requests, Kurlo sends an `OPTIONS` preflight when the method or request headers are not CORS-safelisted. Safelisting looks at the value as well as the name, as the Fetch standard does:
 
 - `Accept`, `Accept-Language`, `Content-Language`, `Content-Type` and `Range` are the only safelisted names, and each value must be 128 bytes or shorter.
 - No value may contain `"`, `(`, `)`, `:`, `<`, `>`, `?`, `@`, `[`, `\`, `]`, `{`, `}` or a control character.
@@ -67,9 +67,9 @@ The actual response must also pass the origin and credential checks. Same-origin
 
 ### Redirects
 
-Relay follows redirects the way a browser does in `cors` mode, checking every hop:
+Kurlo follows redirects the way a browser does in `cors` mode, checking every hop:
 
-- A redirect response from a cross-origin server must pass the same origin and credential checks before Relay follows it.
+- A redirect response from a cross-origin server must pass the same origin and credential checks before Kurlo follows it.
 - A request that starts same-origin becomes a CORS request as soon as a redirect leaves the page's origin, and stays one for the rest of the chain.
 - A non-simple request is preflighted again at each new cross-origin target.
 - When the chain moves from one cross origin to another, the `Origin` header becomes `null`, and the target must allow `null` or `*`.
@@ -90,16 +90,16 @@ SSE validates the actual cross-origin response and follows the redirect rules ab
 Common failures include:
 
 - Missing or duplicate `Access-Control-Allow-Origin`.
-- A different allowed origin than the one configured in Relay.
+- A different allowed origin than the one configured in Kurlo.
 - Wildcard origin on a credentialed request.
 - Missing method or header permission in the preflight response.
 - `Authorization` covered only by a wildcard header rule; it must be named explicitly.
 
 ## Enforce CSP connect-src
 
-Paste the page's `Content-Security-Policy` value and enable **Enforce CSP connect-src**. Relay checks the target before opening the network connection and checks redirect targets as they are followed.
+Paste the page's `Content-Security-Policy` value and enable **Enforce CSP connect-src**. Kurlo checks the target before opening the network connection and checks redirect targets as they are followed.
 
-Relay uses `connect-src` when present and otherwise falls back to `default-src`. If neither directive exists, this check does not block the request.
+Kurlo uses `connect-src` when present and otherwise falls back to `default-src`. If neither directive exists, this check does not block the request.
 
 Supported source matching includes:
 
@@ -115,15 +115,15 @@ This is focused `connect-src` emulation, not a complete browser CSP engine. Dire
 
 A page served over HTTPS may not fetch `http://` URLs or open `ws://` sockets. The exceptions are targets a browser already trusts — `localhost`, `*.localhost`, `127.0.0.0/8` and `[::1]` — and, under Local Network Access, private IP literals such as `192.168.1.20` and `.local` names.
 
-When **Enforce CORS** or **Enforce CSP connect-src** is on, Relay blocks a mixed-content request before it opens a connection, and checks redirect targets the same way. With only **Browser request emulation** on, it sends the request and adds a warning.
+When **Enforce CORS** or **Enforce CSP connect-src** is on, Kurlo blocks a mixed-content request before it opens a connection, and checks redirect targets the same way. With only **Browser request emulation** on, it sends the request and adds a warning.
 
 ## Local Network Access
 
 Chrome treats a request from a page to an address that is *less public* than the page's own as a local network request. The address spaces, from most to least public, are public, local network (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10`, `169.254.0.0/16`, `fc00::/7`, `fe80::/10`, and `.local` names) and loopback (`127.0.0.0/8`, `::1`, `localhost`).
 
-Relay classifies the target by the address it actually connected to, so a public name that resolves to a private address counts. Through a proxy only the URL itself can be judged. The page's space comes from the origin you entered: an IP literal, `localhost` or `.local`, and public otherwise.
+Kurlo classifies the target by the address it actually connected to, so a public name that resolves to a private address counts. Through a proxy only the URL itself can be judged. The page's space comes from the origin you entered: an IP literal, `localhost` or `.local`, and public otherwise.
 
-For such a request Relay adds a warning to the response instead of blocking it, because the outcome depends on the person using the page:
+For such a request Kurlo adds a warning to the response instead of blocking it, because the outcome depends on the person using the page:
 
 - From an HTTPS page, Chrome first asks the user for permission to reach devices on the local network, and the request fails if they decline.
 - From an HTTP page on a public or local origin, Chrome refuses the request: local network access is only available to secure contexts.

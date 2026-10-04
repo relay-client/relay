@@ -91,7 +91,7 @@ export const requestHeadersFeature = {
         );
       }
     } else {
-      add('User-Agent', 'Relay', 'Relay default');
+      add('User-Agent', 'Kurlo', 'Kurlo default');
     }
     if (!request.settings.disableCookieJar && !browserPreview.stripCookieJar && requestUrl) add('Cookie', cookieHeaderForUrl(this.cookies, requestUrl), 'from cookie jar');
     if (requestType === 'ws') {

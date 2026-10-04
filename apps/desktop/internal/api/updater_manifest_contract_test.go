@@ -39,11 +39,11 @@ func buildFakeRelease(t *testing.T, withSignatures bool) (dir string, checksums 
 	dir = t.TempDir()
 	checksums = map[string]string{}
 	assets := map[string]string{
-		"darwin-universal":     "relay-darwin-universal",
-		"darwin-universal-app": "relay-darwin-universal.app.zip",
-		"windows-amd64":        "relay-windows-amd64.exe",
-		"windows-arm64":        "relay-windows-arm64.exe",
-		"linux-amd64":          "relay-linux-amd64",
+		"darwin-universal":     "kurlo-darwin-universal",
+		"darwin-universal-app": "kurlo-darwin-universal.app.zip",
+		"windows-amd64":        "kurlo-windows-amd64.exe",
+		"windows-arm64":        "kurlo-windows-arm64.exe",
+		"linux-amd64":          "kurlo-linux-amd64",
 	}
 	for platform, asset := range assets {
 		body := []byte("fake binary for " + platform)
@@ -70,7 +70,7 @@ func generateManifest(t *testing.T, releaseDir string, extraArgs ...string) *upd
 		filepath.Join(root, "scripts", "make-latest-json.py"),
 		"--release-dir", releaseDir,
 		"--tag", "v9.9.9",
-		"--repo", "relay-client/relay",
+		"--repo", "stormhop/kurlo",
 		"--platforms", "darwin-universal,darwin-universal-app,windows-amd64,windows-arm64,linux-amd64",
 	}, extraArgs...)
 
@@ -112,7 +112,7 @@ func TestGeneratedManifestDecodesWithTheUpdaterParser(t *testing.T) {
 		if entry.SHA256 != want {
 			t.Fatalf("platform %q: checksum %q does not match the asset (%q)", platform, entry.SHA256, want)
 		}
-		if !strings.HasPrefix(entry.URL, "https://github.com/relay-client/relay/releases/download/v9.9.9/") {
+		if !strings.HasPrefix(entry.URL, "https://github.com/stormhop/kurlo/releases/download/v9.9.9/") {
 			t.Fatalf("platform %q: unexpected download URL %q", platform, entry.URL)
 		}
 		if entry.Signature == "" {
@@ -153,7 +153,7 @@ func TestGeneratedManifestIsRejectedWhenASignatureIsMissing(t *testing.T) {
 		filepath.Join(root, "scripts", "make-latest-json.py"),
 		"--release-dir", releaseDir,
 		"--tag", "v9.9.9",
-		"--repo", "relay-client/relay",
+		"--repo", "stormhop/kurlo",
 		"--platforms", "darwin-universal",
 		"--require-signature",
 	).CombinedOutput()
@@ -171,7 +171,7 @@ func TestGeneratedManifestIsRejectedWhenASignatureIsMissing(t *testing.T) {
 
 func TestGeneratedManifestFailsOnAMissingAsset(t *testing.T) {
 	releaseDir, _ := buildFakeRelease(t, true)
-	if err := os.Remove(filepath.Join(releaseDir, "relay-linux-amd64")); err != nil {
+	if err := os.Remove(filepath.Join(releaseDir, "kurlo-linux-amd64")); err != nil {
 		t.Fatalf("remove asset: %v", err)
 	}
 	root := repoRootForTest(t)
@@ -181,7 +181,7 @@ func TestGeneratedManifestFailsOnAMissingAsset(t *testing.T) {
 		filepath.Join(root, "scripts", "make-latest-json.py"),
 		"--release-dir", releaseDir,
 		"--tag", "v9.9.9",
-		"--repo", "relay-client/relay",
+		"--repo", "stormhop/kurlo",
 		"--platforms", "darwin-universal,windows-amd64,linux-amd64",
 	).CombinedOutput()
 

@@ -6,7 +6,7 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/relay-client/relay/apps/desktop/internal/api"
+	"github.com/stormhop/kurlo/apps/desktop/internal/api"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/menu"
 	"github.com/wailsapp/wails/v2/pkg/menu/keys"
@@ -41,7 +41,7 @@ func main() {
 	}
 
 	if path, err := api.InstallLogFile(); err != nil {
-		fmt.Fprintf(os.Stderr, "relay: could not open the log file at %s: %v\n", path, err)
+		fmt.Fprintf(os.Stderr, "kurlo: could not open the log file at %s: %v\n", path, err)
 	}
 
 	app := api.NewApp()
@@ -51,13 +51,13 @@ func main() {
 	}
 }
 
-const relaySingleInstanceID = "com.relayclient.relay"
+const kurloSingleInstanceID = "dev.kurlo.app"
 
 func buildAppOptions(app *api.App, frontendAssets embed.FS) *options.App {
 	bgR, bgG, bgB, bgA := api.InitialWindowBackgroundRGBA()
 
 	return &options.App{
-		Title:             "Relay",
+		Title:             "Kurlo",
 		Width:             1280,
 		Height:            820,
 		MinWidth:          1120,
@@ -98,7 +98,7 @@ func newSingleInstanceLock(showExistingWindow func()) *options.SingleInstanceLoc
 		showExistingWindow = func() {}
 	}
 	return &options.SingleInstanceLock{
-		UniqueId: relaySingleInstanceID,
+		UniqueId: kurloSingleInstanceID,
 		OnSecondInstanceLaunch: func(_ options.SecondInstanceData) {
 			showExistingWindow()
 		},
@@ -149,11 +149,11 @@ func buildMenu(app *api.App) *menu.Menu {
 
 	appMenu := menu.NewMenu()
 
-	relay := appMenu.AddSubmenu("Relay")
-	relay.AddText("Show Window", nil, func(_ *menu.CallbackData) { app.Show() })
-	relay.AddText("Hide Window", nil, func(_ *menu.CallbackData) { app.Hide() })
-	relay.AddSeparator()
-	relay.AddText("Quit", keys.CmdOrCtrl("q"), func(_ *menu.CallbackData) { app.Quit() })
+	kurlo := appMenu.AddSubmenu("Kurlo")
+	kurlo.AddText("Show Window", nil, func(_ *menu.CallbackData) { app.Show() })
+	kurlo.AddText("Hide Window", nil, func(_ *menu.CallbackData) { app.Hide() })
+	kurlo.AddSeparator()
+	kurlo.AddText("Quit", keys.CmdOrCtrl("q"), func(_ *menu.CallbackData) { app.Quit() })
 	appMenu.Append(viewMenu(app))
 
 	return appMenu

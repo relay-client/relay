@@ -53,7 +53,7 @@
     { value: 'dark', label: 'Dark' },
     { value: 'system', label: 'System' },
   ];
-  const RELAY_UPDATES_URL = 'https://github.com/relay-client/relay/releases';
+  const KURLO_UPDATES_URL = 'https://github.com/stormhop/kurlo/releases';
   let themeVariantList = $derived(resolvedAppTheme === 'light' ? LIGHT_THEME_VARIANTS : DARK_THEME_VARIANTS);
   let activeVariantId = $derived(resolvedAppTheme === 'light' ? appTheme.light : appTheme.dark);
   let toggleSidebarShortcut = $derived(shortcutComboLabel(vm.shortcutCombo('toggle-left-sidebar'), appRuntime));
@@ -91,7 +91,7 @@
     ? `Workspace storage: Git repository (${gitStatus.root || gitStatus.workspaceRoot})${upstreamLabel ? ` · tracks ${upstreamLabel}${upstreamGone ? ' (remote branch gone)' : ''}` : ''}`
     : (workspaceMissing
       ? `Workspace folder is missing (${gitStatus.workspaceRoot})`
-      : `Workspace storage: local filesystem (${gitStatus.workspaceRoot || 'Relay app data'})`));
+      : `Workspace storage: local filesystem (${gitStatus.workspaceRoot || 'Kurlo app data'})`));
 </script>
 
 <div class="status-bar">
@@ -123,9 +123,9 @@
     <button
       class="btn btn-ghost btn-icon btn-xs layout-btn github-link-btn"
       type="button"
-      onclick={() => openExternalURL(RELAY_UPDATES_URL)}
-      title="Relay updates and releases"
-      aria-label="Open Relay updates on GitHub"
+      onclick={() => openExternalURL(KURLO_UPDATES_URL)}
+      title="Kurlo updates and releases"
+      aria-label="Open Kurlo updates on GitHub"
     >
       <svg width="0.875rem" height="0.875rem" viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M8 .9a7.1 7.1 0 00-2.25 13.84c.36.07.49-.16.49-.35v-1.25c-2 .43-2.42-.86-2.42-.86-.33-.82-.79-1.04-.79-1.04-.64-.44.05-.43.05-.43.71.05 1.09.73 1.09.73.63 1.08 1.65.77 2.05.59.06-.46.25-.77.45-.95-1.6-.18-3.28-.8-3.28-3.55 0-.78.28-1.42.73-1.92-.07-.18-.32-.91.07-1.9 0 0 .6-.19 1.96.73A6.8 6.8 0 018 4.3c.61 0 1.22.08 1.79.24 1.36-.92 1.95-.73 1.95-.73.39.99.14 1.72.07 1.9.46.5.73 1.14.73 1.92 0 2.76-1.68 3.36-3.28 3.54.26.22.49.66.49 1.34v1.88c0 .19.13.42.5.35A7.1 7.1 0 008 .9z"/>
@@ -195,7 +195,7 @@
         type="button"
         onclick={() => onOpenAbout?.()}
         title="Open About"
-        aria-label={`Relay version ${appVersion} — click to open About`}
+        aria-label={`Kurlo version ${appVersion} — click to open About`}
       >
         v{appVersion}
       </button>

@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 const sioTestBinaryFrame = "\x00binary-frame:"
@@ -351,7 +351,7 @@ func TestSocketIOV2PollingHandshakeAppliesParamsAuthAndCookies(t *testing.T) {
 		}
 		gotQuery = r.URL.Query()
 		gotCookie = r.Header.Get("Cookie")
-		gotHeader = r.Header.Get("X-Relay-Test")
+		gotHeader = r.Header.Get("X-Kurlo-Test")
 		http.SetCookie(w, &http.Cookie{Name: "server", Value: "stored", Path: "/"})
 		open := `0{"sid":"poll-sid","pingInterval":25000,"pingTimeout":5000}`
 		fmt.Fprintf(w, "%d:%s", len(open), open)
@@ -367,7 +367,7 @@ func TestSocketIOV2PollingHandshakeAppliesParamsAuthAndCookies(t *testing.T) {
 
 	manager := newSocketIOManager(singleJarRegistry(jar))
 	headers := make(http.Header)
-	headers.Set("X-Relay-Test", "yes")
+	headers.Set("X-Kurlo-Test", "yes")
 
 	sid, _, _, hs, err := manager.pollingHandshake(context.Background(), model.HttpRequest{
 		URL:                    sioHTTPToWS(server.URL),

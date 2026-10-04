@@ -29,7 +29,7 @@ if [ ! -f "$BG_PNG" ] || [ ! -f "$BG_RETINA_PNG" ]; then
   exit 1
 fi
 
-WORK_DIR="$(mktemp -d -t relay-dmg)"
+WORK_DIR="$(mktemp -d -t kurlo-dmg)"
 trap 'rm -rf "$WORK_DIR"' EXIT
 BG_TIFF="$WORK_DIR/dmg-background.tiff"
 tiffutil -cathidpicheck "$BG_PNG" "$BG_RETINA_PNG" -out "$BG_TIFF"

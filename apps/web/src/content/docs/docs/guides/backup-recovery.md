@@ -1,13 +1,13 @@
 ---
 title: Backup & recovery
-description: Back up, restore, migrate, and recover Relay data without losing encryption keys or external Git workspaces.
+description: Back up, restore, migrate, and recover Kurlo data without losing encryption keys or external Git workspaces.
 ---
 
-Relay has three complementary protection layers:
+Kurlo has three complementary protection layers:
 
 | Method | Best for | Important limitation |
 |--------|----------|----------------------|
-| All-data JSON export | Moving a Relay profile or creating a portable restore point | Plaintext file containing secrets; selected preferences only. |
+| All-data JSON export | Moving a Kurlo profile or creating a portable restore point | Plaintext file containing secrets; selected preferences only. |
 | Closed-app filesystem backup | Exact recovery of local app data | `requests.json` and its matching key must stay together. |
 | Git-backed workspace | Team sharing and version history for workspace YAML | Does not include local history, cookies, or real secret values. |
 
@@ -40,7 +40,7 @@ The exported JSON is not encrypted. It can contain auth tokens, OAuth credential
 
 1. Export the current profile first if it is still usable.
 2. Open **Settings -> General -> Advanced data -> Import all data**.
-3. Select a Relay backup JSON file.
+3. Select a Kurlo backup JSON file.
 4. Confirm the replacement.
 5. Re-enter the global proxy password and reconnect any external workspace paths if needed.
 
@@ -50,13 +50,13 @@ For cross-machine migration, the all-data export is usually safer than copying e
 
 ## Filesystem backup
 
-Quit Relay before copying its data directory:
+Quit Kurlo before copying its data directory:
 
 | Platform | Default location |
 |----------|------------------|
-| macOS | `~/Library/Application Support/Relay/` |
-| Windows | `%APPDATA%\Relay\` |
-| Linux | `~/.config/Relay/` or `$XDG_CONFIG_HOME/Relay/` |
+| macOS | `~/Library/Application Support/Kurlo/` |
+| Windows | `%APPDATA%\Kurlo\` |
+| Linux | `~/.config/Kurlo/` or `$XDG_CONFIG_HOME/Kurlo/` |
 
 Keep at least these files together:
 
@@ -69,9 +69,9 @@ Back up folder-backed workspaces and cloned Git repositories separately when the
 
 ## Recover an encrypted profile
 
-If Relay reports **Decryption failed**, restore `requests.json` and the `request-store.key` created with it. The recovery file is owner-readable only and normally has `0600` permissions on Unix-like systems.
+If Kurlo reports **Decryption failed**, restore `requests.json` and the `request-store.key` created with it. The recovery file is owner-readable only and normally has `0600` permissions on Unix-like systems.
 
-Relay may also find the key in:
+Kurlo may also find the key in:
 
 - macOS Keychain.
 - Windows DPAPI for the same OS user.
@@ -80,14 +80,14 @@ Relay may also find the key in:
 The credential-store copy is an additional recovery path, not a substitute for keeping the matching recovery file with a disk backup.
 
 :::caution
-If no matching key copy exists, AES-256-GCM encrypted profile data cannot be recovered. A key from another Relay installation will not work.
+If no matching key copy exists, AES-256-GCM encrypted profile data cannot be recovered. A key from another Kurlo installation will not work.
 :::
 
 ## Recommended routine
 
 1. Use Git-backed workspaces for shared, reviewable API definitions.
 2. Create an all-data export before upgrades, migrations, or destructive imports.
-3. Keep periodic closed-app backups of the Relay data directory.
+3. Keep periodic closed-app backups of the Kurlo data directory.
 4. Verify that external workspace repositories are covered by their own backup or remote.
 5. Test restore files in a disposable OS profile when the data is business-critical.
 

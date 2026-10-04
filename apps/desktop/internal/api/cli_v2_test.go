@@ -131,7 +131,7 @@ func writeDataDrivenWorkspace(t *testing.T, baseURL string) string {
 			t.Fatalf("write: %v", err)
 		}
 	}
-	write("relay.yml", "version: 1\nformat: relay.workspace.yaml.v1\nworkspaceOrder:\n  - ws\n")
+	write("kurlo.yml", "version: 1\nformat: kurlo.workspace.yaml.v1\nworkspaceOrder:\n  - ws\n")
 	write("workspaces/Demo/workspace.yml", "version: 1\nworkspace:\n  id: ws\n  name: Demo\n  filesystemName: Demo\n  collectionOrder:\n    - col\n")
 	write("workspaces/Demo/collections/Smoke/collection.yml", strings.Join([]string{
 		"version: 1",
@@ -313,7 +313,7 @@ func writeScriptWorkspace(t *testing.T, baseURL, preScript, testScript string) s
 		}
 		return strings.Join(lines, "\n")
 	}
-	write("relay.yml", "version: 1\nformat: relay.workspace.yaml.v1\nworkspaceOrder:\n  - ws\n")
+	write("kurlo.yml", "version: 1\nformat: kurlo.workspace.yaml.v1\nworkspaceOrder:\n  - ws\n")
 	write("workspaces/Demo/workspace.yml", "version: 1\nworkspace:\n  id: ws\n  name: Demo\n  filesystemName: Demo\n  collectionOrder:\n    - col\n")
 	write("workspaces/Demo/collections/Smoke/collection.yml", strings.Join([]string{
 		"version: 1",

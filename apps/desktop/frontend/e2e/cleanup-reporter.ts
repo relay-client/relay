@@ -7,7 +7,7 @@ type CleanupReporterOptions = {
   artifactDir?: string;
 };
 
-class RelayCleanupReporter implements Reporter {
+class KurloCleanupReporter implements Reporter {
   private artifactDir: string;
   private passed = false;
 
@@ -20,7 +20,7 @@ class RelayCleanupReporter implements Reporter {
   }
 
   onExit() {
-    if (process.env.CI || process.env.RELAY_E2E_KEEP_ARTIFACTS === '1' || process.env.RELAY_E2E_HTML_REPORT === '1') return;
+    if (process.env.CI || process.env.KURLO_E2E_KEEP_ARTIFACTS === '1' || process.env.KURLO_E2E_HTML_REPORT === '1') return;
     if (!this.passed || !this.isSafeArtifactDir()) return;
 
     rmSync(this.artifactDir, { recursive: true, force: true });
@@ -29,8 +29,8 @@ class RelayCleanupReporter implements Reporter {
   private isSafeArtifactDir() {
     const artifactDir = resolve(this.artifactDir);
     const tempRoot = resolve(tmpdir());
-    return artifactDir.startsWith(`${tempRoot}${sep}`) && basename(artifactDir).startsWith('relay-playwright-artifacts');
+    return artifactDir.startsWith(`${tempRoot}${sep}`) && basename(artifactDir).startsWith('kurlo-playwright-artifacts');
   }
 }
 
-export default RelayCleanupReporter;
+export default KurloCleanupReporter;

@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-type RelayE2EState = {
+type KurloE2EState = {
   store: Record<string, unknown>;
   savedStores: Record<string, unknown>[];
   sentRequests: Array<Record<string, unknown>>;
@@ -21,14 +21,14 @@ type RelayE2EState = {
 
 declare global {
   interface Window {
-    __relayE2E: RelayE2EState;
+    __kurloE2E: KurloE2EState;
   }
 }
 
-const stepPauseMs = Number.parseInt(process.env.RELAY_E2E_STEP_PAUSE_MS ?? '0', 10);
-const responseScreenshotPath = process.env.RELAY_E2E_RESPONSE_SCREENSHOT ?? '';
-const docsScreenshotDir = process.env.RELAY_DOCS_SCREENSHOT_DIR ?? '';
-const readmeScreenshotPath = process.env.RELAY_README_SCREENSHOT ?? '';
+const stepPauseMs = Number.parseInt(process.env.KURLO_E2E_STEP_PAUSE_MS ?? '0', 10);
+const responseScreenshotPath = process.env.KURLO_E2E_RESPONSE_SCREENSHOT ?? '';
+const docsScreenshotDir = process.env.KURLO_DOCS_SCREENSHOT_DIR ?? '';
+const readmeScreenshotPath = process.env.KURLO_README_SCREENSHOT ?? '';
 
 const DOCS_VIEWPORT = { width: 1200, height: 780 };
 const DOCS_CROP_PADDING = 26;
@@ -91,10 +91,10 @@ async function captureDocsScreenshot(page: Page, name: string, cropTo?: Locator)
 async function tourPause(page: Page, label: string) {
   if (!Number.isFinite(stepPauseMs) || stepPauseMs <= 0) return;
   await page.evaluate((text) => {
-    let node = document.getElementById('relay-e2e-tour-label');
+    let node = document.getElementById('kurlo-e2e-tour-label');
     if (!node) {
       node = document.createElement('div');
-      node.id = 'relay-e2e-tour-label';
+      node.id = 'kurlo-e2e-tour-label';
       Object.assign(node.style, {
         position: 'fixed',
         zIndex: '2147483647',
@@ -116,7 +116,7 @@ async function tourPause(page: Page, label: string) {
   await page.waitForTimeout(stepPauseMs);
 }
 
-async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 'browser/e2e', docsMode = Boolean(docsScreenshotDir)) {
+async function installKurloBridge(page: Page, largeResponseBody = '', runtime = 'browser/e2e', docsMode = Boolean(docsScreenshotDir)) {
   await page.addInitScript(({ largeResponseBody, runtime, docsMode }) => {
     localStorage.clear();
 
@@ -144,8 +144,8 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
     const docsGitStatus = {
       ...emptyGitStatus,
       isRepo: true,
-      workspaceRoot: '/Users/ada/Projects/relay-workspace',
-      root: '/Users/ada/Projects/relay-workspace',
+      workspaceRoot: '/Users/ada/Projects/kurlo-workspace',
+      root: '/Users/ada/Projects/kurlo-workspace',
       branch: 'feature/docs-refresh',
       head: '7b3f2a1',
       upstream: 'origin/feature/docs-refresh',
@@ -355,7 +355,7 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
       }
       const body = isGraphQL
         ? {
-            data: { me: { id: 'user-123', name: 'Relay Tester' } },
+            data: { me: { id: 'user-123', name: 'Kurlo Tester' } },
             echoedOperation: parsedBody?.operationName ?? null,
           }
         : {
@@ -372,7 +372,7 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
         status: '200 OK',
         headers: [
           { key: 'content-type', value: 'application/json' },
-          { key: 'x-relay-e2e', value: 'playwright' },
+          { key: 'x-kurlo-e2e', value: 'playwright' },
         ],
         body: bodyText,
         duration: isGraphQL ? 31 : 27,
@@ -389,7 +389,7 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
     }
 
     const app = {
-      AppInfo: async () => ({ name: 'Relay', version: 'dev', runtime, goVersion: 'e2e' }),
+      AppInfo: async () => ({ name: 'Kurlo', version: 'dev', runtime, goVersion: 'e2e' }),
       LoadWorkspaceDiagnostics: async () => [],
       LoadRequestStore: async () => JSON.stringify(state.store),
       SaveRequestStoreWithError: async (payload) => {
@@ -447,7 +447,7 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
           status: '200 OK',
           headers: [
             { key: 'content-type', value: 'text/event-stream' },
-            { key: 'x-relay-e2e', value: 'sse' },
+            { key: 'x-kurlo-e2e', value: 'sse' },
           ],
           duration: 18,
           timestamp,
@@ -464,7 +464,7 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
             {
               id: 'evt-2',
               event: 'message',
-              data: JSON.stringify({ text: 'Relay stream is live' }),
+              data: JSON.stringify({ text: 'Kurlo stream is live' }),
               timestamp: timestamp + 2,
             },
           ],
@@ -536,7 +536,7 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
           status: 'OK',
           headers: [
             { key: 'content-type', value: 'application/grpc+json' },
-            { key: 'x-relay-e2e', value: 'grpc' },
+            { key: 'x-kurlo-e2e', value: 'grpc' },
           ],
           trailers: [
             { key: 'grpc-status', value: '0' },
@@ -562,7 +562,7 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
           sessionId,
           url: req.url,
           status: '101 Switching Protocols',
-          protocol: 'relay-e2e',
+          protocol: 'kurlo-e2e',
           requestHeaders: req.headers ?? [],
           responseHeaders: [
             { key: 'upgrade', value: 'websocket' },
@@ -602,7 +602,7 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
           url: req.url,
           namespace,
           requestHeaders: req.headers ?? [],
-          responseHeaders: [{ key: 'x-socket-io', value: 'relay-e2e' }],
+          responseHeaders: [{ key: 'x-socket-io', value: 'kurlo-e2e' }],
           statusCode: 101,
           statusText: '101 Switching Protocols',
           timestamp: Date.now(),
@@ -644,7 +644,7 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
         state.calls.push(`cancel:${requestId}`);
       },
       SaveFileDialog: async (name, content) => {
-        const path = `/tmp/relay-e2e-${state.savedFiles.length + 1}-${name}`;
+        const path = `/tmp/kurlo-e2e-${state.savedFiles.length + 1}-${name}`;
         state.savedFiles.push({ name, content, path });
         return path;
       },
@@ -656,7 +656,7 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
         git: currentGitStatus(),
         commits: docsMode ? [
           { hash: '7b3f2a19f2d4', shortHash: '7b3f2a1', author: 'Ada Lovelace', date: '2026-06-16', message: 'Document OAuth workspace secrets' },
-          { hash: '4a92c81bb114', shortHash: '4a92c81', author: 'Relay Bot', date: '2026-06-15', message: 'Refresh generated workspace YAML' },
+          { hash: '4a92c81bb114', shortHash: '4a92c81', author: 'Kurlo Bot', date: '2026-06-15', message: 'Refresh generated workspace YAML' },
         ] : [],
         limit,
         offset,
@@ -680,9 +680,9 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
       }),
       GitDiff: async (path) => ({
         path,
-        diff: `diff --git a/${path} b/${path}\n--- a/${path}\n+++ b/${path}\n@@\n auth:\n   type: oauth2\n+  oauth2RefreshToken: "{{relaySecret:request.req-login.auth.oauth2RefreshToken}}"\n settings:\n   timeoutMs: 30000\n`,
+        diff: `diff --git a/${path} b/${path}\n--- a/${path}\n+++ b/${path}\n@@\n auth:\n   type: oauth2\n+  oauth2RefreshToken: "{{kurloSecret:request.req-login.auth.oauth2RefreshToken}}"\n settings:\n   timeoutMs: 30000\n`,
         stagedDiff: '',
-        unstagedDiff: `+  oauth2RefreshToken: "{{relaySecret:request.req-login.auth.oauth2RefreshToken}}"`,
+        unstagedDiff: `+  oauth2RefreshToken: "{{kurloSecret:request.req-login.auth.oauth2RefreshToken}}"`,
         binary: false,
         truncated: false,
         error: '',
@@ -727,7 +727,7 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
           running: true,
           port: config.port || 3199,
           url: `http://127.0.0.1:${config.port || 3199}`,
-          pairingCode: `relay-${config.port || 3199}-e2epairingtoken0000`,
+          pairingCode: `kurlo-${config.port || 3199}-e2epairingtoken0000`,
           domains: config.domains ?? [],
           error: '',
         };
@@ -758,7 +758,7 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
       RevokeCookieSyncPairing: async () => {
         state.cookieSync = {
           ...state.cookieSync,
-          pairingCode: `relay-${state.cookieSync.port}-e2erotatedtoken00000`,
+          pairingCode: `kurlo-${state.cookieSync.port}-e2erotatedtoken00000`,
           paired: false,
           connected: false,
           browser: '',
@@ -814,7 +814,7 @@ async function installRelayBridge(page: Page, largeResponseBody = '', runtime = 
     };
 
     state.emit = emit;
-    window.__relayE2E = state;
+    window.__kurloE2E = state;
     window.go = { api: { App: app } };
     window.runtime = {
       EventsOn: on,
@@ -926,14 +926,14 @@ async function waitForTransientToasts(page: Page) {
 
 async function setGitStatus(page: Page, status: Record<string, unknown>) {
   await page.evaluate((partial) => {
-    const state = window.__relayE2E as unknown as { gitStatusOverride: Record<string, unknown> | null };
+    const state = window.__kurloE2E as unknown as { gitStatusOverride: Record<string, unknown> | null };
     state.gitStatusOverride = { ...(state.gitStatusOverride ?? {}), ...partial };
   }, status);
 }
 
 async function setGitBranches(page: Page, branches: Record<string, unknown>) {
   await page.evaluate((value) => {
-    (window.__relayE2E as unknown as { gitBranchesOverride: Record<string, unknown> | null }).gitBranchesOverride = value;
+    (window.__kurloE2E as unknown as { gitBranchesOverride: Record<string, unknown> | null }).gitBranchesOverride = value;
   }, branches);
 }
 
@@ -968,10 +968,10 @@ async function chooseRequestSection(page: Page, section: string) {
   await page.locator('.request-editor-tabs-shell').getByRole('tab', { name: section }).click();
 }
 
-test.describe('Relay desktop browser E2E', () => {
+test.describe('Kurlo desktop browser E2E', () => {
   test('keeps the macOS workspace switcher clear of search with the code panel open', async ({ page }) => {
     await page.setViewportSize({ width: 1024, height: 800 });
-    await installRelayBridge(page, '', 'darwin/e2e');
+    await installKurloBridge(page, '', 'darwin/e2e');
     await page.goto('/');
 
     await page.getByLabel('New unsaved request').click();
@@ -1273,7 +1273,7 @@ test.describe('Relay desktop browser E2E', () => {
 
   test('keeps the Windows titlebar actions clear of search at scaled-window width', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
-    await installRelayBridge(page, '', 'windows/e2e');
+    await installKurloBridge(page, '', 'windows/e2e');
     await page.goto('/');
 
     await page.getByLabel('New collection').click();
@@ -1322,11 +1322,11 @@ test.describe('Relay desktop browser E2E', () => {
       await mkdir(docsScreenshotDir, { recursive: true });
       await page.setViewportSize(DOCS_VIEWPORT);
     }
-    await installRelayBridge(page);
+    await installKurloBridge(page);
     await page.goto('/');
 
     await expect(page.getByRole('button', { name: 'Collections' })).toBeVisible();
-    await expect(page.getByRole('navigation', { name: 'Relay' })).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Kurlo' })).toBeVisible();
     await page.getByRole('button', { name: 'Toggle sidebar' }).click();
     await expect(page.locator('.shell')).toHaveClass(/sidebar-hidden/);
     await expect(page.getByRole('button', { name: 'Collections' })).toBeVisible();
@@ -1350,7 +1350,7 @@ test.describe('Relay desktop browser E2E', () => {
 
     const envRows = page.getByTestId('environment-variable-row');
     await envRows.nth(0).getByLabel('Environment variable key').fill('baseUrl');
-    await envRows.nth(0).getByLabel('Environment variable value').fill('https://api.relay.test');
+    await envRows.nth(0).getByLabel('Environment variable value').fill('https://api.kurlo.test');
     await expect(envRows).toHaveCount(2);
     await envRows.nth(1).getByLabel('Environment variable key').fill('token');
     await envRows.nth(1).getByRole('button', { name: 'Default' }).click();
@@ -1413,8 +1413,8 @@ test.describe('Relay desktop browser E2E', () => {
       try {
         await page.getByLabel('Auth Type').click();
         await page.getByRole('button', { name: 'OAuth 2.0' }).click();
-        await page.locator('#oauth2-url').fill('https://auth.relay.test/oauth/token');
-        await page.locator('#oauth2-id').fill('relay-docs-client');
+        await page.locator('#oauth2-url').fill('https://auth.kurlo.test/oauth/token');
+        await page.locator('#oauth2-id').fill('kurlo-docs-client');
         await page.locator('#oauth2-secret').fill('<redacted>');
         await page.locator('#oauth2-scope').fill('openid profile');
         await captureDocsScreenshot(page, 'auth-oauth2-token-fetch');
@@ -1426,7 +1426,7 @@ test.describe('Relay desktop browser E2E', () => {
 
     await chooseRequestSection(page, 'Headers');
     await page.getByTestId('request-header-row').first().locator('input[placeholder="Key"]').fill('X-Trace');
-    await page.getByTestId('request-header-row').first().locator('input[placeholder="Value"]').fill('relay-e2e');
+    await page.getByTestId('request-header-row').first().locator('input[placeholder="Value"]').fill('kurlo-e2e');
     await captureDocsScreenshot(page, 'headers-tab');
 
     await chooseRequestSection(page, 'Body');
@@ -1464,12 +1464,12 @@ test.describe('Relay desktop browser E2E', () => {
     await captureDocsScreenshot(page, 'request-settings');
     const browserEmulationSetting = page.locator('label.postman-setting').filter({ hasText: 'Browser request emulation' });
     await browserEmulationSetting.locator('.switch-control').click();
-    await page.getByPlaceholder('http://localhost:5173').fill('https://app.relay.test');
+    await page.getByPlaceholder('http://localhost:5173').fill('https://app.kurlo.test');
     const corsSetting = page.locator('label.postman-setting').filter({ hasText: 'Enforce CORS' });
     await corsSetting.locator('.switch-control').click();
     const cspSetting = page.locator('label.postman-setting').filter({ hasText: 'Enforce CSP connect-src' });
     await cspSetting.locator('.switch-control').click();
-    await page.locator('label.postman-setting-tall textarea').fill("default-src 'self'; connect-src https://api.relay.test");
+    await page.locator('label.postman-setting-tall textarea').fill("default-src 'self'; connect-src https://api.kurlo.test");
     await captureDocsScreenshot(page, 'browser-security', page.locator('.settings-list'));
     await page.locator('.settings-actions').getByRole('button', { name: 'Reset' }).click();
     for (let i = 0; i < dividerSteps; i += 1) await panelDivider.press('ArrowUp');
@@ -1543,7 +1543,7 @@ test.describe('Relay desktop browser E2E', () => {
       );
     })).toBe(true);
     await page.getByLabel('Save to file').click();
-    await expect.poll(() => page.evaluate(() => window.__relayE2E.savedFiles.length)).toBe(1);
+    await expect.poll(() => page.evaluate(() => window.__kurloE2E.savedFiles.length)).toBe(1);
 
     await page.getByRole('button', { name: 'History' }).click();
     await expect(page.locator('.history-entry').first()).toContainText('POST');
@@ -1575,7 +1575,7 @@ test.describe('Relay desktop browser E2E', () => {
     if (docsScreenshotDir) {
       try {
         await page.getByRole('button', { name: 'Cookies', exact: true }).click();
-        await page.getByPlaceholder('Type a domain name').fill('api.relay.test');
+        await page.getByPlaceholder('Type a domain name').fill('api.kurlo.test');
         await page.getByRole('button', { name: 'Add domain' }).click();
         await page.getByLabel('Raw cookie').fill('session=abc123; Path=/; Secure; HttpOnly; SameSite=Lax');
         await page.locator('.cookie-raw-actions').getByRole('button', { name: 'Save' }).click();
@@ -1600,7 +1600,7 @@ test.describe('Relay desktop browser E2E', () => {
     await expect(page.getByText('200 OK')).toBeVisible();
     await expectResponseTabsToFit(page);
     await page.locator('.response-mini-tabs').getByRole('tab', { name: 'Body' }).click();
-    await expect(page.locator('.response-body-viewer')).toContainText('Relay Tester');
+    await expect(page.locator('.response-body-viewer')).toContainText('Kurlo Tester');
     await captureDocsScreenshot(page, 'request-graphql');
     await tourPause(page, 'GraphQL request sent');
 
@@ -1625,10 +1625,10 @@ test.describe('Relay desktop browser E2E', () => {
     await expect(page.locator('.runner-results-summary')).toContainText('Passed');
     await expect(page.locator('.runner-results-summary')).toContainText('Requests 2/2');
     await page.getByRole('button', { name: 'Download report' }).click();
-    await expect.poll(() => page.evaluate(() => window.__relayE2E.savedFiles.length)).toBe(2);
+    await expect.poll(() => page.evaluate(() => window.__kurloE2E.savedFiles.length)).toBe(2);
     await tourPause(page, 'Runner finished and report downloaded');
     await captureDocsScreenshot(page, 'collection-runner-results');
-    const storedRuns = await page.evaluate(() => (window.__relayE2E.store as { collectionRuns?: Record<string, { results: unknown[] }> }).collectionRuns ?? {});
+    const storedRuns = await page.evaluate(() => (window.__kurloE2E.store as { collectionRuns?: Record<string, { results: unknown[] }> }).collectionRuns ?? {});
     expect(Object.values(storedRuns).map(run => run.results.length)).toEqual([2]);
 
     await page.getByRole('button', { name: 'Collections' }).click();
@@ -1651,7 +1651,7 @@ test.describe('Relay desktop browser E2E', () => {
     await page.getByLabel('Request URL').fill('{{baseUrl}}/events');
     await page.getByRole('button', { name: 'Connect', exact: true }).click();
     await expect(page.locator('.sse-panel')).toContainText('Connected');
-    await expect(page.locator('.sse-event-list')).toContainText('Relay stream is live');
+    await expect(page.locator('.sse-event-list')).toContainText('Kurlo stream is live');
     await captureDocsScreenshot(page, 'request-sse');
     await page.getByRole('button', { name: 'Disconnect', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Connect', exact: true })).toBeVisible();
@@ -1662,7 +1662,7 @@ test.describe('Relay desktop browser E2E', () => {
     await page.locator('.collection-settings-shell').getByRole('tab', { name: /^Headers/ }).click();
     const collectionHeaderRows = page.locator('.collection-kv-table .kv-row');
     await collectionHeaderRows.nth(0).locator('input[placeholder="Header"]').fill('X-Client');
-    await collectionHeaderRows.nth(0).locator('input[placeholder="Value"]').fill('relay-docs');
+    await collectionHeaderRows.nth(0).locator('input[placeholder="Value"]').fill('kurlo-docs');
     await collectionHeaderRows.nth(1).locator('input[placeholder="Header"]').fill('Accept');
     await collectionHeaderRows.nth(1).locator('input[placeholder="Value"]').fill('application/json');
     await page.getByRole('heading', { name: 'Smoke API', exact: true }).click();
@@ -1671,7 +1671,7 @@ test.describe('Relay desktop browser E2E', () => {
     await addRequestFromFolder(page, 'Auth', 'gRPC Request');
     await page.getByLabel('Request name').fill('Inventory gRPC');
     await page.getByLabel('Request name').press('Enter');
-    await page.getByLabel('gRPC target').fill('grpc.relay.test:443');
+    await page.getByLabel('gRPC target').fill('grpc.kurlo.test:443');
     await page.getByLabel('gRPC method').click();
     await expect(page.getByRole('option', { name: /Inventory \/ GetItem/ })).toBeVisible();
     await page.getByRole('option', { name: /Inventory \/ GetItem/ }).click();
@@ -1689,11 +1689,11 @@ test.describe('Relay desktop browser E2E', () => {
     await addRequestFromFolder(page, 'Auth', 'WebSocket Request');
     await page.getByLabel('Request name').fill('Chat WebSocket');
     await page.getByLabel('Request name').press('Enter');
-    await page.getByLabel('Request URL').fill('wss://ws.relay.test/socket');
+    await page.getByLabel('Request URL').fill('wss://ws.kurlo.test/socket');
     await fillCodeEditor(page, 'websocket-message-editor', JSON.stringify({ hello: 'socket' }, null, 2));
     await page.getByRole('button', { name: 'Connect', exact: true }).click();
     await expect(page.locator('.ws-panel')).toContainText('Connected');
-    await expect(page.locator('.ws-message-list')).toContainText('Connected to wss://ws.relay.test/socket');
+    await expect(page.locator('.ws-message-list')).toContainText('Connected to wss://ws.kurlo.test/socket');
     await page.locator('.ws-message-actions .ws-message-send').click();
     await expect(page.locator('.ws-message-list')).toContainText('hello');
     await expect(page.locator('.ws-message-list')).toContainText('echo');
@@ -1705,7 +1705,7 @@ test.describe('Relay desktop browser E2E', () => {
     await addRequestFromFolder(page, 'Auth', 'Socket.IO Request');
     await page.getByLabel('Request name').fill('Socket.IO chat');
     await page.getByLabel('Request name').press('Enter');
-    await page.getByLabel('Request URL').fill('https://io.relay.test');
+    await page.getByLabel('Request URL').fill('https://io.kurlo.test');
     await page.locator('.sio-event-name-input').fill('chat:message');
     await page.getByRole('checkbox', { name: 'Ack' }).check();
     await fillCodeEditor(page, 'socketio-message-editor', JSON.stringify({ text: 'hello sio' }, null, 2));
@@ -1733,7 +1733,7 @@ test.describe('Relay desktop browser E2E', () => {
         const workspaceNotes = page.getByLabel('Notes', { exact: true });
         await workspaceNotes.fill(
           [
-            'Staging base URL: https://api.relay.test',
+            'Staging base URL: https://api.kurlo.test',
             'Auth: run Login user first — it writes {{token}} into the environment.',
             'Run the Smoke API collection before tagging a release.',
           ].join('\n'),
@@ -1786,24 +1786,24 @@ test.describe('Relay desktop browser E2E', () => {
     await page.getByRole('dialog', { name: 'Export all data' }).getByRole('button', { name: 'Cancel' }).click();
     await page.getByLabel('Close settings').click();
 
-    const state = await page.evaluate(() => window.__relayE2E);
+    const state = await page.evaluate(() => window.__kurloE2E);
     expect(state.sentRequests).toHaveLength(4);
-    expect(state.sentRequests.some(req => String(req.url).includes('https://api.relay.test/login'))).toBe(true);
-    expect(state.sentRequests.some(req => String(req.url).includes('https://api.relay.test/graphql'))).toBe(true);
+    expect(state.sentRequests.some(req => String(req.url).includes('https://api.kurlo.test/login'))).toBe(true);
+    expect(state.sentRequests.some(req => String(req.url).includes('https://api.kurlo.test/graphql'))).toBe(true);
     expect(state.sentRequests.some(req => String(req.body).includes(requestPassword))).toBe(true);
     expect(state.sseConnects).toHaveLength(1);
-    expect(state.grpcDiscoveries.some(req => String(req.target).includes('grpc.relay.test:443'))).toBe(true);
+    expect(state.grpcDiscoveries.some(req => String(req.target).includes('grpc.kurlo.test:443'))).toBe(true);
     expect(state.sentGrpcRequests.some(req => String(req.fullMethod).includes('shop.Inventory/GetItem'))).toBe(true);
     expect(state.webSocketConnects).toHaveLength(1);
     expect(state.webSocketMessages.some(entry => String(entry.message?.data).includes('hello'))).toBe(true);
     expect(state.socketIOConnects).toHaveLength(1);
     expect(state.socketIOEmits.some(entry => entry.message?.eventName === 'chat:message')).toBe(true);
     expect(state.savedStores.length).toBeGreaterThan(4);
-    expect(state.savedFiles.some(file => file.content.includes('Relay collection runner report'))).toBe(true);
+    expect(state.savedFiles.some(file => file.content.includes('Kurlo collection runner report'))).toBe(true);
   });
 
   test('renders an ordinary JSON response without virtualization', async ({ page }) => {
-    const ordinaryResponsePath = process.env.RELAY_E2E_ORDINARY_RESPONSE_PATH;
+    const ordinaryResponsePath = process.env.KURLO_E2E_ORDINARY_RESPONSE_PATH;
     const responseBody = ordinaryResponsePath
       ? await readFile(ordinaryResponsePath, 'utf8')
       : JSON.stringify({
@@ -1816,11 +1816,11 @@ test.describe('Relay desktop browser E2E', () => {
     const formattedResponseBody = JSON.stringify(JSON.parse(responseBody), null, 2);
     expect(formattedResponseBody.split('\n').length).toBeGreaterThan(250);
 
-    await installRelayBridge(page, responseBody);
+    await installKurloBridge(page, responseBody);
     await page.goto('/');
     await page.getByLabel('New unsaved request').click();
     await chooseRequestType(page, 'HTTP Request');
-    await page.getByLabel('Request URL').fill('https://api.relay.test/large-response');
+    await page.getByLabel('Request URL').fill('https://api.kurlo.test/large-response');
     await page.getByRole('button', { name: 'Send', exact: true }).click();
     await expect(page.getByText('200 OK')).toBeVisible();
 
@@ -1838,15 +1838,15 @@ test.describe('Relay desktop browser E2E', () => {
 
   test('virtualizes a large JSON response while scrolling', async ({ page }) => {
     if (docsScreenshotDir) await page.setViewportSize(DOCS_VIEWPORT);
-    const realResponsePath = process.env.RELAY_E2E_REAL_RESPONSE_PATH;
+    const realResponsePath = process.env.KURLO_E2E_REAL_RESPONSE_PATH;
     const realResponseBody = realResponsePath ? await readFile(realResponsePath, 'utf8') : '';
-    await installRelayBridge(page, realResponseBody);
+    await installKurloBridge(page, realResponseBody);
     await page.goto('/');
 
     await page.getByLabel('New unsaved request').click();
     await chooseRequestType(page, 'HTTP Request');
     await expect(page.getByLabel('Request URL')).toBeVisible();
-    await page.getByLabel('Request URL').fill('https://api.relay.test/large-response');
+    await page.getByLabel('Request URL').fill('https://api.kurlo.test/large-response');
     await page.getByRole('button', { name: 'Send', exact: true }).click();
     await expect(page.getByText('200 OK')).toBeVisible();
 
@@ -1903,11 +1903,11 @@ test.describe('Relay desktop browser E2E', () => {
       url: `https://via.placeholder.com/600/${index}`,
       thumbnailUrl: `https://via.placeholder.com/150/${index}`,
     })), null, 2);
-    await installRelayBridge(page, photos);
+    await installKurloBridge(page, photos);
     await page.goto('/');
     await page.getByLabel('New unsaved request').click();
     await chooseRequestType(page, 'HTTP Request');
-    await page.getByLabel('Request URL').fill('https://api.relay.test/large-response');
+    await page.getByLabel('Request URL').fill('https://api.kurlo.test/large-response');
     await page.getByRole('button', { name: 'Send', exact: true }).click();
     await expect(page.getByText('200 OK')).toBeVisible();
 
@@ -2011,7 +2011,7 @@ test.describe('Relay desktop browser E2E', () => {
 
   test('keeps sidebar arrow shortcuts out of the response body and dialogs', async ({ page }) => {
     const photos = JSON.stringify(Array.from({ length: 5_000 }, (_, index) => ({ id: index + 1, title: `photo ${index + 1}` })), null, 2);
-    await installRelayBridge(page, photos);
+    await installKurloBridge(page, photos);
     await page.goto('/');
     await page.getByLabel('New collection').click();
     await fillPrompt(page, 'New collection', 'Orders API');
@@ -2021,7 +2021,7 @@ test.describe('Relay desktop browser E2E', () => {
       await chooseRequestType(page, 'HTTP Request');
       await page.getByLabel('Request name').fill(name);
       await page.getByLabel('Request name').press('Enter');
-      await page.getByLabel('Request URL').fill('https://api.relay.test/large-response');
+      await page.getByLabel('Request URL').fill('https://api.kurlo.test/large-response');
     }
     await page.locator('.collection-request').filter({ hasText: 'First' }).click();
     await page.getByRole('button', { name: 'Send', exact: true }).click();
@@ -2053,11 +2053,11 @@ test.describe('Relay desktop browser E2E', () => {
       id: index,
       payload: `row-${index}-`.padEnd(2_000, 'x'),
     })), null, 2);
-    await installRelayBridge(page, wideBody);
+    await installKurloBridge(page, wideBody);
     await page.goto('/');
     await page.getByLabel('New unsaved request').click();
     await chooseRequestType(page, 'HTTP Request');
-    await page.getByLabel('Request URL').fill('https://api.relay.test/large-response');
+    await page.getByLabel('Request URL').fill('https://api.kurlo.test/large-response');
     await page.getByRole('button', { name: 'Send', exact: true }).click();
     await expect(page.getByText('200 OK')).toBeVisible();
 
@@ -2101,7 +2101,7 @@ test.describe('Relay desktop browser E2E', () => {
   });
 
   test('creates requests of each protocol without a chooser dialog', async ({ page }) => {
-    await installRelayBridge(page);
+    await installKurloBridge(page);
     await page.goto('/');
 
     await page.getByLabel('New unsaved request').click();
@@ -2120,7 +2120,7 @@ test.describe('Relay desktop browser E2E', () => {
 
   test('runs default and rebound shortcuts on Windows and Linux, and shows their keycaps', async ({ page }) => {
     for (const runtime of ['windows/e2e', 'linux/e2e']) {
-      await installRelayBridge(page, '', runtime);
+      await installKurloBridge(page, '', runtime);
       await page.goto('/');
       const requestTabs = page.locator('.saved-request-tab:not(.overview-request-tab)');
       await expect(requestTabs).toHaveCount(1);
@@ -2154,11 +2154,11 @@ test.describe('Relay desktop browser E2E', () => {
   });
 
   test('sends a WebSocket message with the send shortcut and stays connected', async ({ page }) => {
-    await installRelayBridge(page, '', 'windows/e2e');
+    await installKurloBridge(page, '', 'windows/e2e');
     await page.goto('/');
     await page.getByLabel('New unsaved request').click();
     await chooseRequestType(page, 'WebSocket Request');
-    await page.getByLabel('Request URL').fill('wss://ws.relay.test/socket');
+    await page.getByLabel('Request URL').fill('wss://ws.kurlo.test/socket');
     await page.getByRole('button', { name: 'Connect', exact: true }).click();
     await expect(page.locator('.ws-panel')).toContainText('Connected');
     await fillCodeEditor(page, 'websocket-message-editor', JSON.stringify({ hello: 'shortcut' }));
@@ -2171,22 +2171,22 @@ test.describe('Relay desktop browser E2E', () => {
     const changelogRequests: string[] = [];
     page.on('request', request => {
       const url = decodeURIComponent(request.url());
-      if (url.includes('relay-changelog') && !url.includes('relay-changelog-meta')) changelogRequests.push(url);
+      if (url.includes('kurlo-changelog') && !url.includes('kurlo-changelog-meta')) changelogRequests.push(url);
     });
-    await installRelayBridge(page);
+    await installKurloBridge(page);
     await page.addInitScript(() => {
-      if (!sessionStorage.getItem('relay-e2e-updated')) {
-        sessionStorage.setItem('relay-e2e-updated', '1');
-        localStorage.setItem('relay:last-seen-version', '2.0.2');
+      if (!sessionStorage.getItem('kurlo-e2e-updated')) {
+        sessionStorage.setItem('kurlo-e2e-updated', '1');
+        localStorage.setItem('kurlo:last-seen-version', '2.0.2');
       } else {
-        localStorage.setItem('relay:last-seen-version', '2.0.3');
+        localStorage.setItem('kurlo:last-seen-version', '2.0.3');
       }
       const app = (window as any).go.api.App;
-      app.AppInfo = async () => ({ name: 'Relay', version: '2.0.3', runtime: 'browser/e2e', goVersion: 'e2e' });
+      app.AppInfo = async () => ({ name: 'Kurlo', version: '2.0.3', runtime: 'browser/e2e', goVersion: 'e2e' });
     });
     await page.goto('/');
 
-    const whatsNew = page.getByRole('dialog', { name: /What's new in Relay/ });
+    const whatsNew = page.getByRole('dialog', { name: /What's new in Kurlo/ });
     await expect(whatsNew).toBeVisible();
     await expect(whatsNew).toContainText('2.0.3');
     expect(changelogRequests.length).toBeGreaterThan(0);
@@ -2200,28 +2200,28 @@ test.describe('Relay desktop browser E2E', () => {
   });
 
   test('opens the full release notes in the system browser', async ({ page }) => {
-    await installRelayBridge(page);
+    await installKurloBridge(page);
     await page.goto('/');
 
     const palette = page.getByRole('dialog', { name: 'Search requests and commands' });
     await page.locator('.global-search').click();
     await palette.getByRole('combobox', { name: 'Search requests and commands' }).fill("> what's new");
     await palette.getByRole('combobox', { name: 'Search requests and commands' }).press('Enter');
-    const whatsNew = page.getByRole('dialog', { name: /What's new in Relay/ });
+    const whatsNew = page.getByRole('dialog', { name: /What's new in Kurlo/ });
     await expect(whatsNew).toBeVisible();
     await whatsNew.getByRole('link', { name: 'Full release notes' }).click();
-    await expect.poll(() => page.evaluate(() => window.__relayE2E.calls.filter(call => call.startsWith('open:')))).toEqual([
-      expect.stringMatching(/^open:https:\/\/github\.com\/relay-client\/relay\/releases\/tag\/v\d/),
+    await expect.poll(() => page.evaluate(() => window.__kurloE2E.calls.filter(call => call.startsWith('open:')))).toEqual([
+      expect.stringMatching(/^open:https:\/\/github\.com\/stormhop\/kurlo\/releases\/tag\/v\d/),
     ]);
     await expect(page).toHaveURL(/127\.0\.0\.1/);
   });
 
   test('runs commands from the command palette', async ({ page }) => {
-    await installRelayBridge(page);
+    await installKurloBridge(page);
     await page.goto('/');
     await page.getByLabel('New unsaved request').click();
     await chooseRequestType(page, 'HTTP Request');
-    await page.getByLabel('Request URL').fill('https://api.relay.test/users');
+    await page.getByLabel('Request URL').fill('https://api.kurlo.test/users');
 
     const palette = page.getByRole('dialog', { name: 'Search requests and commands' });
     const input = palette.getByRole('combobox', { name: 'Search requests and commands' });
@@ -2246,7 +2246,7 @@ test.describe('Relay desktop browser E2E', () => {
     await input.press('ArrowUp');
     await expect(layoutOption).toHaveAttribute('aria-selected', 'true');
     await input.press('Enter');
-    expect(await page.evaluate(() => localStorage.getItem('relay.responseLayout.v1'))).toBe('below');
+    expect(await page.evaluate(() => localStorage.getItem('kurlo.responseLayout.v1'))).toBe('below');
 
     await page.locator('.global-search').click();
     await input.fill('> response');
@@ -2256,7 +2256,7 @@ test.describe('Relay desktop browser E2E', () => {
   });
 
   test('closes a labelled dropdown after an option is picked', async ({ page }) => {
-    await installRelayBridge(page);
+    await installKurloBridge(page);
     await page.goto('/');
     await page.getByLabel('New collection').click();
     await fillPrompt(page, 'New collection', 'Billing');
@@ -2274,7 +2274,7 @@ test.describe('Relay desktop browser E2E', () => {
 
   test('keeps wrapped response lines inside the viewer gutter', async ({ page }) => {
     const nestedPackage = JSON.stringify({
-      name: '@relay/factory',
+      name: '@kurlo/factory',
       title: 'Release validation package for a frontend factory workspace',
       scripts: {
         'lint:fix': './node_modules/.bin/lint-fix',
@@ -2283,18 +2283,18 @@ test.describe('Relay desktop browser E2E', () => {
       version: '16.7.0-rc.16',
       description: 'Contains schema definitions for frontend release validation',
       dependencies: {
-        '@relay/factory': '>=16.7.0-rc.0 <17.0.0',
-        '@relay-uiremote/chat': '~16.5.0',
-        '@relay-uiremote/calendar': '~16.6.1',
+        '@kurlo/factory': '>=16.7.0-rc.0 <17.0.0',
+        '@kurlo-uiremote/chat': '~16.5.0',
+        '@kurlo-uiremote/calendar': '~16.6.1',
       },
     }, null, 2);
     const responseBody = JSON.stringify({ content: nestedPackage }, null, 2);
-    await installRelayBridge(page, responseBody);
+    await installKurloBridge(page, responseBody);
     await page.goto('/');
 
     await page.getByLabel('New unsaved request').click();
     await chooseRequestType(page, 'HTTP Request');
-    await page.getByLabel('Request URL').fill('https://api.relay.test/large-response');
+    await page.getByLabel('Request URL').fill('https://api.kurlo.test/large-response');
     await page.getByRole('button', { name: 'Send', exact: true }).click();
     await expect(page.getByText('200 OK')).toBeVisible();
 
@@ -2322,8 +2322,8 @@ test.describe('Relay desktop browser E2E', () => {
     expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth + 1);
   });
 
-  test('Git panel commits Relay changes, and writes the pending edit first', async ({ page }) => {
-    await installRelayBridge(page);
+  test('Git panel commits Kurlo changes, and writes the pending edit first', async ({ page }) => {
+    await installKurloBridge(page);
     await page.goto('/');
     await expect(page.getByRole('button', { name: 'Collections' })).toBeVisible();
 
@@ -2342,11 +2342,11 @@ test.describe('Relay desktop browser E2E', () => {
     await openGitPanel(page);
     await expect(page.getByText('Login.yml')).toBeVisible();
 
-    await page.evaluate(() => { window.__relayE2E.calls.length = 0; });
+    await page.evaluate(() => { window.__kurloE2E.calls.length = 0; });
     await page.getByRole('button', { name: 'Commit all', exact: true }).first().click();
-    await fillPrompt(page, 'Commit Relay workspace', 'Update the login request');
+    await fillPrompt(page, 'Commit Kurlo workspace', 'Update the login request');
 
-    const calls = await page.evaluate(() => window.__relayE2E.calls);
+    const calls = await page.evaluate(() => window.__kurloE2E.calls);
     const saveIndex = calls.indexOf('SaveRequestStore');
     const commitIndex = calls.findIndex(call => call.startsWith('GitCommitWorkspace:'));
 
@@ -2357,7 +2357,7 @@ test.describe('Relay desktop browser E2E', () => {
   });
 
   test('Git panel refuses to switch branches while the workspace has local changes', async ({ page }) => {
-    await installRelayBridge(page);
+    await installKurloBridge(page);
     await page.goto('/');
     await expect(page.getByRole('button', { name: 'Collections' })).toBeVisible();
 
@@ -2387,7 +2387,7 @@ test.describe('Relay desktop browser E2E', () => {
     });
 
     await openGitPanel(page);
-    await page.evaluate(() => { window.__relayE2E.calls.length = 0; });
+    await page.evaluate(() => { window.__kurloE2E.calls.length = 0; });
 
     await page.locator('.git-branch-chip').click();
     const picker = page.getByRole('dialog', { name: 'Switch branch' });
@@ -2398,12 +2398,12 @@ test.describe('Relay desktop browser E2E', () => {
     await expect(blocked).toBeVisible();
     await blocked.getByRole('button').first().click();
 
-    const calls = await page.evaluate(() => window.__relayE2E.calls);
+    const calls = await page.evaluate(() => window.__kurloE2E.calls);
     expect(calls.some(call => call.startsWith('GitCheckoutBranch:'))).toBe(false);
   });
 
   test('imports a Postman collection into the sidebar', async ({ page }) => {
-    await installRelayBridge(page);
+    await installKurloBridge(page);
     await page.goto('/');
     await expect(page.getByRole('button', { name: 'Collections' })).toBeVisible();
 
@@ -2442,7 +2442,7 @@ test.describe('Relay desktop browser E2E', () => {
     await expect(page.getByRole('button', { name: 'GET List invoices' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'POST Create invoice' })).toBeVisible();
 
-    const store = await page.evaluate(() => window.__relayE2E.store as {
+    const store = await page.evaluate(() => window.__kurloE2E.store as {
       collections: Array<{ id: string; name: string }>;
       requests: Array<{ name: string; method: string; url: string; testScriptJs?: string }>;
     });
@@ -2456,7 +2456,7 @@ test.describe('Relay desktop browser E2E', () => {
   });
 
   test('keeps the header actions anchored when the runner replaces the request view', async ({ page }) => {
-    await installRelayBridge(page);
+    await installKurloBridge(page);
     await page.goto('/');
     await page.getByLabel('New unsaved request').click();
     await chooseRequestType(page, 'HTTP Request');
@@ -2480,18 +2480,18 @@ test.describe('Relay desktop browser E2E', () => {
 
   test('compares a fresh response against a saved example', async ({ page }) => {
     if (docsScreenshotDir) await page.setViewportSize(DOCS_VIEWPORT);
-    await installRelayBridge(page);
+    await installKurloBridge(page);
     await page.goto('/');
     await page.getByLabel('New unsaved request').click();
     await chooseRequestType(page, 'HTTP Request');
-    await page.getByLabel('Request URL').fill('https://api.relay.test/orders');
+    await page.getByLabel('Request URL').fill('https://api.kurlo.test/orders');
     await page.getByRole('button', { name: 'Send', exact: true }).click();
     const responseStatus = page.locator('.status-badge');
     await expect(responseStatus).toContainText('200 OK');
     await page.getByRole('button', { name: 'Save as example', exact: true }).click();
     await expect(page.locator('.examples-row')).toHaveCount(1);
 
-    await page.getByLabel('Request URL').fill('https://api.relay.test/orders/moved');
+    await page.getByLabel('Request URL').fill('https://api.kurlo.test/orders/moved');
     await page.getByRole('button', { name: 'Send', exact: true }).click();
     await expect(responseStatus).toContainText('200 OK');
 
@@ -2515,7 +2515,7 @@ test.describe('Relay desktop browser E2E', () => {
 
   test('lists every open tab when the title row runs out of room', async ({ page }) => {
     await page.setViewportSize({ width: 1024, height: 760 });
-    await installRelayBridge(page);
+    await installKurloBridge(page);
     await page.goto('/');
 
     const overflowButton = page.getByRole('button', { name: 'All open tabs' });
@@ -2539,7 +2539,7 @@ test.describe('Relay desktop browser E2E', () => {
   });
 
   test('closes a tab with the middle mouse button', async ({ page }) => {
-    await installRelayBridge(page);
+    await installKurloBridge(page);
     await page.goto('/');
 
     const requestTabs = page.locator('.saved-request-tab:not(.overview-request-tab)');
@@ -2559,27 +2559,27 @@ test.describe('Relay desktop browser E2E', () => {
   });
 
   test('sends the request when Enter is pressed in the URL field', async ({ page }) => {
-    await installRelayBridge(page);
+    await installKurloBridge(page);
     await page.goto('/');
 
     await page.getByLabel('New unsaved request').click();
     await chooseRequestType(page, 'HTTP Request');
     const url = page.getByLabel('Request URL');
-    await url.fill('https://api.relay.test/orders/8123');
+    await url.fill('https://api.kurlo.test/orders/8123');
     await url.press('Enter');
 
     await expect(page.getByText('200 OK')).toBeVisible();
-    await expect.poll(() => page.evaluate(() => window.__relayE2E.sentRequests.length)).toBe(1);
-    await expect(url).toHaveValue('https://api.relay.test/orders/8123');
+    await expect.poll(() => page.evaluate(() => window.__kurloE2E.sentRequests.length)).toBe(1);
+    await expect(url).toHaveValue('https://api.kurlo.test/orders/8123');
 
     await url.press('Shift+Enter');
     await page.waitForTimeout(300);
-    expect(await page.evaluate(() => window.__relayE2E.sentRequests.length)).toBe(1);
+    expect(await page.evaluate(() => window.__kurloE2E.sentRequests.length)).toBe(1);
   });
 
   test('compares and edits variables across environments in the matrix', async ({ page }) => {
     if (docsScreenshotDir) await page.setViewportSize(DOCS_VIEWPORT);
-    await installRelayBridge(page);
+    await installKurloBridge(page);
     await page.goto('/');
 
     await page.getByRole('button', { name: 'Environments' }).click();
@@ -2599,12 +2599,12 @@ test.describe('Relay desktop browser E2E', () => {
     await expect(page.getByLabel('baseUrl in Local', { exact: true })).toHaveValue('http://localhost:4242');
 
     await page.getByRole('button', { name: 'Set baseUrl in Staging' }).click();
-    await page.getByLabel('baseUrl in Staging', { exact: true }).fill('https://staging.relay.test');
+    await page.getByLabel('baseUrl in Staging', { exact: true }).fill('https://staging.kurlo.test');
 
     const name = page.getByLabel('Name of baseUrl');
     await name.fill('apiBase');
     await name.press('Enter');
-    await expect(page.getByLabel('apiBase in Staging', { exact: true })).toHaveValue('https://staging.relay.test');
+    await expect(page.getByLabel('apiBase in Staging', { exact: true })).toHaveValue('https://staging.kurlo.test');
 
     await page.getByRole('button', { name: 'Make apiBase secret' }).click();
     await expect(page.getByLabel('apiBase in Local', { exact: true })).toHaveAttribute('type', 'password');
@@ -2612,7 +2612,7 @@ test.describe('Relay desktop browser E2E', () => {
 
     await page.getByRole('button', { name: 'Save', exact: true }).click();
     await expect.poll(async () => {
-      const store = await page.evaluate(() => window.__relayE2E.store as {
+      const store = await page.evaluate(() => window.__kurloE2E.store as {
         environments?: Array<{ name: string; values: Array<{ key: string; value: string; secret?: boolean }> }>;
       });
       return (store.environments ?? []).map(environment => ({
@@ -2621,7 +2621,7 @@ test.describe('Relay desktop browser E2E', () => {
       }));
     }).toEqual([
       { name: 'Local', values: ['apiBase=http://localhost:4242 (secret)'] },
-      { name: 'Staging', values: ['apiBase=https://staging.relay.test (secret)'] },
+      { name: 'Staging', values: ['apiBase=https://staging.kurlo.test (secret)'] },
     ]);
 
     await page.getByRole('radio', { name: 'Single' }).click();
@@ -2629,7 +2629,7 @@ test.describe('Relay desktop browser E2E', () => {
   });
 
   test('sending a saved request leaves it saved', async ({ page }) => {
-    await installRelayBridge(page);
+    await installKurloBridge(page);
     await page.goto('/');
 
     await page.getByLabel('New collection').click();
@@ -2639,7 +2639,7 @@ test.describe('Relay desktop browser E2E', () => {
     await chooseRequestType(page, 'HTTP Request');
     await page.getByLabel('Request name').fill('Get order');
     await page.getByLabel('Request name').press('Enter');
-    await page.getByLabel('Request URL').fill('https://api.relay.test/orders/8123');
+    await page.getByLabel('Request URL').fill('https://api.kurlo.test/orders/8123');
 
     const saveButton = page.locator('.save-btn:not(.revert-btn)');
     await expect(saveButton).toBeEnabled();
@@ -2655,7 +2655,7 @@ test.describe('Relay desktop browser E2E', () => {
 
   test('saves a response as an example, and keeps it in the store', async ({ page }) => {
     if (docsScreenshotDir) await page.setViewportSize(DOCS_VIEWPORT);
-    await installRelayBridge(page);
+    await installKurloBridge(page);
     await page.goto('/');
 
     await page.getByLabel('New collection').click();
@@ -2665,7 +2665,7 @@ test.describe('Relay desktop browser E2E', () => {
     await chooseRequestType(page, 'HTTP Request');
     await page.getByLabel('Request name').fill('Get order');
     await page.getByLabel('Request name').press('Enter');
-    await page.getByLabel('Request URL').fill('https://api.relay.test/orders/8123');
+    await page.getByLabel('Request URL').fill('https://api.kurlo.test/orders/8123');
     await page.getByRole('button', { name: 'Send', exact: true }).click();
     await expect(page.getByText('200 OK')).toBeVisible();
 
@@ -2696,10 +2696,10 @@ test.describe('Relay desktop browser E2E', () => {
     await expect(saveButton).toBeDisabled();
 
     await expect.poll(async () => {
-      const store = await page.evaluate(() => window.__relayE2E.store as {
+      const store = await page.evaluate(() => window.__kurloE2E.store as {
         requests: Array<{ url?: string; examples?: Array<{ name: string; response: { statusCode: number } }> }>;
       });
-      const saved = store.requests.find(entry => entry.url === 'https://api.relay.test/orders/8123');
+      const saved = store.requests.find(entry => entry.url === 'https://api.kurlo.test/orders/8123');
       return {
         examples: (saved?.examples ?? []).length,
         name: saved?.examples?.[0]?.name ?? '',
@@ -2710,7 +2710,7 @@ test.describe('Relay desktop browser E2E', () => {
 
   test('serves a collection from the mock server panel, and logs what a client asked for', async ({ page }) => {
     if (docsScreenshotDir) await page.setViewportSize(DOCS_VIEWPORT);
-    await installRelayBridge(page);
+    await installKurloBridge(page);
     await page.goto('/');
 
     await page.getByLabel('New collection').click();
@@ -2720,7 +2720,7 @@ test.describe('Relay desktop browser E2E', () => {
     await chooseRequestType(page, 'HTTP Request');
     await page.getByLabel('Request name').fill('Get order');
     await page.getByLabel('Request name').press('Enter');
-    await page.getByLabel('Request URL').fill('https://api.relay.test/orders/8123');
+    await page.getByLabel('Request URL').fill('https://api.kurlo.test/orders/8123');
     await page.getByRole('button', { name: 'Send', exact: true }).click();
     await expect(page.getByText('200 OK')).toBeVisible();
     await page.getByRole('button', { name: 'Save as example', exact: true }).click();
@@ -2742,7 +2742,7 @@ test.describe('Relay desktop browser E2E', () => {
 
     await page.evaluate(() => {
       const base = { timestamp: Date.now(), durationMs: 12 };
-      window.__relayE2E.emit('mock:request', {
+      window.__kurloE2E.emit('mock:request', {
         ...base,
         id: 'mock-1',
         method: 'GET',
@@ -2754,7 +2754,7 @@ test.describe('Relay desktop browser E2E', () => {
         requestName: 'Get order',
         statusCode: 200,
       });
-      window.__relayE2E.emit('mock:request', {
+      window.__kurloE2E.emit('mock:request', {
         ...base,
         id: 'mock-2',
         method: 'POST',
@@ -2773,19 +2773,19 @@ test.describe('Relay desktop browser E2E', () => {
 
     await panel.getByRole('button', { name: 'Stop', exact: true }).click();
     await expect(panel.locator('.mock-live-label')).toHaveCount(0);
-    expect(await page.evaluate(() => window.__relayE2E.calls.filter(call => call.startsWith('StartMockServer')))).toEqual([
+    expect(await page.evaluate(() => window.__kurloE2E.calls.filter(call => call.startsWith('StartMockServer')))).toEqual([
       'StartMockServer:Orders API:1',
     ]);
   });
 
   test('discovers an MCP server, calls a tool, and keeps the raw exchange', async ({ page }) => {
     if (docsScreenshotDir) await page.setViewportSize(DOCS_VIEWPORT);
-    await installRelayBridge(page);
+    await installKurloBridge(page);
     await page.goto('/');
 
     await page.getByLabel('New unsaved request').click();
     await chooseRequestType(page, 'MCP Request');
-    await page.getByLabel('Request URL').fill('https://mcp.relay.test/mcp');
+    await page.getByLabel('Request URL').fill('https://mcp.kurlo.test/mcp');
 
     await page.getByLabel('Request URL').press('Tab');
 
@@ -2807,12 +2807,12 @@ test.describe('Relay desktop browser E2E', () => {
     await page.getByRole('tab', { name: 'Raw exchange' }).click();
     await expect(page.locator('.mcp-code')).toContainText('jsonrpc');
 
-    const sent = await page.evaluate(() => window.__relayE2E.sentMcpRequests.map(r => r.mcpMethod));
+    const sent = await page.evaluate(() => window.__kurloE2E.sentMcpRequests.map(r => r.mcpMethod));
     expect(sent).toEqual(['server/discover', 'tools/list', 'tools/call']);
   });
 
   test('reloads a running mock after an example changes with the panel closed', async ({ page }) => {
-    await installRelayBridge(page);
+    await installKurloBridge(page);
     await page.goto('/');
 
     await page.getByLabel('New collection').click();
@@ -2822,7 +2822,7 @@ test.describe('Relay desktop browser E2E', () => {
     await chooseRequestType(page, 'HTTP Request');
     await page.getByLabel('Request name').fill('Get order');
     await page.getByLabel('Request name').press('Enter');
-    await page.getByLabel('Request URL').fill('https://api.relay.test/orders/8123');
+    await page.getByLabel('Request URL').fill('https://api.kurlo.test/orders/8123');
     await page.getByRole('button', { name: 'Send', exact: true }).click();
     await expect(page.getByText('200 OK')).toBeVisible();
     await page.getByRole('button', { name: 'Save as example', exact: true }).click();
@@ -2846,18 +2846,18 @@ test.describe('Relay desktop browser E2E', () => {
     await expect(page.locator('.save-btn:not(.revert-btn)').first()).toBeDisabled();
 
     await expect
-      .poll(() => page.evaluate(() => window.__relayE2E.calls.filter(call => call.startsWith('StartMockServer'))))
+      .poll(() => page.evaluate(() => window.__kurloE2E.calls.filter(call => call.startsWith('StartMockServer'))))
       .toEqual(['StartMockServer:Orders API:1', 'StartMockServer:Orders API:2']);
   });
 
   test('pairs a browser from the Sync Cookies tab and syncs into the open workspace', async ({ page }) => {
     if (docsScreenshotDir) await page.setViewportSize(DOCS_VIEWPORT);
-    await installRelayBridge(page);
+    await installKurloBridge(page);
     await page.goto('/');
 
     await page.getByLabel('New unsaved request').click();
     await chooseRequestType(page, 'HTTP Request');
-    await page.getByLabel('Request URL').fill('https://api.relay.test/orders');
+    await page.getByLabel('Request URL').fill('https://api.kurlo.test/orders');
     await page.getByRole('button', { name: 'Cookies', exact: true }).click();
 
     const modal = page.getByRole('dialog', { name: 'Cookies' });
@@ -2871,17 +2871,17 @@ test.describe('Relay desktop browser E2E', () => {
 
     const manualDisclosure = modal.locator('.cookie-sync-manual > summary');
     await manualDisclosure.click();
-    await expect(modal.locator('.cookie-sync-code')).toHaveText(/^relay-3199-/);
+    await expect(modal.locator('.cookie-sync-code')).toHaveText(/^kurlo-3199-/);
     await modal.getByRole('button', { name: 'Copy' }).click();
     await expect(modal.getByRole('button', { name: 'Copied' })).toBeVisible();
     await manualDisclosure.click();
 
-    await modal.getByRole('button', { name: /Add api\.relay\.test from the open request/ }).click();
-    await expect(modal.locator('.cookie-sync-chip')).toHaveText([/api\.relay\.test/]);
+    await modal.getByRole('button', { name: /Add api\.kurlo\.test from the open request/ }).click();
+    await expect(modal.locator('.cookie-sync-chip')).toHaveText([/api\.kurlo\.test/]);
 
-    await modal.getByPlaceholder('example.com').fill('https://Shop.Relay.test/cart?page=2');
+    await modal.getByPlaceholder('example.com').fill('https://Shop.Kurlo.test/cart?page=2');
     await modal.getByRole('button', { name: 'Add domain' }).click();
-    await expect(modal.locator('.cookie-sync-chip')).toHaveText([/api\.relay\.test/, /shop\.relay\.test/]);
+    await expect(modal.locator('.cookie-sync-chip')).toHaveText([/api\.kurlo\.test/, /shop\.kurlo\.test/]);
 
     await modal.getByPlaceholder('example.com').fill('nope');
     await modal.getByRole('button', { name: 'Add domain' }).click();
@@ -2889,13 +2889,13 @@ test.describe('Relay desktop browser E2E', () => {
     await expect(modal.locator('.cookie-sync-chip')).toHaveCount(2);
 
     await page.evaluate(() => {
-      const state = window.__relayE2E;
+      const state = window.__kurloE2E;
       state.cookieSync = {
         ...state.cookieSync,
         pending: {
           id: 'pair-1',
           browser: 'Chrome',
-          extensionId: 'relaycookiesyncextension',
+          extensionId: 'kurlocookiesyncextension',
           code: '482913',
           requestedAt: Date.now(),
           expiresAt: Date.now() + 120000,
@@ -2906,20 +2906,20 @@ test.describe('Relay desktop browser E2E', () => {
 
     await expect(modal.getByText('Chrome wants to connect')).toBeVisible();
     await expect(modal.locator('.cookie-sync-approval-code')).toHaveText('482913');
-    await expect(modal.getByText(/relaycookiesyncextension/)).toBeVisible();
+    await expect(modal.getByText(/kurlocookiesyncextension/)).toBeVisible();
     await captureDocsScreenshot(page, 'cookie-jar-sync-approval');
 
     await modal.getByRole('button', { name: 'Allow' }).click();
     await expect(modal.getByText('Chrome is connected')).toBeVisible();
     await expect(modal.locator('.cookie-sync-approval')).toHaveCount(0);
-    expect(await page.evaluate(() => window.__relayE2E.calls.filter((entry: string) => entry.startsWith('ApproveCookieSyncPairing')))).toEqual(['ApproveCookieSyncPairing:pair-1']);
+    expect(await page.evaluate(() => window.__kurloE2E.calls.filter((entry: string) => entry.startsWith('ApproveCookieSyncPairing')))).toEqual(['ApproveCookieSyncPairing:pair-1']);
 
     await page.evaluate(async () => {
       const app = window.go.api.App;
       await app.UpsertCookie('workspace-e2e', {
         name: 'session',
         value: 'from-browser',
-        domain: 'api.relay.test',
+        domain: 'api.kurlo.test',
         path: '/',
         expiresAt: 0,
         session: true,
@@ -2930,7 +2930,7 @@ test.describe('Relay desktop browser E2E', () => {
         createdAt: Date.now(),
         updatedAt: Date.now(),
       });
-      window.__relayE2E.emit('cookies:synced', {
+      window.__kurloE2E.emit('cookies:synced', {
         ...(await app.CookieSyncStatus()),
         paired: true,
         connected: true,
@@ -2941,7 +2941,7 @@ test.describe('Relay desktop browser E2E', () => {
           id: 'cookie-sync-1',
           timestamp: Date.now(),
           browser: 'Chrome',
-          domain: 'api.relay.test',
+          domain: 'api.kurlo.test',
           accepted: 1,
           skipped: 0,
           removed: 0,
@@ -2954,16 +2954,16 @@ test.describe('Relay desktop browser E2E', () => {
     await expect(modal.locator('.cookie-sync-log')).toContainText('1 cookie synced');
 
     await page.evaluate(async () => {
-      const state = window.__relayE2E;
-      state.cookieSync = { ...state.cookieSync, connected: true, browser: 'Chrome', unreadable: ['shop.relay.test'] };
+      const state = window.__kurloE2E;
+      state.cookieSync = { ...state.cookieSync, connected: true, browser: 'Chrome', unreadable: ['shop.kurlo.test'] };
       state.emit('cookies:synced', state.cookieSync);
     });
-    await expect(modal.getByText(/not allowed to read shop\.relay\.test/)).toBeVisible();
+    await expect(modal.getByText(/not allowed to read shop\.kurlo\.test/)).toBeVisible();
     await expect(modal.locator('.cookie-sync-chip.unreadable')).toHaveCount(1);
     await captureDocsScreenshot(page, 'cookie-jar-sync-paired');
 
     await modal.getByRole('tab', { name: 'Manage cookies' }).click();
-    await expect(modal.locator('.cookie-domain-card')).toContainText('api.relay.test');
+    await expect(modal.locator('.cookie-domain-card')).toContainText('api.kurlo.test');
     await expect(modal.locator('.cookie-domain-card')).toContainText('session');
 
     await modal.getByRole('tab', { name: /Sync cookies/i }).click();
@@ -2979,13 +2979,13 @@ test.describe('Relay desktop browser E2E', () => {
 test.describe('Startup screen', () => {
   async function endLastSessionOnGit(page: Page, startupView = '') {
     await page.addInitScript((view) => {
-      localStorage.setItem('relay.topView.v1', JSON.stringify({ topView: 'git', gitWorkspaceOpen: true }));
-      if (view) localStorage.setItem('relay.startupView.v1', view);
+      localStorage.setItem('kurlo.topView.v1', JSON.stringify({ topView: 'git', gitWorkspaceOpen: true }));
+      if (view) localStorage.setItem('kurlo.startupView.v1', view);
     }, startupView);
   }
 
   test('opens on the request editor even when the last session ended on Git', async ({ page }) => {
-    await installRelayBridge(page);
+    await installKurloBridge(page);
     await endLastSessionOnGit(page);
     await page.goto('/');
 
@@ -2995,7 +2995,7 @@ test.describe('Startup screen', () => {
   });
 
   test('reopens the last screen when set to where you left off', async ({ page }) => {
-    await installRelayBridge(page);
+    await installKurloBridge(page);
     await endLastSessionOnGit(page, 'restore');
     await page.goto('/');
 
@@ -3003,7 +3003,7 @@ test.describe('Startup screen', () => {
   });
 
   test('starts on the workspace overview when set to it', async ({ page }) => {
-    await installRelayBridge(page);
+    await installKurloBridge(page);
     await endLastSessionOnGit(page, 'overview');
     await page.goto('/');
 
@@ -3011,7 +3011,7 @@ test.describe('Startup screen', () => {
   });
 
   test('chooses the startup screen in settings', async ({ page }) => {
-    await installRelayBridge(page);
+    await installKurloBridge(page);
     await page.goto('/');
 
     await page.getByLabel('Settings', { exact: true }).click();
@@ -3022,14 +3022,14 @@ test.describe('Startup screen', () => {
     await card.getByRole('radio', { name: /Where you left off/ }).click();
     await expect(card.getByRole('radio', { name: /Where you left off/ })).toHaveAttribute('aria-checked', 'true');
     await expect(card.locator('.settings-card-subtitle')).toHaveText('Where you left off');
-    expect(await page.evaluate(() => localStorage.getItem('relay.startupView.v1'))).toBe('restore');
+    expect(await page.evaluate(() => localStorage.getItem('kurlo.startupView.v1'))).toBe('restore');
   });
 });
 
 test.describe('Key-value tables', () => {
   test('centres the row checkbox in its column', async ({ page }) => {
-    await installRelayBridge(page);
-    await page.addInitScript(() => localStorage.setItem('relay.responseLayout.v1', 'below'));
+    await installKurloBridge(page);
+    await page.addInitScript(() => localStorage.setItem('kurlo.responseLayout.v1', 'below'));
     await page.goto('/');
     await expect(page.getByPlaceholder('Enter request URL or paste cURL…')).toBeVisible();
     await page.getByRole('tab', { name: /^Headers/ }).click();
@@ -3048,9 +3048,9 @@ test.describe('Key-value tables', () => {
 
 test.describe('Empty states', () => {
   test('spaces the history filter empty state and keeps the status filter full width', async ({ page }) => {
-    await installRelayBridge(page);
+    await installKurloBridge(page);
     await page.goto('/');
-    await page.getByPlaceholder('Enter request URL or paste cURL…').fill('https://api.relay.test/orders');
+    await page.getByPlaceholder('Enter request URL or paste cURL…').fill('https://api.kurlo.test/orders');
     await page.getByRole('button', { name: /^Send( |$)/ }).first().click();
     await expect(page.getByText(/200 OK/).first()).toBeVisible();
     await page.getByRole('button', { name: 'History' }).click();
@@ -3070,7 +3070,7 @@ test.describe('Interface size', () => {
   const sidebarWidth = (page: Page) => page.locator('aside.sidebar').evaluate(el => Math.round(el.getBoundingClientRect().width));
 
   test('zooms the whole interface from the keyboard and the View menu', async ({ page }) => {
-    await installRelayBridge(page);
+    await installKurloBridge(page);
     await page.goto('/');
     await expect(page.getByPlaceholder('Enter request URL or paste cURL…')).toBeVisible();
     expect(await rootFontSize(page)).toBe('16px');
@@ -3080,33 +3080,33 @@ test.describe('Interface size', () => {
     await page.keyboard.press('Control+=');
     await page.keyboard.press('Control+=');
     await expect.poll(() => rootFontSize(page)).toBe('20px');
-    expect(await page.evaluate(() => localStorage.getItem('relay.uiScale.v1'))).toBe('1.25');
+    expect(await page.evaluate(() => localStorage.getItem('kurlo.uiScale.v1'))).toBe('1.25');
     await expect.poll(() => sidebarWidth(page)).toBe(Math.round(baseSidebar * 1.25));
     await expect.poll(() => page.getByRole('button', { name: /^Send( |$)/ }).first().evaluate(el => el.getBoundingClientRect().height)).toBeCloseTo(sendHeight * 1.25, 0);
 
     await page.keyboard.press('Control+-');
     await expect.poll(() => rootFontSize(page)).toBe('17.6px');
 
-    await page.evaluate(() => window.__relayE2E.emit('relay:zoom', 'out'));
-    await page.evaluate(() => window.__relayE2E.emit('relay:zoom', 'out'));
+    await page.evaluate(() => window.__kurloE2E.emit('kurlo:zoom', 'out'));
+    await page.evaluate(() => window.__kurloE2E.emit('kurlo:zoom', 'out'));
     await expect.poll(() => rootFontSize(page)).toBe('14.4px');
-    expect(await page.evaluate(() => localStorage.getItem('relay.uiScale.v1'))).toBe('0.9');
-    await page.evaluate(() => window.__relayE2E.emit('relay:zoom', 'in'));
+    expect(await page.evaluate(() => localStorage.getItem('kurlo.uiScale.v1'))).toBe('0.9');
+    await page.evaluate(() => window.__kurloE2E.emit('kurlo:zoom', 'in'));
     await expect.poll(() => rootFontSize(page)).toBe('16px');
-    await page.evaluate(() => window.__relayE2E.emit('relay:zoom', 'in'));
+    await page.evaluate(() => window.__kurloE2E.emit('kurlo:zoom', 'in'));
     await expect.poll(() => rootFontSize(page)).toBe('17.6px');
-    await page.evaluate(() => window.__relayE2E.emit('relay:zoom', 'reset'));
+    await page.evaluate(() => window.__kurloE2E.emit('kurlo:zoom', 'reset'));
     await expect.poll(() => rootFontSize(page)).toBe('16px');
 
     await page.keyboard.press('Control+=');
     await page.keyboard.press('Control+0');
     await expect.poll(() => rootFontSize(page)).toBe('16px');
-    expect(await page.evaluate(() => localStorage.getItem('relay.uiScale.v1'))).toBeNull();
+    expect(await page.evaluate(() => localStorage.getItem('kurlo.uiScale.v1'))).toBeNull();
   });
 
   test('starts at the saved size', async ({ page }) => {
-    await installRelayBridge(page);
-    await page.addInitScript(() => localStorage.setItem('relay.uiScale.v1', '1.25'));
+    await installKurloBridge(page);
+    await page.addInitScript(() => localStorage.setItem('kurlo.uiScale.v1', '1.25'));
     await page.goto('/');
     await expect(page.getByPlaceholder('Enter request URL or paste cURL…')).toBeVisible();
     expect(await rootFontSize(page)).toBe('20px');
@@ -3117,13 +3117,13 @@ test.describe('Interface size', () => {
 test.describe('README screenshot', () => {
   test.use({ colorScheme: 'dark' });
   test('captures the README screenshot', async ({ page }) => {
-    test.skip(!readmeScreenshotPath, 'Set RELAY_README_SCREENSHOT to capture the README screenshot');
+    test.skip(!readmeScreenshotPath, 'Set KURLO_README_SCREENSHOT to capture the README screenshot');
     await page.setViewportSize({ width: 1440, height: 900 });
-    await installRelayBridge(page, '', 'darwin/e2e', false);
+    await installKurloBridge(page, '', 'darwin/e2e', false);
     await page.addInitScript(() => {
       const app = (window as any).go.api.App;
-      app.AppInfo = async () => ({ name: 'Relay', version: '2.0.0', runtime: 'darwin/e2e', goVersion: 'e2e' });
-      for (const workspace of (window as any).__relayE2E.store.workspaces ?? []) workspace.name = 'Acme';
+      app.AppInfo = async () => ({ name: 'Kurlo', version: '2.0.0', runtime: 'darwin/e2e', goVersion: 'e2e' });
+      for (const workspace of (window as any).__kurloE2E.store.workspaces ?? []) workspace.name = 'Acme';
       const send = app.SendRequest;
       app.SendRequest = async (req: any) => {
         if (!String(req.url).includes('/orders')) return send(req);
@@ -3176,20 +3176,20 @@ test.describe('README screenshot', () => {
 
 test.describe('Windows app package updates', () => {
   test('offers the MSIX download instead of replacing a packaged install', async ({ page }) => {
-    const msixUrl = 'https://github.com/relay-client/relay/releases/download/v2.1.0/relay-2.1.0-windows-amd64.msix';
-    await installRelayBridge(page, '', 'windows/e2e', false);
+    const msixUrl = 'https://github.com/stormhop/kurlo/releases/download/v2.1.0/kurlo-2.1.0-windows-amd64.msix';
+    await installKurloBridge(page, '', 'windows/e2e', false);
     await page.addInitScript((msixUrl) => {
-      const state = (window as any).__relayE2E;
+      const state = (window as any).__kurloE2E;
       const app = (window as any).go.api.App;
-      localStorage.setItem('relay:auto-update-install', 'true');
-      app.AppInfo = async () => ({ name: 'Relay', version: '2.0.2', runtime: 'windows/e2e', goVersion: 'e2e', packaged: true });
+      localStorage.setItem('kurlo:auto-update-install', 'true');
+      app.AppInfo = async () => ({ name: 'Kurlo', version: '2.0.2', runtime: 'windows/e2e', goVersion: 'e2e', packaged: true });
       app.CheckForUpdate = async () => ({
         info: {
           version: '2.1.0',
           releaseNotes: '### Fixed\n- Packaged installs update cleanly',
           publishedAt: '2026-10-01T10:00:00Z',
-          downloadUrl: 'https://github.com/relay-client/relay/releases/download/v2.1.0/relay-windows-amd64.exe',
-          assetName: 'relay-windows-amd64.exe',
+          downloadUrl: 'https://github.com/stormhop/kurlo/releases/download/v2.1.0/kurlo-windows-amd64.exe',
+          assetName: 'kurlo-windows-amd64.exe',
           sha256: 'abc123',
           signatureUrl: '',
           manualInstallUrl: msixUrl,
@@ -3204,9 +3204,9 @@ test.describe('Windows app package updates', () => {
     await page.goto('/');
 
     const banner = page.locator('.update-notif');
-    await expect(banner).toContainText('Relay 2.1.0 is available');
+    await expect(banner).toContainText('Kurlo 2.1.0 is available');
     await banner.getByRole('button', { name: 'Download' }).click();
-    await expect.poll(() => page.evaluate(() => window.__relayE2E.calls)).toContain(`open:${msixUrl}`);
+    await expect.poll(() => page.evaluate(() => window.__kurloE2E.calls)).toContain(`open:${msixUrl}`);
 
     await page.getByLabel('Settings', { exact: true }).click();
     await page.getByRole('tab', { name: 'Updates', exact: true }).click();
@@ -3216,7 +3216,7 @@ test.describe('Windows app package updates', () => {
     await expect(updates).toContainText('Packaged installs update cleanly');
     await expect(updates.getByRole('button', { name: 'Install update' })).toHaveCount(0);
     await updates.getByRole('button', { name: 'Download update' }).click();
-    await expect.poll(async () => (await page.evaluate(() => window.__relayE2E.calls)).filter((call: string) => call === `open:${msixUrl}`).length).toBe(2);
+    await expect.poll(async () => (await page.evaluate(() => window.__kurloE2E.calls)).filter((call: string) => call === `open:${msixUrl}`).length).toBe(2);
 
     await page.getByRole('tab', { name: 'About', exact: true }).click();
     const autoInstall = page.getByLabel('Automatically install updates').locator('input');
@@ -3224,7 +3224,7 @@ test.describe('Windows app package updates', () => {
     await expect(autoInstall).not.toBeChecked();
     await expect(page.locator('#settings-panel-about')).toContainText('installed from the Windows app package');
 
-    const calls = await page.evaluate(() => window.__relayE2E.calls);
+    const calls = await page.evaluate(() => window.__kurloE2E.calls);
     expect(calls).not.toContain('ApplyUpdate');
   });
 });

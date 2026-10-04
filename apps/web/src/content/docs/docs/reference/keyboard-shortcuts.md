@@ -1,9 +1,9 @@
 ---
 title: Keyboard shortcuts
-description: Default key bindings for Relay. All shortcuts can be remapped in Settings → Shortcuts.
+description: Default key bindings for Kurlo. All shortcuts can be remapped in Settings → Shortcuts.
 ---
 
-On macOS Relay displays `Cmd` shortcuts with `⌘`. On Windows and Linux the same defaults display and run as `Ctrl`, with modifiers in the usual `Ctrl` → `Alt` → `Shift` order. Shortcuts follow the physical key, so they keep working on a Cyrillic, Greek or any other non-Latin layout.
+On macOS Kurlo displays `Cmd` shortcuts with `⌘`. On Windows and Linux the same defaults display and run as `Ctrl`, with modifiers in the usual `Ctrl` → `Alt` → `Shift` order. Shortcuts follow the physical key, so they keep working on a Cyrillic, Greek or any other non-Latin layout.
 
 Every shortcut is rebindable from **Settings → Shortcuts**. Click any shortcut chip, press the new combo, done. Reset all to factory defaults with the *Reset all* button.
 

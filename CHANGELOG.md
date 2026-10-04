@@ -1,11 +1,15 @@
 # Changelog
 
-All notable changes to Relay are documented here. This project follows
+All notable changes to Kurlo are documented here. This project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
 ## [Unreleased]
+
+### Changed
+
+- Relay is now Kurlo. CLI, workspace paths and application identity use the new name.
 
 ## [2.1.1] - 2026-10-04
 

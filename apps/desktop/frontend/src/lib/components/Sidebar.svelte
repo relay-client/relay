@@ -440,7 +440,7 @@
       return;
     }
     draggingCollectionId = collectionId;
-    event.dataTransfer?.setData('application/x-relay-collection-id', collectionId);
+    event.dataTransfer?.setData('application/x-kurlo-collection-id', collectionId);
     event.dataTransfer?.setData('text/plain', collectionId);
     if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
   }
@@ -466,7 +466,7 @@
   function onCollectionDrop(collectionId: string, event: DragEvent) {
     if (collectionDragDisabled()) return;
     event.preventDefault();
-    const sourceId = event.dataTransfer?.getData('application/x-relay-collection-id') || draggingCollectionId;
+    const sourceId = event.dataTransfer?.getData('application/x-kurlo-collection-id') || draggingCollectionId;
     if (sourceId && sourceId !== collectionId) {
       moveCollection(sourceId, collectionId, dragOverPlacement);
     }

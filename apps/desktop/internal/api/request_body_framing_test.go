@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/relay-client/relay/apps/desktop/internal/api/state"
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/api/state"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 type framing struct {
@@ -181,7 +181,7 @@ func TestMultipartBodyLengthMatchesStream(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			const boundary = "relay-fixed-boundary-for-the-test"
+			const boundary = "kurlo-fixed-boundary-for-the-test"
 			computed, ok := multipartBodyLength(tc.rows, boundary)
 			if !ok {
 				t.Fatal("length could not be computed for a fixture that exists")

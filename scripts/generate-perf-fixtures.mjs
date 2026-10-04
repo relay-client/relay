@@ -42,7 +42,7 @@ function positiveInt(value, name) {
 }
 
 function printHelp() {
-  console.log(`Generate Relay performance fixtures.
+  console.log(`Generate Kurlo performance fixtures.
 
 Options:
   --out <dir>             Output directory. Default: perf/fixtures
@@ -289,7 +289,7 @@ const workspace = {
   id: 'workspace-perf',
   name: 'Performance Workspace',
   filesystemName: 'Performance-Workspace',
-  description: 'Generated Relay performance workspace.',
+  description: 'Generated Kurlo performance workspace.',
 };
 const collections = Array.from({ length: options.collections }, (_, index) => ({
   id: `collection-${index + 1}`,
@@ -368,10 +368,10 @@ writeJSON(join(options.out, 'request-store-large.json'), {
 
 writeFileSync(join(options.out, 'huge-response.json'), makeHugeResponse(options.responseMb * 1024 * 1024));
 
-const yamlRoot = join(options.out, 'relay-yaml-large');
-writeYAML(join(yamlRoot, 'relay.yml'), {
+const yamlRoot = join(options.out, 'kurlo-yaml-large');
+writeYAML(join(yamlRoot, 'kurlo.yml'), {
   version: 1,
-  format: 'relay.workspace.yaml.v1',
+  format: 'kurlo.workspace.yaml.v1',
   workspaceOrder: [workspace.id],
 });
 writeYAML(join(yamlRoot, 'workspaces', workspace.filesystemName, 'workspace.yml'), {
@@ -406,7 +406,7 @@ writeJSON(join(options.out, 'manifest.json'), {
   files: {
     requestStore: 'request-store-large.json',
     hugeResponse: 'huge-response.json',
-    yamlWorkspace: 'relay-yaml-large/',
+    yamlWorkspace: 'kurlo-yaml-large/',
   },
   counts: {
     workspaces: 1,
@@ -426,4 +426,4 @@ writeJSON(join(options.out, 'manifest.json'), {
   ],
 });
 
-console.log(`Generated Relay perf fixtures in ${options.out}`);
+console.log(`Generated Kurlo perf fixtures in ${options.out}`);

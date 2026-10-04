@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 type clientCertConfig struct {
@@ -117,7 +117,7 @@ func decryptPEMPrivateKey(keyPEM []byte, password string) ([]byte, error) {
 	//nolint:staticcheck
 	if !x509.IsEncryptedPEMBlock(block) {
 		if pemLooksPKCS8Encrypted(block) {
-			return nil, fmt.Errorf("this key uses PKCS#8 encryption, which Relay cannot decrypt — convert it with: openssl pkcs8 -in key.pem -out key.dec.pem")
+			return nil, fmt.Errorf("this key uses PKCS#8 encryption, which Kurlo cannot decrypt — convert it with: openssl pkcs8 -in key.pem -out key.dec.pem")
 		}
 		return keyPEM, nil
 	}

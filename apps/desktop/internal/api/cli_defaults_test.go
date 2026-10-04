@@ -23,7 +23,7 @@ func writeDefaultsWorkspace(t *testing.T, baseURL, collectionDefaults, requestBo
 			t.Fatal(err)
 		}
 	}
-	write("relay.yml", "version: 1\nformat: relay.workspace.yaml.v1\nworkspaceOrder:\n  - ws\n")
+	write("kurlo.yml", "version: 1\nformat: kurlo.workspace.yaml.v1\nworkspaceOrder:\n  - ws\n")
 	write("workspaces/Demo/workspace.yml", "version: 1\nworkspace:\n  id: ws\n  name: Demo\n  filesystemName: Demo\n  collectionOrder:\n    - col\n")
 	write("workspaces/Demo/collections/Smoke/collection.yml", strings.Join([]string{
 		"version: 1",
@@ -180,7 +180,7 @@ func TestRunCLIAppliesCollectionHeadersAndScripts(t *testing.T) {
 		"      - id: 1",
 		"        enabled: true",
 		"        key: X-Client",
-		"        value: relay",
+		"        value: kurlo",
 		"    preRequestScriptJs: |",
 		"      pm.request.headers.set(\"X-From-Script\", \"collection\")",
 		"    testScriptJs: |",
@@ -204,7 +204,7 @@ func TestRunCLIAppliesCollectionHeadersAndScripts(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("expected exit 0, got %d\n%s", code, out.String())
 	}
-	if sawClient != "relay" {
+	if sawClient != "kurlo" {
 		t.Errorf("collection header missing: X-Client = %q", sawClient)
 	}
 	if sawOwn != "mine" {
@@ -240,7 +240,7 @@ func TestMergeCollectionAuth(t *testing.T) {
 }
 
 func TestMergeDefaultRows(t *testing.T) {
-	defaults := []cliKV{{Key: "X-Client", Value: "relay", Enabled: true}, {Key: "Accept", Value: "application/json", Enabled: true}}
+	defaults := []cliKV{{Key: "X-Client", Value: "kurlo", Enabled: true}, {Key: "Accept", Value: "application/json", Enabled: true}}
 	request := []cliKV{{Key: "accept", Value: "text/plain", Enabled: true}}
 
 	merged := mergeDefaultRows(defaults, request)

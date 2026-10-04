@@ -2,7 +2,7 @@ import type { TopView } from './stores/ui';
 
 export type StartupView = 'request' | 'restore' | 'overview';
 
-export const STARTUP_VIEW_STORAGE_KEY = 'relay.startupView.v1';
+export const STARTUP_VIEW_STORAGE_KEY = 'kurlo.startupView.v1';
 export const DEFAULT_STARTUP_VIEW: StartupView = 'request';
 
 export function normalizeStartupView(value: unknown): StartupView {

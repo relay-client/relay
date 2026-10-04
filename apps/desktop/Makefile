@@ -2,11 +2,11 @@ SHELL := /bin/sh
 
 ROOT_DIR    := $(shell git -C $(CURDIR) rev-parse --show-toplevel 2>/dev/null || pwd)
 DESKTOP_DIR := $(ROOT_DIR)/apps/desktop
-APP_NAME    := Relay
+APP_NAME    := Kurlo
 WAILS_VERSION := v2.13.0
 WAILS_CMD   := $(shell command -v wails 2>/dev/null || printf '%s' 'go run github.com/wailsapp/wails/v2/cmd/wails@$(WAILS_VERSION)')
 GO_ENV      := GOCACHE=$(ROOT_DIR)/.cache/go-build
-DEV_ENV     := $(GO_ENV) RELAY_DISABLE_KEYCHAIN=1
+DEV_ENV     := $(GO_ENV) KURLO_DISABLE_KEYCHAIN=1
 
 VERSION     := $(shell git describe --tags --always --dirty 2>/dev/null | sed 's/^v//')
 ifeq ($(VERSION),)
@@ -14,23 +14,23 @@ VERSION     := dev
 endif
 
 
-UPDATE_REPO  ?= relay-client/relay
-LDFLAGS     := -X 'github.com/relay-client/relay/apps/desktop/internal/api.appVersion=$(VERSION)' \
-               -X 'github.com/relay-client/relay/apps/desktop/internal/api.githubRepo=$(UPDATE_REPO)'
+UPDATE_REPO  ?= stormhop/kurlo
+LDFLAGS     := -X 'github.com/stormhop/kurlo/apps/desktop/internal/api.appVersion=$(VERSION)' \
+               -X 'github.com/stormhop/kurlo/apps/desktop/internal/api.githubRepo=$(UPDATE_REPO)'
 
 MAC_APP     := $(DESKTOP_DIR)/build/bin/$(APP_NAME).app
-MAC_DMG     := $(DESKTOP_DIR)/build/bin/relay-$(VERSION)-darwin-universal.dmg
-LINUX_BIN   := $(DESKTOP_DIR)/build/bin/relay
+MAC_DMG     := $(DESKTOP_DIR)/build/bin/kurlo-$(VERSION)-darwin-universal.dmg
+LINUX_BIN   := $(DESKTOP_DIR)/build/bin/kurlo
 WIN_ARCH    ?= amd64
-WIN_EXE     := $(DESKTOP_DIR)/build/bin/relay-$(WIN_ARCH)-installer.exe
-WIN_MSIX    := $(DESKTOP_DIR)/build/bin/relay-$(VERSION)-windows-$(WIN_ARCH).msix
+WIN_EXE     := $(DESKTOP_DIR)/build/bin/kurlo-$(WIN_ARCH)-installer.exe
+WIN_MSIX    := $(DESKTOP_DIR)/build/bin/kurlo-$(VERSION)-windows-$(WIN_ARCH).msix
 
 HOST_OS := $(shell uname -s 2>/dev/null || echo Windows_NT)
 POWERSHELL := $(shell command -v pwsh 2>/dev/null || command -v powershell.exe 2>/dev/null || command -v powershell 2>/dev/null || printf '%s' 'pwsh')
 
-MSIX_IDENTITY_NAME ?= com.relayclient.relay
-MSIX_PUBLISHER ?= CN=Relay Client
-MSIX_PUBLISHER_DISPLAY_NAME ?= Relay Client
+MSIX_IDENTITY_NAME ?= dev.kurlo.app
+MSIX_PUBLISHER ?= CN=Kurlo
+MSIX_PUBLISHER_DISPLAY_NAME ?= Kurlo
 MSIX_CERT_PATH ?=
 MSIX_CERT_PASSWORD ?=
 MSIX_TIMESTAMP_URL ?=
@@ -84,7 +84,7 @@ build-macos:
 	cd $(DESKTOP_DIR) && $(GO_ENV) $(WAILS_CMD) build -platform darwin/universal -ldflags "$(LDFLAGS)"
 
 build-macos-dmg: build-macos
-	$(DESKTOP_DIR)/build/darwin/make-dmg.sh "$(MAC_APP)" "$(MAC_DMG)" "Relay $(VERSION)"
+	$(DESKTOP_DIR)/build/darwin/make-dmg.sh "$(MAC_APP)" "$(MAC_DMG)" "Kurlo $(VERSION)"
 
 build-windows:
 	cd $(DESKTOP_DIR) && $(GO_ENV) $(WAILS_CMD) build -platform windows/$(WIN_ARCH) -nsis -ldflags "$(LDFLAGS)"

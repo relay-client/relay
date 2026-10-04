@@ -402,7 +402,7 @@ function settingKeyFromOpenCollectionKey(key: string): keyof RequestSettings | u
 function settingsToOpenCollection(
   settings: RequestSettings,
   compact = false,
-  includeRelayExtensions = false,
+  includeKurloExtensions = false,
   overrides?: RequestSettingsOverrides,
 ) {
   const candidates: Record<string, unknown> = {
@@ -412,7 +412,7 @@ function settingsToOpenCollection(
     maxRedirects: settings.maxRedirects,
     sslVerification: settings.enableSSLVerification,
   };
-  if (includeRelayExtensions) {
+  if (includeKurloExtensions) {
     Object.assign(candidates, {
       httpVersion: settings.httpVersion,
       followOriginalMethod: settings.followOriginalMethod,

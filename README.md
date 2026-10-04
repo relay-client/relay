@@ -1,25 +1,25 @@
 <div align="center">
 
-# Relay
+# Kurlo
 
 **A fast, local-first desktop API client. No accounts, no cloud sync, no telemetry — just you and your APIs.**
 
-[![CI](https://github.com/relay-client/relay/actions/workflows/ci.yml/badge.svg)](https://github.com/relay-client/relay/actions/workflows/ci.yml)
-[![Latest release](https://img.shields.io/github/v/release/relay-client/relay?sort=semver)](https://github.com/relay-client/relay/releases/latest)
+[![CI](https://github.com/stormhop/kurlo/actions/workflows/ci.yml/badge.svg)](https://github.com/stormhop/kurlo/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/stormhop/kurlo?sort=semver)](https://github.com/stormhop/kurlo/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)](https://github.com/relay-client/relay/releases/latest)
+[![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)](https://github.com/stormhop/kurlo/releases/latest)
 
 Built with Go, Svelte 5, and Wails.
 
 </div>
 
-![Relay screenshot](.github/assets/screenshot.png)
+![Kurlo screenshot](.github/assets/screenshot.png)
 
 ---
 
 ## Download
 
-Grab the latest build from the [releases page](https://github.com/relay-client/relay/releases/latest).
+Grab the latest build from the [releases page](https://github.com/stormhop/kurlo/releases/latest).
 
 | Platform | Installer |
 |----------|-----------|
@@ -29,7 +29,7 @@ Grab the latest build from the [releases page](https://github.com/relay-client/r
 
 Every release ships SHA256 checksums and minisign signatures, and the in-app updater refuses any binary that fails either check.
 
-Guides, the scripting reference, and the YAML workspace format live in the **[documentation site](https://relayclient.dev/)**.
+Guides, the scripting reference, and the YAML workspace format live in the **[documentation site](https://kurlo.dev/)**.
 
 ---
 
@@ -42,7 +42,7 @@ Guides, the scripting reference, and the YAML workspace format live in the **[do
 - Bulk edit for params, headers and form fields — switch the table to a `key: value` text area and back
 - GraphQL, Server-Sent Events, WebSocket, Socket.IO, gRPC, and MCP request types — an MCP call discovers the server's tools, resources and prompts, seeds the arguments from the tool's schema, and shows the raw JSON-RPC exchange
 - Postman, Insomnia, Bruno/OpenCollection, OpenAPI/Swagger, HAR, cURL, and all-data backup import paths
-- OpenAPI/Swagger imports from a link as well as a file — paste the spec URL and Relay fetches it and builds the collection
+- OpenAPI/Swagger imports from a link as well as a file — paste the spec URL and Kurlo fetches it and builds the collection
 - Postman, OpenAPI, OpenCollection, and all-data backup export paths
 
 **Authentication**
@@ -58,7 +58,7 @@ Guides, the scripting reference, and the YAML workspace format live in the **[do
 **Scripting** — pre-request and test scripts in sandboxed JavaScript, with legacy [Tengo](https://github.com/d5/tengo) support:
 ```js
 // pre-request: inject a header
-pm.request.headers.set("X-Client", "relay")
+pm.request.headers.set("X-Client", "kurlo")
 
 // pre-request: rewrite and sign the body
 pm.request.body.update(JSON.stringify({ ...pm.request.body.json(), nonce: pm.crypto.randomHex(8) }))
@@ -84,13 +84,13 @@ pm.test("has an id", () => pm.response.to.have.jsonSchema({ type: "object", requ
 - Request history — every send on its own page, request and stored response side by side, reopenable in the editor (14-day retention, 1000 entries)
 - Collection runner — sequential or parallel, data files, iterations, an HTML report, and the last run of every collection kept
 - Git-backed YAML workspaces with diagnostics, conflict helpers, and local-only secrets
-- **CLI runner** — `relay run ./workspace --env CI` executes requests and their test scripts for CI, with data-driven iterations (`--data`), pretty/JSON/JUnit reporters, variable export, and a non-zero exit code on failure
-- **MCP server** — `relay mcp` lets Claude, Cursor and other AI assistants list, inspect and run your saved requests and collections as tools, with secret environment values masked in everything they get back
+- **CLI runner** — `kurlo run ./workspace --env CI` executes requests and their test scripts for CI, with data-driven iterations (`--data`), pretty/JSON/JUnit reporters, variable export, and a non-zero exit code on failure
+- **MCP server** — `kurlo mcp` lets Claude, Cursor and other AI assistants list, inspect and run your saved requests and collections as tools, with secret environment values masked in everything they get back
 
 **Response examples** — save any response as a named example on its request: the status, headers and body it came back with, alongside the request that produced it. Secrets are redacted on capture, a clean body is stored byte for byte, and examples ride along through Postman, OpenCollection, HAR and OpenAPI imports and exports. A response can be diffed against an example instead of against the previous send.
 
 **Cookies** — a per-workspace cookie jar with a per-domain editor, disableable per request.
-- **Cookie sync**: pair Relay with the in-repo browser extension (`apps/extension`, Chromium + Firefox) and the session you already have in the browser is the session Relay sends with. A loopback-only bridge that stays off until you turn it on, an approval you give in Relay by matching a six-digit code, and a per-domain allowlist enforced on both sides. Cookies travel one way: browser into Relay.
+- **Cookie sync**: pair Kurlo with the in-repo browser extension (`apps/extension`, Chromium + Firefox) and the session you already have in the browser is the session Kurlo sends with. A loopback-only bridge that stays off until you turn it on, an approval you give in Kurlo by matching a six-digit code, and a per-domain allowlist enforced on both sides. Cookies travel one way: browser into Kurlo.
 
 **Mock server** — serve a collection's saved examples over HTTP on a local port, so a client can be built against an endpoint that does not exist yet. Routing is by method and the example's path template (`/orders/:id`), a recorded query narrows which example answers, and a live log shows what the client asked for and which example replied. Loopback only; CORS preflight is answered for any origin.
 
@@ -111,11 +111,11 @@ pm.test("has an id", () => pm.response.to.have.jsonSchema({ type: "object", requ
 
 **Settings per request**: HTTP version (auto / 1.1 / 2), SSL verification, redirect policy (follow, preserve method, preserve auth), cookie jar, timeout, proxy, URL encoding.
 
-**Keyboard-first**: all actions have configurable shortcuts. A command palette (`Cmd/Ctrl K`) finds requests and runs commands, quick send (`Cmd/Ctrl Enter`), focus the URL (`Cmd/Ctrl L`), tab switching (`Cmd/Ctrl 1`–`8`, with `9` for the last tab). Relay shows `Cmd` on macOS and `Ctrl` on Windows and Linux.
+**Keyboard-first**: all actions have configurable shortcuts. A command palette (`Cmd/Ctrl K`) finds requests and runs commands, quick send (`Cmd/Ctrl Enter`), focus the URL (`Cmd/Ctrl L`), tab switching (`Cmd/Ctrl 1`–`8`, with `9` for the last tab). Kurlo shows `Cmd` on macOS and `Ctrl` on Windows and Linux.
 
 **Dark and light themes**, with multiple built-in variations.
 
-**Local-first storage** — the local Relay profile and its secrets are encrypted at rest with AES-256-GCM. The key is stored in the OS credential store when available and also kept as a `0600` recovery file in Relay's app-data directory. Git-backed workspace YAML is intentionally human-readable; secret values are replaced with local placeholders.
+**Local-first storage** — the local Kurlo profile and its secrets are encrypted at rest with AES-256-GCM. The key is stored in the OS credential store when available and also kept as a `0600` recovery file in Kurlo's app-data directory. Git-backed workspace YAML is intentionally human-readable; secret values are replaced with local placeholders.
 
 ---
 
@@ -132,8 +132,8 @@ pm.test("has an id", () => pm.response.to.have.jsonSchema({ type: "object", requ
 
 **Dev mode** (hot-reload frontend + Go backend):
 ```bash
-git clone https://github.com/relay-client/relay
-cd relay
+git clone https://github.com/stormhop/kurlo
+cd kurlo
 npm install
 make dev
 ```
@@ -185,7 +185,7 @@ perf/                       Generated performance fixtures (ignored by Git)
 
 Scripts run in a sandboxed JavaScript environment by default, or in the legacy [Tengo](https://github.com/d5/tengo) engine for existing requests. Imports, filesystem, process, and network access are disabled. Execution timeout: 2 seconds by default, configurable per request up to 60.
 
-The full surface — every method, the variable-scope precedence rules, and the Chai-style assertion aliases — is in the [scripting API reference](https://relayclient.dev/docs/reference/scripting-api/). The short version:
+The full surface — every method, the variable-scope precedence rules, and the Chai-style assertion aliases — is in the [scripting API reference](https://kurlo.dev/docs/reference/scripting-api/). The short version:
 
 | Surface | What it covers |
 |---------|----------------|

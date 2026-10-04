@@ -20,14 +20,14 @@ export * from './wire';
 export async function getAppInfo(): Promise<AppInfo> {
   const app = window.go?.api?.App;
   if (!app?.AppInfo) {
-    return { name: 'Relay', version: 'dev', runtime: 'browser', goVersion: 'unavailable', packaged: false };
+    return { name: 'Kurlo', version: 'dev', runtime: 'browser', goVersion: 'unavailable', packaged: false };
   }
   return app.AppInfo();
 }
 
 export async function diagnosticsReport(): Promise<string> {
   const app = window.go?.api?.App;
-  if (!app?.DiagnosticsReport) return 'Relay (browser preview)\nDiagnostics are only available in the desktop app.\n';
+  if (!app?.DiagnosticsReport) return 'Kurlo (browser preview)\nDiagnostics are only available in the desktop app.\n';
   return app.DiagnosticsReport();
 }
 
@@ -188,7 +188,7 @@ export async function setGlobalVariables(values: Record<string, string>): Promis
   await app.SetVariables(values);
 }
 
-const REQUEST_STORE_FALLBACK_KEY = 'relay.request.store.v1';
+const REQUEST_STORE_FALLBACK_KEY = 'kurlo.request.store.v1';
 
 export async function loadRequestStore(): Promise<string> {
   const app = window.go?.api?.App;

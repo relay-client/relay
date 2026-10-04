@@ -17,8 +17,8 @@ function fromEnv(name, fallback) {
   return value && value.trim() ? value.trim() : fallback;
 }
 
-export const SITE_URL = fromEnv('RELAY_SITE_URL', `https://${PRIMARY_DOMAIN}`).replace(/\/+$/, '');
-export const SITE_BASE = fromEnv('RELAY_SITE_BASE', '/');
+export const SITE_URL = fromEnv('KURLO_SITE_URL', `https://${PRIMARY_DOMAIN}`).replace(/\/+$/, '');
+export const SITE_BASE = fromEnv('KURLO_SITE_BASE', '/');
 export const SITE_BASE_PATH = SITE_BASE.endsWith('/') ? SITE_BASE.slice(0, -1) : SITE_BASE;
 
 export function absolute(path = '/') {

@@ -86,7 +86,7 @@ import { workspaceFeature } from './features/workspace';
 import { workspaceDiagnosticsFeature } from './features/workspaceDiagnostics';
 
 const SIDEBAR_DEFAULT_WIDTH = 280;
-const TOP_VIEW_STORAGE_KEY = 'relay.topView.v1';
+const TOP_VIEW_STORAGE_KEY = 'kurlo.topView.v1';
 const TOP_VIEW_VALUES: TopView[] = ['overview', 'request', 'environment', 'git', 'runner', 'collection'];
 const SIDEBAR_VIEW_VALUES: SidebarView[] = ['collections', 'environments', 'history'];
 const INITIAL_BODY_DEFAULTS = requestBodyDefaultsFor('http');
@@ -668,7 +668,7 @@ class AppVM {
   declare exportEnvironmentToPostman: typeof importExportFeature.exportEnvironmentToPostman;
 
   declare showDataTransferStatus: typeof dataBackupFeature.showDataTransferStatus;
-  declare relayBackupPayload: typeof dataBackupFeature.relayBackupPayload;
+  declare kurloBackupPayload: typeof dataBackupFeature.kurloBackupPayload;
   declare requestStoreLooksImportable: typeof dataBackupFeature.requestStoreLooksImportable;
   declare parseAllDataBackup: typeof dataBackupFeature.parseAllDataBackup;
   declare applyImportedPreferences: typeof dataBackupFeature.applyImportedPreferences;
@@ -1629,7 +1629,7 @@ class AppVM {
     const repoRoot = (this.gitStatus.root || this.gitStatus.workspaceRoot || '').trim();
     const confirmed = await this.openConfirmDialog(
       'Close repository',
-      `Stop tracking this repository in Relay?${repoRoot ? `\n\n${repoRoot}` : ''}\n\nFiles stay on disk and you can open this repository again later.`,
+      `Stop tracking this repository in Kurlo?${repoRoot ? `\n\n${repoRoot}` : ''}\n\nFiles stay on disk and you can open this repository again later.`,
       'Close'
     );
     if (!confirmed) return;
@@ -1648,10 +1648,10 @@ class AppVM {
   async createLocalFolderWorkspace() {
     this.closeFloatingMenus();
     await this.persistActiveRequestNow(true);
-    const baseName = safeFileName(this.activeWorkspace?.name || 'relay-workspace') || 'relay-workspace';
-    const directoryName = await this.openPromptDialog('New folder workspace', baseName, 'Relay will create a workspace folder inside the parent directory you choose next.');
+    const baseName = safeFileName(this.activeWorkspace?.name || 'kurlo-workspace') || 'kurlo-workspace';
+    const directoryName = await this.openPromptDialog('New folder workspace', baseName, 'Kurlo will create a workspace folder inside the parent directory you choose next.');
     if (!directoryName) return;
-    const initMode = await this.openSelectDialog('Folder workspace setup', 'Choose what Relay should write into the new folder:', [
+    const initMode = await this.openSelectDialog('Folder workspace setup', 'Choose what Kurlo should write into the new folder:', [
       { value: 'empty', label: 'Create empty workspace', description: `Create a clean workspace named "${directoryName}".` },
       { value: 'copy', label: 'Copy current workspace', description: 'Copy current workspaces, collections, requests, and environments.' },
     ], 'Create', 'Cancel');

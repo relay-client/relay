@@ -162,7 +162,7 @@ function parseBlock(lines: string[], label: string, variables: HttpFileVariable[
   let body = bodyLines.join('\n').trim();
   const handlerAt = body.indexOf('> {%');
   if (handlerAt >= 0) {
-    notes.push('The source file had a JetBrains response handler script, which Relay does not run.');
+    notes.push('The source file had a JetBrains response handler script, which Kurlo does not run.');
     body = body.slice(0, handlerAt).trim();
   }
 

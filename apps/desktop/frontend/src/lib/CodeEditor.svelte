@@ -56,7 +56,7 @@
   const languageExtensions: Partial<Record<Lang, Extension>> = {};
   const singleLinePlaceholder = $derived(placeholder.replace(/\s+/g, ' ').trim());
 
-  function relayTheme() {
+  function kurloTheme() {
     return EditorView.theme({
     '&': {
       backgroundColor: 'transparent',
@@ -168,7 +168,7 @@
     });
   }
 
-  const relayHighlight = syntaxHighlighting(HighlightStyle.define([
+  const kurloHighlight = syntaxHighlighting(HighlightStyle.define([
     { tag: tags.keyword,                  color: 'var(--syn-bool)', fontWeight: 'bold' },
     { tag: tags.controlKeyword,           color: 'var(--syn-bool)', fontWeight: 'bold' },
     { tag: tags.string,                   color: 'var(--syn-str)' },
@@ -325,7 +325,7 @@
 
   function commentedLineDecorations(view: EditorView) {
     const builder = new RangeSetBuilder<Decoration>();
-    const lineDecoration = Decoration.line({ class: 'cm-relay-commented-line' });
+    const lineDecoration = Decoration.line({ class: 'cm-kurlo-commented-line' });
     let inBlockComment = false;
 
     for (let lineNo = 1; lineNo <= view.state.doc.lines; lineNo += 1) {
@@ -423,7 +423,7 @@
     return null;
   }
 
-  function relayDiagnostics(view: EditorView): Diagnostic[] {
+  function kurloDiagnostics(view: EditorView): Diagnostic[] {
     const docLen = view.state.doc.length;
     const issue = computeIssue(view.state.doc.toString());
     if (!issue) return [];
@@ -442,12 +442,12 @@
     }];
   }
 
-  const relayLinter = linter(relayDiagnostics, {
+  const kurloLinter = linter(kurloDiagnostics, {
     delay: 300,
     tooltipFilter: () => null as unknown as Diagnostic[],
   });
 
-  const relayLintTooltip = hoverTooltip((hoverView, pos, side) => {
+  const kurloLintTooltip = hoverTooltip((hoverView, pos, side) => {
     const found: Diagnostic[] = [];
     let start = -1;
     let end = -1;
@@ -542,8 +542,8 @@
       closeBrackets(),
       autocompletion({ override: [variableCompletionSource] }),
       commentDecorationPlugin,
-      relayLinter,
-      relayLintTooltip,
+      kurloLinter,
+      kurloLintTooltip,
       keymap.of([
         { key: 'Mod-/', run: toggleSelectedLineComments },
         { key: 'Mod-Shift-f', run: () => { format(); return true; } },
@@ -556,8 +556,8 @@
       ]),
       placeholderCompartment.of(singleLinePlaceholder ? cmPlaceholder(singleLinePlaceholder) : []),
       languageCompartment.of(immediateLangExtension(lang)),
-      relayTheme(),
-      relayHighlight,
+      kurloTheme(),
+      kurloHighlight,
       EditorState.readOnly.of(readonly),
       EditorView.updateListener.of(update => {
         if (update.docChanged && !internalChange) {
@@ -685,8 +685,8 @@
   :global(.cm-wrap .cm-editor.cm-focused) {
     outline: none;
   }
-  :global(.cm-wrap .cm-relay-commented-line),
-  :global(.cm-wrap .cm-relay-commented-line span) {
+  :global(.cm-wrap .cm-kurlo-commented-line),
+  :global(.cm-wrap .cm-kurlo-commented-line span) {
     color: var(--text-3) !important;
   }
   :global(.cm-wrap .cm-lintRange) {

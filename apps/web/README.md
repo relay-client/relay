@@ -1,6 +1,6 @@
-# Relay web (landing + docs)
+# Kurlo web (landing + docs)
 
-Astro Starlight project that powers the public Relay site:
+Astro Starlight project that powers the public Kurlo site:
 
 - `/` — the marketing landing, a standalone Astro page (`src/pages/index.astro`, styles in `src/styles/landing.css`) outside Starlight. Its cropped showcase images in `src/assets/landing/` come from `node scripts/gen-landing-images.mjs`.
 - `/download/` — installer matrix for macOS / Windows / Linux.
@@ -32,19 +32,19 @@ npm run web:preview    # serves the production build locally
 
 ## Deploy
 
-`relayclient.dev` is served by nginx on a VPS behind Cloudflare. `.github/workflows/web-deploy.yml` builds the site and rsyncs it into a timestamped release directory, then flips a symlink, so publishing is atomic. It runs on every push to `main` that touches `apps/web/**`, and reads the host, the deploy key and the pinned host key from Actions secrets — nothing about the origin server is stated in this repository.
+`kurlo.dev` is served by nginx on a VPS behind Cloudflare. `.github/workflows/web-deploy.yml` builds the site and rsyncs it into a timestamped release directory, then flips a symlink, so publishing is atomic. It runs on every push to `main` that touches `apps/web/**`, and reads the host, the deploy key and the pinned host key from Actions secrets — nothing about the origin server is stated in this repository.
 
-Provisioning, the nginx site, TLS issuance and rollback live in the private `relay-client/infra` repository, which also has a `publish.sh` for deploying from a workstation.
+Provisioning, the nginx site, TLS issuance and rollback live in the private `stormhop/infra` repository, which also has a `publish.sh` for deploying from a workstation.
 
 ### Where the domain lives
 
 `site.config.mjs` holds `PRIMARY_DOMAIN` and everything derived from it — `astro.config.mjs`, the structured data and `src/pages/robots.txt.ts` all read from there, so moving the site is one line plus DNS.
 
-`RELAY_SITE_URL` and `RELAY_SITE_BASE` override it at build time for staging. Empty values count as unset, which matters because GitHub Actions passes an unconfigured repository variable through as an empty string.
+`KURLO_SITE_URL` and `KURLO_SITE_BASE` override it at build time for staging. Empty values count as unset, which matters because GitHub Actions passes an unconfigured repository variable through as an empty string.
 
 ## Maintenance notes
 
-- Keep `src/content/docs/changelog.md` aligned with the notable changes in the root `CHANGELOG.md`; exact per-tag notes live in `relay-client/relay` releases.
+- Keep `src/content/docs/changelog.md` aligned with the notable changes in the root `CHANGELOG.md`; exact per-tag notes live in `stormhop/kurlo` releases.
 - Keep installation/signing language aligned with `.github/workflows/release.yml`. Update signatures and installer signatures are separate concerns.
 - Update `DOCS_COVERAGE.md` whenever a user-facing feature, setting, limit, or screenshot changes.
 - Replace empty-state screenshots with populated workflows as the screenshot pass progresses.

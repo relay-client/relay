@@ -19,7 +19,7 @@ import type { DialogOption } from '../../types/dialog';
 import type { TopView } from '../ui';
 
 export const GIT_LOG_PAGE_SIZE = 60;
-const GIT_REMOTE_HELP = 'Private repositories work through your system Git credentials. SSH URLs are recommended, for example git@gitlab.com:team/project.git. Relay does not store Git tokens.';
+const GIT_REMOTE_HELP = 'Private repositories work through your system Git credentials. SSH URLs are recommended, for example git@gitlab.com:team/project.git. Kurlo does not store Git tokens.';
 
 export { EMPTY_GIT_STATUS };
 
@@ -78,7 +78,7 @@ export function cloneDirectoryNameFromUrl(remoteUrl: string): string {
   const colon = value.lastIndexOf(':');
   if (colon >= 0) value = value.slice(colon + 1);
   value = value.replace(/\.git$/i, '').trim();
-  return value.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^[._-]+|[._-]+$/g, '') || 'relay-workspace';
+  return value.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^[._-]+|[._-]+$/g, '') || 'kurlo-workspace';
 }
 
 export function remoteNameFromUpstream(upstream: string): string {
@@ -407,7 +407,7 @@ export const gitFeature = {
   async openGitWorkspace(this: GitHost) {
     this.closeFloatingMenus();
     await this.persistActiveRequestNow(true);
-    const path = await openDirectoryDialog('Open Relay workspace repository');
+    const path = await openDirectoryDialog('Open Kurlo workspace repository');
     if (!path) return;
     this.gitLoading = true;
     this.gitAction = 'open';
@@ -438,9 +438,9 @@ export const gitFeature = {
     const remoteUrl = await this.openPromptDialog('Clone Git workspace', '', GIT_REMOTE_HELP);
     if (!remoteUrl) return;
     const defaultDirName = cloneDirectoryNameFromUrl(remoteUrl);
-    const directoryName = await this.openPromptDialog('Clone folder name', defaultDirName, 'Relay will create this folder inside the parent directory you choose next.');
+    const directoryName = await this.openPromptDialog('Clone folder name', defaultDirName, 'Kurlo will create this folder inside the parent directory you choose next.');
     if (!directoryName) return;
-    const initMode = await this.openSelectDialog('Relay workspace setup', 'If the cloned repository does not already contain Relay workspace files, choose what Relay should create:', [
+    const initMode = await this.openSelectDialog('Kurlo workspace setup', 'If the cloned repository does not already contain Kurlo workspace files, choose what Kurlo should create:', [
       { value: 'empty', label: 'Create empty workspace', description: `Create a workspace named "${directoryName}" with a default collection.` },
       { value: 'copy', label: 'Copy current workspace', description: 'Copy the current local workspaces, collections, requests, and environments.' },
     ], 'Clone', 'Cancel');
@@ -586,9 +586,9 @@ export const gitFeature = {
     if (shouldPromptForDivergedPull(normalizedStrategy, this.gitStatus)) {
       const selected = await this.openSelectDialog(
         'Branches diverged',
-        'Your local branch and the remote branch both have new commits. Choose how Relay should pull:',
+        'Your local branch and the remote branch both have new commits. Choose how Kurlo should pull:',
         [
-          { value: 'merge', label: 'Merge remote changes', description: 'Creates a merge commit. If the same YAML changed on both sides, Relay will open the conflict editor.' },
+          { value: 'merge', label: 'Merge remote changes', description: 'Creates a merge commit. If the same YAML changed on both sides, Kurlo will open the conflict editor.' },
           { value: 'rebase', label: 'Rebase local commit', description: 'Replays your local commit on top of the remote branch.' },
         ],
         'Pull',
@@ -692,7 +692,7 @@ export const gitFeature = {
     if (!operation) return;
     let message = '';
     if (operation === 'merge') {
-      const mergeMessage = await this.openPromptDialog('Continue merge', 'Merge Relay workspace', 'Relay will create the merge commit after all conflicts are resolved.');
+      const mergeMessage = await this.openPromptDialog('Continue merge', 'Merge Kurlo workspace', 'Kurlo will create the merge commit after all conflicts are resolved.');
       if (!mergeMessage) return;
       message = mergeMessage;
     }
@@ -750,7 +750,7 @@ export const gitFeature = {
   async stashGitWorkspace(this: GitHost) {
     if (!this.gitStatus.isRepo || this.gitStatus.operation) return;
     if (!await this.beginGitMutation('Stash')) return;
-    const message = await this.openPromptDialog('Stash Relay changes', 'Relay workspace changes', 'Only Relay-managed YAML files are stashed.');
+    const message = await this.openPromptDialog('Stash Kurlo changes', 'Kurlo workspace changes', 'Only Kurlo-managed YAML files are stashed.');
     if (!message) return;
     this.gitLoading = true;
     this.gitAction = 'stash';
@@ -761,10 +761,10 @@ export const gitFeature = {
       if (!result.ok) {
         this.gitStatus = normalizeGitStatus(result.git ?? this.gitStatus);
         this.gitOutput = result.output ?? '';
-        this.gitError = result.error || 'Could not stash Relay changes';
+        this.gitError = result.error || 'Could not stash Kurlo changes';
         return;
       }
-      await this.applyWorkspaceOpenResult(result, 'Stashed Relay workspace changes');
+      await this.applyWorkspaceOpenResult(result, 'Stashed Kurlo workspace changes');
     } catch (error) {
       this.gitError = error instanceof Error ? error.message : String(error);
     } finally {
@@ -841,7 +841,7 @@ export const gitFeature = {
   async testGitRemote(this: GitHost) {
     this.closeFloatingMenus();
     const defaultRemote = this.gitStatus.upstream ? remoteNameFromUpstream(this.gitStatus.upstream) : 'origin';
-    const remoteNameOrUrl = await this.openPromptDialog('Test Git remote', defaultRemote, 'Use a remote name such as origin, or paste an SSH/HTTPS Git URL. Relay uses your system Git auth.');
+    const remoteNameOrUrl = await this.openPromptDialog('Test Git remote', defaultRemote, 'Use a remote name such as origin, or paste an SSH/HTTPS Git URL. Kurlo uses your system Git auth.');
     if (!remoteNameOrUrl) return;
     this.gitLoading = true;
     this.gitAction = 'remote-test';
@@ -880,7 +880,7 @@ export const gitFeature = {
       this.gitError = 'Commit or discard local Git changes before switching branches.';
       await this.openAlertDialog(
         'Checkout blocked',
-        `You have ${count} local Git change${count === 1 ? '' : 's'}. Relay will not switch branches until those changes are committed or discarded, so your local work is not overwritten.`
+        `You have ${count} local Git change${count === 1 ? '' : 's'}. Kurlo will not switch branches until those changes are committed or discarded, so your local work is not overwritten.`
       );
       return;
     }
@@ -895,7 +895,7 @@ export const gitFeature = {
         this.gitError = 'No other local branches found.';
         return;
       }
-      const selectedBranchName = await this.openSelectDialog('Checkout branch', 'Switch to an existing local branch. Relay reloads the workspace after checkout.', branches.map(branch => ({
+      const selectedBranchName = await this.openSelectDialog('Checkout branch', 'Switch to an existing local branch. Kurlo reloads the workspace after checkout.', branches.map(branch => ({
         value: branch.name,
         label: branch.name,
         description: branch.upstream ? `Tracks ${branch.upstream}` : 'Local branch',
@@ -930,7 +930,7 @@ export const gitFeature = {
       this.gitError = 'Commit or discard local Git changes before creating a branch from another base.';
       await this.openAlertDialog(
         'Branch creation blocked',
-        `You have ${count} local Git change${count === 1 ? '' : 's'}. Relay can create a branch from the current HEAD, but creating one from ${startPoint} requires a clean workspace.`
+        `You have ${count} local Git change${count === 1 ? '' : 's'}. Kurlo can create a branch from the current HEAD, but creating one from ${startPoint} requires a clean workspace.`
       );
       return;
     }
@@ -962,7 +962,7 @@ export const gitFeature = {
       this.gitError = 'Commit or discard local Git changes before creating a branch from remote.';
       await this.openAlertDialog(
         'Track remote blocked',
-        `You have ${count} local Git change${count === 1 ? '' : 's'}. Relay will not create or switch tracking branches until those changes are committed or discarded.`
+        `You have ${count} local Git change${count === 1 ? '' : 's'}. Kurlo will not create or switch tracking branches until those changes are committed or discarded.`
       );
       return;
     }
@@ -997,7 +997,7 @@ export const gitFeature = {
       await this.checkoutGitBranch(existingLocal.name);
       return;
     }
-    const branchName = await this.openPromptDialog('Local branch name', selected?.name ?? startPoint.replace(/^[^/]+\//, ''), 'Relay will create and check out this local tracking branch.');
+    const branchName = await this.openPromptDialog('Local branch name', selected?.name ?? startPoint.replace(/^[^/]+\//, ''), 'Kurlo will create and check out this local tracking branch.');
     if (!branchName) return;
     this.gitLoading = true;
     this.gitAction = 'branch-track';
@@ -1064,7 +1064,7 @@ export const gitFeature = {
       remote ? 'Rename remote branch' : 'Rename local branch',
       shortName,
       remote
-        ? 'Relay recreates the branch under the new name on the remote, deletes the old name, and re-points any local tracking branch. This affects everyone who uses that remote.'
+        ? 'Kurlo recreates the branch under the new name on the remote, deletes the old name, and re-points any local tracking branch. This affects everyone who uses that remote.'
         : 'Renames only the local branch. The remote branch, if any, keeps its old name until you rename it on the remote too.'
     ))?.trim();
     if (!newName || newName === shortName) return;
@@ -1154,7 +1154,7 @@ export const gitFeature = {
     const count = selectedPaths.length;
     const confirmed = await this.openConfirmDialog(
       'Discard selected changes',
-      `Discard local changes in ${count} selected Relay file${count === 1 ? '' : 's'} and reload the workspace? This cannot be undone.`
+      `Discard local changes in ${count} selected Kurlo file${count === 1 ? '' : 's'} and reload the workspace? This cannot be undone.`
     );
     if (!confirmed) return;
     this.cancelPendingPersistTimers();
@@ -1164,7 +1164,7 @@ export const gitFeature = {
     this.gitMessage = '';
     try {
       const result = await gitDiscardWorkspaceFiles(selectedPaths);
-      await this.applyWorkspaceOpenResult(result, `Discarded ${count} selected Relay file${count === 1 ? '' : 's'}`);
+      await this.applyWorkspaceOpenResult(result, `Discarded ${count} selected Kurlo file${count === 1 ? '' : 's'}`);
       if (!result.ok && !result.error) this.gitError = `Could not discard ${count} selected file${count === 1 ? '' : 's'}`;
     } catch (error) {
       this.gitError = error instanceof Error ? error.message : String(error);
@@ -1178,8 +1178,8 @@ export const gitFeature = {
     if (!this.gitStatus.isRepo || !this.gitStatus.files.length) return;
     const count = this.gitStatus.files.length;
     const confirmed = await this.openConfirmDialog(
-      'Discard Relay changes',
-      `Discard local Relay workspace changes and reload from the current commit? This affects Relay-managed files only and cannot be undone.`
+      'Discard Kurlo changes',
+      `Discard local Kurlo workspace changes and reload from the current commit? This affects Kurlo-managed files only and cannot be undone.`
     );
     if (!confirmed) return;
     this.cancelPendingPersistTimers();
@@ -1189,7 +1189,7 @@ export const gitFeature = {
     this.gitMessage = '';
     try {
       const result = await gitDiscardWorkspaceChanges();
-      await this.applyWorkspaceOpenResult(result, `Discarded local Relay changes`);
+      await this.applyWorkspaceOpenResult(result, `Discarded local Kurlo changes`);
       if (!result.ok && !result.error) this.gitError = `Could not discard ${count} changed file${count === 1 ? '' : 's'}`;
     } catch (error) {
       this.gitError = error instanceof Error ? error.message : String(error);
@@ -1208,7 +1208,7 @@ export const gitFeature = {
       const result = await gitStageWorkspaceFiles();
       await this.applyGitOperationResult(result, (stageResult) => {
         const count = stageResult.files?.length ?? 0;
-        return count ? `Staged ${count} Relay file${count === 1 ? '' : 's'}` : 'No Relay file changes to stage';
+        return count ? `Staged ${count} Kurlo file${count === 1 ? '' : 's'}` : 'No Kurlo file changes to stage';
       });
     } catch (error) {
       this.gitError = error instanceof Error ? error.message : String(error);
@@ -1221,7 +1221,7 @@ export const gitFeature = {
     this.closeFloatingMenus();
     if (!await this.beginGitMutation('Committing')) return;
     const selectedPaths = [...new Set(paths.map(path => path.trim()).filter(Boolean))];
-    const message = await this.openPromptDialog(selectedPaths.length ? 'Commit selected Relay files' : 'Commit Relay workspace', 'Update Relay workspace');
+    const message = await this.openPromptDialog(selectedPaths.length ? 'Commit selected Kurlo files' : 'Commit Kurlo workspace', 'Update Kurlo workspace');
     if (!message) return;
     this.gitLoading = true;
     this.gitAction = selectedPaths.length ? 'commit-selected' : 'commit';
@@ -1233,7 +1233,7 @@ export const gitFeature = {
         : await gitCommitWorkspace(message);
       const ok = await this.applyGitOperationResult(result, (commitResult) => {
         const count = commitResult.files?.length ?? 0;
-        return count ? `Committed ${count} Relay file${count === 1 ? '' : 's'}` : 'Committed Relay workspace files';
+        return count ? `Committed ${count} Kurlo file${count === 1 ? '' : 's'}` : 'Committed Kurlo workspace files';
       });
       if (ok) this.showGitToast(formatGitCommitToast(result));
     } catch (error) {
@@ -1278,8 +1278,8 @@ export const gitFeature = {
         const dirty = !this.gitStatus.clean;
         const strategy = dirty ? 'autostash' : 'rebase';
         const detail = dirty
-          ? 'You have uncommitted edits, so Relay will stash them, rebase onto the remote, then re-apply.'
-          : 'Relay will rebase your local commits onto the remote.';
+          ? 'You have uncommitted edits, so Kurlo will stash them, rebase onto the remote, then re-apply.'
+          : 'Kurlo will rebase your local commits onto the remote.';
         const confirmed = await this.openConfirmDialog(
           'Remote has new commits',
           `${result.error}\n\n${detail}\n\nPull and then push?`
@@ -1301,7 +1301,7 @@ export const gitFeature = {
         }
         return;
       }
-      const ok = await this.applyGitOperationResult(result, 'Pushed Relay workspace');
+      const ok = await this.applyGitOperationResult(result, 'Pushed Kurlo workspace');
       if (ok) this.showGitToast(formatGitPushToast(result));
     } catch (error) {
       this.gitError = error instanceof Error ? error.message : String(error);
@@ -1326,7 +1326,7 @@ export const gitFeature = {
     if (await this.applyWorkspaceOpenResult(pullResult, 'Pulled remote updates')) this.showGitPullToast(pullResult.pullSummary);
     this.gitAction = 'push';
     const pushResult = await gitPushWorkspace(remoteName);
-    const ok = await this.applyGitOperationResult(pushResult, 'Pulled and pushed Relay workspace');
+    const ok = await this.applyGitOperationResult(pushResult, 'Pulled and pushed Kurlo workspace');
     if (ok) this.showGitToast(formatGitPushToast(pushResult));
   },
   async forcePushGitWorkspace(this: GitHost) {
@@ -1334,12 +1334,12 @@ export const gitFeature = {
     if (!await this.beginGitMutation('Force push')) return;
     const confirmed = await this.openConfirmDialog(
       'Force push with lease',
-      'Force push rewrites the remote branch. Relay refuses if the remote has commits this branch has not taken in yet — even ones a fetch already downloaded. Continue?'
+      'Force push rewrites the remote branch. Kurlo refuses if the remote has commits this branch has not taken in yet — even ones a fetch already downloaded. Continue?'
     );
     if (!confirmed) return;
     if (!this.gitStatus.upstream) {
       this.gitError = 'Push normally first to set an upstream before force pushing.';
-      await this.openAlertDialog('No upstream branch', 'Push this branch normally first. After Relay sets the upstream, force push will know which remote branch to protect with --force-with-lease.');
+      await this.openAlertDialog('No upstream branch', 'Push this branch normally first. After Kurlo sets the upstream, force push will know which remote branch to protect with --force-with-lease.');
       return;
     }
     const remoteName = remoteNameFromUpstream(this.gitStatus.upstream);
@@ -1349,7 +1349,7 @@ export const gitFeature = {
     this.gitMessage = '';
     try {
       const result = await gitForcePushWorkspace(remoteName);
-      await this.applyGitOperationResult(result, 'Force pushed Relay workspace');
+      await this.applyGitOperationResult(result, 'Force pushed Kurlo workspace');
     } catch (error) {
       this.gitError = error instanceof Error ? error.message : String(error);
     } finally {

@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 func requestUsesProxy(req model.HttpRequest, httpReq *http.Request) bool {

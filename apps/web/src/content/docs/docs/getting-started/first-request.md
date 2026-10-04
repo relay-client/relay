@@ -12,7 +12,7 @@ This walkthrough takes about five minutes. By the end you'll have:
 
 ## 1. Create a workspace
 
-Workspaces are top-level containers — think one per project or per client. On first launch Relay creates a **Default** workspace; you can rename it or add more from the workspace switcher in the top-left.
+Workspaces are top-level containers — think one per project or per client. On first launch Kurlo creates a **Default** workspace; you can rename it or add more from the workspace switcher in the top-left.
 
 ## 2. Send an ad-hoc request
 
@@ -28,7 +28,7 @@ The response panel shows the JSON body with syntax highlighting, response header
 
 ![Response status bar](../../../../assets/screenshots/status-bar.png)
 
-> Tip: you can paste a `curl ...` command into the URL field — Relay will parse method, headers, params, and body automatically.
+> Tip: you can paste a `curl ...` command into the URL field — Kurlo will parse method, headers, params, and body automatically.
 
 ### Bulk edit
 
@@ -65,7 +65,7 @@ Use the **Headers** tab for API-specific metadata such as trace IDs, content neg
 
 ![Headers tab with a custom trace header](../../../../assets/screenshots/headers-tab.png)
 
-`Host` works here: set it to reach a virtual host or a service behind a load balancer, and the connection still goes to the URL's address. A handful of others — `Content-Length`, `Transfer-Encoding`, `Connection`, `Upgrade`, `Keep-Alive`, `TE`, `Trailer`, and the `Proxy-*` pair — control how the request is framed on the connection, so Relay sets them itself and does not send yours. When you have one enabled, the response panel says which ones were left off rather than letting you wonder why the server ignored them.
+`Host` works here: set it to reach a virtual host or a service behind a load balancer, and the connection still goes to the URL's address. A handful of others — `Content-Length`, `Transfer-Encoding`, `Connection`, `Upgrade`, `Keep-Alive`, `TE`, `Trailer`, and the `Proxy-*` pair — control how the request is framed on the connection, so Kurlo sets them itself and does not send yours. When you have one enabled, the response panel says which ones were left off rather than letting you wonder why the server ignored them.
 
 ## 5. Assert with a test script
 
