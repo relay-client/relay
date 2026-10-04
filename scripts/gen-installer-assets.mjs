@@ -58,13 +58,13 @@ await bmp(welcome, join(windows, 'welcome.bmp'));
 await sharp(welcome).png().toFile(join(windows, 'welcome.png'));
 await bmp(svg(300, 114, `<rect width="300" height="114" fill="#ffffff"/>${text(38, 70, 32, '#292d45', 'Kurlo', 'font-weight="bold"')}${logo(206, 21, 72)}`), join(windows, 'header.bmp'));
 
-const dmgBackground = svg(720, 460, `
+const dmgBackground = svg(720, 500, `
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbfbfe"/><stop offset="1" stop-color="#eceef7"/></linearGradient>
     <radialGradient id="glow" cx="360" cy="250" r="300" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#5865f2" stop-opacity="0.07"/><stop offset="1" stop-color="#5865f2" stop-opacity="0"/></radialGradient>
   </defs>
-  <rect width="720" height="460" fill="url(#bg)"/>
-  <rect width="720" height="460" fill="url(#glow)"/>
+  <rect width="720" height="500" fill="url(#bg)"/>
+  <rect width="720" height="500" fill="url(#glow)"/>
   ${logo(314, 44, 30)}
   ${text(352, 67, 21, '#1f2333', 'Kurlo', 'font-weight="600" letter-spacing="-0.3"')}
   <path d="M282 244C322 214 398 214 438 244" fill="none" stroke="#5865f2" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 9"/>

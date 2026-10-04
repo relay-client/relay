@@ -49,7 +49,7 @@ create-dmg \
   --icon-size 104 \
   --icon "$APP_NAME" 190 254 \
   --hide-extension "$APP_NAME" \
-  --icon ".background" 900 100 \
+  --icon ".background" 600 120 \
   --app-drop-link 530 254 \
   --no-internet-enable \
   "$OUT_DMG" \
