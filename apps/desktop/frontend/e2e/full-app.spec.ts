@@ -1788,8 +1788,16 @@ test.describe('Kurlo desktop browser E2E', () => {
 
     const state = await page.evaluate(() => window.__kurloE2E);
     expect(state.sentRequests).toHaveLength(4);
-    expect(state.sentRequests.some(req => String(req.url).includes('https://api.kurlo.test/login'))).toBe(true);
-    expect(state.sentRequests.some(req => String(req.url).includes('https://api.kurlo.test/graphql'))).toBe(true);
+    const sentTo = (target: string) => state.sentRequests.some(req => {
+      try {
+        const url = new URL(String(req.url));
+        return `${url.origin}${url.pathname}` === target;
+      } catch {
+        return false;
+      }
+    });
+    expect(sentTo('https://api.kurlo.test/login')).toBe(true);
+    expect(sentTo('https://api.kurlo.test/graphql')).toBe(true);
     expect(state.sentRequests.some(req => String(req.body).includes(requestPassword))).toBe(true);
     expect(state.sseConnects).toHaveLength(1);
     expect(state.grpcDiscoveries.some(req => String(req.target).includes('grpc.kurlo.test:443'))).toBe(true);
