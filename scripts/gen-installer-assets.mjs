@@ -7,7 +7,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const build = join(root, 'apps/desktop/build');
 const icon = await sharp(join(build, 'appicon.png')).trim().png().toBuffer();
 const mark = icon.toString('base64');
-const font = 'Arial, Helvetica, sans-serif';
+const font = "'Helvetica Neue', Helvetica, Arial, sans-serif";
 const svg = (width, height, content) => Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${content}</svg>`);
 const logo = (x, y, size) => `<image href="data:image/png;base64,${mark}" x="${x}" y="${y}" width="${size}" height="${size}"/>`;
 const text = (x, y, size, color, label, extra = '') => `<text x="${x}" y="${y}" font-family="${font}" font-size="${size}" fill="${color}" ${extra}>${label}</text>`;
@@ -59,17 +59,17 @@ await sharp(welcome).png().toFile(join(windows, 'welcome.png'));
 await bmp(svg(300, 114, `<rect width="300" height="114" fill="#ffffff"/>${text(38, 70, 32, '#292d45', 'Kurlo', 'font-weight="bold"')}${logo(206, 21, 72)}`), join(windows, 'header.bmp'));
 
 const dmgBackground = svg(720, 460, `
-  <defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#f8f9ff"/><stop offset="1" stop-color="#e9edff"/></linearGradient></defs>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbfbfe"/><stop offset="1" stop-color="#eceef7"/></linearGradient>
+    <radialGradient id="glow" cx="360" cy="250" r="300" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#5865f2" stop-opacity="0.07"/><stop offset="1" stop-color="#5865f2" stop-opacity="0"/></radialGradient>
+  </defs>
   <rect width="720" height="460" fill="url(#bg)"/>
-  ${logo(42, 34, 48)}
-  ${text(106, 68, 30, '#232842', 'Kurlo', 'font-weight="bold"')}
-  ${text(42, 119, 18, '#636b88', 'Your APIs. Your workspace.')}
-  <path d="M42 148H678" stroke="#d7dcf0"/>
-  <rect x="107" y="176" width="166" height="166" rx="32" fill="#ffffff" fill-opacity=".65" stroke="#d9def1"/>
-  <rect x="447" y="176" width="166" height="166" rx="32" fill="#ffffff" fill-opacity=".65" stroke="#d9def1"/>
-  <path d="M321 254H396M380 238L396 254L380 270" fill="none" stroke="#5865f2" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-  ${text(360, 393, 20, '#232842', 'Drag Kurlo into Applications', 'text-anchor="middle" font-weight="bold"')}
-  ${text(360, 424, 14, '#636b88', 'Then open Kurlo from your Applications folder.', 'text-anchor="middle"')}
+  <rect width="720" height="460" fill="url(#glow)"/>
+  ${logo(314, 44, 30)}
+  ${text(352, 67, 21, '#1f2333', 'Kurlo', 'font-weight="600" letter-spacing="-0.3"')}
+  <path d="M282 244C322 214 398 214 438 244" fill="none" stroke="#5865f2" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 9"/>
+  <path d="M435.5 233.6L441 246.5L427.1 244.8" fill="none" stroke="#5865f2" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  ${text(360, 398, 14, '#6a7088', 'Drag Kurlo to Applications to install', 'text-anchor="middle"')}
 `);
 await sharp(dmgBackground).png().toFile(join(darwin, 'dmg-background.png'));
 await sharp(dmgBackground, { density: 144 }).withMetadata({ density: 144 }).png().toFile(join(darwin, 'dmg-background@2x.png'));
