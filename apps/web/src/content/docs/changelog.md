@@ -5,7 +5,7 @@ description: Notable Kurlo changes and links to the exact notes for each publish
 
 This page summarizes the notable-change log maintained in the source repository. For the exact notes and artifacts attached to every published tag, use the [Kurlo releases page](https://github.com/stormhop/kurlo/releases).
 
-## Unreleased
+## 2.2.1
 
 ### Fixed
 
