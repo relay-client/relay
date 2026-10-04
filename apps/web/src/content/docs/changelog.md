@@ -5,6 +5,13 @@ description: Notable Kurlo changes and links to the exact notes for each publish
 
 This page summarizes the notable-change log maintained in the source repository. For the exact notes and artifacts attached to every published tag, use the [Kurlo releases page](https://github.com/stormhop/kurlo/releases).
 
+## Unreleased
+
+### Fixed
+
+- **The macOS disk image window no longer scrolls** when Finder shows hidden files.
+- **The download buttons on this site** show a new release as soon as it is published.
+
 ## 2.2.0
 
 ### Changed

@@ -5,6 +5,13 @@ All notable changes to Kurlo are documented here. This project follows
 
 ---
 
+## [Unreleased]
+
+### Fixed
+
+- **The macOS disk image window scrolled when hidden files were shown.** The folder that holds the background sat outside the window, so Finder made room to reach it; it now sits inside the window. The background also fills the window's full height, so no blank strip shows under it.
+- **The download buttons on kurlo.dev kept offering the previous release for up to half an hour after a new one was published.** The page remembered the latest release in the tab; it now asks GitHub each time and lets the browser's own one-minute cache do the rest.
+
 ## [2.2.0] - 2026-10-04
 
 ### Changed
