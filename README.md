@@ -153,7 +153,7 @@ make build-all
 make check
 ```
 
-See `make help` for every available target, and [docs/RELEASING.md](docs/RELEASING.md) for how releases are cut, signed, and published.
+See `make help` for every available target.
 
 ---
 
