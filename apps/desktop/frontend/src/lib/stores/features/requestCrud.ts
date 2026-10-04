@@ -476,7 +476,13 @@ export const requestCrudFeature = {
         if (saved === false) this.discardDraftRequest(draftId);
       }
       if (!(await this.persistRequestStore())) {
-        await cancelQuit();
+        const quitAnyway = await this.openConfirmDialog(
+          'Quit without saving?',
+          'Kurlo could not save your latest changes. Quit anyway and lose them, or stay and fix the problem first.',
+          'Quit without saving'
+        );
+        if (quitAnyway) await confirmQuit();
+        else await cancelQuit();
         return;
       }
       await confirmQuit();

@@ -26,6 +26,7 @@
     workspaceDiagnosticLocation = (diagnostic: WorkspaceDiagnostic) => diagnostic.path,
     onRefresh,
     onUseLocal,
+    onUseAppStorage = () => {},
     onCreateLocal,
     onOpen,
     onClone,
@@ -78,6 +79,7 @@
     workspaceDiagnosticLocation?: (diagnostic: WorkspaceDiagnostic) => string;
     onRefresh: () => void | Promise<void>;
     onUseLocal: () => void | Promise<void>;
+    onUseAppStorage?: () => void | Promise<void>;
     onCreateLocal: () => void | Promise<void>;
     onOpen: () => void | Promise<void>;
     onClone: () => void | Promise<void>;
@@ -1185,6 +1187,13 @@
               <GitIcon name="folder-plus" busy={isBusy('local-create')} />
               <strong>New folder workspace</strong>
               <small>Create an empty workspace or copy the current one</small>
+            </button>
+          {/if}
+          {#if workspaceMissing}
+            <button class="option-card git-local-option" class:loading={isBusy('use-app-storage')} type="button" onclick={onUseAppStorage} disabled={loading} aria-busy={isBusy('use-app-storage')}>
+              <GitIcon name="folder-open" busy={isBusy('use-app-storage')} />
+              <strong>Use Kurlo's app storage</strong>
+              <small>Switch back to the workspaces Kurlo keeps in its own data folder</small>
             </button>
           {/if}
           <button class="option-card git-local-option" class:loading={isBusy('open')} type="button" onclick={onOpen} disabled={loading} aria-busy={isBusy('open')}>

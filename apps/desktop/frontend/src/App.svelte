@@ -624,6 +624,7 @@
         workspaceDiagnosticLocation={vm.workspaceDiagnosticLocation}
         onRefresh={vm.refreshGitStatus}
         onUseLocal={vm.useLocalWorkspace}
+        onUseAppStorage={vm.useAppStorage}
         onCreateLocal={vm.createLocalFolderWorkspace}
         onOpen={vm.openGitWorkspace}
         onClone={vm.cloneGitWorkspace}

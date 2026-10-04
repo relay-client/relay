@@ -200,6 +200,7 @@ async function installKurloBridge(page: Page, largeResponseBody = '', runtime = 
       historyResponses: {},
       gitStatusOverride: null,
       gitBranchesOverride: null,
+      failSaves: false,
       cookieSync: {
         enabled: false,
         running: false,
@@ -392,8 +393,15 @@ async function installKurloBridge(page: Page, largeResponseBody = '', runtime = 
       AppInfo: async () => ({ name: 'Kurlo', version: 'dev', runtime, goVersion: 'e2e' }),
       LoadWorkspaceDiagnostics: async () => [],
       LoadRequestStore: async () => JSON.stringify(state.store),
+      ConfirmQuit: async () => {
+        state.calls.push('ConfirmQuit');
+      },
+      CancelQuit: async () => {
+        state.calls.push('CancelQuit');
+      },
       SaveRequestStoreWithError: async (payload) => {
         state.calls.push('SaveRequestStore');
+        if (state.failSaves) return { ok: false, error: 'Workspace folder no longer exists.' };
         state.store = parseStore(payload);
         state.savedStores.push(clone(state.store));
         return { ok: true, error: '' };
@@ -687,6 +695,11 @@ async function installKurloBridge(page: Page, largeResponseBody = '', runtime = 
         truncated: false,
         error: '',
       }),
+      UseLocalWorkspaceStore: async () => {
+        state.calls.push('UseLocalWorkspaceStore');
+        state.gitStatusOverride = null;
+        return { ok: true, root: '', payload: JSON.stringify(state.store), git: currentGitStatus(), diagnostics: [], missingSecrets: [], error: '', output: '' };
+      },
       GitStageWorkspaceFiles: async () => {
         state.calls.push('GitStageWorkspaceFiles');
         return { ok: true, git: currentGitStatus(), files: [], error: '', output: '' };
@@ -2362,6 +2375,71 @@ test.describe('Kurlo desktop browser E2E', () => {
     expect(calls[commitIndex]).toBe('GitCommitWorkspace:Update the login request');
     expect(saveIndex).toBeGreaterThan(-1);
     expect(saveIndex).toBeLessThan(commitIndex);
+  });
+
+  test('recovers a missing workspace folder by switching back to app storage', async ({ page }) => {
+    await installKurloBridge(page);
+    await page.goto('/');
+    await expect(page.getByRole('button', { name: 'Collections' })).toBeVisible();
+
+    await setGitStatus(page, {
+      isRepo: false,
+      workspaceRoot: '/Users/ada/Library/Application Support/OldApp/workspaces',
+      missingRoot: true,
+    });
+
+    await openGitPanel(page);
+    await expect(page.locator('.git-local-eyebrow')).toHaveText('Folder missing');
+
+    await page.evaluate(() => { window.__kurloE2E.calls.length = 0; });
+    await page.getByRole('button', { name: /Use Kurlo's app storage/ }).click();
+
+    await expect(page.locator('.git-local-eyebrow')).not.toHaveText('Folder missing');
+    const calls = await page.evaluate(() => window.__kurloE2E.calls);
+    expect(calls).toContain('UseLocalWorkspaceStore');
+    expect(calls.some(call => call.startsWith('CreateLocalWorkspaceRoot'))).toBe(false);
+  });
+
+  test('offers to quit without saving when the last save fails', async ({ page }) => {
+    await installKurloBridge(page);
+    await page.goto('/');
+    await expect(page.getByRole('button', { name: 'Collections' })).toBeVisible();
+
+    await page.evaluate(() => {
+      const state = window.__kurloE2E as unknown as { failSaves: boolean; calls: string[] };
+      state.failSaves = true;
+      state.calls.length = 0;
+      window.__kurloE2E.emit('kurlo:before-quit', null);
+    });
+
+    const dialog = page.getByRole('dialog', { name: 'Quit without saving?' });
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('button', { name: 'Quit without saving' }).click();
+
+    await expect.poll(() => page.evaluate(() => window.__kurloE2E.calls)).toContain('ConfirmQuit');
+    const calls = await page.evaluate(() => window.__kurloE2E.calls);
+    expect(calls).not.toContain('CancelQuit');
+  });
+
+  test('stays open when quitting without saving is declined', async ({ page }) => {
+    await installKurloBridge(page);
+    await page.goto('/');
+    await expect(page.getByRole('button', { name: 'Collections' })).toBeVisible();
+
+    await page.evaluate(() => {
+      const state = window.__kurloE2E as unknown as { failSaves: boolean; calls: string[] };
+      state.failSaves = true;
+      state.calls.length = 0;
+      window.__kurloE2E.emit('kurlo:before-quit', null);
+    });
+
+    const dialog = page.getByRole('dialog', { name: 'Quit without saving?' });
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('button', { name: 'Cancel' }).click();
+
+    await expect.poll(() => page.evaluate(() => window.__kurloE2E.calls)).toContain('CancelQuit');
+    const calls = await page.evaluate(() => window.__kurloE2E.calls);
+    expect(calls).not.toContain('ConfirmQuit');
   });
 
   test('Git panel refuses to switch branches while the workspace has local changes', async ({ page }) => {

@@ -1645,6 +1645,20 @@ class AppVM {
     }
   }
 
+  async useAppStorage() {
+    this.closeFloatingMenus();
+    this.gitLoading = true;
+    this.gitAction = 'use-app-storage';
+    this.gitError = '';
+    try {
+      const result = await useLocalWorkspaceStore();
+      await this.applyWorkspaceOpenResult(result, 'Using Kurlo app storage');
+    } finally {
+      this.gitLoading = false;
+      if (this.gitAction === 'use-app-storage') this.gitAction = '';
+    }
+  }
+
   async createLocalFolderWorkspace() {
     this.closeFloatingMenus();
     await this.persistActiveRequestNow(true);
