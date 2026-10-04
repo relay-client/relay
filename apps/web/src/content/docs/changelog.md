@@ -5,27 +5,21 @@ description: Notable Kurlo changes and links to the exact notes for each publish
 
 This page summarizes the notable-change log maintained in the source repository. For the exact notes and artifacts attached to every published tag, use the [Kurlo releases page](https://github.com/stormhop/kurlo/releases).
 
-## Unreleased
-
-### Changed
-
-- Relay is now Kurlo. CLI, workspace paths and application identity use the new name.
-
 ## 2.1.1
 
 ### Added
 
-- **AI assistants can use Relay as tools.** `relay mcp` runs the desktop binary as a Model Context Protocol server, so Claude, Cursor and other MCP clients can list your requests and environments, run a saved request or a whole collection, and send one-off calls with your `{{variables}}`. Values a script sets carry over to later calls, and secret values are masked in everything the assistant gets back. See [MCP server](/docs/guides/mcp-server/).
+- **AI assistants can use Kurlo as tools.** `kurlo mcp` runs the desktop binary as a Model Context Protocol server, so Claude, Cursor and other MCP clients can list your requests and environments, run a saved request or a whole collection, and send one-off calls with your `{{variables}}`. Values a script sets carry over to later calls, and secret values are masked in everything the assistant gets back. See [MCP server](/docs/guides/mcp-server/).
 
 ### Changed
 
-- **The installers look like Relay.** The Windows installer is a modern wizard with Relay's artwork and a quieter install, and the macOS disk image has a branded background laid out for dragging the app to Applications.
-- **The site moved to [relayclient.dev](https://relayclient.dev)**, and its download button now downloads the right file for your platform instead of opening the releases page.
+- **The installers look like Kurlo.** The Windows installer is a modern wizard with Kurlo's artwork and a quieter install, and the macOS disk image has a branded background laid out for dragging the app to Applications.
+- **The site moved to [kurlo.dev](https://kurlo.dev)**, and its download button now downloads the right file for your platform instead of opening the releases page.
 
 ### Fixed
 
 - **Importing a `.env` file keeps backslashes**, so Windows paths such as `C:\new\tmp` survive.
-- **`relay run` no longer crashes on a very large `--iterations`.**
+- **`kurlo run` no longer crashes on a very large `--iterations`.**
 - **Swift snippets** encode multipart field names with a backslash or quote the way browsers do.
 - **The cookie-sync dialog's guide link** opens *Connecting a browser* instead of the top of the page.
 
@@ -39,7 +33,7 @@ This page summarizes the notable-change log maintained in the source repository.
 
 ### Added
 
-- **Relay opens on the request editor** — your tabs, or a new request when there are none. *Settings → General → On launch* can reopen **Where you left off** or always start on the **Workspace overview**. See [Settings](/docs/guides/settings/).
+- **Kurlo opens on the request editor** — your tabs, or a new request when there are none. *Settings → General → On launch* can reopen **Where you left off** or always start on the **Workspace overview**. See [Settings](/docs/guides/settings/).
 - **Zoom.** `Cmd/Ctrl =`, `Cmd/Ctrl −` and `Cmd/Ctrl 0` scale the whole window from 80% to 150%, as in Postman; on macOS they are also in the new **View** menu. See [Keyboard shortcuts](/docs/reference/keyboard-shortcuts/).
 - **Browser emulation goes further.** The Headers tab marks the response headers page code cannot read under CORS, a page on HTTPS is checked for mixed content, and a request from a public page to a loopback or private address warns about Local Network Access. See [Browser security](/docs/guides/browser-security/).
 
@@ -50,8 +44,8 @@ This page summarizes the notable-change log maintained in the source repository.
 ### Fixed
 
 - **CORS follows every redirect** — the redirect must pass CORS, a new origin is preflighted, cookies and `Authorization` are dropped as a browser drops them — and header values are checked as the Fetch standard does. A redirect on the same host keeps `Authorization`.
-- **Variables resolve as expected.** Globals reach `{{...}}`, a value set by a pre-request script is used in the same send, names with non-Latin letters, spaces or colons resolve, the Collection Runner hands scripts the data row, and `relay run` resolves nested variables. See [Environments](/docs/guides/environments/).
-- **A timeout of `0` waits as long as the server takes**, in the app and in `relay run`. See [Request settings](/docs/guides/request-settings/#timeout).
+- **Variables resolve as expected.** Globals reach `{{...}}`, a value set by a pre-request script is used in the same send, names with non-Latin letters, spaces or colons resolve, the Collection Runner hands scripts the data row, and `kurlo run` resolves nested variables. See [Environments](/docs/guides/environments/).
+- **A timeout of `0` waits as long as the server takes**, in the app and in `kurlo run`. See [Request settings](/docs/guides/request-settings/#timeout).
 - **Large responses scroll without blank frames** on the scrollbar, the trackpad and the keyboard, and **response search** highlights matches across a key and its value.
 - **Arrow keys stay where you are.** In a response, a dialog or Settings they no longer switch the request in the sidebar, and `↓` in Settings no longer skips a section.
 - **Streaming and sockets:** a `POST` to an event-stream endpoint shows the stream, SSE follows the event-stream specification, a quiet WebSocket with keep-alive off stays open, handshake headers copied from DevTools no longer break connections, and Socket.IO shows binary events.
@@ -71,7 +65,7 @@ This page summarizes the notable-change log maintained in the source repository.
 
 ### Fixed
 
-- **Updating the MSIX install failed with a permission error.** Relay now recognises the packaged install and offers the new `.msix` for this machine instead of trying to replace itself.
+- **Updating the MSIX install failed with a permission error.** Kurlo now recognises the packaged install and offers the new `.msix` for this machine instead of trying to replace itself.
 - **Some shortcuts never fired on Windows and Linux** — *Reopen closed tab*, *Toggle right sidebar*, *Switch to next/previous tab* and *Force close tab*. Shortcuts also follow the physical key now, so they work on Cyrillic and other non-Latin layouts.
 - **`Cmd/Ctrl+Enter` in a WebSocket or Socket.IO message dropped the connection**, and in a gRPC message invoked the method twice. It sends once now.
 - **Shortcut hints ignored your own bindings**; they show the current binding now.
@@ -84,7 +78,7 @@ This page summarizes the notable-change log maintained in the source repository.
 
 ### Added
 
-- **Relay runs on Windows on Arm.** Releases now carry an Arm64 installer and MSIX package beside the x64 ones; the x64 installer refused to start on Arm machines. See [Installation](/docs/getting-started/installation/#windows). ([#34](https://github.com/relay-client/relay/issues/34))
+- **Kurlo runs on Windows on Arm.** Releases now carry an Arm64 installer and MSIX package beside the x64 ones; the x64 installer refused to start on Arm machines. See [Installation](/docs/getting-started/installation/#windows). ([#34](https://github.com/stormhop/kurlo/issues/34))
 - **A middle click closes a tab**, as in a browser — request tabs and the Runner, Git, Mock, collection and History tabs. A tab with unsaved changes still asks first.
 
 ### Fixed
@@ -97,19 +91,19 @@ This page summarizes the notable-change log maintained in the source repository.
 
 ### Fixed
 
-- **An update on macOS left the old icon behind.** The in-app updater replaced only the program inside `Relay.app`, so the icon and the version Finder shows stayed from the day Relay was first installed. Updates now replace the whole signed app, and a copy that was updated the old way repairs itself on its next start — the new icon appears from the launch after that.
+- **An update on macOS left the old icon behind.** The in-app updater replaced only the program inside `Kurlo.app`, so the icon and the version Finder shows stayed from the day Kurlo was first installed. Updates now replace the whole signed app, and a copy that was updated the old way repairs itself on its next start — the new icon appears from the launch after that.
 - **Every release called itself 1.0.0 to the operating system.** The release build stamped its real version into the program but never into the app's own description, so Finder and *About This Mac* on macOS, and the file properties and *Apps & features* on Windows, showed 1.0.0 whatever version was installed. They show the actual version now.
 
 ---
 
 ## 2.0.0
 
-Relay 2.0 is a new look — the Graphite design, from the window chrome to every screen, menu and dialog — plus MCP requests, a command palette, a page for each history entry and the last run of each collection. It needs macOS 12 or later.
+Kurlo 2.0 is a new look — the Graphite design, from the window chrome to every screen, menu and dialog — plus MCP requests, a command palette, a page for each history entry and the last run of each collection. It needs macOS 12 or later.
 
 ### Added
 
-- **MCP is a request type.** Point Relay at a Model Context Protocol server, press *Discover*, pick a tool, fill the arguments from its schema and send — and read the raw JSON-RPC exchange that went over the wire. An MCP call is an ordinary saved request: diffed in review, run by the collection runner, asserted on by a test script. See [Request types](/docs/guides/request-types/#mcp).
-- **A command palette.** `Cmd/Ctrl K` finds a saved request and also runs Relay's commands — send, save, duplicate, copy as cURL, create, import, jump to any view, change the layout or theme. See [Workspaces](/docs/guides/workspaces/#command-palette).
+- **MCP is a request type.** Point Kurlo at a Model Context Protocol server, press *Discover*, pick a tool, fill the arguments from its schema and send — and read the raw JSON-RPC exchange that went over the wire. An MCP call is an ordinary saved request: diffed in review, run by the collection runner, asserted on by a test script. See [Request types](/docs/guides/request-types/#mcp).
+- **A command palette.** `Cmd/Ctrl K` finds a saved request and also runs Kurlo's commands — send, save, duplicate, copy as cURL, create, import, jump to any view, change the layout or theme. See [Workspaces](/docs/guides/workspaces/#command-palette).
 - **Environments side by side.** A *Matrix* view puts every variable in a row and every environment in a column, edited in place. See [Environments](/docs/guides/environments/#comparing-environments).
 - **A page for each history entry**, with what was sent next to the stored response. See [Request history](/docs/guides/history/#the-entry-view).
 - **Each collection remembers its last run**, shown in the runner and on the collection's page. See [Collection Runner](/docs/guides/collection-runner/#last-run).
@@ -118,11 +112,11 @@ Relay 2.0 is a new look — the Graphite design, from the window chrome to every
 
 - **The Graphite design.** Neutral greys with hairline borders, colour kept for what carries meaning — methods, status codes, variables — and the accent only on the primary action. An activity rail replaces the sidebar's section labels, tabs sit in the title bar, the method lives inside the URL field, and the response opens beside the request in a wide window. Every screen, menu and dialog was brought to it, and every screenshot in these docs was retaken.
 - **A new app icon** — two offset chevrons in the brand blue — on the Dock, the installer, the start-up screen and these pages.
-- **Relay needs macOS 12 Monterey or later**, with the system WebKit from Safari 16.2 or newer. Windows and Linux are unchanged.
+- **Kurlo needs macOS 12 Monterey or later**, with the system WebKit from Safari 16.2 or newer. Windows and Linux are unchanged.
 
 ### Fixed
 
-- A dropdown inside a labelled field reopened after an option was picked on macOS. The end-to-end suite now also runs in WebKit, the engine Relay uses there.
+- A dropdown inside a labelled field reopened after an option was picked on macOS. The end-to-end suite now also runs in WebKit, the engine Kurlo uses there.
 - A stored history response over 2 MB could not be read back.
 - Response line numbers fell behind the text while scrolling fast on macOS, and a sideways scroll could strand them in the middle of a wide response.
 
@@ -132,14 +126,14 @@ Relay 2.0 is a new look — the Graphite design, from the window chrome to every
 
 ### Changed
 
-- **One icon everywhere.** Relay was drawing its own mark five different ways — the app icon, a redrawn copy in these docs, another as the favicon, a third in the app's sidebar, and a fourth in the browser extension — in three gradients and four corner radii. Every one of them is now generated from the icon that ships in the Dock and the installer. The icon you launch is unchanged; everything else caught up to it.
+- **One icon everywhere.** Kurlo was drawing its own mark five different ways — the app icon, a redrawn copy in these docs, another as the favicon, a third in the app's sidebar, and a fourth in the browser extension — in three gradients and four corner radii. Every one of them is now generated from the icon that ships in the Dock and the installer. The icon you launch is unchanged; everything else caught up to it.
 - **This documentation site was rebuilt around reading.** A smaller type scale, tables and code that match it, a landing page the header sits on rather than floating above, and a search dialog that keeps the query in place while results scroll. Screenshots are captured at twice the pixel density, so the app's own text stays legible.
-- **Every guide that shows a Relay window now has a screenshot**, including [response examples](/docs/guides/examples/) and the [mock server](/docs/guides/mock-server/), which shipped without one.
+- **Every guide that shows a Kurlo window now has a screenshot**, including [response examples](/docs/guides/examples/) and the [mock server](/docs/guides/mock-server/), which shipped without one.
 
 ### Fixed
 
-- The README and the landing page had fallen four releases behind: saved examples, cookie sync, the response diff and browser emulation were missing, Digest was described as MD5-only, and the keyboard defaults were spelled with `⌘` — wrong on two of the three platforms Relay runs on. See [Keyboard shortcuts](/docs/reference/keyboard-shortcuts/).
-- Two guides illustrated their feature with the same broken screenshot, and the [privacy page](/privacy/) described only one of the three local listeners Relay can open. See [Mock server](/docs/guides/mock-server/#scope-and-safety).
+- The README and the landing page had fallen four releases behind: saved examples, cookie sync, the response diff and browser emulation were missing, Digest was described as MD5-only, and the keyboard defaults were spelled with `⌘` — wrong on two of the three platforms Kurlo runs on. See [Keyboard shortcuts](/docs/reference/keyboard-shortcuts/).
+- Two guides illustrated their feature with the same broken screenshot, and the [privacy page](/privacy/) described only one of the three local listeners Kurlo can open. See [Mock server](/docs/guides/mock-server/#scope-and-safety).
 
 ---
 
@@ -147,26 +141,26 @@ Relay 2.0 is a new look — the Graphite design, from the window chrome to every
 
 ### Added
 
-- **Sync cookies from your browser.** The cookie jar's *Sync Cookies* tab used to be a disabled placeholder; it now pairs Relay with a browser extension, so the session you already have in Chrome, Edge, Brave or Arc is the session Relay sends with — no more copying a `Cookie:` header out of DevTools after every login. See [Cookies](/docs/guides/cookies/).
-- **Pairing is a click.** The extension finds Relay on its own and asks to connect; Relay shows the request with a six-digit code that the extension shows too, and approving it hands over a token. Matching the codes is what stops anything else on the machine from being approved in the browser's place. After the first approval the browser reconnects by itself.
-- **Cookies arrive as they change**, over a WebSocket, within a second of the browser setting them — with a full reconciliation on connect and every five minutes, so a cookie cleared while the browser was closed disappears in Relay too. Signing out of a site clears the cookie here as well.
-- **Three gates stand in front of every cookie**: the bridge is loopback-only and off until you turn it on, no token exists until you approve the browser, and a domain is read only if it is on Relay's allowlist *and* granted to the extension in the browser. Relay names the domains the browser was never allowed to read instead of quietly covering fewer than the list suggests.
+- **Sync cookies from your browser.** The cookie jar's *Sync Cookies* tab used to be a disabled placeholder; it now pairs Kurlo with a browser extension, so the session you already have in Chrome, Edge, Brave or Arc is the session Kurlo sends with — no more copying a `Cookie:` header out of DevTools after every login. See [Cookies](/docs/guides/cookies/).
+- **Pairing is a click.** The extension finds Kurlo on its own and asks to connect; Kurlo shows the request with a six-digit code that the extension shows too, and approving it hands over a token. Matching the codes is what stops anything else on the machine from being approved in the browser's place. After the first approval the browser reconnects by itself.
+- **Cookies arrive as they change**, over a WebSocket, within a second of the browser setting them — with a full reconciliation on connect and every five minutes, so a cookie cleared while the browser was closed disappears in Kurlo too. Signing out of a site clears the cookie here as well.
+- **Three gates stand in front of every cookie**: the bridge is loopback-only and off until you turn it on, no token exists until you approve the browser, and a domain is read only if it is on Kurlo's allowlist *and* granted to the extension in the browser. Kurlo names the domains the browser was never allowed to read instead of quietly covering fewer than the list suggests.
 - The extension ships in the repository under `apps/extension` for Chromium browsers, with a Firefox manifest alongside it.
 
 ### Fixed
 
-- **Open log folder in Settings did nothing.** A dependency update started rejecting `file:` URLs outright, so the button was refused with no error anywhere you could see it. Relay now hands the folder to the platform file manager directly and reports a failure in the row.
-- **Disconnecting a browser left its extension retrying forever**, because the socket closed without saying why. Relay now distinguishes "disconnected on purpose" from "shutting down", and the extension drops a dead token and asks to connect again instead of reconnecting with a key that will never be accepted.
+- **Open log folder in Settings did nothing.** A dependency update started rejecting `file:` URLs outright, so the button was refused with no error anywhere you could see it. Kurlo now hands the folder to the platform file manager directly and reports a failure in the row.
+- **Disconnecting a browser left its extension retrying forever**, because the socket closed without saying why. Kurlo now distinguishes "disconnected on purpose" from "shutting down", and the extension drops a dead token and asks to connect again instead of reconnecting with a key that will never be accepted.
 
 ## 1.7.0
 
 ### Added
 
-- **A local mock server.** Point it at a collection and Relay serves every [saved example](/docs/guides/examples/) it holds over HTTP, so a client can be written against an endpoint that does not exist yet — or against the failure cases a staging environment will not produce on demand. No account, no cloud: a port on your own machine, serving files that are already in your Git history. See [Mock server](/docs/guides/mock-server/).
+- **A local mock server.** Point it at a collection and Kurlo serves every [saved example](/docs/guides/examples/) it holds over HTTP, so a client can be written against an endpoint that does not exist yet — or against the failure cases a staging environment will not produce on demand. No account, no cloud: a port on your own machine, serving files that are already in your Git history. See [Mock server](/docs/guides/mock-server/).
 - Routing is the method plus the example's path template, so a response captured from `/orders/8123` answers `/orders/:id`. A literal segment beats a parameter, and an example that recorded query parameters only answers requests carrying them — which is how one endpoint serves its empty, its full and its error case from three examples.
 - **A live log of what your client asked for**, with the unmatched requests called out. Those are the useful ones: they separate "my client is wrong" from "no example covers this yet", and a request matching nothing gets a 404 that names the routes which do exist.
 - The mock **reloads when you edit an example** it is serving, so it never answers with something you already changed. Two examples that would answer the same request are flagged, since only the first can ever reply.
-- **Response examples and the mock server are now documented**, and the docs no longer claim Relay has no mock server. See [Response examples](/docs/guides/examples/) and [Mock server](/docs/guides/mock-server/).
+- **Response examples and the mock server are now documented**, and the docs no longer claim Kurlo has no mock server. See [Response examples](/docs/guides/examples/) and [Mock server](/docs/guides/mock-server/).
 
 ### Fixed
 
@@ -179,14 +173,14 @@ Relay 2.0 is a new look — the Graphite design, from the window chrome to every
 ### Added
 
 - **Import an OpenAPI or Swagger spec from a link.** Every import path wanted a file, so bringing in a spec meant downloading it first — and the URL is what teams actually pass around, because it is the one that stays current. **Import collection → OpenAPI / Swagger from URL** takes the link and builds the same collection the file import would: `{{baseUrl}}` as a collection variable, path parameters seeded from the spec, and declared security schemes mapped onto each request's auth. See [Import and export](/docs/guides/import-export/).
-- A link that turns out not to be a spec explains which of the several things went wrong. Pasting the Swagger UI page instead of the document it renders is the common one, and Relay says so rather than reporting a parse failure.
+- A link that turns out not to be a spec explains which of the several things went wrong. Pasting the Swagger UI page instead of the document it renders is the common one, and Kurlo says so rather than reporting a parse failure.
 
 ### Fixed
 
 - **Uploads went out without a `Content-Length`.** A file body and a multipart body were sent chunked, which S3 presigned uploads, Azure Blob and a fair number of gateways reject outright — often with nothing more than `411 Length Required`. Both declare their size now, and a file body survives a redirect instead of abandoning the send.
 - **AWS Signature v4 was rejected by everything except S3 when the path needed escaping.** Lambda's invoke URL carries the function ARN in the path, colons and all, and every service but S3 wants that path encoded twice. Those requests came back `SignatureDoesNotMatch`.
 - **The Authorization tab silently replaced a header you typed yourself.** It still wins, but the response panel now tells you it did, instead of leaving you looking at a header that never went out.
-- **Pasted cURL commands lost things Relay can represent**: a form part's `Content-Type`, and the `-k`, `--max-time` and `--proxy` flags, so the request quietly behaved differently from the command.
+- **Pasted cURL commands lost things Kurlo can represent**: a form part's `Content-Type`, and the `-k`, `--max-time` and `--proxy` flags, so the request quietly behaved differently from the command.
 - **Copying a request as cURL or as a code snippet mislabelled the body.** An XML, HTML or plain-text body arrived as curl's default `application/x-www-form-urlencoded` — a different request from the one you copied.
 - **A second value for a query parameter already in the URL was dropped**, so `?tag=a` in the URL with `tag=b` in the Params tab sent only the first.
 - **Capturing a response example rewrote the body** even when nothing was redacted, which turned an id larger than JavaScript's safe integer range into a different number. See [Response examples](/docs/guides/response-viewer/).
@@ -196,7 +190,7 @@ Relay 2.0 is a new look — the Graphite design, from the window chrome to every
 ### Added
 
 - **Response examples.** Keep what an endpoint actually returned, next to the request that asked for it. Capture one from the response panel or from a history entry, edit it by hand, and keep as many as the endpoint has interesting outcomes. Examples live in the workspace files, so a change to one is a reviewable diff in Git rather than something only you can see — and secrets are redacted on capture, in three passes, because a response body is where a token is most likely to slip into a commit.
-- **Examples come in with your collections.** Postman saved responses, OpenAPI `responses` (including one derived from the schema when the spec writes no example), OpenCollection, and HAR — a HAR file is a recording of real request/response pairs, and until now Relay imported only the request half. See [Import and export](/docs/guides/import-export/).
+- **Examples come in with your collections.** Postman saved responses, OpenAPI `responses` (including one derived from the schema when the spec writes no example), OpenCollection, and HAR — a HAR file is a recording of real request/response pairs, and until now Kurlo imported only the request half. See [Import and export](/docs/guides/import-export/).
 - **Compare a response with a saved example.** The Diff tab can use an example as its baseline instead of the previous response, which is how you notice an API that changed shape without anyone saying so. See [Response viewer](/docs/guides/response-viewer/).
 - **Multipart parts can carry their own Content-Type**, so an API that validates the MIME type of an upload stops rejecting them.
 
@@ -217,7 +211,7 @@ Relay 2.0 is a new look — the Graphite design, from the window chrome to every
 
 - **Request history keeps the response.** Opening an entry restores what came back alongside the request — no re-sending to find out, which would answer a different question anyway. A row's ••• menu has **View response** for looking without reopening. Bodies are stored in their own encrypted files, capped at 2 MB, and deleted with their entry. See [Request history](/docs/guides/history/).
 - **Variables can be built from other variables.** `baseUrl = {{scheme}}://{{host}}` resolves now, so retargeting a whole collection at staging is one edit. See [Environments and variables](/docs/guides/environments/).
-- **`relay run` obtains its own OAuth 2.0 tokens.** Client credentials and password grants are fetched from the token endpoint; the interactive grants fall back to a stored refresh token. An OAuth-protected collection can finally run in CI. See [CLI runner](/docs/guides/cli-runner/).
+- **`kurlo run` obtains its own OAuth 2.0 tokens.** Client credentials and password grants are fetched from the token endpoint; the interactive grants fall back to a stored refresh token. An OAuth-protected collection can finally run in CI. See [CLI runner](/docs/guides/cli-runner/).
 - **Authorization for WebSocket and Socket.IO.** The handshake always carried auth; the tab to configure it was missing.
 - **SSE reconnection and WebSocket keep-alive are configurable**, and the **`Host` header** can be set. See [Request settings](/docs/guides/request-settings/).
 
@@ -241,15 +235,15 @@ Relay 2.0 is a new look — the Graphite design, from the window chrome to every
 
 - **`pm.request.body` in scripts** — read, rewrite, and sign the body that actually goes out. `.raw` is readable and writable, `.json()` parses it, `.update()` replaces it, and form or urlencoded bodies are edited field by field through `.urlencoded` / `.formdata`. See [Scripting API](/docs/reference/scripting-api/#pmrequest).
 - **JSON Schema assertions** — `pm.response.to.have.jsonSchema(schema)` validates a response against a draft-07 subset and reports each failure with its path; `pm.response.to.have.jsonBody(path, value)` checks a single dotted path.
-- **`require()` for the libraries Postman scripts expect** — `lodash` (also as `_`), `ajv`, `tv4`, `uuid`, `crypto-js`, and `chai` resolve to Relay implementations, so imported test scripts run unchanged. Anything outside that surface fails with a message naming what was asked for.
+- **`require()` for the libraries Postman scripts expect** — `lodash` (also as `_`), `ajv`, `tv4`, `uuid`, `crypto-js`, and `chai` resolve to Kurlo implementations, so imported test scripts run unchanged. Anything outside that surface fails with a message naming what was asked for.
 - **Bulk edit for key/value tables** — params, headers, and both form body types switch between the table and a `key:value` text form, `//` disabling a line. It is Postman's format, so a block of headers pastes straight across.
 - **Insertable script snippets** — the Scripts tab's reference row is now a snippet library: set a variable, add a header, sign the body, assert a status or a schema.
 
 ### Fixed
 
 - **Importing a Postman collection dropped scripts, docs, and everything on the collection itself.** Pre-request and test scripts, request descriptions, collection variables, collection auth, and collection scripts were all discarded; OAuth 2.0 imports kept only the access token, so a request started failing with a 401 as soon as it expired. All of it carries over now, and Postman environment and globals files can be imported too. See [Import and export](/docs/guides/import-export/).
-- **A collection's script timeout and `pm.sendRequest` permission were ignored** — both were missing from the settings a request inherits, while the Settings tab claimed they applied. They inherit now, they can be set from **Collection settings → Settings** (alongside the client certificate), and `relay run` reads them from the workspace instead of only from its flags.
-- **Scripts could not edit a form or urlencoded body**, and `pm.request.body.mode` reported Relay's own names instead of Postman's, so an imported `if (mode === "raw")` silently took the wrong branch.
+- **A collection's script timeout and `pm.sendRequest` permission were ignored** — both were missing from the settings a request inherits, while the Settings tab claimed they applied. They inherit now, they can be set from **Collection settings → Settings** (alongside the client certificate), and `kurlo run` reads them from the workspace instead of only from its flags.
+- **Scripts could not edit a form or urlencoded body**, and `pm.request.body.mode` reported Kurlo's own names instead of Postman's, so an imported `if (mode === "raw")` silently took the wrong branch.
 - **A JSON Schema failure list stopped at 20 without saying so.**
 
 ## 1.2.0
@@ -265,24 +259,24 @@ Relay 2.0 is a new look — the Graphite design, from the window chrome to every
 - **The missing `pm.*` scopes** — `pm.collectionVariables` (written back to the collection), `pm.globals`, `pm.info`, `pm.cookies`, and `pm.execution.skipRequest()` for a request that should be skipped rather than failed.
 - **Global variables** — persisted across restarts, shared by every workspace, and edited under **Environments → Globals**. See [Environments](/docs/guides/environments/#global-variables).
 - **Response Preview** — images and HTML render properly instead of appearing as unreadable text. See [Response viewer](/docs/guides/response-viewer/#preview).
-- **Configurable script timeout** — raise the 2000 ms cap per request or with `relay run --script-timeout` when an assertion suite or a signing step needs longer.
+- **Configurable script timeout** — raise the 2000 ms cap per request or with `kurlo run --script-timeout` when an assertion suite or a signing step needs longer.
 
 ### Fixed
 
-- **`relay run` could not run a collection that used inherited auth.** A request set to **Inherit Auth** aborted the run with `unsupported auth type "inherit"`, because the runner ignored everything but a collection's variables. Collection auth, headers, scripts and settings now apply exactly as they do in the app. See [CLI runner](/docs/guides/cli-runner/).
-- **A binary response no longer fills the Body tab with replacement characters.** Relay identifies a non-text body from its actual bytes, so a payload mislabelled as `text/html` is caught too, and shows what it is with links to preview or save it.
+- **`kurlo run` could not run a collection that used inherited auth.** A request set to **Inherit Auth** aborted the run with `unsupported auth type "inherit"`, because the runner ignored everything but a collection's variables. Collection auth, headers, scripts and settings now apply exactly as they do in the app. See [CLI runner](/docs/guides/cli-runner/).
+- **A binary response no longer fills the Body tab with replacement characters.** Kurlo identifies a non-text body from its actual bytes, so a payload mislabelled as `text/html` is caught too, and shows what it is with links to preview or save it.
 
 ## 1.1.1
 
 ### Added
 
-- **What's new on first launch** — after updating, Relay opens a screen with that release's notes. It appears once per version: relaunching the same build, downgrading, and a first-ever install stay quiet. Reopen it any time from **Settings → About → What's new**. The notes ship with the build, so the screen works offline and always matches the version you are running. See [App settings](/docs/guides/settings/#whats-new).
+- **What's new on first launch** — after updating, Kurlo opens a screen with that release's notes. It appears once per version: relaunching the same build, downgrading, and a first-ever install stay quiet. Reopen it any time from **Settings → About → What's new**. The notes ship with the build, so the screen works offline and always matches the version you are running. See [App settings](/docs/guides/settings/#whats-new).
 
 ## 1.1.0
 
 ### Added
 
-- **CLI runner** — `relay run` executes a YAML workspace's HTTP and GraphQL requests and their JavaScript test scripts from the terminal or CI. Data-driven iterations from a CSV/JSON file (`--data`), `cli`/`json`/`junit` reporters with file export, global and environment variable scopes with export-back, `--verbose`, `--bail`, `--insecure`, and a non-zero exit code when a request errors or an assertion fails. See [CLI runner](/docs/guides/cli-runner/).
+- **CLI runner** — `kurlo run` executes a YAML workspace's HTTP and GraphQL requests and their JavaScript test scripts from the terminal or CI. Data-driven iterations from a CSV/JSON file (`--data`), `cli`/`json`/`junit` reporters with file export, global and environment variable scopes with export-back, `--verbose`, `--bail`, `--insecure`, and a non-zero exit code when a request errors or an assertion fails. See [CLI runner](/docs/guides/cli-runner/).
 - **Client certificates (mutual TLS)** — present a certificate, optional separate key, and passphrase per request or inherited from a collection. See [Per-request settings](/docs/guides/request-settings/#client-certificate-mutual-tls).
 - **Dynamic variables** — `{{$guid}}`, `{{$timestamp}}`, `{{$randomEmail}}` and around 50 more under Postman's names, generated at send time. Imported Postman collections that used them no longer fail with an unresolved variable.
 - **`.http` / `.rest` import** — files from the JetBrains HTTP Client and the VS Code REST Client, including `###` separators, `# @name` directives, and file variables.
@@ -303,7 +297,7 @@ Relay 2.0 is a new look — the Graphite design, from the window chrome to every
 
 ## 1.0.0
 
-First public release. Relay was developed privately until this point; the source is now open under the MIT license and every release is published from the main repository.
+First public release. Kurlo was developed privately until this point; the source is now open under the MIT license and every release is published from the main repository.
 
 ### Requests
 
