@@ -12,9 +12,6 @@ export interface Release {
   assets?: ReleaseAsset[];
 }
 
-const CACHE_KEY = 'kurlo:latest-release';
-const CACHE_MS = 30 * 60 * 1000;
-
 export function formatSize(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return '';
   const mb = bytes / 1024 / 1024;
@@ -25,30 +22,12 @@ export function findAsset(release: Release, suffix: string): ReleaseAsset | unde
   return (release.assets ?? []).find(asset => asset.name.endsWith(suffix));
 }
 
-function cached(): Release | null {
-  try {
-    const raw = sessionStorage.getItem(CACHE_KEY);
-    if (!raw) return null;
-    const entry = JSON.parse(raw);
-    return Date.now() - entry.at < CACHE_MS ? (entry.release as Release) : null;
-  } catch {
-    return null;
-  }
-}
-
 export async function latestRelease(): Promise<Release | null> {
-  const hit = cached();
-  if (hit) return hit;
-
   try {
     const response = await fetch(GITHUB_LATEST_API, { headers: { Accept: 'application/vnd.github+json' } });
     if (!response.ok) return null;
     const release = (await response.json()) as Release;
-    if (!release.assets?.length) return null;
-    try {
-      sessionStorage.setItem(CACHE_KEY, JSON.stringify({ at: Date.now(), release }));
-    } catch {}
-    return release;
+    return release.assets?.length ? release : null;
   } catch {
     return null;
   }
