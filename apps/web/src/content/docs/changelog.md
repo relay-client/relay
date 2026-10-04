@@ -5,6 +5,14 @@ description: Notable Kurlo changes and links to the exact notes for each publish
 
 This page summarizes the notable-change log maintained in the source repository. For the exact notes and artifacts attached to every published tag, use the [Kurlo releases page](https://github.com/stormhop/kurlo/releases).
 
+## Unreleased
+
+### Fixed
+
+- **A fresh install no longer opens on "Folder missing"** before the first save creates the default workspace folder.
+- **Kurlo can always be closed:** when the last save fails, it asks whether to quit without saving.
+- **Moving Kurlo's data folder no longer leaves the default workspaces "missing"**, and a missing workspace folder can switch back to Kurlo's built-in storage in one click.
+
 ## 2.2.1
 
 ### Fixed

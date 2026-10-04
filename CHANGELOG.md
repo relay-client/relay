@@ -5,6 +5,14 @@ All notable changes to Kurlo are documented here. This project follows
 
 ---
 
+## [Unreleased]
+
+### Fixed
+
+- **A fresh install opened on "Folder missing".** Kurlo creates its default workspace folder on the first save, but the storage status already called the not-yet-created folder missing, so a new install — most visibly on Windows — greeted you with a recovery screen. A default folder that does not exist yet now counts as empty, not missing.
+- **Kurlo could not be closed while its changes could not be saved.** Quitting saves first and stays open if that fails, so a missing workspace folder kept the window open for good. Kurlo now asks whether to quit without saving or stay and fix the problem.
+- **Moving Kurlo's data folder left the workspaces "missing".** The default workspace folder was saved as a full path, so after the app's data folder moved — restored from a backup, copied to a new Mac under another user name, or renamed — Kurlo kept looking in the old place and offered only to create that folder again. The default folder is now saved as "the default" and found again wherever the data folder lives; folders you chose yourself still keep their full path. When a workspace folder does go missing, **Use Kurlo's app storage** switches back to the built-in workspaces in one click.
+
 ## [2.2.1] - 2026-10-04
 
 ### Fixed
