@@ -21,24 +21,36 @@ mkdir -p "$OUT_DIR"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BG_PNG="$SCRIPT_DIR/assets/dmg-background.png"
+BG_RETINA_PNG="$SCRIPT_DIR/assets/dmg-background@2x.png"
 APP_NAME="$(basename "$APP_PATH")"
 
-if [ ! -f "$BG_PNG" ]; then
+if [ ! -f "$BG_PNG" ] || [ ! -f "$BG_RETINA_PNG" ]; then
   echo "make-dmg: installer artwork missing; run node scripts/gen-installer-assets.mjs" >&2
   exit 1
 fi
+
+WORK_DIR="$(mktemp -d -t relay-dmg)"
+trap 'rm -rf "$WORK_DIR"' EXIT
+BG_TIFF="$WORK_DIR/dmg-background.tiff"
+tiffutil -cathidpicheck "$BG_PNG" "$BG_RETINA_PNG" -out "$BG_TIFF"
+
+STAGING_DIR="$WORK_DIR/contents"
+mkdir -p "$STAGING_DIR/.background"
+chflags hidden "$STAGING_DIR/.background"
+ditto "$APP_PATH" "$STAGING_DIR/$APP_NAME"
 
 rm -f "$OUT_DMG"
 
 create-dmg \
   --volname "$VOL_NAME" \
-  --background "$BG_PNG" \
+  --background "$BG_TIFF" \
   --window-pos 200 120 \
   --window-size 720 500 \
   --icon-size 104 \
   --icon "$APP_NAME" 190 254 \
   --hide-extension "$APP_NAME" \
+  --icon ".background" 900 100 \
   --app-drop-link 530 254 \
   --no-internet-enable \
   "$OUT_DMG" \
-  "$APP_PATH"
+  "$STAGING_DIR"

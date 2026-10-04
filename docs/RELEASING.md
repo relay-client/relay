@@ -27,6 +27,8 @@ and the update from the previous version are the parts no test can reach.
 Installer artwork is committed under `apps/desktop/build/windows/installer/assets`
 and `apps/desktop/build/darwin/assets`. Regenerate it from the app's master icon with
 `node scripts/gen-installer-assets.mjs` after installing the npm dependencies.
+The macOS packager combines the 1× and 2× backgrounds into a Retina TIFF with
+`tiffutil`, and keeps its hidden `.background` folder outside the visible layout.
 The release workflow uses these assets automatically. For a local macOS DMG, install
 `create-dmg` (`brew install create-dmg`) and run `make -C apps/desktop build-macos-dmg`.
 On Windows, `make -C apps/desktop build-windows` builds the branded NSIS installer
