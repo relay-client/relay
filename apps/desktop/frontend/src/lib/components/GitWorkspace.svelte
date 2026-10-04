@@ -182,20 +182,20 @@
   let hasPushTarget = $derived(Boolean(status.upstream || remoteCount > 0));
   let canPush = $derived(Boolean(canRepoAction && !status.operation && hasPushTarget && (pushCount > 0 || !status.upstream || status.upstreamGone)));
   let showRepositorySetup = $derived(!status.isRepo || (!status.upstream && remoteCount === 0));
-  let storagePath = $derived(status.isRepo ? status.root : (status.workspaceRoot || 'Relay local app storage'));
+  let storagePath = $derived(status.isRepo ? status.root : (status.workspaceRoot || 'Kurlo local app storage'));
   let workspaceMissing = $derived(!status.isRepo && Boolean(status.missingRoot));
   let isAppStoragePath = $derived(!status.isRepo && (
     !status.workspaceRoot ||
-    /[\\/](Application Support|AppData[\\/](Roaming|Local)|\.config)[\\/]Relay([\\/]|$)/i.test(status.workspaceRoot)
+    /[\\/](Application Support|AppData[\\/](Roaming|Local)|\.config)[\\/]Kurlo([\\/]|$)/i.test(status.workspaceRoot)
   ));
   let gitUnavailable = $derived(Boolean(status.gitMissing));
   let localEyebrow = $derived(gitUnavailable ? 'Git unavailable' : (workspaceMissing ? 'Folder missing' : (isAppStoragePath ? 'App storage · default location' : 'Folder workspace')));
   let localDescription = $derived(gitUnavailable
-    ? 'Relay cannot run Git on this machine, so it cannot tell whether this folder is a repository. The workspace still works without Git; install Git and restart Relay to use branches, commits and remotes.'
+    ? 'Kurlo cannot run Git on this machine, so it cannot tell whether this folder is a repository. The workspace still works without Git; install Git and restart Kurlo to use branches, commits and remotes.'
     : (workspaceMissing
-      ? 'Relay cannot find this workspace folder. Choose another folder, open an existing repository, or clone it again.'
+      ? 'Kurlo cannot find this workspace folder. Choose another folder, open an existing repository, or clone it again.'
       : (isAppStoragePath
-        ? "Workspace lives inside Relay's default app data. Create a folder workspace in a location you control for backup, sharing and Git."
+        ? "Workspace lives inside Kurlo's default app data. Create a folder workspace in a location you control for backup, sharing and Git."
         : 'Workspace stored in your folder. Create another folder workspace or initialize Git here to track changes and sync with a remote.')));
   let localDividerLabel = $derived(gitUnavailable ? 'needs Git' : (workspaceMissing ? 'recover workspace' : (isAppStoragePath ? 'or start from a Git repository' : 'other options')));
   let localBranches = $derived(branches.localBranches ?? []);
@@ -255,8 +255,8 @@
   let statusTitle = $derived(status.operation
     ? `${status.operation} in progress`
     : (status.clean
-      ? 'Clean: no uncommitted Relay workspace file changes'
-      : `${changeCount} Relay workspace file change${changeCount === 1 ? '' : 's'} not committed yet`));
+      ? 'Clean: no uncommitted Kurlo workspace file changes'
+      : `${changeCount} Kurlo workspace file change${changeCount === 1 ? '' : 's'} not committed yet`));
 
 
   let canDiscardAction = $derived(status.isRepo && !loading);
@@ -899,7 +899,7 @@
         {/if}
       {:else}
         <div class="git-branch-control">
-          <span class="git-branch-chip disabled" aria-disabled="true" title={status.workspaceRoot || 'Relay local app storage'}>
+          <span class="git-branch-chip disabled" aria-disabled="true" title={status.workspaceRoot || 'Kurlo local app storage'}>
             <GitIcon name="hard-drive" size={13} />
             <strong>{workspaceMissing ? 'Missing folder' : 'Local workspace'}</strong>
           </span>
@@ -982,9 +982,9 @@
                 Pull (rebase + autostash)
               </button>
               <div class="git-more-sep"></div>
-              <button class="menu-item git-more-item" type="button" onclick={() => runAndCloseMore(onStash)} disabled={!canStash} role="menuitem" title="Stash Relay-managed YAML changes">
+              <button class="menu-item git-more-item" type="button" onclick={() => runAndCloseMore(onStash)} disabled={!canStash} role="menuitem" title="Stash Kurlo-managed YAML changes">
                 <GitIcon name="archive" />
-                Stash Relay changes
+                Stash Kurlo changes
               </button>
               <button class="menu-item git-more-item" type="button" onclick={() => runAndCloseMore(() => onPopStash())} disabled={!canPopStash} role="menuitem" title="Apply the latest Git stash">
                 <GitIcon name="download" />
@@ -1002,7 +1002,7 @@
                 onclick={() => runAndCloseMore(onUseLocal)}
                 disabled={loading}
                 role="menuitem"
-                title="Stop tracking this repository in Relay. Files stay on disk."
+                title="Stop tracking this repository in Kurlo. Files stay on disk."
               >
                 <GitIcon name="x" busy={isBusy('close-repo')} />
                 Close repository
@@ -1104,7 +1104,7 @@
       <div class="git-conflict-card">
         <div class="git-provider-copy">
           <span>{operationTitle() || 'Conflicts'}</span>
-          <strong>{conflictedFiles.length ? `${conflictedFiles.length} conflicted Relay file${conflictedFiles.length === 1 ? '' : 's'}` : 'All conflicts are staged'}</strong>
+          <strong>{conflictedFiles.length ? `${conflictedFiles.length} conflicted Kurlo file${conflictedFiles.length === 1 ? '' : 's'}` : 'All conflicts are staged'}</strong>
           <small>{conflictedFiles.length ? 'Select a conflicted file, choose ours/theirs, or edit the conflict content manually.' : 'Continue the Git operation to finish.'}</small>
         </div>
         <div class="git-provider-actions">
@@ -1166,7 +1166,7 @@
               onclick={onInit}
               disabled={loading || gitUnavailable}
               aria-busy={isBusy('init')}
-              title={gitUnavailable ? 'Install Git and restart Relay to initialize a repository' : 'Initialize a Git repository in this folder'}
+              title={gitUnavailable ? 'Install Git and restart Kurlo to initialize a repository' : 'Initialize a Git repository in this folder'}
             >
               <GitIcon name="init" busy={isBusy('init')} />
               Init Git here
@@ -1222,7 +1222,7 @@
                 onclick={() => onCommit()}
                 disabled={!canRepoAction}
                 aria-busy={isBusy('commit')}
-                title="Commit all changed Relay workspace files"
+                title="Commit all changed Kurlo workspace files"
               >
                 <GitIcon name="commit" busy={isBusy('commit')} />
                 Commit all
@@ -1237,7 +1237,7 @@
                 onclick={onDiscardAll}
                 disabled={loading}
                 aria-busy={isBusy('discard-all')}
-                title="Discard all uncommitted Relay workspace changes"
+                title="Discard all uncommitted Kurlo workspace changes"
                 aria-label="Discard all"
               >
                 <GitIcon name="trash" busy={isBusy('discard-all')} />
@@ -1255,7 +1255,7 @@
               onclick={commitSelectedFiles}
               disabled={!canOperateOnSelectedFiles}
               aria-busy={isBusy('commit-selected')}
-              title="Commit selected Relay workspace files"
+              title="Commit selected Kurlo workspace files"
             >
               <GitIcon name="commit" busy={isBusy('commit-selected')} />
               Commit
@@ -1267,7 +1267,7 @@
               onclick={discardSelectedFiles}
               disabled={!canDiscardSelectedFiles}
               aria-busy={isBusy('discard-selected')}
-              title="Discard selected Relay workspace file changes"
+              title="Discard selected Kurlo workspace file changes"
               aria-label="Discard selected"
             >
               <GitIcon name="trash" busy={isBusy('discard-selected')} />
@@ -1503,7 +1503,7 @@
               <p>{selectedCommit ? 'Commit diff' : (pathFolder(diffTitle) || 'Review workspace changes')}</p>
             {:else}
               <h2 id="git-review-title">Resolve conflict{selectedPath ? ` · ${pathName(selectedPath)}` : ''}</h2>
-              <p>{selectedPath ? (pathFolder(selectedPath) || selectedPath) : 'Choose a conflicted Relay file'}</p>
+              <p>{selectedPath ? (pathFolder(selectedPath) || selectedPath) : 'Choose a conflicted Kurlo file'}</p>
             {/if}
           </div>
           <button type="button" class="btn btn-ghost btn-icon dialog-close" onclick={closeExpandedPanel} aria-label="Close review">×</button>

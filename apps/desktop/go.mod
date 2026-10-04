@@ -1,4 +1,4 @@
-module github.com/relay-client/relay/apps/desktop
+module github.com/stormhop/kurlo/apps/desktop
 
 go 1.25.0
 

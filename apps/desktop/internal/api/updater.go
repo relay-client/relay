@@ -22,10 +22,10 @@ import (
 	"github.com/Masterminds/semver/v3"
 
 	"github.com/minio/selfupdate"
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
-var githubRepo = "relay-client/relay"
+var githubRepo = "stormhop/kurlo"
 
 var updatePublicKey = "RWTEfMAu7tDsMMu7Q9SCX5HgAEsBo5KZJzwvbIcP/ZKb1YyTg+Csj+9P"
 
@@ -367,7 +367,7 @@ func downloadUpdateAsset(ctx context.Context, downloadURL string) (string, error
 		return "", fmt.Errorf("download returned %d", resp.StatusCode)
 	}
 
-	tmp, err := os.CreateTemp("", "relay-update-*")
+	tmp, err := os.CreateTemp("", "kurlo-update-*")
 	if err != nil {
 		return "", err
 	}
@@ -418,7 +418,7 @@ func friendlyUpdateError(err error, action string) string {
 	}
 	var dnsErr *net.DNSError
 	if errors.As(err, &dnsErr) {
-		return base + " Relay could not reach the update service. Check your internet connection and try again."
+		return base + " Kurlo could not reach the update service. Check your internet connection and try again."
 	}
 	switch {
 	case errors.Is(err, errUpdateSignatureMissing),
@@ -431,18 +431,18 @@ func friendlyUpdateError(err error, action string) string {
 	case errors.Is(err, errUpdateVersionRollback):
 		return base + " The available update is not newer than the installed version."
 	case errors.Is(err, errUpdateManagedByPackage):
-		return base + " Relay is installed from the Windows app package, which Windows keeps read-only. Download the new package and open it to update."
+		return base + " Kurlo is installed from the Windows app package, which Windows keeps read-only. Download the new package and open it to update."
 	}
 	lower := strings.ToLower(err.Error())
 	switch {
 	case strings.Contains(lower, "timeout"), strings.Contains(lower, "deadline exceeded"):
 		return base + " The request timed out. Check your internet connection and try again."
 	case strings.Contains(lower, "no such host"), strings.Contains(lower, "network is unreachable"):
-		return base + " Relay could not reach the update service. Check your internet connection and try again."
+		return base + " Kurlo could not reach the update service. Check your internet connection and try again."
 	case strings.Contains(lower, "certificate"), strings.Contains(lower, "tls"):
 		return base + " A secure connection could not be established. Check your network settings and try again."
 	case strings.Contains(lower, "permission"), strings.Contains(lower, "access denied"):
-		return base + " Relay does not have permission to replace the app. Try again after restarting the app."
+		return base + " Kurlo does not have permission to replace the app. Try again after restarting the app."
 	case strings.Contains(lower, "no release asset"):
 		return base + " No compatible update package is available for this device yet."
 	case strings.Contains(lower, "checksum"), strings.Contains(lower, "signature"):

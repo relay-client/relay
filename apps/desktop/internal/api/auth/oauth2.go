@@ -18,7 +18,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 const (
@@ -341,7 +341,7 @@ func trySendOutcome(ch chan authorizeOutcome, res authorizeOutcome) {
 func writeCallbackPage(w http.ResponseWriter, ok bool, detail string) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	title := "Authorization complete"
-	body := "You can close this window and return to Relay."
+	body := "You can close this window and return to Kurlo."
 	accent := "#5865f2"
 	if !ok {
 		title = "Authorization failed"

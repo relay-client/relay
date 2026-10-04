@@ -67,7 +67,7 @@ func (a *App) WriteWorkspaceYAMLFile(path string, content string) WorkspaceOpenR
 	if err := writeTextFileAtomic(fullPath, []byte(content)); err != nil {
 		return WorkspaceOpenResult{Ok: false, Root: root, Error: err.Error(), Git: workspaceOpenStatus(root)}
 	}
-	payload, diagnostics, err := loadRelayStorePayloadWithDiagnostics(requestStorePath(), root)
+	payload, diagnostics, err := loadKurloStorePayloadWithDiagnostics(requestStorePath(), root)
 	if err != nil {
 		return WorkspaceOpenResult{Ok: false, Root: root, Error: err.Error(), Git: workspaceOpenStatus(root), Diagnostics: diagnostics}
 	}
@@ -148,7 +148,7 @@ func writeTextFileAtomic(path string, data []byte) error {
 	if existing, err := os.ReadFile(path); err == nil && string(existing) == string(data) {
 		return nil
 	}
-	tmp, err := os.CreateTemp(filepath.Dir(path), ".relay-*.tmp")
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".kurlo-*.tmp")
 	if err != nil {
 		return err
 	}

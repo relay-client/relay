@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 type cookieSyncHarness struct {
@@ -82,7 +82,7 @@ func (h *cookieSyncHarness) post(t *testing.T, path string, payload map[string]a
 		t.Fatalf("build request: %v", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Origin", "chrome-extension://relaytestextension")
+	req.Header.Set("Origin", "chrome-extension://kurlotestextension")
 	return h.do(t, req)
 }
 
@@ -103,7 +103,7 @@ func (h *cookieSyncHarness) dial(t *testing.T, token string) *websocket.Conn {
 	t.Helper()
 	url := fmt.Sprintf("ws://127.0.0.1:%d/ws?token=%s&browser=Chrome", h.port, token)
 	headers := http.Header{}
-	headers.Set("Origin", "chrome-extension://relaytestextension")
+	headers.Set("Origin", "chrome-extension://kurlotestextension")
 	conn, _, err := websocket.DefaultDialer.Dial(url, headers)
 	if err != nil {
 		t.Fatalf("dial the bridge: %v", err)
@@ -169,7 +169,7 @@ func (h *cookieSyncHarness) jarCookies() []model.Cookie {
 func (h *cookieSyncHarness) connect(t *testing.T) *websocket.Conn {
 	t.Helper()
 	conn := h.dial(t, h.token)
-	if hello := readSyncMessageOfType(t, conn, "hello"); hello["app"] != "relay" {
+	if hello := readSyncMessageOfType(t, conn, "hello"); hello["app"] != "kurlo" {
 		t.Fatalf("unexpected greeting: %v", hello)
 	}
 	return conn
@@ -178,8 +178,8 @@ func (h *cookieSyncHarness) connect(t *testing.T) *websocket.Conn {
 func TestCookieSyncDiscoveryAnswersExtensionsOnly(t *testing.T) {
 	harness := startTestCookieSync(t, "example.com")
 
-	status, body := harness.get(t, "/discover", "chrome-extension://relaytestextension")
-	if status != http.StatusOK || body["app"] != "relay" {
+	status, body := harness.get(t, "/discover", "chrome-extension://kurlotestextension")
+	if status != http.StatusOK || body["app"] != "kurlo" {
 		t.Fatalf("an extension should be able to find the bridge, got %d %v", status, body)
 	}
 
@@ -189,7 +189,7 @@ func TestCookieSyncDiscoveryAnswersExtensionsOnly(t *testing.T) {
 	}
 }
 
-func TestCookieSyncPairingWaitsForApprovalInRelay(t *testing.T) {
+func TestCookieSyncPairingWaitsForApprovalInKurlo(t *testing.T) {
 	harness := startTestCookieSync(t, "example.com")
 	harness.server.token = ""
 
@@ -205,13 +205,13 @@ func TestCookieSyncPairingWaitsForApprovalInRelay(t *testing.T) {
 
 	pendingStatus := harness.server.status()
 	if pendingStatus.Pending.ID != requestID || pendingStatus.Pending.Code != code {
-		t.Fatalf("Relay should be showing the same request and code, got %+v", pendingStatus.Pending)
+		t.Fatalf("Kurlo should be showing the same request and code, got %+v", pendingStatus.Pending)
 	}
 	if pendingStatus.Pending.Browser != "Chrome" {
 		t.Fatalf("the prompt should name the browser, got %+v", pendingStatus.Pending)
 	}
 
-	_, waiting := harness.get(t, "/pair?requestId="+requestID, "chrome-extension://relaytestextension")
+	_, waiting := harness.get(t, "/pair?requestId="+requestID, "chrome-extension://kurlotestextension")
 	if waiting["status"] != "pending" {
 		t.Fatalf("the extension should keep waiting until the user acts, got %v", waiting)
 	}
@@ -220,7 +220,7 @@ func TestCookieSyncPairingWaitsForApprovalInRelay(t *testing.T) {
 	}
 
 	harness.server.approvePairing(requestID)
-	_, approved := harness.get(t, "/pair?requestId="+requestID, "chrome-extension://relaytestextension")
+	_, approved := harness.get(t, "/pair?requestId="+requestID, "chrome-extension://kurlotestextension")
 	if approved["status"] != "approved" {
 		t.Fatalf("expected approval, got %v", approved)
 	}
@@ -229,7 +229,7 @@ func TestCookieSyncPairingWaitsForApprovalInRelay(t *testing.T) {
 		t.Fatalf("approval should hand over the token, got %q", token)
 	}
 	if after := harness.server.status(); !after.Paired || after.Pending.ID != "" {
-		t.Fatalf("Relay should record the pairing and clear the prompt, got %+v", after)
+		t.Fatalf("Kurlo should record the pairing and clear the prompt, got %+v", after)
 	}
 }
 
@@ -240,7 +240,7 @@ func TestCookieSyncPairingCanBeDeniedAndThenCoolsDown(t *testing.T) {
 	requestID, _ := body["requestId"].(string)
 	harness.server.denyPairing(requestID)
 
-	_, denied := harness.get(t, "/pair?requestId="+requestID, "chrome-extension://relaytestextension")
+	_, denied := harness.get(t, "/pair?requestId="+requestID, "chrome-extension://kurlotestextension")
 	if denied["status"] != "denied" {
 		t.Fatalf("expected a denial, got %v", denied)
 	}
@@ -274,7 +274,7 @@ func TestCookieSyncSocketRefusesAWrongToken(t *testing.T) {
 
 	url := fmt.Sprintf("ws://127.0.0.1:%d/ws?token=not-the-token", harness.port)
 	headers := http.Header{}
-	headers.Set("Origin", "chrome-extension://relaytestextension")
+	headers.Set("Origin", "chrome-extension://kurlotestextension")
 	conn, resp, err := websocket.DefaultDialer.Dial(url, headers)
 	if err == nil {
 		_ = conn.Close()
@@ -464,7 +464,7 @@ func TestCookieSyncRevokeDropsTheBrowser(t *testing.T) {
 
 	url := fmt.Sprintf("ws://127.0.0.1:%d/ws?token=%s", harness.port, harness.token)
 	headers := http.Header{}
-	headers.Set("Origin", "chrome-extension://relaytestextension")
+	headers.Set("Origin", "chrome-extension://kurlotestextension")
 	if stale, _, err := websocket.DefaultDialer.Dial(url, headers); err == nil {
 		_ = stale.Close()
 		t.Fatal("the old token still opens a socket")
@@ -568,7 +568,7 @@ func TestCookieSyncCannotApproveAnExpiredRequest(t *testing.T) {
 	harness.server.mu.Unlock()
 
 	harness.server.approvePairing(requestID)
-	_, answer := harness.get(t, "/pair?requestId="+requestID, "chrome-extension://relaytestextension")
+	_, answer := harness.get(t, "/pair?requestId="+requestID, "chrome-extension://kurlotestextension")
 	if answer["status"] != "expired" {
 		t.Fatalf("an expired request must not hand over a token, got %v", answer)
 	}

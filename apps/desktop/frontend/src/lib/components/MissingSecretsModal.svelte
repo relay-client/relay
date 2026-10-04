@@ -28,7 +28,7 @@
       <button type="button" class="btn btn-ghost btn-icon dialog-close" onclick={onDismiss} aria-label="Close dialog">×</button>
     </div>
     <div class="missing-secrets-body">
-      <p>This workspace references {secrets.length} secret{secrets.length === 1 ? '' : 's'} that {secrets.length === 1 ? "isn't" : "aren't"} stored on this machine. Relay keeps secret values out of Git.</p>
+      <p>This workspace references {secrets.length} secret{secrets.length === 1 ? '' : 's'} that {secrets.length === 1 ? "isn't" : "aren't"} stored on this machine. Kurlo keeps secret values out of Git.</p>
       <div class="missing-secrets-list">
         {#each secrets as secret, index (secret.key)}
           <label>

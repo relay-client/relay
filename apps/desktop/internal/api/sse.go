@@ -15,8 +15,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/relay-client/relay/apps/desktop/internal/api/auth"
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/api/auth"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -54,7 +54,7 @@ func (m *sseManager) connect(appCtx context.Context, sessionID string, req model
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				log.Printf("relay: SSE session %s panicked: %v", sessionID, r)
+				log.Printf("kurlo: SSE session %s panicked: %v", sessionID, r)
 			}
 			m.mu.Lock()
 			if sess, ok := m.sessions[sessionID]; ok && sess.id == seq {
@@ -251,7 +251,7 @@ func (m *sseManager) runStreamAttempt(
 	if browserSecurityActive(req) {
 		httpReq.Header.Set("User-Agent", browserLikeUserAgent)
 	} else {
-		httpReq.Header.Set("User-Agent", "Relay/"+appVersion)
+		httpReq.Header.Set("User-Agent", "Kurlo/"+appVersion)
 	}
 
 	_, _ = applyUserHeaders(httpReq.Header, req.Headers)

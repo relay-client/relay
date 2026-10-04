@@ -1,9 +1,9 @@
 ---
 title: Workspaces & collections
-description: How Relay organizes your requests — workspaces, collections, folders, drag-and-drop, and starred favourites.
+description: How Kurlo organizes your requests — workspaces, collections, folders, drag-and-drop, and starred favourites.
 ---
 
-Relay arranges your requests in a workspace -> collection -> folder tree:
+Kurlo arranges your requests in a workspace -> collection -> folder tree:
 
 ```
 Workspace
@@ -29,7 +29,7 @@ Click the workspace name in the title bar and choose **+ New workspace**. Pick a
 
 ### Switching workspaces
 
-The same dropdown shows all workspaces with their request counts. Switching is instant — Relay keeps each workspace's open tabs, active environment, and last-viewed request restored separately.
+The same dropdown shows all workspaces with their request counts. Switching is instant — Kurlo keeps each workspace's open tabs, active environment, and last-viewed request restored separately.
 
 ![Workspace switcher dropdown](../../../../assets/screenshots/workspace-switcher.png)
 
@@ -118,13 +118,13 @@ Right-click (or click the `⋯` button on hover) on any request to reveal:
 - **Duplicate** — clones the request, including auth/headers/body/scripts
 - **Star** / **Unstar** — pins the request to the *Starred* group at the top of the sidebar. Star count appears in the workspace header.
 - **Copy cURL** — copies a runnable `curl` command. Variables stay as `{{name}}` placeholders so the export doesn't leak secrets.
-- **Delete** — asks for confirmation, then removes the request. If you deleted the only open tab, Relay switches to the workspace overview.
+- **Delete** — asks for confirmation, then removes the request. If you deleted the only open tab, Kurlo switches to the workspace overview.
 
 ### Drag-and-drop between collections
 
 Hover a request to reveal its `⋮⋮` handle, then drag it into another collection or folder. The new parent is highlighted while you hover; drop to commit.
 
-You can't drag requests into a folder that's reached the 50-request cap — Relay refuses the drop and shows a tooltip.
+You can't drag requests into a folder that's reached the 50-request cap — Kurlo refuses the drop and shows a tooltip.
 
 ## Starred (favourites)
 
@@ -142,13 +142,13 @@ The sidebar search input filters requests by name, URL, and method as you type:
 
 ## Command palette
 
-Press `Cmd/Ctrl K` — or click the search field in the title bar — to open the command palette. Type to search the saved requests of the workspace by name, URL, method, collection or folder; the same query also filters Relay's commands:
+Press `Cmd/Ctrl K` — or click the search field in the title bar — to open the command palette. Type to search the saved requests of the workspace by name, URL, method, collection or folder; the same query also filters Kurlo's commands:
 
 - **Request** — send, save, edit the URL, duplicate, rename, copy as cURL, close or reopen a tab. Shown while a request is open.
 - **Create** — a new request, collection or environment, or an import.
 - **Go to** — collections, environments, history, globals, the collection runner, the mock server, Git, cookies, settings and proxy settings.
 - **View** — show or hide the sidebar and the code snippet panel, put the response beside or below the request, switch between light, dark and system theme.
-- **Help** — what's new, reporting an issue, about Relay.
+- **Help** — what's new, reporting an issue, about Kurlo.
 
 Start the query with `>` to list commands only. `↑` and `↓` move through the list, `Enter` runs the selection, `Esc` closes the palette. A command bound to a shortcut shows it, including one you reassigned in *Settings → Shortcuts*.
 
@@ -156,7 +156,7 @@ Start the query with `>` to list commands only. `↑` and `↓` move through the
 
 ## Empty states
 
-When something is empty, Relay shows a hint so you're never staring at blank space:
+When something is empty, Kurlo shows a hint so you're never staring at blank space:
 
 - **No collections yet** — sidebar onboarding with *New collection* / *Import collection* buttons
 - **Empty collection** — inline *+ Add request* / *+ Add folder* rows inside the collection

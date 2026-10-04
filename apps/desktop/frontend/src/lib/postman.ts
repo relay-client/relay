@@ -11,9 +11,9 @@ import { emptyCollectionDefaults } from './collectionDefaults';
 import { mediaTypeOf, normalizeRequestExample } from './examples';
 import { DEFAULT_GRPC_MESSAGE } from './requestBodyDefaults';
 
-const RELAY_EXTENSION_KEY = 'x-relay';
-const RELAY_REQUEST_TYPES = new Set<RequestType>(['http', 'graphql', 'ws', 'socketio', 'grpc', 'mcp']);
-const RELAY_REQUEST_TABS = new Set<RequestTab>(['docs', 'params', 'query', 'auth', 'headers', 'metadata', 'body', 'schema', 'service', 'events', 'scripts', 'settings']);
+const KURLO_EXTENSION_KEY = 'x-kurlo';
+const KURLO_REQUEST_TYPES = new Set<RequestType>(['http', 'graphql', 'ws', 'socketio', 'grpc', 'mcp']);
+const KURLO_REQUEST_TABS = new Set<RequestTab>(['docs', 'params', 'query', 'auth', 'headers', 'metadata', 'body', 'schema', 'service', 'events', 'scripts', 'settings']);
 
 function postmanDescription(value: unknown) {
   if (typeof value === 'string') return value;
@@ -88,31 +88,31 @@ function labelledFolderScripts(scripts: PostmanScripts, folderName: string): Pos
   };
 }
 
-function relayExtensionFromPostman(item: Record<string, unknown>, req: Record<string, unknown>): Record<string, unknown> {
-  const fromItem = item[RELAY_EXTENSION_KEY] ?? item.relay;
-  const fromRequest = req[RELAY_EXTENSION_KEY] ?? req.relay;
+function kurloExtensionFromPostman(item: Record<string, unknown>, req: Record<string, unknown>): Record<string, unknown> {
+  const fromItem = item[KURLO_EXTENSION_KEY] ?? item.kurlo;
+  const fromRequest = req[KURLO_EXTENSION_KEY] ?? req.kurlo;
   return isRecord(fromItem) ? fromItem : isRecord(fromRequest) ? fromRequest : {};
 }
 
-function relayRequestType(value: unknown): RequestType | '' {
+function kurloRequestType(value: unknown): RequestType | '' {
   const type = asText(value).toLowerCase();
-  return RELAY_REQUEST_TYPES.has(type as RequestType) ? type as RequestType : '';
+  return KURLO_REQUEST_TYPES.has(type as RequestType) ? type as RequestType : '';
 }
 
-function relayRequestTab(value: unknown): RequestTab | '' {
+function kurloRequestTab(value: unknown): RequestTab | '' {
   const tab = asText(value).toLowerCase();
-  return RELAY_REQUEST_TABS.has(tab as RequestTab) ? tab as RequestTab : '';
+  return KURLO_REQUEST_TABS.has(tab as RequestTab) ? tab as RequestTab : '';
 }
 
-function relaySettings(value: unknown): Partial<RequestSettings> {
+function kurloSettings(value: unknown): Partial<RequestSettings> {
   return isRecord(value) ? value as Partial<RequestSettings> : {};
 }
 
-function relayRows(value: unknown): KVRow[] {
+function kurloRows(value: unknown): KVRow[] {
   return postmanKvRows(value);
 }
 
-function relaySIOArgs(value: unknown): SIOArg[] {
+function kurloSIOArgs(value: unknown): SIOArg[] {
   return asArray(value).map(item => {
     if (!isRecord(item)) return null;
     return {
@@ -214,7 +214,7 @@ function applyPostmanPathVariables(url: string, variables: unknown): string {
   return out;
 }
 
-function postmanUrlToRelay(urlValue: unknown) {
+function postmanUrlToKurlo(urlValue: unknown) {
   if (typeof urlValue === 'string') return { url: stripUrlQueryAndFragment(urlValue), params: queryParamsFromUrl(urlValue) };
   if (!isRecord(urlValue)) return { url: '', params: [] as KVRow[] };
   const declaredParams = postmanKvRows(urlValue.query);
@@ -277,7 +277,7 @@ function postmanGraphQLVariables(value: unknown): string {
   return JSON.stringify(value, null, 2);
 }
 
-function postmanBodyToRelay(bodyValue: unknown) {
+function postmanBodyToKurlo(bodyValue: unknown) {
   const result = { bodyType: 'none' as BodyType, rawBodyType: 'json' as RawBodyType, bodyContent: '', bodyFilePath: '', bodyFileName: '', formRows: [] as KVRow[] };
   if (!isRecord(bodyValue)) return result;
   const mode = asText(bodyValue.mode).toLowerCase();
@@ -332,8 +332,8 @@ function postmanExamplesFromItem(item: Record<string, unknown>, requestId: strin
     .map((entry, index) => {
       if (!isRecord(entry)) return null;
       const original = isRecord(entry.originalRequest) ? entry.originalRequest : {};
-      const originalUrl = postmanUrlToRelay(original.url);
-      const originalBody = postmanBodyToRelay(original.body);
+      const originalUrl = postmanUrlToKurlo(original.url);
+      const originalBody = postmanBodyToKurlo(original.body);
       const headers = postmanKvRows(entry.header);
       const code = Number(entry.code) || 0;
       const statusText = asText(entry.status);
@@ -390,21 +390,21 @@ export function postmanRequestsFromItems(
     const requestValue = item.request;
     if (!requestValue) return [];
     const req = isRecord(requestValue) ? requestValue : { url: requestValue };
-    const urlData = postmanUrlToRelay(req.url);
+    const urlData = postmanUrlToKurlo(req.url);
     if (!urlData.url.trim()) return [];
-    const body = postmanBodyToRelay(req.body);
+    const body = postmanBodyToKurlo(req.body);
     const socketIO = socketIOImportDetails(postmanRawUrlForDetection(req.url) || urlData.url);
-    const relay = relayExtensionFromPostman(item, req);
-    const requestType = relayRequestType(relay.requestType) || (body.bodyType === 'graphql' ? 'graphql' : socketIO ? 'socketio' : isWebSocketUrl(urlData.url) ? 'ws' : 'http');
+    const kurlo = kurloExtensionFromPostman(item, req);
+    const requestType = kurloRequestType(kurlo.requestType) || (body.bodyType === 'graphql' ? 'graphql' : socketIO ? 'socketio' : isWebSocketUrl(urlData.url) ? 'ws' : 'http');
     const params = requestType === 'socketio' ? filterSocketIOTransportParams(urlData.params) : urlData.params;
-    const sioArgs = requestType === 'socketio' && relaySIOArgs(relay.sioArgs).length
-      ? relaySIOArgs(relay.sioArgs)
+    const sioArgs = requestType === 'socketio' && kurloSIOArgs(kurlo.sioArgs).length
+      ? kurloSIOArgs(kurlo.sioArgs)
       : requestType === 'socketio' && body.bodyContent.trim()
       ? [{ id: newRequestId(), content: body.bodyContent, bodyType: body.rawBodyType, encoding: 'base64' as const }]
       : undefined;
-    const grpcMethod = asText(relay.grpcMethod ?? relay.fullMethod);
-    const grpcMetadata = relayRows(relay.grpcMetadata ?? relay.metadata);
-    const relayTab = relayRequestTab(relay.requestTab);
+    const grpcMethod = asText(kurlo.grpcMethod ?? kurlo.fullMethod);
+    const grpcMetadata = kurloRows(kurlo.grpcMetadata ?? kurlo.metadata);
+    const kurloTab = kurloRequestTab(kurlo.requestTab);
     const scripts = mergeScripts(inheritedScripts, postmanScriptsFromEvents(item.event, req.event));
     const id = newRequestId();
     const examples = postmanExamplesFromItem(item, id);
@@ -412,24 +412,24 @@ export function postmanRequestsFromItems(
       id, name, filesystemName: filesystemNameFromName(name, id), collectionId, collection: collectionName, folderPath: path,
       requestType,
       method: (requestType === 'graphql' || requestType === 'grpc' ? 'POST' : asText(req.method).toUpperCase() || 'GET') as Method,
-      url: asText(relay.url) || socketIO?.url || urlData.url,
-      requestTab: relayTab || (requestType === 'grpc' ? 'body' : requestType === 'socketio' ? 'events' : requestType === 'ws' ? 'body' : requestType === 'graphql' ? 'query' : 'params'),
+      url: asText(kurlo.url) || socketIO?.url || urlData.url,
+      requestTab: kurloTab || (requestType === 'grpc' ? 'body' : requestType === 'socketio' ? 'events' : requestType === 'ws' ? 'body' : requestType === 'graphql' ? 'query' : 'params'),
       params, headers: postmanKvRows(req.header),
       auth: req.auth === undefined && childAuth === undefined ? inheritAuthState() : postmanAuthConfig(req.auth, childAuth),
       bodyType: requestType === 'grpc' && body.bodyType === 'none' ? 'json' : body.bodyType,
       rawBodyType: body.rawBodyType,
-      bodyContent: requestType === 'grpc' ? asText(relay.message) || body.bodyContent : body.bodyContent || asText(relay.message),
+      bodyContent: requestType === 'grpc' ? asText(kurlo.message) || body.bodyContent : body.bodyContent || asText(kurlo.message),
       bodyFilePath: body.bodyFilePath, bodyFileName: body.bodyFileName, formRows: body.formRows,
       ...(sioArgs ? { sioArgs } : {}),
-      ...(Array.isArray(relay.sioEvents) ? { sioEvents: relayRows(relay.sioEvents) } : {}),
-      ...(typeof relay.sioAck === 'boolean' ? { sioAck: relay.sioAck } : {}),
+      ...(Array.isArray(kurlo.sioEvents) ? { sioEvents: kurloRows(kurlo.sioEvents) } : {}),
+      ...(typeof kurlo.sioAck === 'boolean' ? { sioAck: kurlo.sioAck } : {}),
       ...(requestType === 'grpc' ? {
         grpcMethod,
         grpcMetadata,
-        grpcUseReflection: typeof relay.grpcUseReflection === 'boolean' ? relay.grpcUseReflection : undefined,
-        grpcProtoFilePath: asText(relay.grpcProtoFilePath),
-        grpcProtoFileName: asText(relay.grpcProtoFileName),
-        grpcProtoImportPaths: asArray(relay.grpcProtoImportPaths).map(asText).filter(Boolean),
+        grpcUseReflection: typeof kurlo.grpcUseReflection === 'boolean' ? kurlo.grpcUseReflection : undefined,
+        grpcProtoFilePath: asText(kurlo.grpcProtoFilePath),
+        grpcProtoFileName: asText(kurlo.grpcProtoFileName),
+        grpcProtoImportPaths: asArray(kurlo.grpcProtoImportPaths).map(asText).filter(Boolean),
       } : {}),
       preRequestScript: scripts.preRequestScript,
       testScript: scripts.testScript,
@@ -438,7 +438,7 @@ export function postmanRequestsFromItems(
         ...DEFAULT_REQUEST_SETTINGS,
         ...(socketIO?.settings ?? {}),
         ...postmanBehaviorSettings(item.protocolProfileBehavior ?? req.protocolProfileBehavior),
-        ...relaySettings(relay.settings),
+        ...kurloSettings(kurlo.settings),
       },
       ...(examples.length ? { examples } : {}),
     }];
@@ -535,7 +535,7 @@ function requestUrlWithParams(req: SavedRequest, includeSecrets = false) {
   return appendQueryString(cleanUrl, qs);
 }
 
-function postmanUrlFromRelay(req: SavedRequest, includeSecrets = false) {
+function postmanUrlFromKurlo(req: SavedRequest, includeSecrets = false) {
   const raw = requestUrlWithParams(req, includeSecrets);
   const query = req.params.filter(r => r.enabled && r.key).map(row => postmanKv(row, includeSecrets));
   try {
@@ -554,7 +554,7 @@ function postmanAuthPair(key: string, value: string, type = 'string', includeSec
   return { key, value: safeExportValue(redactionKey, value, includeSecrets), type };
 }
 
-function postmanAuthFromRelay(auth: SavedRequest['auth'], includeSecrets = false) {
+function postmanAuthFromKurlo(auth: SavedRequest['auth'], includeSecrets = false) {
   if (auth.type === 'bearer') return { type: 'bearer', bearer: [postmanAuthPair('token', auth.bearerToken, 'string', includeSecrets)] };
   if (auth.type === 'basic' || auth.type === 'digest') {
     return { type: auth.type, [auth.type]: [postmanAuthPair('username', auth.basicUser, 'string', includeSecrets), postmanAuthPair('password', auth.basicPass, 'string', includeSecrets)] };
@@ -571,7 +571,7 @@ function postmanAuthFromRelay(auth: SavedRequest['auth'], includeSecrets = false
   return undefined;
 }
 
-function postmanBodyFromRelay(req: SavedRequest, stripFn: (s: string, t: string) => string, includeSecrets = false) {
+function postmanBodyFromKurlo(req: SavedRequest, stripFn: (s: string, t: string) => string, includeSecrets = false) {
   if (['json', 'text', 'xml', 'html'].includes(req.bodyType)) {
     const raw = stripFn(req.bodyContent, req.bodyType);
     if (req.bodyType === 'json') {
@@ -621,7 +621,7 @@ function exportBodyLikeValue(source: string, bodyType: string, stripFn: (s: stri
   return safeExportValue('body', stripped, includeSecrets);
 }
 
-function relayExtensionFromRequest(req: SavedRequest, stripFn: (s: string, t: string) => string, includeSecrets = false) {
+function kurloExtensionFromRequest(req: SavedRequest, stripFn: (s: string, t: string) => string, includeSecrets = false) {
   const requestType = req.requestType ?? 'http';
   const extension: Record<string, unknown> = {
     requestType,
@@ -680,19 +680,19 @@ function postmanPreviewLanguage(mediaType: string): string {
 }
 
 function postmanItemFromRequest(req: SavedRequest, stripFn: (s: string, t: string) => string, includeSecrets = false) {
-  const auth = postmanAuthFromRelay(req.auth, includeSecrets);
-  const body = postmanBodyFromRelay(req, stripFn, includeSecrets);
+  const auth = postmanAuthFromKurlo(req.auth, includeSecrets);
+  const body = postmanBodyFromKurlo(req, stripFn, includeSecrets);
   const name = req.name || req.url;
   const event = postmanEventsFromScripts(req.preRequestScript, req.testScript);
   const response = postmanResponsesFromExamples(req, includeSecrets);
   return {
     name,
-    [RELAY_EXTENSION_KEY]: relayExtensionFromRequest(req, stripFn, includeSecrets),
+    [KURLO_EXTENSION_KEY]: kurloExtensionFromRequest(req, stripFn, includeSecrets),
     ...(event ? { event } : {}),
     ...(response ? { response } : {}),
     request: {
       method: req.requestType === 'graphql' || req.bodyType === 'graphql' || req.requestType === 'grpc' ? 'POST' : req.method, header: req.headers.filter(r => r.key).map(row => postmanKv(row, includeSecrets)),
-      url: postmanUrlFromRelay(req, includeSecrets),
+      url: postmanUrlFromKurlo(req, includeSecrets),
       ...(req.requestNotes ? { description: req.requestNotes } : {}),
       ...(auth ? { auth } : {}),
       ...(body ? { body } : {}),
@@ -730,14 +730,14 @@ export function buildPostmanCollection(
   }
   const event = postmanEventsFromScripts(defaults?.preRequestScript ?? '', defaults?.testScript ?? '');
   const auth = defaults && defaults.auth.type !== 'none' && defaults.auth.type !== 'inherit'
-    ? postmanAuthFromRelay(defaults.auth, includeSecrets)
+    ? postmanAuthFromKurlo(defaults.auth, includeSecrets)
     : undefined;
   const variable = (defaults?.variables ?? [])
     .filter(row => row.key)
     .map(row => ({ ...postmanKv(row, includeSecrets), ...(row.secret ? { type: 'secret' } : {}) }));
   return {
     info: {
-      _postman_id: crypto.randomUUID?.() ?? `relay-${Date.now()}`,
+      _postman_id: crypto.randomUUID?.() ?? `kurlo-${Date.now()}`,
       name: collectionName,
       ...(collectionDescription ? { description: collectionDescription } : {}),
       schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
@@ -758,6 +758,6 @@ export function buildPostmanEnvironment(env: Environment, includeSecrets = false
       .map(v => ({ key: v.key, value: v.secret && !includeSecrets ? '' : v.value, enabled: v.enabled, type: v.secret ? 'secret' : 'default' })),
     _postman_variable_scope: 'environment',
     _postman_exported_at: new Date().toISOString(),
-    _postman_exported_using: 'Relay',
+    _postman_exported_using: 'Kurlo',
   };
 }

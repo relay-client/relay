@@ -85,7 +85,7 @@ func TestExamplesRoundTripThroughWorkspace(t *testing.T) {
 	localPath := filepath.Join(dir, "requests.json")
 	workspaceRoot := filepath.Join(dir, "workspaces-root")
 
-	if err := saveRelayStorePayload(localPath, workspaceRoot, exampleStorePayload(t, createdExample)); err != nil {
+	if err := saveKurloStorePayload(localPath, workspaceRoot, exampleStorePayload(t, createdExample)); err != nil {
 		t.Fatalf("save: %v", err)
 	}
 
@@ -119,7 +119,7 @@ func TestExamplesRoundTripThroughWorkspace(t *testing.T) {
 		t.Errorf("examples must not be written inline in the request file:\n%s", requestYAML)
 	}
 
-	payload, err := loadRelayStorePayload(localPath, workspaceRoot)
+	payload, err := loadKurloStorePayload(localPath, workspaceRoot)
 	if err != nil {
 		t.Fatalf("load: %v", err)
 	}
@@ -151,7 +151,7 @@ func TestExamplesAreRemovedWithTheirBodyFile(t *testing.T) {
 	localPath := filepath.Join(dir, "requests.json")
 	workspaceRoot := filepath.Join(dir, "workspaces-root")
 
-	if err := saveRelayStorePayload(localPath, workspaceRoot, exampleStorePayload(t, createdExample)); err != nil {
+	if err := saveKurloStorePayload(localPath, workspaceRoot, exampleStorePayload(t, createdExample)); err != nil {
 		t.Fatalf("save with example: %v", err)
 	}
 	bodyPath := filepath.Join(exampleDirFor(workspaceRoot), "created.body.json")
@@ -159,7 +159,7 @@ func TestExamplesAreRemovedWithTheirBodyFile(t *testing.T) {
 		t.Fatalf("body file should exist after the first save: %v", err)
 	}
 
-	if err := saveRelayStorePayload(localPath, workspaceRoot, exampleStorePayload(t, `[]`)); err != nil {
+	if err := saveKurloStorePayload(localPath, workspaceRoot, exampleStorePayload(t, `[]`)); err != nil {
 		t.Fatalf("save without example: %v", err)
 	}
 	if _, err := os.Stat(bodyPath); !os.IsNotExist(err) {
@@ -176,10 +176,10 @@ func TestWorkspaceWithoutExamplesLoadsUnchanged(t *testing.T) {
 	localPath := filepath.Join(dir, "requests.json")
 	workspaceRoot := filepath.Join(dir, "workspaces-root")
 
-	if err := saveRelayStorePayload(localPath, workspaceRoot, relaySaveFlowPayload("/saved", "token", []string{"req-main"}, "")); err != nil {
+	if err := saveKurloStorePayload(localPath, workspaceRoot, kurloSaveFlowPayload("/saved", "token", []string{"req-main"}, "")); err != nil {
 		t.Fatalf("save: %v", err)
 	}
-	payload, diagnostics, err := loadRelayStorePayloadWithDiagnostics(localPath, workspaceRoot)
+	payload, diagnostics, err := loadKurloStorePayloadWithDiagnostics(localPath, workspaceRoot)
 	if err != nil {
 		t.Fatalf("load: %v", err)
 	}
@@ -215,7 +215,7 @@ func TestExampleBodyFileEscapingIsRefused(t *testing.T) {
 	localPath := filepath.Join(dir, "requests.json")
 	workspaceRoot := filepath.Join(dir, "workspaces-root")
 
-	if err := saveRelayStorePayload(localPath, workspaceRoot, exampleStorePayload(t, createdExample)); err != nil {
+	if err := saveKurloStorePayload(localPath, workspaceRoot, exampleStorePayload(t, createdExample)); err != nil {
 		t.Fatalf("save: %v", err)
 	}
 	secret := filepath.Join(dir, "secret.txt")
@@ -235,7 +235,7 @@ func TestExampleBodyFileEscapingIsRefused(t *testing.T) {
 		t.Fatalf("write tampered example: %v", err)
 	}
 
-	payload, diagnostics, err := loadRelayStorePayloadWithDiagnostics(localPath, workspaceRoot)
+	payload, diagnostics, err := loadKurloStorePayloadWithDiagnostics(localPath, workspaceRoot)
 	if err != nil {
 		t.Fatalf("load: %v", err)
 	}
@@ -257,7 +257,7 @@ func TestExampleNamesAreMadeUniqueOnDisk(t *testing.T) {
     {"id":"ex-1","name":"Created","filesystemName":"created","response":{"statusCode":201,"bodyMediaType":"application/json","body":"{\"n\":1}","headers":[]}},
     {"id":"ex-2","name":"Created","filesystemName":"created","response":{"statusCode":201,"bodyMediaType":"application/json","body":"{\"n\":2}","headers":[]}}
   ]`
-	if err := saveRelayStorePayload(localPath, workspaceRoot, exampleStorePayload(t, twoExamples)); err != nil {
+	if err := saveKurloStorePayload(localPath, workspaceRoot, exampleStorePayload(t, twoExamples)); err != nil {
 		t.Fatalf("save: %v", err)
 	}
 
@@ -268,7 +268,7 @@ func TestExampleNamesAreMadeUniqueOnDisk(t *testing.T) {
 		}
 	}
 
-	payload, err := loadRelayStorePayload(localPath, workspaceRoot)
+	payload, err := loadKurloStorePayload(localPath, workspaceRoot)
 	if err != nil {
 		t.Fatalf("load: %v", err)
 	}

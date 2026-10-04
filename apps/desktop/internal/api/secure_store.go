@@ -22,11 +22,11 @@ import (
 const (
 	requestStoreEnvelopeVersion = 1
 	requestStoreAlgorithm       = "AES-256-GCM"
-	requestStoreKeyService      = "Relay"
+	requestStoreKeyService      = "Kurlo"
 	requestStoreKeyAccount      = "request-store"
 	requestStoreKeyFileName     = "request-store.key"
 	requestStoreKeySize         = 32
-	requestStoreDisableKeychain = "RELAY_DISABLE_KEYCHAIN"
+	requestStoreDisableKeychain = "KURLO_DISABLE_KEYCHAIN"
 )
 
 type requestStoreEnvelope struct {
@@ -313,7 +313,7 @@ func loadRequestStoreKey() ([]byte, error) {
 
 	if fromFileFallback && osCredentialStoreAvailable() {
 		if saveErr := saveRequestStoreKeyMaterial(material); saveErr != nil {
-			log.Printf("relay: could not migrate key to OS credential store (%v)", saveErr)
+			log.Printf("kurlo: could not migrate key to OS credential store (%v)", saveErr)
 		}
 	}
 	return key, nil
@@ -351,19 +351,19 @@ func loadRequestStoreKeyMaterialWithSource() (material string, fromFileFallback 
 			if m, kerr := loadRequestStoreKeychainMaterial(); kerr == nil {
 				return m, false, nil
 			} else {
-				log.Printf("relay: keychain unavailable (%v), falling back to file-based key storage", kerr)
+				log.Printf("kurlo: keychain unavailable (%v), falling back to file-based key storage", kerr)
 			}
 		case "linux":
 			if m, kerr := loadRequestStoreSecretToolMaterial(); kerr == nil {
 				return m, false, nil
 			} else if !errors.Is(kerr, errSecretToolUnavailable) {
-				log.Printf("relay: libsecret unavailable (%v), falling back to file-based key storage", kerr)
+				log.Printf("kurlo: libsecret unavailable (%v), falling back to file-based key storage", kerr)
 			}
 		case "windows":
 			if m, kerr := loadRequestStoreDPAPIMaterial(); kerr == nil {
 				return m, false, nil
 			} else if !errors.Is(kerr, os.ErrNotExist) {
-				log.Printf("relay: DPAPI unavailable (%v), falling back to file-based key storage", kerr)
+				log.Printf("kurlo: DPAPI unavailable (%v), falling back to file-based key storage", kerr)
 			}
 		}
 	}
@@ -379,25 +379,25 @@ func saveRequestStoreKeyMaterial(material string) error {
 			if err := saveRequestStoreKeychainMaterial(material); err == nil {
 				credStoreOK = true
 			} else {
-				log.Printf("relay: failed to save encryption key to keychain (%v), falling back to file-based key storage", err)
+				log.Printf("kurlo: failed to save encryption key to keychain (%v), falling back to file-based key storage", err)
 			}
 		case "linux":
 			if err := saveRequestStoreSecretToolMaterial(material); err == nil {
 				credStoreOK = true
 			} else if !errors.Is(err, errSecretToolUnavailable) {
-				log.Printf("relay: failed to save encryption key via libsecret (%v), falling back to file-based key storage", err)
+				log.Printf("kurlo: failed to save encryption key via libsecret (%v), falling back to file-based key storage", err)
 			}
 		case "windows":
 			if err := saveRequestStoreDPAPIMaterial(material); err == nil {
 				credStoreOK = true
 			} else {
-				log.Printf("relay: failed to save encryption key via DPAPI (%v), falling back to file-based key storage", err)
+				log.Printf("kurlo: failed to save encryption key via DPAPI (%v), falling back to file-based key storage", err)
 			}
 		}
 	}
 	if err := saveRequestStoreFileKeyMaterial(material); err != nil {
 		if credStoreOK {
-			log.Printf("relay: could not write recovery key file (%v); credential store entry will be the only copy", err)
+			log.Printf("kurlo: could not write recovery key file (%v); credential store entry will be the only copy", err)
 			return nil
 		}
 		return err
@@ -456,7 +456,7 @@ func saveRequestStoreFileKeyMaterial(material string) error {
 		return err
 	}
 	if runtime.GOOS != "darwin" && runtime.GOOS != "windows" && runtime.GOOS != "linux" {
-		log.Printf("relay: storing encryption key as a plain file in %s; protect this directory from other users", requestStoreDir())
+		log.Printf("kurlo: storing encryption key as a plain file in %s; protect this directory from other users", requestStoreDir())
 	}
 	if err := os.WriteFile(requestStoreKeyPath(), []byte(material), 0600); err != nil {
 		return err
@@ -493,7 +493,7 @@ func saveRequestStoreSecretToolMaterial(material string) error {
 	}
 	cmd := exec.Command(
 		"secret-tool", "store",
-		"--label", "Relay request store key",
+		"--label", "Kurlo request store key",
 		"service", requestStoreKeyService,
 		"account", requestStoreKeyAccount,
 	)

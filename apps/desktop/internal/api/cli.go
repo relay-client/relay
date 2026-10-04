@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/relay-client/relay/apps/desktop/internal/api/state"
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/api/state"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 type cliOptions struct {
@@ -77,18 +77,18 @@ func RunCLI(args []string) int {
 		if err == flag.ErrHelp {
 			return 0
 		}
-		fmt.Fprintln(os.Stderr, "relay run:", err)
+		fmt.Fprintln(os.Stderr, "kurlo run:", err)
 		return 2
 	}
 	return runCLI(opts)
 }
 
 func parseCLIArgs(args []string, stdout, stderr io.Writer) (cliOptions, error) {
-	fs := flag.NewFlagSet("relay run", flag.ContinueOnError)
+	fs := flag.NewFlagSet("kurlo run", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	opts := cliOptions{vars: map[string]string{}, globalVars: map[string]string{}, stdout: stdout, stderr: stderr}
 
-	fs.StringVar(&opts.workspace, "workspace", ".", "path to the Relay YAML workspace directory")
+	fs.StringVar(&opts.workspace, "workspace", ".", "path to the Kurlo YAML workspace directory")
 	fs.StringVar(&opts.env, "env", "", "environment name to resolve variables from")
 	fs.StringVar(&opts.collection, "collection", "", "only run requests in this collection (by name)")
 	folder := fs.String("folder", "", "only run requests under this folder path (slash-separated)")
@@ -116,8 +116,8 @@ func parseCLIArgs(args []string, stdout, stderr io.Writer) (cliOptions, error) {
 	fs.Var(&globalVarFlags, "global-var", "set a global variable as KEY=VALUE (repeatable)")
 
 	fs.Usage = func() {
-		fmt.Fprintln(stderr, "Usage: relay run [workspace] [flags]")
-		fmt.Fprint(stderr, "\nRun a Relay YAML workspace's requests and their test scripts, for CI or the terminal.\n\n")
+		fmt.Fprintln(stderr, "Usage: kurlo run [workspace] [flags]")
+		fmt.Fprint(stderr, "\nRun a Kurlo YAML workspace's requests and their test scripts, for CI or the terminal.\n\n")
 		fs.PrintDefaults()
 	}
 
@@ -215,18 +215,18 @@ func (m *multiFlag) Set(v string) error {
 func runCLI(opts cliOptions) int {
 	_, collections, requests, environments, err := loadCLIWorkspace(opts.workspace)
 	if err != nil {
-		fmt.Fprintln(opts.stderr, "relay run:", err)
+		fmt.Fprintln(opts.stderr, "kurlo run:", err)
 		return 2
 	}
 
 	globals, err := resolveGlobals(opts)
 	if err != nil {
-		fmt.Fprintln(opts.stderr, "relay run:", err)
+		fmt.Fprintln(opts.stderr, "kurlo run:", err)
 		return 2
 	}
 	values, secretValues, err := resolveCLIValues(opts, collections, environments, globals)
 	if err != nil {
-		fmt.Fprintln(opts.stderr, "relay run:", err)
+		fmt.Fprintln(opts.stderr, "kurlo run:", err)
 		return 2
 	}
 
@@ -234,7 +234,7 @@ func runCLI(opts cliOptions) int {
 	if opts.dataFile != "" {
 		dataRows, err = loadDataFile(opts.dataFile)
 		if err != nil {
-			fmt.Fprintln(opts.stderr, "relay run:", err)
+			fmt.Fprintln(opts.stderr, "kurlo run:", err)
 			return 2
 		}
 	}
@@ -246,7 +246,7 @@ func runCLI(opts cliOptions) int {
 
 	selected := selectCLIRequests(requests, opts)
 	if len(selected) == 0 {
-		fmt.Fprintln(opts.stderr, "relay run: no runnable requests matched the selection")
+		fmt.Fprintln(opts.stderr, "kurlo run: no runnable requests matched the selection")
 		return 2
 	}
 	collectionsByID := make(map[string]*cliCollection, len(collections))
@@ -293,11 +293,11 @@ runLoop:
 
 	elapsed := time.Since(start)
 	if err := runReporters(opts, results, elapsed); err != nil {
-		fmt.Fprintln(opts.stderr, "relay run:", err)
+		fmt.Fprintln(opts.stderr, "kurlo run:", err)
 		return 2
 	}
 	if err := exportScopes(opts, sm, globals); err != nil {
-		fmt.Fprintln(opts.stderr, "relay run:", err)
+		fmt.Fprintln(opts.stderr, "kurlo run:", err)
 		return 2
 	}
 
@@ -574,7 +574,7 @@ func loadCLIWorkspace(root string) ([]map[string]any, []cliCollection, []cliSave
 
 func loadCLIWorkspaceWithSecrets(root string, secrets map[string]string) ([]map[string]any, []cliCollection, []cliSavedRequest, []cliEnvironment, error) {
 	if !hasYAMLWorkspaceStore(root) {
-		return nil, nil, nil, nil, fmt.Errorf("%q is not a Relay YAML workspace (no relay.yml found)", root)
+		return nil, nil, nil, nil, fmt.Errorf("%q is not a Kurlo YAML workspace (no kurlo.yml found)", root)
 	}
 	workspaces, collectionMaps, requestMaps, environmentMaps, _, diagnostics, err := loadFilesystemWorkspaceStoreWithDiagnostics(root, secrets)
 	if err != nil {
@@ -832,7 +832,7 @@ type junitSuite struct {
 }
 
 func reportJUnit(w io.Writer, results []cliRunResult, elapsed time.Duration) {
-	suite := junitSuite{Name: "relay", Time: fmt.Sprintf("%.3f", elapsed.Seconds())}
+	suite := junitSuite{Name: "kurlo", Time: fmt.Sprintf("%.3f", elapsed.Seconds())}
 	for _, r := range results {
 		if r.Skipped {
 			continue

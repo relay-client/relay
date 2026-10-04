@@ -4,8 +4,8 @@ export type BodyEditorContext = 'body' | 'message' | 'variables' | 'binary';
 const TEMPLATES: Record<Exclude<BodyEditorLang, 'text'>, string> = {
   json: '{ "key": "value" }',
   xml: '<request><key>value</key></request>',
-  html: '<div><h1>Hello from Relay</h1></div>',
-  javascript: 'function example() { return "Hello from Relay"; }',
+  html: '<div><h1>Hello from Kurlo</h1></div>',
+  javascript: 'function example() { return "Hello from Kurlo"; }',
   graphql: 'query Example { viewer { id name } }',
 };
 

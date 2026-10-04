@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Relay</title>
+    <title>Kurlo</title>
     <script>
       (() => {
         const systemTheme = () => {
@@ -44,7 +44,7 @@
           };
         };
         const themeFromStorage = () => {
-          const stored = localStorage.getItem('relay.theme.v2');
+          const stored = localStorage.getItem('kurlo.theme.v2');
           if (stored) {
             try {
               const parsed = JSON.parse(stored);
@@ -53,7 +53,7 @@
               return normalizeTheme(stored);
             }
           }
-          return normalizeTheme(localStorage.getItem('relay.theme.v1'));
+          return normalizeTheme(localStorage.getItem('kurlo.theme.v1'));
         };
 
         document.documentElement.dataset.platform = /Mac/i.test(platform)
@@ -65,7 +65,7 @@
               : 'browser';
 
         try {
-          const scale = Number.parseFloat(localStorage.getItem('relay.uiScale.v1') || '');
+          const scale = Number.parseFloat(localStorage.getItem('kurlo.uiScale.v1') || '');
           if (Number.isFinite(scale) && scale >= 0.5 && scale <= 2 && scale !== 1) document.documentElement.style.fontSize = `${scale * 100}%`;
         } catch {}
 
@@ -201,11 +201,11 @@
   </head>
   <body>
     <div id="app"></div>
-    <div id="boot-screen" class="boot-screen" aria-label="Relay is starting">
+    <div id="boot-screen" class="boot-screen" aria-label="Kurlo is starting">
         <div class="boot-brand">
-          <img class="boot-mark" src="./src/lib/assets/relay-mark.png" alt="" width="44" height="44" draggable="false" />
+          <img class="boot-mark" src="./src/lib/assets/kurlo-mark.png" alt="" width="44" height="44" draggable="false" />
           <div>
-            <div class="boot-name">Relay</div>
+            <div class="boot-name">Kurlo</div>
             <div class="boot-status">Starting</div>
             <div class="boot-loader" aria-hidden="true"></div>
           </div>

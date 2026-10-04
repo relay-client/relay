@@ -1,28 +1,28 @@
 ---
-title: Relay YAML format
-description: Public contract for Git-backed Relay workspaces.
+title: Kurlo YAML format
+description: Public contract for Git-backed Kurlo workspaces.
 ---
 
-Relay stores Git-backed workspaces as plain YAML files. The contract below is intended for review tools, formatters, generators, and import/export integrations.
+Kurlo stores Git-backed workspaces as plain YAML files. The contract below is intended for review tools, formatters, generators, and import/export integrations.
 
-Schema: `schemas/relay-workspace-yaml-v1.schema.json`
+Schema: `schemas/kurlo-workspace-yaml-v1.schema.json`
 
 ## Contract
 
 | Field | Value |
 |-------|-------|
 | Storage kind | `workspace-yaml` |
-| Format | `relay.workspace.yaml.v1` |
+| Format | `kurlo.workspace.yaml.v1` |
 | File version | `1` |
 | Path layout | `yaml-filesystem-names.v1` |
 | Encoding | UTF-8 YAML |
 
-Relay preserves unknown fields inside workspace, collection, request, environment, auth, settings, and row objects when it can. Tools should do the same to stay forward-compatible.
+Kurlo preserves unknown fields inside workspace, collection, request, environment, auth, settings, and row objects when it can. Tools should do the same to stay forward-compatible.
 
 ## Directory layout
 
 ```text
-relay.yml
+kurlo.yml
 workspaces/
   <workspace filesystemName>/
     workspace.yml
@@ -39,17 +39,17 @@ workspaces/
       <environment filesystemName>.yml
 ```
 
-`filesystemName` is the stable path segment for every public object. It must be present in YAML files and must not contain `/` or `\`. Relay derives it from the item name when creating new items, but once written it is treated as the Git-stable filename.
+`filesystemName` is the stable path segment for every public object. It must be present in YAML files and must not contain `/` or `\`. Kurlo derives it from the item name when creating new items, but once written it is treated as the Git-stable filename.
 
 Request and environment files may include a top-level `order` for older exports. Newer writers should prefer `requestOrder`, `collectionOrder`, and `workspaceOrder`; readers must tolerate files without `order`.
 
 ## Root index
 
-`relay.yml` identifies the shared workspace store and records workspace order.
+`kurlo.yml` identifies the shared workspace store and records workspace order.
 
 ```yaml
 version: 1
-format: relay.workspace.yaml.v1
+format: kurlo.workspace.yaml.v1
 workspaceOrder:
   - workspace-main
 ```
@@ -123,7 +123,7 @@ request:
       description: ""
   auth:
     type: bearer
-    bearerToken: "{{relaySecret:request:req-login:auth:bearerToken}}"
+    bearerToken: "{{kurloSecret:request:req-login:auth:bearerToken}}"
     basicUser: ""
     basicPass: ""
     apiKeyName: X-API-Key
@@ -215,7 +215,7 @@ request:
 | `settings` | Request transport settings. Unknown settings must be preserved by third-party tools. |
 | `settingsOverrides` | Per-request override markers for inherited collection defaults. |
 
-Secret-bearing auth fields (`bearerToken`, `basicPass`, `apiKeyValue`, `oauth2Secret`, `oauth2Token`, `oauth2RefreshToken`, `awsAccessKey`, and `awsSecretKey`) are replaced with `{{relaySecret:...}}` placeholders in shared Git/YAML workspaces. Their plaintext values stay in Relay's encrypted local profile.
+Secret-bearing auth fields (`bearerToken`, `basicPass`, `apiKeyValue`, `oauth2Secret`, `oauth2Token`, `oauth2RefreshToken`, `awsAccessKey`, and `awsSecretKey`) are replaced with `{{kurloSecret:...}}` placeholders in shared Git/YAML workspaces. Their plaintext values stay in Kurlo's encrypted local profile.
 
 ## Example file
 
@@ -289,7 +289,7 @@ environment:
     - id: 2
       enabled: true
       key: token
-      value: "{{relaySecret:environment:environment-local:row:2}}"
+      value: "{{kurloSecret:environment:environment-local:row:2}}"
       description: ""
       secret: true
   createdAt: 1710000000000
@@ -301,19 +301,19 @@ environment:
 Shared YAML files may contain placeholders in sensitive request auth fields and in rows marked `secret: true`.
 
 ```text
-{{relaySecret:<stable key>}}
+{{kurloSecret:<stable key>}}
 ```
 
-Relay stores the actual values in its encrypted local `requests.json` profile. They are not part of the workspace directory or this shared public contract.
+Kurlo stores the actual values in its encrypted local `requests.json` profile. They are not part of the workspace directory or this shared public contract.
 
 Secret-aware tools should preserve placeholders as-is. If a tool cannot resolve a placeholder, it should keep the placeholder instead of replacing it with an empty string.
 
 ## Git behavior
 
-Relay treats these paths as managed Git content:
+Kurlo treats these paths as managed Git content:
 
-- `relay.yml`
+- `kurlo.yml`
 - `.gitignore`
 - `workspaces/**/*.yml`
 
-Other files in the repository are intentionally left alone by commit, discard, stash, and conflict-resolution operations unless Relay explicitly adds support for them in a future format version.
+Other files in the repository are intentionally left alone by commit, discard, stash, and conflict-resolution operations unless Kurlo explicitly adds support for them in a future format version.

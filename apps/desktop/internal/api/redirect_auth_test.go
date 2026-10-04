@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/relay-client/relay/apps/desktop/internal/api/state"
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/api/state"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 func authorizationAfterRedirect(t *testing.T, from func(target string) *httptest.Server, target *httptest.Server, follow bool) string {

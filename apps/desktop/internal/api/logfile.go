@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	logFileName      = "relay.log"
+	logFileName      = "kurlo.log"
 	logMaxBytes      = 1 << 20
 	logRotatedSuffix = ".1"
 )
@@ -116,7 +116,7 @@ func InstallLogFile() (string, error) {
 
 	log.SetFlags(log.LstdFlags | log.Lmsgprefix)
 	log.SetOutput(io.MultiWriter(os.Stderr, writer))
-	log.Printf("relay: %s starting", VersionLine())
+	log.Printf("kurlo: %s starting", VersionLine())
 	return path, nil
 }
 

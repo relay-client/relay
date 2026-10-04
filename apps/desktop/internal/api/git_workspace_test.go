@@ -17,7 +17,7 @@ func TestGitStatusDetectsRepositoryAndChangedFiles(t *testing.T) {
 	}
 	dir := t.TempDir()
 	runGitForTest(t, dir, "init")
-	if err := os.WriteFile(filepath.Join(dir, "relay.yml"), []byte("version: 1\n"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "kurlo.yml"), []byte("version: 1\n"), 0644); err != nil {
 		t.Fatalf("write workspace file: %v", err)
 	}
 
@@ -35,7 +35,7 @@ func TestGitStatusDetectsRepositoryAndChangedFiles(t *testing.T) {
 	if status.Clean {
 		t.Fatalf("expected dirty status for untracked file")
 	}
-	if len(status.Files) != 1 || status.Files[0].Path != "relay.yml" || status.Files[0].Status != "untracked" {
+	if len(status.Files) != 1 || status.Files[0].Path != "kurlo.yml" || status.Files[0].Status != "untracked" {
 		t.Fatalf("unexpected files: %#v", status.Files)
 	}
 }
@@ -46,11 +46,11 @@ func TestGitDiffShowsUntrackedWorkspaceFile(t *testing.T) {
 	}
 	dir := t.TempDir()
 	runGitForTest(t, dir, "init")
-	if err := os.WriteFile(filepath.Join(dir, "relay.yml"), []byte("version: 1\n"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "kurlo.yml"), []byte("version: 1\n"), 0644); err != nil {
 		t.Fatalf("write workspace file: %v", err)
 	}
 
-	diff := gitDiffForWorkspace(dir, "relay.yml")
+	diff := gitDiffForWorkspace(dir, "kurlo.yml")
 	if diff.Error != "" {
 		t.Fatalf("unexpected diff error: %s", diff.Error)
 	}
@@ -64,23 +64,23 @@ func TestGitDiffSeparatesStagedAndUnstagedChanges(t *testing.T) {
 		t.Skip("git is not installed")
 	}
 	dir := t.TempDir()
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
 	configureGitUserForTest(t, dir)
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "relay.yml"), []byte("version: 1\nstate: staged\n"), 0644); err != nil {
-		t.Fatalf("write staged relay index: %v", err)
+	if err := os.WriteFile(filepath.Join(dir, "kurlo.yml"), []byte("version: 1\nstate: staged\n"), 0644); err != nil {
+		t.Fatalf("write staged kurlo index: %v", err)
 	}
-	runGitForTest(t, dir, "add", "relay.yml")
-	if err := os.WriteFile(filepath.Join(dir, "relay.yml"), []byte("version: 1\nstate: unstaged\n"), 0644); err != nil {
-		t.Fatalf("write unstaged relay index: %v", err)
+	runGitForTest(t, dir, "add", "kurlo.yml")
+	if err := os.WriteFile(filepath.Join(dir, "kurlo.yml"), []byte("version: 1\nstate: unstaged\n"), 0644); err != nil {
+		t.Fatalf("write unstaged kurlo index: %v", err)
 	}
 
-	diff := gitDiffForWorkspace(dir, "relay.yml")
+	diff := gitDiffForWorkspace(dir, "kurlo.yml")
 	if diff.Error != "" {
 		t.Fatalf("unexpected diff error: %s", diff.Error)
 	}
@@ -145,19 +145,19 @@ func TestGitInitWorkspaceMissingRootReturnsFriendlyError(t *testing.T) {
 	}
 }
 
-func TestSaveRelayStorePayloadDoesNotRecreateMissingCustomRoot(t *testing.T) {
+func TestSaveKurloStorePayloadDoesNotRecreateMissingCustomRoot(t *testing.T) {
 	withRequestStoreTestKey(t)
 	dir := t.TempDir()
 	localPath := filepath.Join(dir, "requests.json")
 	workspaceRoot := filepath.Join(dir, "deleted-workspace")
-	if err := saveRelayStorePayload(localPath, workspaceRoot, relaySaveFlowPayload("/initial", "token", []string{"req-main"}, "")); err != nil {
+	if err := saveKurloStorePayload(localPath, workspaceRoot, kurloSaveFlowPayload("/initial", "token", []string{"req-main"}, "")); err != nil {
 		t.Fatalf("save initial workspace: %v", err)
 	}
 	if err := os.RemoveAll(workspaceRoot); err != nil {
 		t.Fatalf("remove workspace root: %v", err)
 	}
 
-	err := saveRelayStorePayload(localPath, workspaceRoot, relaySaveFlowPayload("/missing", "token", []string{"req-main"}, ""))
+	err := saveKurloStorePayload(localPath, workspaceRoot, kurloSaveFlowPayload("/missing", "token", []string{"req-main"}, ""))
 	if err == nil {
 		t.Fatalf("expected save to fail for missing custom workspace root")
 	}
@@ -176,7 +176,7 @@ func TestUseLocalWorkspaceStoreSuppressesGitRepoInDefaultStorage(t *testing.T) {
 	configDir := t.TempDir()
 	useTempConfigDir(t, configDir)
 	root := defaultFileWorkspaceStorePath()
-	writeRelayWorkspaceFiles(t, root)
+	writeKurloWorkspaceFiles(t, root)
 	runGitForTest(t, root, "init")
 
 	app := NewApp()
@@ -211,11 +211,11 @@ func TestCreateLocalWorkspaceRootCreatesFolderWorkspace(t *testing.T) {
 
 	parent := t.TempDir()
 	app := NewApp()
-	result := app.CreateLocalWorkspaceRoot(parent, "Relay API", "empty")
+	result := app.CreateLocalWorkspaceRoot(parent, "Kurlo API", "empty")
 	if !result.Ok {
 		t.Fatalf("create local workspace failed: %s", result.Error)
 	}
-	expectedRoot := filepath.Join(parent, "Relay-API")
+	expectedRoot := filepath.Join(parent, "Kurlo-API")
 	if result.Root != expectedRoot {
 		t.Fatalf("expected root %q, got %q", expectedRoot, result.Root)
 	}
@@ -223,7 +223,7 @@ func TestCreateLocalWorkspaceRootCreatesFolderWorkspace(t *testing.T) {
 		t.Fatalf("folder workspace should stay in local mode before init, got %#v", result.Git)
 	}
 	if !hasYAMLWorkspaceStore(expectedRoot) {
-		t.Fatalf("expected Relay YAML workspace files in %s", expectedRoot)
+		t.Fatalf("expected Kurlo YAML workspace files in %s", expectedRoot)
 	}
 	store, _, err := loadLocalRequestStore(requestStorePath())
 	if err != nil {
@@ -249,7 +249,7 @@ func TestCreateLocalWorkspaceRootCreatesFolderWorkspace(t *testing.T) {
 	}
 }
 
-func TestDefaultWorkspaceLocationUsesDocumentsRelay(t *testing.T) {
+func TestDefaultWorkspaceLocationUsesDocumentsKurlo(t *testing.T) {
 	configDir := t.TempDir()
 	homeDir := t.TempDir()
 	useTempConfigDir(t, configDir)
@@ -260,7 +260,7 @@ func TestDefaultWorkspaceLocationUsesDocumentsRelay(t *testing.T) {
 	if result.Error != "" {
 		t.Fatalf("default workspace location failed: %s", result.Error)
 	}
-	expected := filepath.Join(homeDir, "Documents", "Relay")
+	expected := filepath.Join(homeDir, "Documents", "Kurlo")
 	if result.Path != expected {
 		t.Fatalf("expected default location %q, got %q", expected, result.Path)
 	}
@@ -276,22 +276,22 @@ func TestCreateLocalWorkspaceRootUsesConfiguredDefaultLocation(t *testing.T) {
 	useTempConfigDir(t, configDir)
 	useTempHomeDir(t, homeDir)
 
-	defaultParent := filepath.Join(t.TempDir(), "Relay Workspaces")
+	defaultParent := filepath.Join(t.TempDir(), "Kurlo Workspaces")
 	app := NewApp()
 	location := app.SetDefaultWorkspaceLocation(defaultParent)
 	if location.Error != "" {
 		t.Fatalf("set default workspace location failed: %s", location.Error)
 	}
-	result := app.CreateLocalWorkspaceRoot("", "Relay API", "empty")
+	result := app.CreateLocalWorkspaceRoot("", "Kurlo API", "empty")
 	if !result.Ok {
 		t.Fatalf("create local workspace failed: %s", result.Error)
 	}
-	expectedRoot := filepath.Join(defaultParent, "Relay-API")
+	expectedRoot := filepath.Join(defaultParent, "Kurlo-API")
 	if result.Root != expectedRoot {
 		t.Fatalf("expected root %q, got %q", expectedRoot, result.Root)
 	}
 	if !hasYAMLWorkspaceStore(expectedRoot) {
-		t.Fatalf("expected Relay YAML workspace files in %s", expectedRoot)
+		t.Fatalf("expected Kurlo YAML workspace files in %s", expectedRoot)
 	}
 }
 
@@ -303,11 +303,11 @@ func TestOpenWorkspaceRootEnsuresGitignore(t *testing.T) {
 	useTempConfigDir(t, configDir)
 
 	dir := t.TempDir()
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	runGitForTest(t, dir, "init")
 	configureGitUserForTest(t, dir)
-	runGitForTest(t, dir, "add", "relay.yml", "workspaces")
-	runGitForTest(t, dir, "commit", "-m", "Initial Relay workspace")
+	runGitForTest(t, dir, "add", "kurlo.yml", "workspaces")
+	runGitForTest(t, dir, "commit", "-m", "Initial Kurlo workspace")
 
 	app := NewApp()
 	result := app.openWorkspaceRoot(dir)
@@ -318,7 +318,7 @@ func TestOpenWorkspaceRootEnsuresGitignore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected .gitignore to be created on open: %v", err)
 	}
-	for _, entry := range relayGitignoreEntries {
+	for _, entry := range kurloGitignoreEntries {
 		if !strings.Contains(string(gitignore), entry) {
 			t.Fatalf("expected .gitignore to include %q, got:\n%s", entry, gitignore)
 		}
@@ -330,14 +330,14 @@ func TestWorkspaceGitignoreIgnoresGeneratedRunnerReports(t *testing.T) {
 		t.Skip("git is not installed")
 	}
 	dir := t.TempDir()
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	runGitForTest(t, dir, "init")
 	configureGitUserForTest(t, dir)
 	if err := ensureWorkspaceGitignore(dir); err != nil {
 		t.Fatalf("ensure gitignore: %v", err)
 	}
-	runGitForTest(t, dir, "add", "relay.yml", ".gitignore", "workspaces")
-	runGitForTest(t, dir, "commit", "-m", "Initial Relay workspace")
+	runGitForTest(t, dir, "add", "kurlo.yml", ".gitignore", "workspaces")
+	runGitForTest(t, dir, "commit", "-m", "Initial Kurlo workspace")
 
 	reportPath := filepath.Join(dir, "collection-1-2026-05-17T19-25-24.html")
 	if err := os.WriteFile(reportPath, []byte("<!doctype html>\n"), 0644); err != nil {
@@ -362,12 +362,12 @@ func TestOpenWorkspaceRootFetchesRemoteStatus(t *testing.T) {
 		t.Fatalf("create bare remote dir: %v", err)
 	}
 	initBareRemoteForTest(t, remote)
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
 	configureGitUserForTest(t, dir)
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
 	if remoteResult := gitAddRemoteForRoot(dir, "origin", remote); !remoteResult.Ok {
@@ -380,11 +380,11 @@ func TestOpenWorkspaceRootFetchesRemoteStatus(t *testing.T) {
 	peer := filepath.Join(t.TempDir(), "peer")
 	cloneGitForTest(t, remote, peer)
 	configureGitUserForTest(t, peer)
-	if err := os.WriteFile(filepath.Join(peer, "relay.yml"), []byte("version: 1\nremoteUpdate: true\n"), 0644); err != nil {
-		t.Fatalf("write peer relay index: %v", err)
+	if err := os.WriteFile(filepath.Join(peer, "kurlo.yml"), []byte("version: 1\nremoteUpdate: true\n"), 0644); err != nil {
+		t.Fatalf("write peer kurlo index: %v", err)
 	}
-	runGitForTest(t, peer, "add", "relay.yml")
-	runGitForTest(t, peer, "commit", "-m", "Remote Relay update")
+	runGitForTest(t, peer, "add", "kurlo.yml")
+	runGitForTest(t, peer, "commit", "-m", "Remote Kurlo update")
 	runGitForTest(t, peer, "push")
 
 	beforeOpen := gitStatusForWorkspace(dir)
@@ -406,15 +406,15 @@ func TestGitPullWorkspaceReportsChangeSummary(t *testing.T) {
 		t.Skip("git is not installed")
 	}
 	dir, peer := setupGitPullRemoteForTest(t)
-	if err := os.WriteFile(filepath.Join(peer, "relay.yml"), []byte("version: 1\nremoteUpdate: true\n"), 0644); err != nil {
-		t.Fatalf("write peer relay index: %v", err)
+	if err := os.WriteFile(filepath.Join(peer, "kurlo.yml"), []byte("version: 1\nremoteUpdate: true\n"), 0644); err != nil {
+		t.Fatalf("write peer kurlo index: %v", err)
 	}
 	addedPath := filepath.Join(peer, "remote-note.yml")
 	if err := os.WriteFile(addedPath, []byte("created: true\n"), 0644); err != nil {
 		t.Fatalf("write peer added file: %v", err)
 	}
-	runGitForTest(t, peer, "add", "relay.yml", "remote-note.yml")
-	runGitForTest(t, peer, "commit", "-m", "Remote Relay update")
+	runGitForTest(t, peer, "add", "kurlo.yml", "remote-note.yml")
+	runGitForTest(t, peer, "commit", "-m", "Remote Kurlo update")
 	runGitForTest(t, peer, "push")
 
 	result := gitPullWorkspaceForRoot(dir, "ff")
@@ -567,11 +567,11 @@ collectionOrder:
 `), 0644); err != nil {
 		t.Fatalf("write dirty local workspace: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(peer, "relay.yml"), []byte("version: 1\nremoteUpdate: true\n"), 0644); err != nil {
-		t.Fatalf("write peer relay index: %v", err)
+	if err := os.WriteFile(filepath.Join(peer, "kurlo.yml"), []byte("version: 1\nremoteUpdate: true\n"), 0644); err != nil {
+		t.Fatalf("write peer kurlo index: %v", err)
 	}
-	runGitForTest(t, peer, "add", "relay.yml")
-	runGitForTest(t, peer, "commit", "-m", "Remote Relay update")
+	runGitForTest(t, peer, "add", "kurlo.yml")
+	runGitForTest(t, peer, "commit", "-m", "Remote Kurlo update")
 	runGitForTest(t, peer, "push")
 
 	result := gitPullWorkspaceForRoot(dir, "ff")
@@ -581,7 +581,7 @@ collectionOrder:
 	if result.Git.Clean {
 		t.Fatalf("expected local dirty edit to remain after pull, got clean status")
 	}
-	if !strings.Contains(readFileForTest(t, filepath.Join(dir, "relay.yml")), "remoteUpdate: true") {
+	if !strings.Contains(readFileForTest(t, filepath.Join(dir, "kurlo.yml")), "remoteUpdate: true") {
 		t.Fatalf("expected remote update to be pulled")
 	}
 	if !strings.Contains(readFileForTest(t, localWorkspace), "Local Dirty") {
@@ -597,14 +597,14 @@ func TestGitPullWorkspaceDirtyOverlapLeavesResolvableConflict(t *testing.T) {
 		t.Skip("git is not installed")
 	}
 	dir, peer := setupGitPullRemoteForTest(t)
-	if err := os.WriteFile(filepath.Join(dir, "relay.yml"), []byte("version: 1\nlocal: true\n"), 0644); err != nil {
-		t.Fatalf("write dirty local relay index: %v", err)
+	if err := os.WriteFile(filepath.Join(dir, "kurlo.yml"), []byte("version: 1\nlocal: true\n"), 0644); err != nil {
+		t.Fatalf("write dirty local kurlo index: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(peer, "relay.yml"), []byte("version: 1\nremote: true\n"), 0644); err != nil {
-		t.Fatalf("write peer relay index: %v", err)
+	if err := os.WriteFile(filepath.Join(peer, "kurlo.yml"), []byte("version: 1\nremote: true\n"), 0644); err != nil {
+		t.Fatalf("write peer kurlo index: %v", err)
 	}
-	runGitForTest(t, peer, "add", "relay.yml")
-	runGitForTest(t, peer, "commit", "-m", "Remote Relay update")
+	runGitForTest(t, peer, "add", "kurlo.yml")
+	runGitForTest(t, peer, "commit", "-m", "Remote Kurlo update")
 	runGitForTest(t, peer, "push")
 
 	result := gitPullWorkspaceForRoot(dir, "ff")
@@ -621,7 +621,7 @@ func TestGitPullWorkspaceDirtyOverlapLeavesResolvableConflict(t *testing.T) {
 		t.Fatalf("expected dirty conflict message, got %q", result.Error)
 	}
 
-	conflict := gitConflictFileForRoot(dir, "relay.yml")
+	conflict := gitConflictFileForRoot(dir, "kurlo.yml")
 	if !conflict.Ok {
 		t.Fatalf("read conflict failed: %s", conflict.Error)
 	}
@@ -641,7 +641,7 @@ func TestGitPullWorkspaceDirtyOverlapLeavesResolvableConflict(t *testing.T) {
 	if !strings.Contains(markerTheirs, "remote: true") {
 		t.Fatalf("expected visual theirs marker side to contain pulled remote change, got:\n%s", markerTheirs)
 	}
-	resolveResult := gitResolveConflictFileForRoot(dir, "relay.yml", "ours", "")
+	resolveResult := gitResolveConflictFileForRoot(dir, "kurlo.yml", "ours", "")
 	if !resolveResult.Ok {
 		t.Fatalf("resolve dirty pull conflict failed: %s\n%s", resolveResult.Error, resolveResult.Output)
 	}
@@ -651,10 +651,10 @@ func TestGitPullWorkspaceDirtyOverlapLeavesResolvableConflict(t *testing.T) {
 	if resolveResult.Git.Clean {
 		t.Fatalf("expected local resolution to remain as an uncommitted change")
 	}
-	if status := gitStatusForPath(resolveResult.Git.Files, "relay.yml"); status != "modified" {
-		t.Fatalf("expected relay.yml to stay modified after resolving with local side, got %q in %#v", status, resolveResult.Git.Files)
+	if status := gitStatusForPath(resolveResult.Git.Files, "kurlo.yml"); status != "modified" {
+		t.Fatalf("expected kurlo.yml to stay modified after resolving with local side, got %q in %#v", status, resolveResult.Git.Files)
 	}
-	content := readFileForTest(t, filepath.Join(dir, "relay.yml"))
+	content := readFileForTest(t, filepath.Join(dir, "kurlo.yml"))
 	if !strings.Contains(content, "local: true") || strings.Contains(content, "remote: true") {
 		t.Fatalf("expected local side to remain after resolution, got:\n%s", content)
 	}
@@ -690,11 +690,11 @@ requestOrder: []
 `), 0644); err != nil {
 		t.Fatalf("write dirty local collection: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(peer, "relay.yml"), []byte("version: 1\nremote: true\n"), 0644); err != nil {
-		t.Fatalf("write peer relay index: %v", err)
+	if err := os.WriteFile(filepath.Join(peer, "kurlo.yml"), []byte("version: 1\nremote: true\n"), 0644); err != nil {
+		t.Fatalf("write peer kurlo index: %v", err)
 	}
-	runGitForTest(t, peer, "add", "relay.yml")
-	runGitForTest(t, peer, "commit", "-m", "Remote Relay update")
+	runGitForTest(t, peer, "add", "kurlo.yml")
+	runGitForTest(t, peer, "commit", "-m", "Remote Kurlo update")
 	runGitForTest(t, peer, "push")
 
 	result := gitPullWorkspaceForRoot(dir, "merge")
@@ -707,7 +707,7 @@ requestOrder: []
 	if result.Git.Clean {
 		t.Fatalf("expected dirty collection edit to remain after merge pull")
 	}
-	if !strings.Contains(readFileForTest(t, filepath.Join(dir, "relay.yml")), "remote: true") {
+	if !strings.Contains(readFileForTest(t, filepath.Join(dir, "kurlo.yml")), "remote: true") {
 		t.Fatalf("expected remote update to be merged")
 	}
 	if !strings.Contains(readFileForTest(t, collectionPath), "Dirty Collection") {
@@ -729,11 +729,11 @@ func TestCustomLocalWorkspaceRootReceivesSubsequentSaves(t *testing.T) {
 
 	parent := t.TempDir()
 	app := NewApp()
-	result := app.CreateLocalWorkspaceRoot(parent, "Relay API", "empty")
+	result := app.CreateLocalWorkspaceRoot(parent, "Kurlo API", "empty")
 	if !result.Ok {
 		t.Fatalf("create local workspace failed: %s", result.Error)
 	}
-	if ok := app.SaveRequestStore(relaySaveFlowPayload("/custom-folder", "token-a", []string{"req-main"}, "")); !ok {
+	if ok := app.SaveRequestStore(kurloSaveFlowPayload("/custom-folder", "token-a", []string{"req-main"}, "")); !ok {
 		t.Fatalf("save request store failed")
 	}
 
@@ -758,11 +758,11 @@ func TestMissingWorkspaceSecretsFindsPlaceholdersWithoutLocalValues(t *testing.T
 	payload := `request:
   id: req-main
   auth:
-    bearerToken: "{{relaySecret:request.req-main.auth.bearerToken}}"
+    bearerToken: "{{kurloSecret:request.req-main.auth.bearerToken}}"
   headers:
     - id: 7
       secret: true
-      value: "{{relaySecret:request.req-main.headers.row.7.value}}"
+      value: "{{kurloSecret:request.req-main.headers.row.7.value}}"
 `
 	if err := os.WriteFile(filepath.Join(requestDir, "req-main.yml"), []byte(payload), 0644); err != nil {
 		t.Fatalf("write request file: %v", err)
@@ -782,7 +782,7 @@ func TestMissingWorkspaceSecretsFindsPlaceholdersWithoutLocalValues(t *testing.T
 func TestDeriveCloneDirectoryName(t *testing.T) {
 	cases := map[string]string{
 		"https://github.com/acme/api-workspace.git": "api-workspace",
-		"git@github.com:acme/relay-demo.git":        "relay-demo",
+		"git@github.com:acme/kurlo-demo.git":        "kurlo-demo",
 	}
 	for input, expected := range cases {
 		if got := deriveCloneDirectoryName(input); got != expected {
@@ -791,8 +791,8 @@ func TestDeriveCloneDirectoryName(t *testing.T) {
 	}
 }
 
-func TestEmptyRelayWorkspacePayloadUsesRepoName(t *testing.T) {
-	payload, err := emptyRelayWorkspacePayload("avia-api")
+func TestEmptyKurloWorkspacePayloadUsesRepoName(t *testing.T) {
+	payload, err := emptyKurloWorkspacePayload("avia-api")
 	if err != nil {
 		t.Fatalf("empty payload: %v", err)
 	}
@@ -813,16 +813,16 @@ func TestEmptyRelayWorkspacePayloadUsesRepoName(t *testing.T) {
 	}
 }
 
-func TestGitCommitStagesAndCommitsOnlyRelayFiles(t *testing.T) {
+func TestGitCommitStagesAndCommitsOnlyKurloFiles(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git is not installed")
 	}
 	dir := t.TempDir()
-	writeRelayWorkspaceFiles(t, dir)
-	if err := os.MkdirAll(filepath.Join(dir, ".relay-local"), 0755); err != nil {
+	writeKurloWorkspaceFiles(t, dir)
+	if err := os.MkdirAll(filepath.Join(dir, ".kurlo-local"), 0755); err != nil {
 		t.Fatalf("create local dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, ".relay-local", "secrets.json"), []byte(`{"token":"secret"}`+"\n"), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, ".kurlo-local", "secrets.json"), []byte(`{"token":"secret"}`+"\n"), 0600); err != nil {
 		t.Fatalf("write local secret file: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "history.json"), []byte(`{"history":[]}`+"\n"), 0644); err != nil {
@@ -836,26 +836,26 @@ func TestGitCommitStagesAndCommitsOnlyRelayFiles(t *testing.T) {
 	if !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
-	runGitForTest(t, dir, "config", "user.email", "relay@example.test")
-	runGitForTest(t, dir, "config", "user.name", "Relay Test")
+	runGitForTest(t, dir, "config", "user.email", "kurlo@example.test")
+	runGitForTest(t, dir, "config", "user.name", "Kurlo Test")
 
-	commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace")
+	commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace")
 	if !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
 	committed := strings.Join(commitResult.Files, "\n")
-	if !strings.Contains(committed, "relay.yml") || !strings.Contains(committed, "workspaces/Main/workspace.yml") {
-		t.Fatalf("expected Relay files to be committed, got %#v", commitResult.Files)
+	if !strings.Contains(committed, "kurlo.yml") || !strings.Contains(committed, "workspaces/Main/workspace.yml") {
+		t.Fatalf("expected Kurlo files to be committed, got %#v", commitResult.Files)
 	}
-	if strings.Contains(committed, "history.json") || strings.Contains(committed, ".relay-local") || strings.Contains(committed, "workspaces/Main/notes.txt") {
-		t.Fatalf("non-Relay files were committed: %#v", commitResult.Files)
+	if strings.Contains(committed, "history.json") || strings.Contains(committed, ".kurlo-local") || strings.Contains(committed, "workspaces/Main/notes.txt") {
+		t.Fatalf("non-Kurlo files were committed: %#v", commitResult.Files)
 	}
 	tree := runGitOutputForTest(t, dir, "ls-tree", "-r", "--name-only", "HEAD")
-	if strings.Contains(tree, "history.json") || strings.Contains(tree, ".relay-local") || strings.Contains(tree, "workspaces/Main/notes.txt") {
-		t.Fatalf("committed non-Relay files:\n%s", tree)
+	if strings.Contains(tree, "history.json") || strings.Contains(tree, ".kurlo-local") || strings.Contains(tree, "workspaces/Main/notes.txt") {
+		t.Fatalf("committed non-Kurlo files:\n%s", tree)
 	}
-	if !strings.Contains(tree, "relay.yml") || !strings.Contains(tree, "workspaces/Main/workspace.yml") {
-		t.Fatalf("committed tree is missing Relay files:\n%s", tree)
+	if !strings.Contains(tree, "kurlo.yml") || !strings.Contains(tree, "workspaces/Main/workspace.yml") {
+		t.Fatalf("committed tree is missing Kurlo files:\n%s", tree)
 	}
 }
 
@@ -864,12 +864,12 @@ func TestGitHistoryIgnoresNonYAMLFilesUnderWorkspaces(t *testing.T) {
 		t.Skip("git is not installed")
 	}
 	dir := t.TempDir()
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
 	configureGitUserForTest(t, dir)
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
 
@@ -886,7 +886,7 @@ func TestGitHistoryIgnoresNonYAMLFilesUnderWorkspaces(t *testing.T) {
 	}
 	for _, commit := range logResult.Commits {
 		if commit.Message == "Workspace notes" {
-			t.Fatalf("non-YAML workspace note commit leaked into Relay history: %#v", logResult.Commits)
+			t.Fatalf("non-YAML workspace note commit leaked into Kurlo history: %#v", logResult.Commits)
 		}
 	}
 
@@ -895,7 +895,7 @@ func TestGitHistoryIgnoresNonYAMLFilesUnderWorkspaces(t *testing.T) {
 	if diff.Error != "" {
 		t.Fatalf("commit diff failed: %s", diff.Error)
 	}
-	if !strings.Contains(diff.Diff, "No Relay workspace changes") {
+	if !strings.Contains(diff.Diff, "No Kurlo workspace changes") {
 		t.Fatalf("expected non-YAML commit diff to be ignored, got:\n%s", diff.Diff)
 	}
 }
@@ -905,23 +905,23 @@ func TestGitManagedPathspecsRespectWorkspaceSubdirectory(t *testing.T) {
 		t.Skip("git is not installed")
 	}
 	repo := t.TempDir()
-	workspace := filepath.Join(repo, "apps", "relay-workspace")
+	workspace := filepath.Join(repo, "apps", "kurlo-workspace")
 	if err := os.MkdirAll(workspace, 0755); err != nil {
 		t.Fatalf("create workspace dir: %v", err)
 	}
-	writeRelayWorkspaceFiles(t, workspace)
+	writeKurloWorkspaceFiles(t, workspace)
 	runGitForTest(t, repo, "init")
 	configureGitUserForTest(t, repo)
 
-	if commitResult := gitCommitWorkspaceForRoot(workspace, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(workspace, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
 	tree := runGitOutputForTest(t, repo, "ls-tree", "-r", "--name-only", "HEAD")
-	if !strings.Contains(tree, "apps/relay-workspace/relay.yml") || !strings.Contains(tree, "apps/relay-workspace/workspaces/Main/workspace.yml") {
+	if !strings.Contains(tree, "apps/kurlo-workspace/kurlo.yml") || !strings.Contains(tree, "apps/kurlo-workspace/workspaces/Main/workspace.yml") {
 		t.Fatalf("workspace subdirectory files were not committed:\n%s", tree)
 	}
 
-	notesRel := "apps/relay-workspace/workspaces/Main/notes.txt"
+	notesRel := "apps/kurlo-workspace/workspaces/Main/notes.txt"
 	if err := os.WriteFile(filepath.Join(repo, filepath.FromSlash(notesRel)), []byte("draft notes\n"), 0644); err != nil {
 		t.Fatalf("write workspace notes: %v", err)
 	}
@@ -934,17 +934,17 @@ func TestGitManagedPathspecsRespectWorkspaceSubdirectory(t *testing.T) {
 	}
 	for _, commit := range logResult.Commits {
 		if commit.Message == "Workspace notes" {
-			t.Fatalf("non-YAML subdirectory note commit leaked into Relay history: %#v", logResult.Commits)
+			t.Fatalf("non-YAML subdirectory note commit leaked into Kurlo history: %#v", logResult.Commits)
 		}
 	}
 }
 
-func TestGitCommitRejectsNonRelayStagedFiles(t *testing.T) {
+func TestGitCommitRejectsNonKurloStagedFiles(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git is not installed")
 	}
 	dir := t.TempDir()
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	runGitForTest(t, dir, "init")
 	if err := os.WriteFile(filepath.Join(dir, "notes.txt"), []byte("draft\n"), 0644); err != nil {
 		t.Fatalf("write notes: %v", err)
@@ -955,8 +955,8 @@ func TestGitCommitRejectsNonRelayStagedFiles(t *testing.T) {
 	if result.Ok {
 		t.Fatalf("expected commit to be rejected")
 	}
-	if !strings.Contains(result.Error, "non-Relay files") {
-		t.Fatalf("expected non-Relay error, got %q", result.Error)
+	if !strings.Contains(result.Error, "non-Kurlo files") {
+		t.Fatalf("expected non-Kurlo error, got %q", result.Error)
 	}
 
 	if err := os.MkdirAll(filepath.Join(dir, "workspaces", "Main"), 0755); err != nil {
@@ -969,46 +969,46 @@ func TestGitCommitRejectsNonRelayStagedFiles(t *testing.T) {
 	if result.Ok {
 		t.Fatalf("expected partial commit to reject non-YAML workspace path")
 	}
-	if !strings.Contains(result.Error, "Relay workspace files") {
+	if !strings.Contains(result.Error, "Kurlo workspace files") {
 		t.Fatalf("expected managed path error, got %q", result.Error)
 	}
 }
 
-func TestGitCommitWorkspaceFilesCommitsOnlySelectedRelayFiles(t *testing.T) {
+func TestGitCommitWorkspaceFilesCommitsOnlySelectedKurloFiles(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git is not installed")
 	}
 	dir := t.TempDir()
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
 	configureGitUserForTest(t, dir)
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
 	workspaceRel := "workspaces/Main/workspace.yml"
-	if err := os.WriteFile(filepath.Join(dir, "relay.yml"), []byte("version: 1\nselected: true\n"), 0644); err != nil {
-		t.Fatalf("write selected relay index: %v", err)
+	if err := os.WriteFile(filepath.Join(dir, "kurlo.yml"), []byte("version: 1\nselected: true\n"), 0644); err != nil {
+		t.Fatalf("write selected kurlo index: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, filepath.FromSlash(workspaceRel)), []byte("version: 1\nworkspace:\n  id: workspace-main\n  name: Dirty\n  filesystemName: Main\n"), 0644); err != nil {
 		t.Fatalf("write unselected workspace: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "notes.txt"), []byte("do not commit\n"), 0644); err != nil {
-		t.Fatalf("write non-relay file: %v", err)
+		t.Fatalf("write non-kurlo file: %v", err)
 	}
 	runGitForTest(t, dir, "add", "notes.txt")
 
-	result := gitCommitWorkspaceFilesForRoot(dir, []string{"relay.yml"}, "Commit selected Relay file")
+	result := gitCommitWorkspaceFilesForRoot(dir, []string{"kurlo.yml"}, "Commit selected Kurlo file")
 	if !result.Ok {
 		t.Fatalf("partial commit failed: %s\n%s", result.Error, result.Output)
 	}
-	if len(result.Files) != 1 || result.Files[0] != "relay.yml" {
-		t.Fatalf("expected only relay.yml to be committed, got %#v", result.Files)
+	if len(result.Files) != 1 || result.Files[0] != "kurlo.yml" {
+		t.Fatalf("expected only kurlo.yml to be committed, got %#v", result.Files)
 	}
-	headRelay := runGitOutputForTest(t, dir, "show", "HEAD:relay.yml")
-	if !strings.Contains(headRelay, "selected: true") {
-		t.Fatalf("selected file was not committed:\n%s", headRelay)
+	headKurlo := runGitOutputForTest(t, dir, "show", "HEAD:kurlo.yml")
+	if !strings.Contains(headKurlo, "selected: true") {
+		t.Fatalf("selected file was not committed:\n%s", headKurlo)
 	}
 	headWorkspace := runGitOutputForTest(t, dir, "show", "HEAD:"+workspaceRel)
 	if strings.Contains(headWorkspace, "Dirty") {
@@ -1016,7 +1016,7 @@ func TestGitCommitWorkspaceFilesCommitsOnlySelectedRelayFiles(t *testing.T) {
 	}
 	tree := runGitOutputForTest(t, dir, "ls-tree", "-r", "--name-only", "HEAD")
 	if strings.Contains(tree, "notes.txt") {
-		t.Fatalf("non-Relay staged file was committed:\n%s", tree)
+		t.Fatalf("non-Kurlo staged file was committed:\n%s", tree)
 	}
 	status := gitStatusForWorkspace(dir)
 	if !gitChangedPathExists(status.Files, workspaceRel) {
@@ -1024,12 +1024,12 @@ func TestGitCommitWorkspaceFilesCommitsOnlySelectedRelayFiles(t *testing.T) {
 	}
 }
 
-func TestGitCommitWorkspaceFilesRejectsNonRelayPath(t *testing.T) {
+func TestGitCommitWorkspaceFilesRejectsNonKurloPath(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git is not installed")
 	}
 	dir := t.TempDir()
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	runGitForTest(t, dir, "init")
 	if err := os.WriteFile(filepath.Join(dir, "notes.txt"), []byte("keep\n"), 0644); err != nil {
 		t.Fatalf("write notes: %v", err)
@@ -1037,94 +1037,94 @@ func TestGitCommitWorkspaceFilesRejectsNonRelayPath(t *testing.T) {
 
 	result := gitCommitWorkspaceFilesForRoot(dir, []string{"notes.txt"}, "Should not commit")
 	if result.Ok {
-		t.Fatalf("expected partial commit to reject non-Relay path")
+		t.Fatalf("expected partial commit to reject non-Kurlo path")
 	}
-	if !strings.Contains(result.Error, "Relay workspace files") {
+	if !strings.Contains(result.Error, "Kurlo workspace files") {
 		t.Fatalf("expected managed path error, got %q", result.Error)
 	}
 }
 
-func TestGitStashWorkspaceStashesOnlyRelayManagedFiles(t *testing.T) {
+func TestGitStashWorkspaceStashesOnlyKurloManagedFiles(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git is not installed")
 	}
 	dir := t.TempDir()
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
 	configureGitUserForTest(t, dir)
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "relay.yml"), []byte("version: 1\nstashed: true\n"), 0644); err != nil {
-		t.Fatalf("write relay change: %v", err)
+	if err := os.WriteFile(filepath.Join(dir, "kurlo.yml"), []byte("version: 1\nstashed: true\n"), 0644); err != nil {
+		t.Fatalf("write kurlo change: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "notes.txt"), []byte("keep local\n"), 0644); err != nil {
-		t.Fatalf("write non-relay note: %v", err)
+		t.Fatalf("write non-kurlo note: %v", err)
 	}
 
-	stashResult := gitStashWorkspaceForRoot(dir, "Save Relay change")
+	stashResult := gitStashWorkspaceForRoot(dir, "Save Kurlo change")
 	if !stashResult.Ok {
 		t.Fatalf("stash failed: %s\n%s", stashResult.Error, stashResult.Output)
 	}
-	if len(stashResult.Git.Stashes) != 1 || !strings.Contains(stashResult.Git.Stashes[0].Message, "Save Relay change") {
+	if len(stashResult.Git.Stashes) != 1 || !strings.Contains(stashResult.Git.Stashes[0].Message, "Save Kurlo change") {
 		t.Fatalf("expected stash entry, got %#v", stashResult.Git.Stashes)
 	}
-	relay := readFileForTest(t, filepath.Join(dir, "relay.yml"))
-	if strings.Contains(relay, "stashed: true") {
-		t.Fatalf("relay change was not stashed:\n%s", relay)
+	kurlo := readFileForTest(t, filepath.Join(dir, "kurlo.yml"))
+	if strings.Contains(kurlo, "stashed: true") {
+		t.Fatalf("kurlo change was not stashed:\n%s", kurlo)
 	}
 	if note := readFileForTest(t, filepath.Join(dir, "notes.txt")); note != "keep local\n" {
-		t.Fatalf("non-relay note should remain in the worktree, got %q", note)
+		t.Fatalf("non-kurlo note should remain in the worktree, got %q", note)
 	}
 
 	popResult := gitStashPopWorkspaceForRoot(dir, "")
 	if !popResult.Ok {
 		t.Fatalf("stash pop failed: %s\n%s", popResult.Error, popResult.Output)
 	}
-	relay = readFileForTest(t, filepath.Join(dir, "relay.yml"))
-	if !strings.Contains(relay, "stashed: true") {
-		t.Fatalf("relay change was not restored:\n%s", relay)
+	kurlo = readFileForTest(t, filepath.Join(dir, "kurlo.yml"))
+	if !strings.Contains(kurlo, "stashed: true") {
+		t.Fatalf("kurlo change was not restored:\n%s", kurlo)
 	}
 	if len(popResult.Git.Stashes) != 0 {
 		t.Fatalf("expected stash to be dropped after pop, got %#v", popResult.Git.Stashes)
 	}
 }
 
-func TestGitDiscardWorkspaceFileRestoresTrackedRelayFile(t *testing.T) {
+func TestGitDiscardWorkspaceFileRestoresTrackedKurloFile(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git is not installed")
 	}
 	dir := t.TempDir()
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
 	configureGitUserForTest(t, dir)
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "relay.yml"), []byte("version: 1\ndirty: true\n"), 0644); err != nil {
-		t.Fatalf("write dirty relay index: %v", err)
+	if err := os.WriteFile(filepath.Join(dir, "kurlo.yml"), []byte("version: 1\ndirty: true\n"), 0644); err != nil {
+		t.Fatalf("write dirty kurlo index: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "history.json"), []byte(`{"history":["keep"]}`+"\n"), 0644); err != nil {
-		t.Fatalf("write non-relay file: %v", err)
+		t.Fatalf("write non-kurlo file: %v", err)
 	}
 
-	result := gitDiscardWorkspaceFileForRoot(dir, "relay.yml")
+	result := gitDiscardWorkspaceFileForRoot(dir, "kurlo.yml")
 	if !result.Ok {
 		t.Fatalf("discard file failed: %s\n%s", result.Error, result.Output)
 	}
-	relayData, err := os.ReadFile(filepath.Join(dir, "relay.yml"))
+	kurloData, err := os.ReadFile(filepath.Join(dir, "kurlo.yml"))
 	if err != nil {
-		t.Fatalf("read relay index: %v", err)
+		t.Fatalf("read kurlo index: %v", err)
 	}
-	if strings.Contains(string(relayData), "dirty") {
-		t.Fatalf("relay file was not restored:\n%s", relayData)
+	if strings.Contains(string(kurloData), "dirty") {
+		t.Fatalf("kurlo file was not restored:\n%s", kurloData)
 	}
 	if _, err := os.Stat(filepath.Join(dir, "history.json")); err != nil {
-		t.Fatalf("non-relay file should not be touched: %v", err)
+		t.Fatalf("non-kurlo file should not be touched: %v", err)
 	}
 }
 
@@ -1136,16 +1136,16 @@ func TestGitDiscardWorkspaceFileClearsStaleManagedGitignore(t *testing.T) {
 	useTempConfigDir(t, configDir)
 
 	root := t.TempDir()
-	writeRelayWorkspaceFiles(t, root)
+	writeKurloWorkspaceFiles(t, root)
 	runGitForTest(t, root, "init", "-b", "main")
 	configureGitUserForTest(t, root)
 
-	staleGitignore := ".relay-local/\n.env\n.env.*\n*-????-??-??T??-??-??.html\n.DS_Store\nThumbs.db\n"
+	staleGitignore := ".kurlo-local/\n.env\n.env.*\n*-????-??-??T??-??-??.html\n.DS_Store\nThumbs.db\n"
 	if err := os.WriteFile(filepath.Join(root, ".gitignore"), []byte(staleGitignore), 0644); err != nil {
 		t.Fatalf("write stale .gitignore: %v", err)
 	}
 	runGitForTest(t, root, "add", ".")
-	runGitForTest(t, root, "commit", "-m", "Initial Relay workspace")
+	runGitForTest(t, root, "commit", "-m", "Initial Kurlo workspace")
 
 	app := NewApp()
 	opened := app.OpenWorkspaceRoot(root)
@@ -1177,14 +1177,14 @@ func TestGitDiscardWorkspaceFileRemovesRunnerReportArtifact(t *testing.T) {
 		t.Skip("git is not installed")
 	}
 	dir := t.TempDir()
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	runGitForTest(t, dir, "init", "-b", "main")
 	configureGitUserForTest(t, dir)
-	if err := os.WriteFile(filepath.Join(dir, ".gitignore"), []byte(".relay-local/\n.env\n"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, ".gitignore"), []byte(".kurlo-local/\n.env\n"), 0644); err != nil {
 		t.Fatalf("write stale .gitignore: %v", err)
 	}
 	runGitForTest(t, dir, "add", ".")
-	runGitForTest(t, dir, "commit", "-m", "Initial Relay workspace")
+	runGitForTest(t, dir, "commit", "-m", "Initial Kurlo workspace")
 
 	reportName := "collection-1-2026-05-17T19-25-24.html"
 	if err := os.WriteFile(filepath.Join(dir, reportName), []byte("<!doctype html><title>report</title>"), 0644); err != nil {
@@ -1212,17 +1212,17 @@ func TestGitDiscardWorkspaceFileRemovesRunnerReportArtifact(t *testing.T) {
 	}
 }
 
-func TestGitDiscardWorkspaceFileRemovesUntrackedRelayFile(t *testing.T) {
+func TestGitDiscardWorkspaceFileRemovesUntrackedKurloFile(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git is not installed")
 	}
 	dir := t.TempDir()
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
 	configureGitUserForTest(t, dir)
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
 	requestPath := filepath.Join(dir, "workspaces", "Main", "collections", "Default", "requests", "New.yml")
@@ -1247,12 +1247,12 @@ func TestGitDiscardWorkspaceFileRestoresCollectionOrderForNewRequest(t *testing.
 		t.Skip("git is not installed")
 	}
 	dir := t.TempDir()
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
 	configureGitUserForTest(t, dir)
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
 	requestRel := "workspaces/Main/collections/Default/requests/New.yml"
@@ -1302,12 +1302,12 @@ func TestGitDiscardWorkspaceFilesRestoresCollectionOrderForSelectedNewRequest(t 
 		t.Skip("git is not installed")
 	}
 	dir := t.TempDir()
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
 	configureGitUserForTest(t, dir)
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
 	requestRel := "workspaces/Main/collections/Default/requests/New.yml"
@@ -1347,12 +1347,12 @@ requestOrder:
 	}
 }
 
-func TestGitDiscardWorkspaceFileRemovesUntrackedRelayFileBeforeInitialCommit(t *testing.T) {
+func TestGitDiscardWorkspaceFileRemovesUntrackedKurloFileBeforeInitialCommit(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git is not installed")
 	}
 	dir := t.TempDir()
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	runGitForTest(t, dir, "init")
 	requestPath := filepath.Join(dir, "workspaces", "Main", "collections", "Default", "requests", "New.yml")
 	if err := os.MkdirAll(filepath.Dir(requestPath), 0755); err != nil {
@@ -1371,15 +1371,15 @@ func TestGitDiscardWorkspaceFileRemovesUntrackedRelayFileBeforeInitialCommit(t *
 	}
 }
 
-func TestGitDiscardWorkspaceFilesBeforeInitialCommitRejectsRelayIndex(t *testing.T) {
+func TestGitDiscardWorkspaceFilesBeforeInitialCommitRejectsKurloIndex(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git is not installed")
 	}
 	dir := t.TempDir()
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	runGitForTest(t, dir, "init")
 
-	result := gitDiscardWorkspaceFilesForRoot(dir, []string{"relay.yml"})
+	result := gitDiscardWorkspaceFilesForRoot(dir, []string{"kurlo.yml"})
 	if result.Ok {
 		t.Fatalf("expected discarding root index before initial commit to fail")
 	}
@@ -1388,24 +1388,24 @@ func TestGitDiscardWorkspaceFilesBeforeInitialCommitRejectsRelayIndex(t *testing
 	}
 }
 
-func TestGitDiscardWorkspaceChangesOnlyTouchesRelayFiles(t *testing.T) {
+func TestGitDiscardWorkspaceChangesOnlyTouchesKurloFiles(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git is not installed")
 	}
 	dir := t.TempDir()
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
 	configureGitUserForTest(t, dir)
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "relay.yml"), []byte("version: 1\ndirty: true\n"), 0644); err != nil {
-		t.Fatalf("write dirty relay index: %v", err)
+	if err := os.WriteFile(filepath.Join(dir, "kurlo.yml"), []byte("version: 1\ndirty: true\n"), 0644); err != nil {
+		t.Fatalf("write dirty kurlo index: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "notes.txt"), []byte("keep\n"), 0644); err != nil {
-		t.Fatalf("write non-relay file: %v", err)
+		t.Fatalf("write non-kurlo file: %v", err)
 	}
 
 	result := gitDiscardWorkspaceChangesForRoot(dir)
@@ -1414,30 +1414,30 @@ func TestGitDiscardWorkspaceChangesOnlyTouchesRelayFiles(t *testing.T) {
 	}
 	status := gitStatusForWorkspace(dir)
 	if len(managedChangedGitPaths(dir, status)) != 0 {
-		t.Fatalf("expected managed Relay changes to be clean, got %#v", status.Files)
+		t.Fatalf("expected managed Kurlo changes to be clean, got %#v", status.Files)
 	}
 	if _, err := os.Stat(filepath.Join(dir, "notes.txt")); err != nil {
-		t.Fatalf("non-relay file should not be touched: %v", err)
+		t.Fatalf("non-kurlo file should not be touched: %v", err)
 	}
 }
 
-func TestGitDiscardWorkspaceFilesOnlyTouchesSelectedRelayFiles(t *testing.T) {
+func TestGitDiscardWorkspaceFilesOnlyTouchesSelectedKurloFiles(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git is not installed")
 	}
 	dir := t.TempDir()
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
 	configureGitUserForTest(t, dir)
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
 	workspaceRel := "workspaces/Main/workspace.yml"
 	requestRel := "workspaces/Main/collections/Default/requests/New.yml"
-	if err := os.WriteFile(filepath.Join(dir, "relay.yml"), []byte("version: 1\ndirty: true\n"), 0644); err != nil {
-		t.Fatalf("write dirty relay index: %v", err)
+	if err := os.WriteFile(filepath.Join(dir, "kurlo.yml"), []byte("version: 1\ndirty: true\n"), 0644); err != nil {
+		t.Fatalf("write dirty kurlo index: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, filepath.FromSlash(workspaceRel)), []byte("version: 1\nworkspace:\n  id: workspace-main\n  name: Keep Dirty\n  filesystemName: Main\n"), 0644); err != nil {
 		t.Fatalf("write dirty workspace: %v", err)
@@ -1450,19 +1450,19 @@ func TestGitDiscardWorkspaceFilesOnlyTouchesSelectedRelayFiles(t *testing.T) {
 		t.Fatalf("write untracked request: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "notes.txt"), []byte("keep\n"), 0644); err != nil {
-		t.Fatalf("write non-relay file: %v", err)
+		t.Fatalf("write non-kurlo file: %v", err)
 	}
 
-	result := gitDiscardWorkspaceFilesForRoot(dir, []string{"relay.yml", requestRel})
+	result := gitDiscardWorkspaceFilesForRoot(dir, []string{"kurlo.yml", requestRel})
 	if !result.Ok {
 		t.Fatalf("discard selected failed: %s\n%s", result.Error, result.Output)
 	}
-	relayData, err := os.ReadFile(filepath.Join(dir, "relay.yml"))
+	kurloData, err := os.ReadFile(filepath.Join(dir, "kurlo.yml"))
 	if err != nil {
-		t.Fatalf("read relay index: %v", err)
+		t.Fatalf("read kurlo index: %v", err)
 	}
-	if strings.Contains(string(relayData), "dirty") {
-		t.Fatalf("selected relay file was not restored:\n%s", relayData)
+	if strings.Contains(string(kurloData), "dirty") {
+		t.Fatalf("selected kurlo file was not restored:\n%s", kurloData)
 	}
 	if _, err := os.Stat(requestPath); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("selected untracked request should be removed, err=%v", err)
@@ -1475,32 +1475,32 @@ func TestGitDiscardWorkspaceFilesOnlyTouchesSelectedRelayFiles(t *testing.T) {
 		t.Fatalf("unselected workspace file should remain dirty:\n%s", workspaceData)
 	}
 	if _, err := os.Stat(filepath.Join(dir, "notes.txt")); err != nil {
-		t.Fatalf("non-relay file should not be touched: %v", err)
+		t.Fatalf("non-kurlo file should not be touched: %v", err)
 	}
 }
 
-func TestGitDiscardWorkspaceFileRejectsNonRelayPath(t *testing.T) {
+func TestGitDiscardWorkspaceFileRejectsNonKurloPath(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git is not installed")
 	}
 	dir := t.TempDir()
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
 	configureGitUserForTest(t, dir)
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "notes.txt"), []byte("keep\n"), 0644); err != nil {
-		t.Fatalf("write non-relay file: %v", err)
+		t.Fatalf("write non-kurlo file: %v", err)
 	}
 
 	result := gitDiscardWorkspaceFileForRoot(dir, "notes.txt")
 	if result.Ok {
-		t.Fatalf("expected discard to reject non-relay path")
+		t.Fatalf("expected discard to reject non-kurlo path")
 	}
-	if !strings.Contains(result.Error, "Relay workspace files") {
+	if !strings.Contains(result.Error, "Kurlo workspace files") {
 		t.Fatalf("expected managed path error, got %q", result.Error)
 	}
 }
@@ -1515,16 +1515,16 @@ func TestGitPushWorkspaceUsesLocalRemote(t *testing.T) {
 		t.Fatalf("create bare remote dir: %v", err)
 	}
 	initBareRemoteForTest(t, remote)
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
-	runGitForTest(t, dir, "config", "user.email", "relay@example.test")
-	runGitForTest(t, dir, "config", "user.name", "Relay Test")
+	runGitForTest(t, dir, "config", "user.email", "kurlo@example.test")
+	runGitForTest(t, dir, "config", "user.name", "Kurlo Test")
 	if remoteResult := gitAddRemoteForRoot(dir, "origin", remote); !remoteResult.Ok {
 		t.Fatalf("add remote failed: %s\n%s", remoteResult.Error, remoteResult.Output)
 	}
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
 
@@ -1544,7 +1544,7 @@ func TestGitPushNewBranchAfterCommitSetsUpstream(t *testing.T) {
 		t.Fatalf("create bare remote dir: %v", err)
 	}
 	initBareRemoteForTest(t, remote)
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
@@ -1552,7 +1552,7 @@ func TestGitPushNewBranchAfterCommitSetsUpstream(t *testing.T) {
 	if remoteResult := gitAddRemoteForRoot(dir, "origin", remote); !remoteResult.Ok {
 		t.Fatalf("add remote failed: %s\n%s", remoteResult.Error, remoteResult.Output)
 	}
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
 	if pushResult := gitPushWorkspaceForRoot(dir, "origin"); !pushResult.Ok {
@@ -1561,8 +1561,8 @@ func TestGitPushNewBranchAfterCommitSetsUpstream(t *testing.T) {
 	if branchResult := gitCreateBranchForRoot(dir, "feature/new-branch", "main"); !branchResult.Ok {
 		t.Fatalf("branch failed: %s\n%s", branchResult.Error, branchResult.Output)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "relay.yml"), []byte("version: 1\nformat: relay.workspace.yaml.v1\nscenario: new-branch\n"), 0644); err != nil {
-		t.Fatalf("write relay index: %v", err)
+	if err := os.WriteFile(filepath.Join(dir, "kurlo.yml"), []byte("version: 1\nformat: kurlo.workspace.yaml.v1\nscenario: new-branch\n"), 0644); err != nil {
+		t.Fatalf("write kurlo index: %v", err)
 	}
 	commitResult := gitCommitWorkspaceForRoot(dir, "Update new branch")
 	if !commitResult.Ok {
@@ -1611,7 +1611,7 @@ func TestGitCreateBranchFromRemoteBaseDoesNotTrackDifferentBranchName(t *testing
 		t.Fatalf("create bare remote dir: %v", err)
 	}
 	initBareRemoteForTest(t, remote)
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
@@ -1619,7 +1619,7 @@ func TestGitCreateBranchFromRemoteBaseDoesNotTrackDifferentBranchName(t *testing
 	if remoteResult := gitAddRemoteForRoot(dir, "origin", remote); !remoteResult.Ok {
 		t.Fatalf("add remote failed: %s\n%s", remoteResult.Error, remoteResult.Output)
 	}
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
 	if pushResult := gitPushWorkspaceForRoot(dir, "origin"); !pushResult.Ok {
@@ -1648,7 +1648,7 @@ func TestGitForcePushWorkspaceUsesForceWithLease(t *testing.T) {
 		t.Fatalf("create bare remote dir: %v", err)
 	}
 	initBareRemoteForTest(t, remote)
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
@@ -1656,17 +1656,17 @@ func TestGitForcePushWorkspaceUsesForceWithLease(t *testing.T) {
 	if remoteResult := gitAddRemoteForRoot(dir, "origin", remote); !remoteResult.Ok {
 		t.Fatalf("add remote failed: %s\n%s", remoteResult.Error, remoteResult.Output)
 	}
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
 	if pushResult := gitPushWorkspaceForRoot(dir, "origin"); !pushResult.Ok {
 		t.Fatalf("push failed: %s\n%s", pushResult.Error, pushResult.Output)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "relay.yml"), []byte("version: 1\nrewritten: true\n"), 0644); err != nil {
-		t.Fatalf("rewrite relay index: %v", err)
+	if err := os.WriteFile(filepath.Join(dir, "kurlo.yml"), []byte("version: 1\nrewritten: true\n"), 0644); err != nil {
+		t.Fatalf("rewrite kurlo index: %v", err)
 	}
-	runGitForTest(t, dir, "add", "relay.yml")
-	runGitForTest(t, dir, "commit", "--amend", "-m", "Rewrite Relay workspace")
+	runGitForTest(t, dir, "add", "kurlo.yml")
+	runGitForTest(t, dir, "commit", "--amend", "-m", "Rewrite Kurlo workspace")
 
 	result := gitForcePushWorkspaceForRoot(dir, "origin")
 	if !result.Ok {
@@ -1695,11 +1695,11 @@ func TestGitForcePushRefusesToDropFetchedTeammateCommits(t *testing.T) {
 	if _, err := gitFetchWorkspaceOnOpen(dir); err != nil {
 		t.Fatalf("fetch: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "relay.yml"), []byte("version: 1\nrewritten: true\n"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "kurlo.yml"), []byte("version: 1\nrewritten: true\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	runGitForTest(t, dir, "add", "relay.yml")
-	runGitForTest(t, dir, "commit", "--amend", "-m", "Rewrite Relay workspace")
+	runGitForTest(t, dir, "add", "kurlo.yml")
+	runGitForTest(t, dir, "commit", "--amend", "-m", "Rewrite Kurlo workspace")
 
 	result := gitForcePushWorkspaceForRoot(dir, "origin")
 	if result.Ok {
@@ -1721,12 +1721,12 @@ func TestGitPullMergeConflictCanResolveAndContinue(t *testing.T) {
 		t.Fatalf("create bare remote dir: %v", err)
 	}
 	initBareRemoteForTest(t, remote)
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
 	configureGitUserForTest(t, dir)
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
 	if remoteResult := gitAddRemoteForRoot(dir, "origin", remote); !remoteResult.Ok {
@@ -1739,17 +1739,17 @@ func TestGitPullMergeConflictCanResolveAndContinue(t *testing.T) {
 	peer := filepath.Join(t.TempDir(), "peer")
 	cloneGitForTest(t, remote, peer)
 	configureGitUserForTest(t, peer)
-	if err := os.WriteFile(filepath.Join(peer, "relay.yml"), []byte("version: 1\nremote: true\n"), 0644); err != nil {
-		t.Fatalf("write peer relay index: %v", err)
+	if err := os.WriteFile(filepath.Join(peer, "kurlo.yml"), []byte("version: 1\nremote: true\n"), 0644); err != nil {
+		t.Fatalf("write peer kurlo index: %v", err)
 	}
-	runGitForTest(t, peer, "add", "relay.yml")
-	runGitForTest(t, peer, "commit", "-m", "Remote Relay change")
+	runGitForTest(t, peer, "add", "kurlo.yml")
+	runGitForTest(t, peer, "commit", "-m", "Remote Kurlo change")
 	runGitForTest(t, peer, "push")
 
-	if err := os.WriteFile(filepath.Join(dir, "relay.yml"), []byte("version: 1\nlocal: true\n"), 0644); err != nil {
-		t.Fatalf("write local relay index: %v", err)
+	if err := os.WriteFile(filepath.Join(dir, "kurlo.yml"), []byte("version: 1\nlocal: true\n"), 0644); err != nil {
+		t.Fatalf("write local kurlo index: %v", err)
 	}
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Local Relay change"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Local Kurlo change"); !commitResult.Ok {
 		t.Fatalf("local commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
 
@@ -1773,7 +1773,7 @@ func TestGitPullMergeConflictCanResolveAndContinue(t *testing.T) {
 		t.Fatalf("expected merge guard error, got %q", commitDuringMerge.Error)
 	}
 
-	conflict := gitConflictFileForRoot(dir, "relay.yml")
+	conflict := gitConflictFileForRoot(dir, "kurlo.yml")
 	if !conflict.Ok {
 		t.Fatalf("read conflict failed: %s", conflict.Error)
 	}
@@ -1787,23 +1787,23 @@ func TestGitPullMergeConflictCanResolveAndContinue(t *testing.T) {
 		t.Fatalf("expected theirs side to contain remote change, got:\n%s", conflict.TheirsContent)
 	}
 
-	markerResult := gitResolveConflictFileForRoot(dir, "relay.yml", "manual", conflict.Content)
+	markerResult := gitResolveConflictFileForRoot(dir, "kurlo.yml", "manual", conflict.Content)
 	if markerResult.Ok || !strings.Contains(markerResult.Error, "conflict markers") {
 		t.Fatalf("manual resolution with markers should be rejected, got %#v", markerResult)
 	}
-	invalidYAMLResult := gitResolveConflictFileForRoot(dir, "relay.yml", "manual", "version: [\n")
+	invalidYAMLResult := gitResolveConflictFileForRoot(dir, "kurlo.yml", "manual", "version: [\n")
 	if invalidYAMLResult.Ok || !strings.Contains(invalidYAMLResult.Error, "Resolved YAML is invalid") {
 		t.Fatalf("manual resolution with invalid YAML should be rejected, got %#v", invalidYAMLResult)
 	}
 
-	resolveResult := gitResolveConflictFileForRoot(dir, "relay.yml", "ours", "")
+	resolveResult := gitResolveConflictFileForRoot(dir, "kurlo.yml", "ours", "")
 	if !resolveResult.Ok {
 		t.Fatalf("resolve failed: %s\n%s", resolveResult.Error, resolveResult.Output)
 	}
 	if hasConflictedFiles(resolveResult.Git) {
 		t.Fatalf("expected conflicts to be resolved, got %#v", resolveResult.Git.Files)
 	}
-	continueResult := gitContinueOperationForRoot(dir, "Merge Relay workspace")
+	continueResult := gitContinueOperationForRoot(dir, "Merge Kurlo workspace")
 	if !continueResult.Ok {
 		t.Fatalf("continue failed: %s\n%s", continueResult.Error, continueResult.Output)
 	}
@@ -1817,17 +1817,17 @@ func TestGitPullWorkspaceRebaseConflictMapsOursToLocalCommit(t *testing.T) {
 		t.Skip("git is not installed")
 	}
 	dir, peer := setupGitPullRemoteForTest(t)
-	if err := os.WriteFile(filepath.Join(dir, "relay.yml"), []byte("version: 1\nlocal: true\n"), 0644); err != nil {
-		t.Fatalf("write local relay index: %v", err)
+	if err := os.WriteFile(filepath.Join(dir, "kurlo.yml"), []byte("version: 1\nlocal: true\n"), 0644); err != nil {
+		t.Fatalf("write local kurlo index: %v", err)
 	}
-	runGitForTest(t, dir, "add", "relay.yml")
-	runGitForTest(t, dir, "commit", "-m", "Local Relay update")
+	runGitForTest(t, dir, "add", "kurlo.yml")
+	runGitForTest(t, dir, "commit", "-m", "Local Kurlo update")
 
-	if err := os.WriteFile(filepath.Join(peer, "relay.yml"), []byte("version: 1\nremote: true\n"), 0644); err != nil {
-		t.Fatalf("write peer relay index: %v", err)
+	if err := os.WriteFile(filepath.Join(peer, "kurlo.yml"), []byte("version: 1\nremote: true\n"), 0644); err != nil {
+		t.Fatalf("write peer kurlo index: %v", err)
 	}
-	runGitForTest(t, peer, "add", "relay.yml")
-	runGitForTest(t, peer, "commit", "-m", "Remote Relay update")
+	runGitForTest(t, peer, "add", "kurlo.yml")
+	runGitForTest(t, peer, "commit", "-m", "Remote Kurlo update")
 	runGitForTest(t, peer, "push")
 
 	result := gitPullWorkspaceForRoot(dir, "rebase")
@@ -1838,7 +1838,7 @@ func TestGitPullWorkspaceRebaseConflictMapsOursToLocalCommit(t *testing.T) {
 		t.Fatalf("expected rebase conflict status, got %#v\n%s", result.Git, result.Output)
 	}
 
-	conflict := gitConflictFileForRoot(dir, "relay.yml")
+	conflict := gitConflictFileForRoot(dir, "kurlo.yml")
 	if !conflict.Ok {
 		t.Fatalf("read conflict failed: %s", conflict.Error)
 	}
@@ -1856,7 +1856,7 @@ func TestGitPullWorkspaceRebaseConflictMapsOursToLocalCommit(t *testing.T) {
 		t.Fatalf("expected visual theirs marker side to contain remote commit, got:\n%s", markerTheirs)
 	}
 
-	resolveResult := gitResolveConflictFileForRoot(dir, "relay.yml", "ours", "")
+	resolveResult := gitResolveConflictFileForRoot(dir, "kurlo.yml", "ours", "")
 	if !resolveResult.Ok {
 		t.Fatalf("resolve rebase conflict failed: %s\n%s", resolveResult.Error, resolveResult.Output)
 	}
@@ -1870,7 +1870,7 @@ func TestGitPullWorkspaceRebaseConflictMapsOursToLocalCommit(t *testing.T) {
 	if continueResult.Git.Operation != "" || !continueResult.Git.Clean {
 		t.Fatalf("expected clean completed rebase, got %#v\n%s", continueResult.Git, continueResult.Output)
 	}
-	content := readFileForTest(t, filepath.Join(dir, "relay.yml"))
+	content := readFileForTest(t, filepath.Join(dir, "kurlo.yml"))
 	if !strings.Contains(content, "local: true") || strings.Contains(content, "remote: true") {
 		t.Fatalf("expected local commit side after rebase resolution, got:\n%s", content)
 	}
@@ -1883,12 +1883,12 @@ func TestGitResolveMarkerlessModifyDeleteConflict(t *testing.T) {
 	setup := func(t *testing.T) (string, string) {
 		t.Helper()
 		dir := t.TempDir()
-		writeRelayWorkspaceFiles(t, dir)
+		writeKurloWorkspaceFiles(t, dir)
 		if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 			t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 		}
 		configureGitUserForTest(t, dir)
-		if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+		if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 			t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 		}
 		relPath := filepath.ToSlash(filepath.Join("workspaces", "Main", "collections", "Default", "collection.yml"))
@@ -1951,23 +1951,23 @@ requestOrder: []
 	}
 }
 
-func TestGitCommitLogAndCommitDiffShowRelayHistory(t *testing.T) {
+func TestGitCommitLogAndCommitDiffShowKurloHistory(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git is not installed")
 	}
 	dir := t.TempDir()
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
 	configureGitUserForTest(t, dir)
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "relay.yml"), []byte("version: 1\nhistory: true\n"), 0644); err != nil {
-		t.Fatalf("write changed relay index: %v", err)
+	if err := os.WriteFile(filepath.Join(dir, "kurlo.yml"), []byte("version: 1\nhistory: true\n"), 0644); err != nil {
+		t.Fatalf("write changed kurlo index: %v", err)
 	}
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Update Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Update Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
 
@@ -1975,7 +1975,7 @@ func TestGitCommitLogAndCommitDiffShowRelayHistory(t *testing.T) {
 	if !logResult.Ok {
 		t.Fatalf("log failed: %s\n%s", logResult.Error, logResult.Output)
 	}
-	if len(logResult.Commits) < 2 || logResult.Commits[0].Message != "Update Relay workspace" {
+	if len(logResult.Commits) < 2 || logResult.Commits[0].Message != "Update Kurlo workspace" {
 		t.Fatalf("unexpected commit log: %#v", logResult.Commits)
 	}
 	diff := gitCommitDiffForRoot(dir, logResult.Commits[0].Hash)
@@ -1987,21 +1987,21 @@ func TestGitCommitLogAndCommitDiffShowRelayHistory(t *testing.T) {
 	}
 }
 
-func TestGitCommitLogPagePaginatesRelayHistory(t *testing.T) {
+func TestGitCommitLogPagePaginatesKurloHistory(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git is not installed")
 	}
 	dir := t.TempDir()
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
 	configureGitUserForTest(t, dir)
 	for i := 1; i <= 5; i++ {
-		if err := os.WriteFile(filepath.Join(dir, "relay.yml"), []byte(fmt.Sprintf("version: 1\npage: %d\n", i)), 0644); err != nil {
-			t.Fatalf("write relay index %d: %v", i, err)
+		if err := os.WriteFile(filepath.Join(dir, "kurlo.yml"), []byte(fmt.Sprintf("version: 1\npage: %d\n", i)), 0644); err != nil {
+			t.Fatalf("write kurlo index %d: %v", i, err)
 		}
-		if commitResult := gitCommitWorkspaceForRoot(dir, fmt.Sprintf("Relay page %d", i)); !commitResult.Ok {
+		if commitResult := gitCommitWorkspaceForRoot(dir, fmt.Sprintf("Kurlo page %d", i)); !commitResult.Ok {
 			t.Fatalf("commit %d failed: %s\n%s", i, commitResult.Error, commitResult.Output)
 		}
 	}
@@ -2013,7 +2013,7 @@ func TestGitCommitLogPagePaginatesRelayHistory(t *testing.T) {
 	if first.Limit != 2 || first.Offset != 0 || !first.HasMore || len(first.Commits) != 2 {
 		t.Fatalf("unexpected first page metadata: %#v", first)
 	}
-	if first.Commits[0].Message != "Relay page 5" || first.Commits[1].Message != "Relay page 4" {
+	if first.Commits[0].Message != "Kurlo page 5" || first.Commits[1].Message != "Kurlo page 4" {
 		t.Fatalf("unexpected first page commits: %#v", first.Commits)
 	}
 
@@ -2024,7 +2024,7 @@ func TestGitCommitLogPagePaginatesRelayHistory(t *testing.T) {
 	if second.Limit != 2 || second.Offset != 2 || !second.HasMore || len(second.Commits) != 2 {
 		t.Fatalf("unexpected second page metadata: %#v", second)
 	}
-	if second.Commits[0].Message != "Relay page 3" || second.Commits[1].Message != "Relay page 2" {
+	if second.Commits[0].Message != "Kurlo page 3" || second.Commits[1].Message != "Kurlo page 2" {
 		t.Fatalf("unexpected second page commits: %#v", second.Commits)
 	}
 
@@ -2032,12 +2032,12 @@ func TestGitCommitLogPagePaginatesRelayHistory(t *testing.T) {
 	if !last.Ok {
 		t.Fatalf("last page failed: %s\n%s", last.Error, last.Output)
 	}
-	if last.HasMore || len(last.Commits) != 1 || last.Commits[0].Message != "Relay page 1" {
+	if last.HasMore || len(last.Commits) != 1 || last.Commits[0].Message != "Kurlo page 1" {
 		t.Fatalf("unexpected last page: %#v", last)
 	}
 }
 
-func TestGitOutgoingChangesShowsOnlyCommittedRelayFiles(t *testing.T) {
+func TestGitOutgoingChangesShowsOnlyCommittedKurloFiles(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git is not installed")
 	}
@@ -2047,39 +2047,39 @@ func TestGitOutgoingChangesShowsOnlyCommittedRelayFiles(t *testing.T) {
 		t.Fatalf("create bare remote dir: %v", err)
 	}
 	initBareRemoteForTest(t, remote)
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
 	configureGitUserForTest(t, dir)
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
 	if remoteResult := gitAddRemoteForRoot(dir, "origin", remote); !remoteResult.Ok {
 		t.Fatalf("add remote failed: %s\n%s", remoteResult.Error, remoteResult.Output)
 	}
 	runGitForTest(t, dir, "push", "-u", "origin", "main")
-	if err := os.WriteFile(filepath.Join(dir, "relay.yml"), []byte("version: 1\nformat: relay.workspace.yaml.v1\nchanged: true\n"), 0644); err != nil {
-		t.Fatalf("write changed relay index: %v", err)
+	if err := os.WriteFile(filepath.Join(dir, "kurlo.yml"), []byte("version: 1\nformat: kurlo.workspace.yaml.v1\nchanged: true\n"), 0644); err != nil {
+		t.Fatalf("write changed kurlo index: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "history.json"), []byte(`{"history":["local-only"]}`+"\n"), 0644); err != nil {
 		t.Fatalf("write history file: %v", err)
 	}
-	runGitForTest(t, dir, "add", "relay.yml", "history.json")
-	runGitForTest(t, dir, "commit", "-m", "Update Relay workspace")
+	runGitForTest(t, dir, "add", "kurlo.yml", "history.json")
+	runGitForTest(t, dir, "commit", "-m", "Update Kurlo workspace")
 
 	diff := gitOutgoingChangesForWorkspace(dir)
 	if diff.Error != "" {
 		t.Fatalf("unexpected outgoing diff error: %s", diff.Error)
 	}
 	if !strings.Contains(diff.Diff, "changed: true") {
-		t.Fatalf("expected Relay file diff, got:\n%s", diff.Diff)
+		t.Fatalf("expected Kurlo file diff, got:\n%s", diff.Diff)
 	}
-	if strings.Contains(diff.Diff, "Outgoing Relay workspace changes") || strings.Contains(diff.Diff, "Commits") || strings.Contains(diff.Diff, "Stat") {
+	if strings.Contains(diff.Diff, "Outgoing Kurlo workspace changes") || strings.Contains(diff.Diff, "Commits") || strings.Contains(diff.Diff, "Stat") {
 		t.Fatalf("outgoing diff should only contain the patch:\n%s", diff.Diff)
 	}
 	if strings.Contains(diff.Diff, "history.json") || strings.Contains(diff.Diff, "local-only") {
-		t.Fatalf("outgoing diff included non-Relay files:\n%s", diff.Diff)
+		t.Fatalf("outgoing diff included non-Kurlo files:\n%s", diff.Diff)
 	}
 }
 
@@ -2088,12 +2088,12 @@ func TestGitOutgoingChangesWithoutUpstreamShowsInitialPublishDiff(t *testing.T) 
 		t.Skip("git is not installed")
 	}
 	dir := t.TempDir()
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
 	configureGitUserForTest(t, dir)
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
 
@@ -2101,7 +2101,7 @@ func TestGitOutgoingChangesWithoutUpstreamShowsInitialPublishDiff(t *testing.T) 
 	if diff.Error != "" {
 		t.Fatalf("unexpected outgoing diff error: %s", diff.Error)
 	}
-	if !strings.Contains(diff.Diff, "relay.yml") {
+	if !strings.Contains(diff.Diff, "kurlo.yml") {
 		t.Fatalf("expected first-publish outgoing diff, got:\n%s", diff.Diff)
 	}
 	if strings.Contains(diff.Diff, "No upstream branch is set") {
@@ -2119,7 +2119,7 @@ func TestGitTestRemoteUsesConfiguredRemote(t *testing.T) {
 		t.Fatalf("create bare remote dir: %v", err)
 	}
 	initBareRemoteForTest(t, remote)
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
@@ -2178,12 +2178,12 @@ func TestGitBranchesListLocalAndRemoteBranches(t *testing.T) {
 		t.Fatalf("create bare remote dir: %v", err)
 	}
 	initBareRemoteForTest(t, remote)
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
 	configureGitUserForTest(t, dir)
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
 	if remoteResult := gitAddRemoteForRoot(dir, "origin", remote); !remoteResult.Ok {
@@ -2213,12 +2213,12 @@ func TestGitBranchesKeepStableAlphabeticalLocalOrder(t *testing.T) {
 		t.Skip("git is not installed")
 	}
 	dir := t.TempDir()
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
 	configureGitUserForTest(t, dir)
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
 	runGitForTest(t, dir, "checkout", "-b", "test")
@@ -2243,12 +2243,12 @@ func TestGitCheckoutBranchRequiresCleanWorkspace(t *testing.T) {
 		t.Skip("git is not installed")
 	}
 	dir := t.TempDir()
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
 	configureGitUserForTest(t, dir)
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
 	if createResult := gitCreateBranchForRoot(dir, "feature/clean", ""); !createResult.Ok {
@@ -2257,8 +2257,8 @@ func TestGitCheckoutBranchRequiresCleanWorkspace(t *testing.T) {
 	if checkoutResult := gitCheckoutBranchForRoot(dir, "main"); !checkoutResult.Ok {
 		t.Fatalf("checkout main failed: %s\n%s", checkoutResult.Error, checkoutResult.Output)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "relay.yml"), []byte("version: 1\ndirty: true\n"), 0644); err != nil {
-		t.Fatalf("dirty relay index: %v", err)
+	if err := os.WriteFile(filepath.Join(dir, "kurlo.yml"), []byte("version: 1\ndirty: true\n"), 0644); err != nil {
+		t.Fatalf("dirty kurlo index: %v", err)
 	}
 
 	result := gitCheckoutBranchForRoot(dir, "feature/clean")
@@ -2284,12 +2284,12 @@ func TestGitCreateBranchFromRemoteTracksUpstream(t *testing.T) {
 		t.Fatalf("create bare remote dir: %v", err)
 	}
 	initBareRemoteForTest(t, remote)
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
 	configureGitUserForTest(t, dir)
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
 	if remoteResult := gitAddRemoteForRoot(dir, "origin", remote); !remoteResult.Ok {
@@ -2320,12 +2320,12 @@ func TestGitCreateBranchFromLocalBranchDoesNotSetUpstream(t *testing.T) {
 		t.Skip("git is not installed")
 	}
 	dir := t.TempDir()
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
 	configureGitUserForTest(t, dir)
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
 
@@ -2347,12 +2347,12 @@ func TestGitCreateBranchRejectsExistingLocalBranch(t *testing.T) {
 		t.Skip("git is not installed")
 	}
 	dir := t.TempDir()
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
 	configureGitUserForTest(t, dir)
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
 
@@ -2375,7 +2375,7 @@ func TestGitDeleteBranchDeletesLocalAndRemoteBranches(t *testing.T) {
 		t.Fatalf("create bare remote dir: %v", err)
 	}
 	initBareRemoteForTest(t, remote)
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
@@ -2383,7 +2383,7 @@ func TestGitDeleteBranchDeletesLocalAndRemoteBranches(t *testing.T) {
 	if remoteResult := gitAddRemoteForRoot(dir, "origin", remote); !remoteResult.Ok {
 		t.Fatalf("add remote failed: %s\n%s", remoteResult.Error, remoteResult.Output)
 	}
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
 	if pushResult := gitPushWorkspaceForRoot(dir, "origin"); !pushResult.Ok {
@@ -2404,8 +2404,8 @@ func TestGitDeleteBranchDeletesLocalAndRemoteBranches(t *testing.T) {
 	if branchResult := gitCreateBranchForRoot(dir, "remote/delete-me", "main"); !branchResult.Ok {
 		t.Fatalf("remote branch create failed: %s\n%s", branchResult.Error, branchResult.Output)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "relay.yml"), []byte("version: 1\nformat: relay.workspace.yaml.v1\nscenario: delete-remote\n"), 0644); err != nil {
-		t.Fatalf("write relay index: %v", err)
+	if err := os.WriteFile(filepath.Join(dir, "kurlo.yml"), []byte("version: 1\nformat: kurlo.workspace.yaml.v1\nscenario: delete-remote\n"), 0644); err != nil {
+		t.Fatalf("write kurlo index: %v", err)
 	}
 	if commitResult := gitCommitWorkspaceForRoot(dir, "Remote branch update"); !commitResult.Ok {
 		t.Fatalf("remote branch commit failed: %s\n%s", commitResult.Error, commitResult.Output)
@@ -2437,10 +2437,10 @@ func TestGitPullBranchFastForwardsNonCurrentTrackingBranch(t *testing.T) {
 	}
 	dir, peer := setupGitPullRemoteForTest(t)
 	runGitForTest(t, peer, "checkout", "-b", "feature/api")
-	if err := os.WriteFile(filepath.Join(peer, "relay.yml"), []byte("version: 1\nformat: relay.workspace.yaml.v1\nbranch: api\n"), 0644); err != nil {
-		t.Fatalf("write peer relay index: %v", err)
+	if err := os.WriteFile(filepath.Join(peer, "kurlo.yml"), []byte("version: 1\nformat: kurlo.workspace.yaml.v1\nbranch: api\n"), 0644); err != nil {
+		t.Fatalf("write peer kurlo index: %v", err)
 	}
-	runGitForTest(t, peer, "add", "relay.yml")
+	runGitForTest(t, peer, "add", "kurlo.yml")
 	runGitForTest(t, peer, "commit", "-m", "Create API branch")
 	runGitForTest(t, peer, "push", "-u", "origin", "feature/api")
 	runGitForTest(t, dir, "fetch", "origin")
@@ -2451,10 +2451,10 @@ func TestGitPullBranchFastForwardsNonCurrentTrackingBranch(t *testing.T) {
 		t.Fatalf("checkout main failed: %s\n%s", checkoutResult.Error, checkoutResult.Output)
 	}
 	beforeHead := strings.TrimSpace(runGitOutputForTest(t, dir, "rev-parse", "feature/api"))
-	if err := os.WriteFile(filepath.Join(peer, "relay.yml"), []byte("version: 1\nformat: relay.workspace.yaml.v1\nbranch: api\nupdated: true\n"), 0644); err != nil {
-		t.Fatalf("write peer relay update: %v", err)
+	if err := os.WriteFile(filepath.Join(peer, "kurlo.yml"), []byte("version: 1\nformat: kurlo.workspace.yaml.v1\nbranch: api\nupdated: true\n"), 0644); err != nil {
+		t.Fatalf("write peer kurlo update: %v", err)
 	}
-	runGitForTest(t, peer, "add", "relay.yml")
+	runGitForTest(t, peer, "add", "kurlo.yml")
 	runGitForTest(t, peer, "commit", "-m", "Update API branch")
 	runGitForTest(t, peer, "push", "origin", "feature/api")
 
@@ -2482,24 +2482,24 @@ func TestFriendlyGitErrorAddsPrivateRepositoryHints(t *testing.T) {
 		t.Fatalf("expected SSH auth hint, got %q", message)
 	}
 	message = friendlyGitError("clone", "fatal: could not read Username for 'https://gitlab.com': terminal prompts disabled", nil)
-	if !strings.Contains(message, "credential helper") || !strings.Contains(message, "Relay does not store Git tokens") {
+	if !strings.Contains(message, "credential helper") || !strings.Contains(message, "Kurlo does not store Git tokens") {
 		t.Fatalf("expected HTTPS auth hint, got %q", message)
 	}
 }
 
-func writeRelayWorkspaceFiles(t *testing.T, dir string) {
+func writeKurloWorkspaceFiles(t *testing.T, dir string) {
 	t.Helper()
 	workspaceDir := filepath.Join(dir, "workspaces", "Main")
 	collectionDir := filepath.Join(workspaceDir, "collections", "Default")
 	if err := os.MkdirAll(collectionDir, 0755); err != nil {
-		t.Fatalf("create Relay workspace dirs: %v", err)
+		t.Fatalf("create Kurlo workspace dirs: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "relay.yml"), []byte(`version: 1
-format: relay.workspace.yaml.v1
+	if err := os.WriteFile(filepath.Join(dir, "kurlo.yml"), []byte(`version: 1
+format: kurlo.workspace.yaml.v1
 workspaceOrder:
   - workspace-main
 `), 0644); err != nil {
-		t.Fatalf("write relay index: %v", err)
+		t.Fatalf("write kurlo index: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(workspaceDir, "workspace.yml"), []byte(`version: 1
 workspace:
@@ -2540,12 +2540,12 @@ func setupGitPullRemoteForTest(t *testing.T) (string, string) {
 		t.Fatalf("create bare remote dir: %v", err)
 	}
 	initBareRemoteForTest(t, remote)
-	writeRelayWorkspaceFiles(t, dir)
+	writeKurloWorkspaceFiles(t, dir)
 	if initResult := gitInitWorkspaceForRoot(dir); !initResult.Ok {
 		t.Fatalf("init failed: %s\n%s", initResult.Error, initResult.Output)
 	}
 	configureGitUserForTest(t, dir)
-	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Relay workspace"); !commitResult.Ok {
+	if commitResult := gitCommitWorkspaceForRoot(dir, "Initial Kurlo workspace"); !commitResult.Ok {
 		t.Fatalf("commit failed: %s\n%s", commitResult.Error, commitResult.Output)
 	}
 	if remoteResult := gitAddRemoteForRoot(dir, "origin", remote); !remoteResult.Ok {
@@ -2568,8 +2568,8 @@ func initBareRemoteForTest(t *testing.T, dir string) {
 
 func configureGitUserForTest(t *testing.T, dir string) {
 	t.Helper()
-	runGitForTest(t, dir, "config", "user.email", "relay@example.test")
-	runGitForTest(t, dir, "config", "user.name", "Relay Test")
+	runGitForTest(t, dir, "config", "user.email", "kurlo@example.test")
+	runGitForTest(t, dir, "config", "user.name", "Kurlo Test")
 }
 
 func cloneGitForTest(t *testing.T, remote, target string) {

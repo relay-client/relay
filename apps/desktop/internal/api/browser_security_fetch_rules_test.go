@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 func TestCORSSafelistedHeaderValueRules(t *testing.T) {

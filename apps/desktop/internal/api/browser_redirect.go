@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 type corsRedirectPreflight func(ctx context.Context, next *http.Request) error

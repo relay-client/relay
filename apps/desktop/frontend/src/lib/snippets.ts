@@ -64,10 +64,10 @@ export function snippetAuthNotes(req: SnippetRequest): string[] {
     return ['AWS Signature v4: the signature is computed per request from your access key. Use an AWS SDK or a signing helper here.'];
   }
   if (req.auth.type === 'oauth2' && req.auth.token) {
-    return ['The bearer token below is the one Relay currently holds; it expires.'];
+    return ['The bearer token below is the one Kurlo currently holds; it expires.'];
   }
   if (req.auth.type === 'oauth2') {
-    return ['OAuth 2.0: fetch a token in Relay (or from your token endpoint) before running this.'];
+    return ['OAuth 2.0: fetch a token in Kurlo (or from your token endpoint) before running this.'];
   }
   return [];
 }

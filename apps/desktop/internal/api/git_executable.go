@@ -8,9 +8,9 @@ import (
 	"sync/atomic"
 )
 
-const gitNotInstalledMessage = "Git is not installed, or Relay cannot find it on PATH.\n\nInstall Git from https://git-scm.com/downloads, then restart Relay. Until then, a workspace can still be used in local (non-Git) mode."
+const gitNotInstalledMessage = "Git is not installed, or Kurlo cannot find it on PATH.\n\nInstall Git from https://git-scm.com/downloads, then restart Kurlo. Until then, a workspace can still be used in local (non-Git) mode."
 
-const gitDeveloperToolsMessage = "Git cannot run on this Mac: the Xcode Command Line Tools it depends on are not installed.\n\nRun 'xcode-select --install' in Terminal, then restart Relay. Until then, a workspace can still be used in local (non-Git) mode."
+const gitDeveloperToolsMessage = "Git cannot run on this Mac: the Xcode Command Line Tools it depends on are not installed.\n\nRun 'xcode-select --install' in Terminal, then restart Kurlo. Until then, a workspace can still be used in local (non-Git) mode."
 
 type gitUnavailableError struct{ message string }
 

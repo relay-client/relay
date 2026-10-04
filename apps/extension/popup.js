@@ -33,7 +33,7 @@ function showError(message) {
 }
 
 async function render() {
-  const state = await send({ type: 'relay:state' });
+  const state = await send({ type: 'kurlo:state' });
   if (!state) return;
 
   const missing = state.domains.filter(domain => !state.granted.includes(domain));
@@ -43,23 +43,23 @@ async function render() {
   if (waiting) approvalCode.textContent = state.pending.code;
 
   if (waiting) {
-    headline.textContent = 'Waiting for Relay';
-    detail.textContent = 'Approve this browser in Relay, on the Sync Cookies tab.';
+    headline.textContent = 'Waiting for Kurlo';
+    detail.textContent = 'Approve this browser in Kurlo, on the Sync Cookies tab.';
   } else if (!state.paired) {
     headline.textContent = 'Not connected';
-    detail.textContent = 'Turn on Sync Cookies in Relay, then press Connect.';
+    detail.textContent = 'Turn on Sync Cookies in Kurlo, then press Connect.';
   } else if (!state.connected) {
     headline.textContent = 'Reconnecting';
-    detail.textContent = 'Paired with Relay, waiting for the bridge to answer.';
+    detail.textContent = 'Paired with Kurlo, waiting for the bridge to answer.';
   } else if (!state.domains.length) {
     headline.textContent = `Connected as ${state.browser}`;
-    detail.textContent = 'Relay has no domains on its allowlist yet.';
+    detail.textContent = 'Kurlo has no domains on its allowlist yet.';
   } else if (missing.length) {
     headline.textContent = 'Permission needed';
     detail.textContent = `This browser may not read ${missing.join(', ')} yet.`;
   } else if (state.lastSync) {
     headline.textContent = `Synced ${relativeTime(state.lastSync.at)}`;
-    detail.textContent = `${state.lastSync.accepted} sent, ${state.lastSync.removed} cleared in Relay.`;
+    detail.textContent = `${state.lastSync.accepted} sent, ${state.lastSync.removed} cleared in Kurlo.`;
   } else {
     headline.textContent = `Connected as ${state.browser}`;
     detail.textContent = 'Live — cookie changes are pushed as they happen.';
@@ -85,13 +85,13 @@ async function render() {
 
 connectButton.addEventListener('click', async () => {
   connectButton.disabled = true;
-  await send({ type: 'relay:connect' });
+  await send({ type: 'kurlo:connect' });
   connectButton.disabled = false;
   await render();
 });
 
 grantButton.addEventListener('click', async () => {
-  const state = await send({ type: 'relay:state' });
+  const state = await send({ type: 'kurlo:state' });
   const missing = state.domains.filter(domain => !state.granted.includes(domain));
   if (!missing.length) return;
   try {
@@ -102,7 +102,7 @@ grantButton.addEventListener('click', async () => {
       showError('Permission was declined, so those domains stay unread.');
       return;
     }
-    await send({ type: 'relay:sync-now' });
+    await send({ type: 'kurlo:sync-now' });
   } catch (error) {
     showError(error instanceof Error ? error.message : String(error));
   }
@@ -111,18 +111,18 @@ grantButton.addEventListener('click', async () => {
 
 syncButton.addEventListener('click', async () => {
   syncButton.disabled = true;
-  await send({ type: 'relay:sync-now' });
+  await send({ type: 'kurlo:sync-now' });
   await render();
 });
 
 forgetButton.addEventListener('click', async () => {
-  await send({ type: 'relay:forget' });
+  await send({ type: 'kurlo:forget' });
   codeInput.value = '';
   await render();
 });
 
 pairButton.addEventListener('click', async () => {
-  const result = await send({ type: 'relay:pair-manually', code: codeInput.value });
+  const result = await send({ type: 'kurlo:pair-manually', code: codeInput.value });
   if (result && result.ok === false) showError(result.error);
   await render();
 });

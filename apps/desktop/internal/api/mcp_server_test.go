@@ -210,7 +210,7 @@ func TestMCPServerHandshakeAndToolList(t *testing.T) {
 	if init.ProtocolVersion != "2025-06-18" {
 		t.Errorf("protocolVersion = %q, want the client's version echoed", init.ProtocolVersion)
 	}
-	if _, ok := init.Capabilities["tools"]; !ok || init.ServerInfo.Name != "relay" {
+	if _, ok := init.Capabilities["tools"]; !ok || init.ServerInfo.Name != "kurlo" {
 		t.Errorf("initialize = %+v", init)
 	}
 	if !strings.Contains(init.Instructions, "Local") {
@@ -274,7 +274,7 @@ func TestMCPServerSpeaksTheStatelessRevision(t *testing.T) {
 	if discover.ResultType != "complete" || strings.Join(discover.SupportedVersions, ",") != "2026-07-28" {
 		t.Errorf("discover = %+v", discover)
 	}
-	if discover.Meta[mcpMetaServerInfo].Name != "relay" {
+	if discover.Meta[mcpMetaServerInfo].Name != "kurlo" {
 		t.Errorf("serverInfo missing from _meta: %s", resp.Result)
 	}
 

@@ -19,14 +19,14 @@
     return parsed.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
   }
 
-  let releaseURL = $derived(`https://github.com/relay-client/relay/releases/tag/v${section.version}`);
+  let releaseURL = $derived(`https://github.com/stormhop/kurlo/releases/tag/v${section.version}`);
 </script>
 
 <div class="dialog-backdrop" role="presentation" onmousedown={(event) => event.target === event.currentTarget && onDismiss()}>
   <div class="modal whats-new-modal" role="dialog" aria-modal="true" aria-labelledby="whats-new-title" tabindex="-1" use:trapFocus>
     <div class="modal-head dialog-head whats-new-head">
       <div class="whats-new-title-group">
-        <h2 class="modal-title" id="whats-new-title">What's new in Relay {section.version}</h2>
+        <h2 class="modal-title" id="whats-new-title">What's new in Kurlo {section.version}</h2>
         {#if section.date}
           <span class="whats-new-date">{formatDate(section.date)}</span>
         {/if}

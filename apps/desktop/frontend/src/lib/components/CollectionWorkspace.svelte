@@ -391,9 +391,9 @@
           <div class="script-section collection-script-section">
             <div class="script-head"><span class="script-hint">{engineLabel} · runs before each request's own pre-request script</span></div>
             {#if scriptEngine === 'js'}
-              <CodeEditor bind:value={preRequestScriptJs} language="javascript" placeholder={'// Collection pre-request script (JavaScript) pm.variables.set("traceId", "relay-001")'} minHeight="17.5rem" maxHeight="32.5rem" />
+              <CodeEditor bind:value={preRequestScriptJs} language="javascript" placeholder={'// Collection pre-request script (JavaScript) pm.variables.set("traceId", "kurlo-001")'} minHeight="17.5rem" maxHeight="32.5rem" />
             {:else}
-              <CodeEditor bind:value={preRequestScript} language="javascript" placeholder={'// Collection pre-request script (Tengo) pm.variables.set("traceId", "relay-001")'} minHeight="17.5rem" maxHeight="32.5rem" />
+              <CodeEditor bind:value={preRequestScript} language="javascript" placeholder={'// Collection pre-request script (Tengo) pm.variables.set("traceId", "kurlo-001")'} minHeight="17.5rem" maxHeight="32.5rem" />
             {/if}
           </div>
         {:else if collectionSettingsTab === 'tests'}

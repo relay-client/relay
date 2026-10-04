@@ -34,13 +34,13 @@ function shim(path) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Relay moved to ${PRIMARY_DOMAIN}</title>
+<title>Kurlo moved to ${PRIMARY_DOMAIN}</title>
 <link rel="canonical" href="${url}">
 <meta http-equiv="refresh" content="0; url=${url}">
 <style>body{font:16px/1.6 system-ui,sans-serif;margin:4rem auto;max-width:34rem;padding:0 1.5rem}</style>
 </head>
 <body>
-<h1>Relay has a new home</h1>
+<h1>Kurlo has a new home</h1>
 <p>This page now lives at <a href="${url}">${url}</a>.</p>
 </body>
 </html>
@@ -52,12 +52,12 @@ const notFound = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Relay moved to ${PRIMARY_DOMAIN}</title>
+<title>Kurlo moved to ${PRIMARY_DOMAIN}</title>
 <style>body{font:16px/1.6 system-ui,sans-serif;margin:4rem auto;max-width:34rem;padding:0 1.5rem}</style>
 </head>
 <body>
-<h1>Relay has a new home</h1>
-<p>Relay's site moved to <a id="target" href="${target}/">${target}</a>.</p>
+<h1>Kurlo has a new home</h1>
+<p>Kurlo's site moved to <a id="target" href="${target}/">${target}</a>.</p>
 <script>
 (() => {
   const base = ${JSON.stringify(oldBase)};

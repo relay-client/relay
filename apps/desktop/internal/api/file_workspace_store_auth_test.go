@@ -124,7 +124,7 @@ func TestClientKeyPassphraseIsStoredAsASecret(t *testing.T) {
 	if strings.Contains(written, "super-secret-passphrase") {
 		t.Fatalf("passphrase written to the workspace file in plain text: %q", written)
 	}
-	if _, ok := relaySecretKeyFromPlaceholder(written); !ok {
+	if _, ok := kurloSecretKeyFromPlaceholder(written); !ok {
 		t.Fatalf("expected a local secret placeholder, got %q", written)
 	}
 	if secrets[requestSettingSecretKey("r1", "clientKeyPassword")] != "super-secret-passphrase" {

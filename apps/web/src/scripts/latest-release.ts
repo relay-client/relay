@@ -12,7 +12,7 @@ export interface Release {
   assets?: ReleaseAsset[];
 }
 
-const CACHE_KEY = 'relay:latest-release';
+const CACHE_KEY = 'kurlo:latest-release';
 const CACHE_MS = 30 * 60 * 1000;
 
 export function formatSize(bytes: number): string {

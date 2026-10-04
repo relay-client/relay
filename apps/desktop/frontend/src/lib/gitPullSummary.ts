@@ -8,8 +8,8 @@ function fileLabel(value: number) {
   return value === 1 ? 'file' : 'files';
 }
 
-function relayFileLabel(value: number) {
-  return value === 1 ? 'Relay file' : 'Relay files';
+function kurloFileLabel(value: number) {
+  return value === 1 ? 'Kurlo file' : 'Kurlo files';
 }
 
 function commitLabel(value: number) {
@@ -40,7 +40,7 @@ export function formatGitPullToast(summary: GitPullSummary | null | undefined) {
 export function formatGitCommitToast(result: GitOperationResult | null | undefined) {
   const files = Array.isArray(result?.files) ? result.files.length : 0;
   const head = (result?.git?.head || '').trim();
-  const detail = files ? `${files} ${relayFileLabel(files)} committed` : 'Relay workspace committed';
+  const detail = files ? `${files} ${kurloFileLabel(files)} committed` : 'Kurlo workspace committed';
   return `Commit complete: ${detail}${head ? ` · ${head}` : ''}`;
 }
 

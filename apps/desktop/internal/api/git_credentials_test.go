@@ -137,8 +137,8 @@ func TestGitAuthGlobalArgsShape(t *testing.T) {
 }
 
 func TestShellQuoteDoesNotAllowShellExpansion(t *testing.T) {
-	got := shellQuote(`/tmp/key-$(touch /tmp/relay-pwn)-'quoted'`)
-	want := `'/tmp/key-$(touch /tmp/relay-pwn)-'\''quoted'\'''`
+	got := shellQuote(`/tmp/key-$(touch /tmp/kurlo-pwn)-'quoted'`)
+	want := `'/tmp/key-$(touch /tmp/kurlo-pwn)-'\''quoted'\'''`
 	if got != want {
 		t.Fatalf("shellQuote mismatch:\n got %q\nwant %q", got, want)
 	}
@@ -149,7 +149,7 @@ func TestShellQuoteDoesNotAllowShellExpansion(t *testing.T) {
 
 func TestGitSSHCommandEnvQuotesKeyPath(t *testing.T) {
 	dir := t.TempDir()
-	keyPath := filepath.Join(dir, `id_$(touch relay-pwn)`)
+	keyPath := filepath.Join(dir, `id_$(touch kurlo-pwn)`)
 	if err := os.WriteFile(keyPath, []byte("x"), 0o600); err != nil {
 		t.Fatalf("seed key: %v", err)
 	}
@@ -167,7 +167,7 @@ func TestGitSSHCommandEnvQuotesKeyPath(t *testing.T) {
 }
 
 func TestGitSSHCommandEnvRejectsMissingKeyFile(t *testing.T) {
-	if env := gitSSHCommandEnv("/does/not/exist/relay-key"); env != nil {
+	if env := gitSSHCommandEnv("/does/not/exist/kurlo-key"); env != nil {
 		t.Fatalf("expected nil env for missing key file, got %v", env)
 	}
 }

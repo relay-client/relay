@@ -1,5 +1,5 @@
 {
-  "name": "relay-monorepo",
+  "name": "kurlo-monorepo",
   "private": true,
   "workspaces": [
     "apps/desktop/frontend",
@@ -11,21 +11,21 @@
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "frontend:dev": "npm --workspace @relay/desktop-frontend run dev",
-    "frontend:build": "npm --workspace @relay/desktop-frontend run build",
-    "frontend:check": "npm --workspace @relay/desktop-frontend run check",
-    "frontend:e2e": "npm --workspace @relay/desktop-frontend run e2e",
-    "frontend:e2e:webkit": "npm --workspace @relay/desktop-frontend run e2e:webkit",
-    "frontend:e2e:headed": "npm --workspace @relay/desktop-frontend run e2e:headed",
-    "frontend:e2e:headed:slow": "npm --workspace @relay/desktop-frontend run e2e:headed:slow",
+    "frontend:dev": "npm --workspace @kurlo/desktop-frontend run dev",
+    "frontend:build": "npm --workspace @kurlo/desktop-frontend run build",
+    "frontend:check": "npm --workspace @kurlo/desktop-frontend run check",
+    "frontend:e2e": "npm --workspace @kurlo/desktop-frontend run e2e",
+    "frontend:e2e:webkit": "npm --workspace @kurlo/desktop-frontend run e2e:webkit",
+    "frontend:e2e:headed": "npm --workspace @kurlo/desktop-frontend run e2e:headed",
+    "frontend:e2e:headed:slow": "npm --workspace @kurlo/desktop-frontend run e2e:headed:slow",
     "perf:fixtures": "node scripts/generate-perf-fixtures.mjs",
     "backend:test": "make -C apps/desktop test",
     "desktop:dev": "make -C apps/desktop dev",
     "desktop:build": "make -C apps/desktop build",
-    "web:dev": "npm --workspace @relay/web run dev",
-    "web:build": "npm --workspace @relay/web run build",
+    "web:dev": "npm --workspace @kurlo/web run dev",
+    "web:build": "npm --workspace @kurlo/web run build",
     "web:check-docs": "node scripts/check-web-docs.mjs",
-    "web:preview": "npm --workspace @relay/web run preview"
+    "web:preview": "npm --workspace @kurlo/web run preview"
   },
   "devDependencies": {
     "eslint": "^9.39.5",

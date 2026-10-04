@@ -76,11 +76,11 @@ Content-Type: application/json
 
   it('joins a query string wrapped across indented lines', () => {
     const { requests } = parse(`GET https://api.example.com/search
-    ?q=relay
+    ?q=kurlo
     &limit=10
 Accept: application/json
 `);
-    expect(requests[0].url).toBe('https://api.example.com/search?q=relay&limit=10');
+    expect(requests[0].url).toBe('https://api.example.com/search?q=kurlo&limit=10');
   });
 
   it('keeps the last value when a variable is redefined', () => {

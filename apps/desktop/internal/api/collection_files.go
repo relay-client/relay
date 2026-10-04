@@ -73,7 +73,7 @@ func readCollectionTextFilesForRoot(root string) ([]CollectionTextFile, error) {
 		}
 		name := entry.Name()
 		if entry.IsDir() {
-			if name == ".git" || name == "node_modules" || name == ".relay-local" {
+			if name == ".git" || name == "node_modules" || name == ".kurlo-local" {
 				return filepath.SkipDir
 			}
 			return nil

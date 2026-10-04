@@ -1,4 +1,4 @@
-# Contributing to Relay
+# Contributing to Kurlo
 
 Thanks for wanting to help. Bug reports, docs fixes, and pull requests are all welcome.
 
@@ -9,7 +9,7 @@ By taking part you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 - **Found a security problem?** Do not open a public issue. Follow [SECURITY.md](SECURITY.md).
 - **Fixing a bug?** Go ahead and open a pull request directly.
 - **Adding a feature or changing behaviour?** Open an issue or a
-  [discussion](https://github.com/relay-client/relay/discussions) first. Relay is
+  [discussion](https://github.com/stormhop/kurlo/discussions) first. Kurlo is
   deliberately local-first and opinionated, and it's much cheaper to agree on the shape of
   a change before it's written than to reject a finished PR.
 
@@ -25,8 +25,8 @@ Requirements:
 - Windows: NSIS for installer builds, Windows SDK for MSIX
 
 ```bash
-git clone https://github.com/relay-client/relay
-cd relay
+git clone https://github.com/stormhop/kurlo
+cd kurlo
 npm install
 make dev
 ```
@@ -53,7 +53,7 @@ The full pipeline in [`ci.yml`](.github/workflows/ci.yml) runs:
 |-------|---------|
 | Lint | `npm run lint` |
 | Frontend types | `npm run frontend:check` |
-| Frontend unit tests | `npm --workspace @relay/desktop-frontend run test` |
+| Frontend unit tests | `npm --workspace @kurlo/desktop-frontend run test` |
 | Frontend build | `npm run frontend:build` |
 | Docs site build | `npm run web:build` |
 | Docs consistency | `npm run web:check-docs` |
@@ -74,8 +74,8 @@ Two of these surprise people:
   a function around "for later".
 - **Docs consistency.** `scripts/check-web-docs.mjs` cross-checks the YAML workspace
   reference in `apps/web` against the Go source and the JSON Schema. Adding a persisted
-  auth field means updating `schemas/relay-workspace-yaml-v1.schema.json` and
-  `apps/web/src/content/docs/docs/reference/relay-yaml-format.md` too. It also checks the
+  auth field means updating `schemas/kurlo-workspace-yaml-v1.schema.json` and
+  `apps/web/src/content/docs/docs/reference/kurlo-yaml-format.md` too. It also checks the
   documents that nothing else reads: a new `SHORTCUT_DEFINITIONS` entry has to appear in the
   keyboard-shortcuts reference, and a new snippet target in the code-generation guide.
 
@@ -138,7 +138,7 @@ what else needs it.
 
 ## Reporting bugs
 
-Use the issue templates. The two things that matter most are the Relay version
+Use the issue templates. The two things that matter most are the Kurlo version
 (Settings → About) and a reproduction — the smallest request or import file that shows the
 problem. Screenshots help for UI issues.
 

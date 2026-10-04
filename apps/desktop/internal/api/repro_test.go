@@ -42,12 +42,12 @@ func copyDir(src, dst string) error {
 
 func TestReproPostmanImportWithUserState(t *testing.T) {
 	tmp := t.TempDir()
-	srcRoot := os.Getenv("RELAY_REPRO_WORKSPACES")
-	postmanFile := os.Getenv("RELAY_REPRO_POSTMAN")
+	srcRoot := os.Getenv("KURLO_REPRO_WORKSPACES")
+	postmanFile := os.Getenv("KURLO_REPRO_POSTMAN")
 	dstRoot := filepath.Join(tmp, "ws")
 
 	if srcRoot == "" || postmanFile == "" {
-		t.Skip("skipping repro: set RELAY_REPRO_WORKSPACES and RELAY_REPRO_POSTMAN to run this test")
+		t.Skip("skipping repro: set KURLO_REPRO_WORKSPACES and KURLO_REPRO_POSTMAN to run this test")
 	}
 	if _, err := os.Stat(srcRoot); err != nil {
 		t.Skipf("skipping repro: workspace state not found at %s", srcRoot)
@@ -61,7 +61,7 @@ func TestReproPostmanImportWithUserState(t *testing.T) {
 	}
 	localPath := filepath.Join(tmp, "local.json")
 
-	loaded, err := loadRelayStorePayload(localPath, dstRoot)
+	loaded, err := loadKurloStorePayload(localPath, dstRoot)
 	if err != nil {
 		t.Fatalf("LOAD initial state: %v", err)
 	}
@@ -175,7 +175,7 @@ func TestReproPostmanImportWithUserState(t *testing.T) {
 		t.Fatalf("marshal payload: %v", err)
 	}
 
-	err = saveRelayStorePayload(localPath, dstRoot, string(payloadJSON))
+	err = saveKurloStorePayload(localPath, dstRoot, string(payloadJSON))
 	if err != nil {
 		t.Fatalf("SAVE FAILED: %v", err)
 	}

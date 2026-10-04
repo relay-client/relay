@@ -1,5 +1,5 @@
 name: Bug report
-description: Something is broken or behaving unexpectedly in Relay.
+description: Something is broken or behaving unexpectedly in Kurlo.
 title: "[bug] "
 labels: ["bug"]
 body:
@@ -11,7 +11,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: Relay version
+      label: Kurlo version
       description: Find this in Settings → About, or in the bottom-right status bar.
       placeholder: "0.1.5"
     validations:
@@ -43,7 +43,7 @@ body:
       label: Steps to reproduce
       description: Numbered steps from a fresh app launch to the bug.
       placeholder: |
-        1. Open Relay
+        1. Open Kurlo
         2. Create a new POST request with body type "form"
         3. Add a file field …
         4. Press Send
@@ -78,9 +78,9 @@ body:
     attributes:
       label: Pre-flight checks
       options:
-        - label: I'm on the latest Relay release (checked Settings → Updates)
+        - label: I'm on the latest Kurlo release (checked Settings → Updates)
           required: true
         - label: I searched existing issues and didn't find a duplicate
           required: true
-        - label: This isn't a security issue (those go to the [security advisories](https://github.com/relay-client/relay/security/advisories/new) instead)
+        - label: This isn't a security issue (those go to the [security advisories](https://github.com/stormhop/kurlo/security/advisories/new) instead)
           required: true

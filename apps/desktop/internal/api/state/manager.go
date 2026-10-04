@@ -3,7 +3,7 @@ package state
 import (
 	"sync"
 
-	"github.com/relay-client/relay/apps/desktop/internal/util"
+	"github.com/stormhop/kurlo/apps/desktop/internal/util"
 )
 
 type Manager struct {

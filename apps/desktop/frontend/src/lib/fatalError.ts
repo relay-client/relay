@@ -42,7 +42,7 @@ function showFatalOverlay(detail: string) {
   overlayShown = true;
 
   const root = document.createElement('div');
-  root.id = 'relay-fatal-overlay';
+  root.id = 'kurlo-fatal-overlay';
   root.setAttribute('role', 'alertdialog');
   root.setAttribute('aria-modal', 'true');
   Object.assign(root.style, {
@@ -62,7 +62,7 @@ function showFatalOverlay(detail: string) {
   } as CSSStyleDeclaration);
 
   const title = document.createElement('div');
-  title.textContent = 'Relay stopped responding';
+  title.textContent = 'Kurlo stopped responding';
   Object.assign(title.style, { fontSize: '1.125rem', fontWeight: '600', marginBottom: '0.5rem' } as CSSStyleDeclaration);
 
   const body = document.createElement('div');

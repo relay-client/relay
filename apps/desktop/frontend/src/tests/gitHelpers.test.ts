@@ -19,7 +19,7 @@ describe('cloneDirectoryNameFromUrl', () => {
     expect(cloneDirectoryNameFromUrl('git@github.com:repo.git')).toBe('repo');
   });
   it('sanitizes unusual names and falls back', () => {
-    expect(cloneDirectoryNameFromUrl('')).toBe('relay-workspace');
+    expect(cloneDirectoryNameFromUrl('')).toBe('kurlo-workspace');
     expect(cloneDirectoryNameFromUrl('https://host/My Repo!!')).toBe('My-Repo');
   });
 });

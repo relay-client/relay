@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 func traceTestRequest(url string) model.HttpRequest {
@@ -56,8 +56,8 @@ func TestSendRequestRecordsWhatWentOnTheWire(t *testing.T) {
 	if got := headerValue(sent.Headers, "X-Trace"); got != "on" {
 		t.Fatalf("expected the user header to be recorded, got %q", got)
 	}
-	if got := headerValue(sent.Headers, "User-Agent"); !strings.HasPrefix(got, "Relay/") {
-		t.Fatalf("expected Relay's own User-Agent to be recorded, got %q", got)
+	if got := headerValue(sent.Headers, "User-Agent"); !strings.HasPrefix(got, "Kurlo/") {
+		t.Fatalf("expected Kurlo's own User-Agent to be recorded, got %q", got)
 	}
 
 	if len(resp.Timeline) == 0 {

@@ -12,7 +12,7 @@ const avatarPath = join(root, '.github', 'assets', 'org-avatar.png');
 const tile = await sharp(master).trim({ threshold: 1 }).png().toBuffer();
 
 const derived = [
-  { path: join(root, 'apps', 'desktop', 'frontend', 'src', 'lib', 'assets', 'relay-mark.png'), size: 144 },
+  { path: join(root, 'apps', 'desktop', 'frontend', 'src', 'lib', 'assets', 'kurlo-mark.png'), size: 144 },
   { path: join(root, 'apps', 'web', 'src', 'assets', 'logo.png'), size: 128 },
   { path: join(root, 'apps', 'web', 'public', 'favicon-32.png'), size: 32 },
   { path: join(root, 'apps', 'web', 'public', 'apple-touch-icon.png'), size: 180 },
@@ -83,7 +83,7 @@ const ogSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630"
   </defs>
   <rect width="1200" height="630" fill="url(#ogBg)"/>
   <rect width="1200" height="630" fill="url(#ogGlow)"/>
-  <text x="500" y="187" fill="#aab2ff" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="22" letter-spacing="4">RELAY</text>
+  <text x="500" y="187" fill="#aab2ff" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="22" letter-spacing="4">KURLO</text>
   <text x="500" y="292" fill="#ececef" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="94" font-weight="500">API client.</text>
   <text x="500" y="356" fill="#c9c9d1" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="34" font-weight="500">Local-first.</text>
   <text x="500" y="409" fill="#a6a6ae" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="25">No accounts. No cloud sync. No telemetry.</text>

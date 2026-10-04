@@ -39,13 +39,13 @@ Check the run itself before touching a machine:
 
 ### macOS
 
-- [ ] The `.dmg` opens, and dragging Relay to Applications works.
+- [ ] The `.dmg` opens, and dragging Kurlo to Applications works.
 - [ ] First launch from Applications opens a window — Gatekeeper may warn on an
       unsigned build; note whether it did.
 - [ ] **Settings → Support → Copy diagnostics** puts a report on the clipboard,
       and the version in it matches the release.
 - [ ] **Settings → Support → Open log folder** opens Finder at the log directory
-      and `relay.log` is there.
+      and `kurlo.log` is there.
 - [ ] Quit and relaunch: the workspace is where you left it.
 
 ### Windows

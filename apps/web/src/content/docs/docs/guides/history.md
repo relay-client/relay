@@ -29,7 +29,7 @@ Toggle a day open or closed with the chevron. Days collapse independently — yo
 
 Click an entry to open it on its own page — a *History* tab in the title bar, closed like any other tab. It shows what was sent and what came back, side by side:
 
-- **Request** — the method and full URL, the header rows the request carried (secret values stay masked), the auth type, and the body. Headers Relay adds on the wire, such as `Host` and `User-Agent`, are not part of the entry.
+- **Request** — the method and full URL, the header rows the request carried (secret values stay masked), the auth type, and the body. Headers Kurlo adds on the wire, such as `Host` and `User-Agent`, are not part of the entry.
 - **Response** — status, time, size and content type, then the stored response headers and body in the same viewer as the response panel, with syntax highlighting and line numbers.
 
 If the request it was sent from still exists, the page says where it lives, and the link opens it. **Copy as cURL** copies the request as it was sent, **Delete** removes the entry, and **Open in editor** brings it back as a request you can change and send again.
@@ -42,7 +42,7 @@ If the request it was sent from still exists, the page says where it lives, and 
 
 ### Stored responses
 
-Relay keeps the response of each entry — status, headers and body — in the encrypted profile, up to 2 MB per entry. A larger body is cut to fit and the page says so; a binary body is not kept. A row whose response was kept shows a small dot next to its status code.
+Kurlo keeps the response of each entry — status, headers and body — in the encrypted profile, up to 2 MB per entry. A larger body is cut to fit and the page says so; a binary body is not kept. A row whose response was kept shows a small dot next to its status code.
 
 ## History entry menu
 
@@ -50,7 +50,7 @@ The `•••` button on each history row offers:
 
 - **Open in editor** — as above.
 - **Save as example** — keeps the stored response as an example on the request that is open. Shown when a request is open and the entry's response was kept.
-- **Save to** a collection — pick an existing collection in this workspace; Relay drops the request into it. Useful when an ad-hoc curl-paste turns out to be worth keeping.
+- **Save to** a collection — pick an existing collection in this workspace; Kurlo drops the request into it. Useful when an ad-hoc curl-paste turns out to be worth keeping.
 - **New collection…** — same, but creates the collection on the fly with a name you pick.
 - **Delete** — removes just this one history record.
 
@@ -64,7 +64,7 @@ There's no per-day clear in the UI — if you want to keep specific days, save t
 
 ## Retention
 
-By default Relay keeps:
+By default Kurlo keeps:
 
 - **14 days** of history, or
 - **1 000 entries** total, whichever comes first.

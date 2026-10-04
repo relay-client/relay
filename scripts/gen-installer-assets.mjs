@@ -47,7 +47,7 @@ const welcome = svg(328, 628, `
   <circle cx="305" cy="350" r="175" fill="none" stroke="#6672df" stroke-opacity=".18"/>
   <circle cx="305" cy="350" r="125" fill="none" stroke="#6672df" stroke-opacity=".18"/>
   ${logo(36, 54, 90)}
-  ${text(36, 194, 46, '#ffffff', 'Relay', 'font-weight="bold"')}
+  ${text(36, 194, 46, '#ffffff', 'Kurlo', 'font-weight="bold"')}
   ${text(36, 240, 21, '#c3c8f6', 'Your APIs.')}
   ${text(36, 272, 21, '#c3c8f6', 'Your workspace.')}
   <rect x="36" y="506" width="38" height="4" rx="2" fill="#8993ff"/>
@@ -56,20 +56,20 @@ const welcome = svg(328, 628, `
 `);
 await bmp(welcome, join(windows, 'welcome.bmp'));
 await sharp(welcome).png().toFile(join(windows, 'welcome.png'));
-await bmp(svg(300, 114, `<rect width="300" height="114" fill="#ffffff"/>${text(38, 70, 32, '#292d45', 'Relay', 'font-weight="bold"')}${logo(206, 21, 72)}`), join(windows, 'header.bmp'));
+await bmp(svg(300, 114, `<rect width="300" height="114" fill="#ffffff"/>${text(38, 70, 32, '#292d45', 'Kurlo', 'font-weight="bold"')}${logo(206, 21, 72)}`), join(windows, 'header.bmp'));
 
 const dmgBackground = svg(720, 460, `
   <defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#f8f9ff"/><stop offset="1" stop-color="#e9edff"/></linearGradient></defs>
   <rect width="720" height="460" fill="url(#bg)"/>
   ${logo(42, 34, 48)}
-  ${text(106, 68, 30, '#232842', 'Relay', 'font-weight="bold"')}
+  ${text(106, 68, 30, '#232842', 'Kurlo', 'font-weight="bold"')}
   ${text(42, 119, 18, '#636b88', 'Your APIs. Your workspace.')}
   <path d="M42 148H678" stroke="#d7dcf0"/>
   <rect x="107" y="176" width="166" height="166" rx="32" fill="#ffffff" fill-opacity=".65" stroke="#d9def1"/>
   <rect x="447" y="176" width="166" height="166" rx="32" fill="#ffffff" fill-opacity=".65" stroke="#d9def1"/>
   <path d="M321 254H396M380 238L396 254L380 270" fill="none" stroke="#5865f2" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-  ${text(360, 393, 20, '#232842', 'Drag Relay into Applications', 'text-anchor="middle" font-weight="bold"')}
-  ${text(360, 424, 14, '#636b88', 'Then open Relay from your Applications folder.', 'text-anchor="middle"')}
+  ${text(360, 393, 20, '#232842', 'Drag Kurlo into Applications', 'text-anchor="middle" font-weight="bold"')}
+  ${text(360, 424, 14, '#636b88', 'Then open Kurlo from your Applications folder.', 'text-anchor="middle"')}
 `);
 await sharp(dmgBackground).png().toFile(join(darwin, 'dmg-background.png'));
 await sharp(dmgBackground, { density: 144 }).withMetadata({ density: 144 }).png().toFile(join(darwin, 'dmg-background@2x.png'));

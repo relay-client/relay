@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 func pngBytes(t *testing.T) []byte {

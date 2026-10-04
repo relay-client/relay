@@ -60,7 +60,7 @@ describe('cookie sync domain input', () => {
 describe('cookie sync bridge', () => {
   it('starts the bridge for the workspace that is open', async () => {
     const vm = host({ cookieSync: status({ domains: ['example.com'] }) });
-    backend.startCookieSync.mockResolvedValue(status({ running: true, enabled: true, port: 3199, pairingCode: 'relay-3199-token' }));
+    backend.startCookieSync.mockResolvedValue(status({ running: true, enabled: true, port: 3199, pairingCode: 'kurlo-3199-token' }));
 
     await vm.startCookieSyncBridge();
 
@@ -68,7 +68,7 @@ describe('cookie sync bridge', () => {
       { enabled: true, port: DEFAULT_COOKIE_SYNC_PORT, domains: ['example.com'] },
       'workspace-1',
     );
-    expect(vm.cookieSync.pairingCode).toBe('relay-3199-token');
+    expect(vm.cookieSync.pairingCode).toBe('kurlo-3199-token');
     expect(vm.cookieSyncBusy).toBe(false);
   });
 
@@ -140,7 +140,7 @@ describe('cookie sync bridge', () => {
     expect(uncovered.cookieSyncActiveDomainIsListed()).toBe(false);
   });
 
-  it('approves the browser Relay is asking about', async () => {
+  it('approves the browser Kurlo is asking about', async () => {
     const pending = { id: 'pair-1', browser: 'Chrome', extensionId: 'abc123', code: '482913', requestedAt: 1, expiresAt: 2 };
     const vm = host({ cookieSync: status({ running: true, pending }) });
     backend.approveCookieSyncPairing.mockResolvedValue(status({ running: true, paired: true, browser: 'Chrome' }));
@@ -153,7 +153,7 @@ describe('cookie sync bridge', () => {
     expect(vm.cookieSyncAwaitingApproval()).toBe(false);
   });
 
-  it('denies the browser Relay is asking about', async () => {
+  it('denies the browser Kurlo is asking about', async () => {
     const pending = { id: 'pair-2', browser: 'Firefox', extensionId: 'zzz', code: '112233', requestedAt: 1, expiresAt: 2 };
     const vm = host({ cookieSync: status({ running: true, pending }) });
     backend.denyCookieSyncPairing.mockResolvedValue(status({ running: true }));
@@ -175,14 +175,14 @@ describe('cookie sync bridge', () => {
   });
 
   it('revokes a paired browser', async () => {
-    const vm = host({ cookieSync: status({ running: true, paired: true, browser: 'Chrome', pairingCode: 'relay-3199-old' }) });
-    backend.revokeCookieSyncPairing.mockResolvedValue(status({ running: true, paired: false, pairingCode: 'relay-3199-new' }));
+    const vm = host({ cookieSync: status({ running: true, paired: true, browser: 'Chrome', pairingCode: 'kurlo-3199-old' }) });
+    backend.revokeCookieSyncPairing.mockResolvedValue(status({ running: true, paired: false, pairingCode: 'kurlo-3199-new' }));
 
     await vm.revokeCookieSyncBrowser();
 
     expect(backend.revokeCookieSyncPairing).toHaveBeenCalled();
     expect(vm.cookieSync.paired).toBe(false);
-    expect(vm.cookieSync.pairingCode).toBe('relay-3199-new');
+    expect(vm.cookieSync.pairingCode).toBe('kurlo-3199-new');
   });
 
   it('pulls the jar back into the UI when the browser pushes cookies', async () => {

@@ -1,9 +1,9 @@
 # Releasing
 
-Maintainer notes. Contributors don't need any of this to build or test Relay — see
+Maintainer notes. Contributors don't need any of this to build or test Kurlo — see
 [CONTRIBUTING.md](../CONTRIBUTING.md) for that.
 
-Relay follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Releases are
+Kurlo follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Releases are
 published from this repository: pushing a `v*` tag triggers
 [`.github/workflows/release.yml`](../.github/workflows/release.yml), which builds every
 platform, signs the updater assets, and creates the GitHub release.
@@ -51,7 +51,7 @@ the recorded tag against the newest `v*` tag, so record the audit in a follow-up
 
 ## Update signing
 
-Relay's auto-updater verifies two things before installing a binary: the SHA-256 recorded
+Kurlo's auto-updater verifies two things before installing a binary: the SHA-256 recorded
 in `latest.json`, and a [minisign](https://jedisct1.github.io/minisign/) signature. The
 checksum protects against corruption in transit; the signature protects against a
 compromised release channel. A build that has a public key embedded rejects any update
@@ -114,8 +114,8 @@ This builds the universal binary locally, packages the `.app` as a `.zip` (or a 
 when `create-dmg` is installed — `brew install create-dmg`), signs everything with
 minisign if `update-signing-key` is present in the repo root, generates a macOS-only
 `latest.json`, and uploads the result via `gh release create`. Existing installs update from
-`relay-darwin-universal.app.zip` — the whole signed app, so the icon and `Info.plist` change
-with the program — while builds older than 2.0.1 only know the raw `relay-darwin-universal`
+`kurlo-darwin-universal.app.zip` — the whole signed app, so the icon and `Info.plist` change
+with the program — while builds older than 2.0.1 only know the raw `kurlo-darwin-universal`
 binary; both are signed and listed in `latest.json`.
 
 Users on Windows and Linux stay on their current version until a full cross-platform

@@ -19,7 +19,7 @@
   import { cleanReleaseNotes } from '../releaseNotes';
   import ReleaseNotes from './ReleaseNotes.svelte';
   import ThemePreview from './ThemePreview.svelte';
-  import relayMark from '../assets/relay-mark.png';
+  import kurloMark from '../assets/kurlo-mark.png';
   import { friendlyUpdateError } from '../updateErrors';
   import { shortcutComboLabel } from '../stores/features/preferences';
 
@@ -158,7 +158,7 @@
     onShowWhatsNew?: () => void;
   } = $props();
 
-  const UPDATE_READY_KEY = 'relay:update-ready';
+  const UPDATE_READY_KEY = 'kurlo:update-ready';
 
   const _pendingRestart = localStorage.getItem(UPDATE_READY_KEY);
   const _initialUpdate = untrack(() => startupUpdateInfo);
@@ -667,11 +667,11 @@
         <div class="settings-body updates-tab" id="settings-panel-updates" role="tabpanel">
           <div class="updates-summary">
             <div class="updates-summary-copy">
-              <strong>Relay {currentVersion || '…'}</strong>
+              <strong>Kurlo {currentVersion || '…'}</strong>
               {#if isDevBuild}
                 <span>Development build</span>
               {:else if updateState === 'idle'}
-                <span>Relay checks for updates in the background.</span>
+                <span>Kurlo checks for updates in the background.</span>
               {:else if updateState === 'checking'}
                 <span class="updates-inline"><span class="updates-spinner" aria-hidden="true"></span>Checking for updates…</span>
               {:else if updateState === 'up-to-date'}
@@ -717,12 +717,12 @@
 
           {#if isDevBuild}
             <p class="updates-dev-notice">
-              Updates aren't available when Relay runs from a local <code>make dev</code> or <code>go run</code> build. Install a release build from the <a href="https://github.com/relay-client/relay/releases/latest" onclick={(e) => { e.preventDefault(); openExternalURL('https://github.com/relay-client/relay/releases/latest'); }}>releases page</a> to receive them.
+              Updates aren't available when Kurlo runs from a local <code>make dev</code> or <code>go run</code> build. Install a release build from the <a href="https://github.com/stormhop/kurlo/releases/latest" onclick={(e) => { e.preventDefault(); openExternalURL('https://github.com/stormhop/kurlo/releases/latest'); }}>releases page</a> to receive them.
             </p>
           {:else if updateState === 'available' && updateInfo}
             {#if manualUpdateURL}
               <p class="updates-dev-notice">
-                Relay is installed from the Windows app package, which Windows keeps read-only, so it can't update itself. Download the new <code>.msix</code> package and open it to upgrade Relay in place.
+                Kurlo is installed from the Windows app package, which Windows keeps read-only, so it can't update itself. Download the new <code>.msix</code> package and open it to upgrade Kurlo in place.
               </p>
             {/if}
             {#if cleanReleaseNotes(updateInfo.releaseNotes)}
@@ -908,7 +908,7 @@
             </details>
           {/if}
 
-          {#if matchesQuery('Default Location', 'workspace collection folder path documents relay')}
+          {#if matchesQuery('Default Location', 'workspace collection folder path documents kurlo')}
             <details class="settings-card" bind:open={generalLocationOpen}>
               <summary class="settings-card-summary">
                 <span class="settings-card-icon">
@@ -1010,7 +1010,7 @@
           <p class="support-intro">Send bugs or questions to the public tracker.</p>
 
           <div class="support-actions">
-            <button class="support-link-card" type="button" onclick={() => openExternalURL('https://github.com/relay-client/relay/issues')}>
+            <button class="support-link-card" type="button" onclick={() => openExternalURL('https://github.com/stormhop/kurlo/issues')}>
               <span class="support-link-icon" aria-hidden="true">
                 <svg width="1.0625rem" height="1.0625rem" viewBox="0 0 18 18" fill="none">
                   <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.4"/>
@@ -1020,14 +1020,14 @@
               </span>
               <span class="support-link-copy">
                 <span class="support-link-title">Report issues</span>
-                <span class="support-link-meta">github.com/relay-client/relay/issues</span>
+                <span class="support-link-meta">github.com/stormhop/kurlo/issues</span>
               </span>
               <svg width="0.6875rem" height="0.6875rem" viewBox="0 0 10 10" fill="none" aria-hidden="true" class="support-link-arrow">
                 <path d="M2 8L8 2M8 2H4M8 2v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </button>
 
-            <button class="support-link-card" type="button" onclick={() => openExternalURL('https://github.com/relay-client/relay/issues/new')}>
+            <button class="support-link-card" type="button" onclick={() => openExternalURL('https://github.com/stormhop/kurlo/issues/new')}>
               <span class="support-link-icon" aria-hidden="true">
                 <svg width="1.0625rem" height="1.0625rem" viewBox="0 0 24 24" fill="none">
                   <path d="M21.8 2.2L1.2 10.1c-1.4.6-1.3 1.5-.2 1.9l5.2 1.6 2 6.3c.3.8.6.9 1 .6l2.7-2.6 5.2 3.9c1 .5 1.6.3 1.9-.9L22.9 3.6c.4-1.5-.5-2.1-1.1-1.4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
@@ -1035,7 +1035,7 @@
               </span>
               <span class="support-link-copy">
                 <span class="support-link-title">Questions</span>
-                <span class="support-link-meta">github.com/relay-client/relay/issues/new</span>
+                <span class="support-link-meta">github.com/stormhop/kurlo/issues/new</span>
               </span>
               <svg width="0.6875rem" height="0.6875rem" viewBox="0 0 10 10" fill="none" aria-hidden="true" class="support-link-arrow">
                 <path d="M2 8L8 2M8 2H4M8 2v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1073,7 +1073,7 @@
                   {#if logFolderError}
                     {logFolderError}
                   {:else}
-                    Attach relay.log when something went wrong
+                    Attach kurlo.log when something went wrong
                   {/if}
                 </span>
               </span>
@@ -1085,8 +1085,8 @@
       {#if settingsTab === 'about'}
         <div class="settings-body about-tab" id="settings-panel-about" role="tabpanel">
           <div class="about-hero">
-            <img class="about-icon" src={relayMark} alt="" width="64" height="64" draggable="false" />
-            <h3 class="about-name">Relay</h3>
+            <img class="about-icon" src={kurloMark} alt="" width="64" height="64" draggable="false" />
+            <h3 class="about-name">Kurlo</h3>
             {#if aboutInfo}
               <p class="about-meta">Version {aboutInfo.version} · {aboutInfo.platform}</p>
             {:else}
@@ -1109,7 +1109,7 @@
             <div class="about-item">
               <span class="about-item-copy">
                 <strong>Automatically install updates</strong>
-                <span>Relay checks in the background, installs the new build, then asks for a restart.</span>
+                <span>Kurlo checks in the background, installs the new build, then asks for a restart.</span>
               </span>
               <label class="switch-control" aria-label="Automatically install updates">
                 <input
@@ -1126,11 +1126,11 @@
           {#if isDevBuild}
             <p class="about-update-note">Auto-updates are available in release builds.</p>
           {:else if packagedInstall}
-            <p class="about-update-note">Relay is installed from the Windows app package, so it can't install updates itself. When a new version is out, download it from Updates.</p>
+            <p class="about-update-note">Kurlo is installed from the Windows app package, so it can't install updates itself. When a new version is out, download it from Updates.</p>
           {:else if autoUpdateInstall && updateState === 'installing'}
             <p class="about-update-note">Downloading and installing the update…</p>
           {:else if autoUpdateInstall && updateState === 'ready'}
-            <p class="about-update-note">Update installed. Restart Relay from Updates to apply it.</p>
+            <p class="about-update-note">Update installed. Restart Kurlo from Updates to apply it.</p>
           {:else if autoUpdateInstall}
             <p class="about-update-note">Auto-update is on. New releases install after the background check finds them.</p>
           {/if}

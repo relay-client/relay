@@ -58,7 +58,7 @@ func writeExampleBodyFile(path string, data []byte) error {
 		return nil
 	}
 	dir := filepath.Dir(path)
-	tmp, err := os.CreateTemp(dir, ".relay-*.tmp")
+	tmp, err := os.CreateTemp(dir, ".kurlo-*.tmp")
 	if err != nil {
 		return err
 	}

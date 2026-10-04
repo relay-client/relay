@@ -2,32 +2,32 @@ SHELL := /bin/sh
 
 ROOT_DIR      := $(shell git -C $(CURDIR) rev-parse --show-toplevel 2>/dev/null || pwd)
 DESKTOP_DIR   := $(ROOT_DIR)/apps/desktop
-APP_NAME      := Relay
+APP_NAME      := Kurlo
 WAILS_VERSION := v2.13.0
 WAILS_CMD     := $(shell command -v wails 2>/dev/null || printf '%s' 'go run github.com/wailsapp/wails/v2/cmd/wails@$(WAILS_VERSION)')
 GO_ENV        := GOCACHE=$(ROOT_DIR)/.cache/go-build
-DEV_ENV       := $(GO_ENV) RELAY_DISABLE_KEYCHAIN=1
+DEV_ENV       := $(GO_ENV) KURLO_DISABLE_KEYCHAIN=1
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null | sed 's/^v//')
 ifeq ($(VERSION),)
 VERSION := dev
 endif
-UPDATE_REPO ?= relay-client/relay
-LDFLAGS := -X 'github.com/relay-client/relay/apps/desktop/internal/api.appVersion=$(VERSION)' \
-           -X 'github.com/relay-client/relay/apps/desktop/internal/api.githubRepo=$(UPDATE_REPO)'
+UPDATE_REPO ?= stormhop/kurlo
+LDFLAGS := -X 'github.com/stormhop/kurlo/apps/desktop/internal/api.appVersion=$(VERSION)' \
+           -X 'github.com/stormhop/kurlo/apps/desktop/internal/api.githubRepo=$(UPDATE_REPO)'
 
 MAC_APP   := $(DESKTOP_DIR)/build/bin/$(APP_NAME).app
-LINUX_BIN := $(DESKTOP_DIR)/build/bin/relay
+LINUX_BIN := $(DESKTOP_DIR)/build/bin/kurlo
 WIN_ARCH  ?= amd64
-WIN_EXE   := $(DESKTOP_DIR)/build/bin/relay-$(WIN_ARCH)-installer.exe
-WIN_MSIX  := $(DESKTOP_DIR)/build/bin/relay-$(VERSION)-windows-$(WIN_ARCH).msix
+WIN_EXE   := $(DESKTOP_DIR)/build/bin/kurlo-$(WIN_ARCH)-installer.exe
+WIN_MSIX  := $(DESKTOP_DIR)/build/bin/kurlo-$(VERSION)-windows-$(WIN_ARCH).msix
 
 HOST_OS := $(shell uname -s 2>/dev/null || echo Windows_NT)
 POWERSHELL := $(shell command -v pwsh 2>/dev/null || command -v powershell.exe 2>/dev/null || command -v powershell 2>/dev/null || printf '%s' 'pwsh')
 
-MSIX_IDENTITY_NAME ?= com.relayclient.relay
-MSIX_PUBLISHER ?= CN=Relay Client
-MSIX_PUBLISHER_DISPLAY_NAME ?= Relay Client
+MSIX_IDENTITY_NAME ?= dev.kurlo.app
+MSIX_PUBLISHER ?= CN=Kurlo
+MSIX_PUBLISHER_DISPLAY_NAME ?= Kurlo
 MSIX_CERT_PATH ?=
 MSIX_CERT_PASSWORD ?=
 MSIX_TIMESTAMP_URL ?=
@@ -100,7 +100,7 @@ update-keygen:
 	@printf '\n\033[32m✓\033[0m Keypair generated.\n'
 	@printf '\nPublic key — embed this into release builds via ldflags:\n'
 	@tail -1 "$(ROOT_DIR)/update-signing-key.pub"
-	@printf '\n  -X "github.com/relay-client/relay/apps/desktop/internal/api.updatePublicKey=$$(tail -1 $(ROOT_DIR)/update-signing-key.pub)"\n'
+	@printf '\n  -X "github.com/stormhop/kurlo/apps/desktop/internal/api.updatePublicKey=$$(tail -1 $(ROOT_DIR)/update-signing-key.pub)"\n'
 
 update-sign:
 	@if ! command -v minisign >/dev/null 2>&1; then \
@@ -112,9 +112,9 @@ update-sign:
 		exit 1; \
 	fi
 	@count=0; \
-	for asset in "$(DESKTOP_DIR)/build/bin/Relay.app/Contents/MacOS/relay" \
-	             "$(DESKTOP_DIR)/build/bin/relay" \
-	             "$(DESKTOP_DIR)/build/bin/relay-amd64-installer.exe"; do \
+	for asset in "$(DESKTOP_DIR)/build/bin/Kurlo.app/Contents/MacOS/kurlo" \
+	             "$(DESKTOP_DIR)/build/bin/kurlo" \
+	             "$(DESKTOP_DIR)/build/bin/kurlo-amd64-installer.exe"; do \
 		if [ -f "$$asset" ]; then \
 			printf 'Signing %s\n' "$$asset"; \
 			minisign -S -s "$(ROOT_DIR)/update-signing-key" -m "$$asset"; \
@@ -226,8 +226,8 @@ _exec-release-mac-local:
 	  printf 'Bug fixes and improvements\n' > "$$NOTES_FILE"; \
 	fi; \
 	cleanup() { \
-	  if [ -f "$(DESKTOP_DIR)/wails.json.relay.bak" ]; then \
-	    mv "$(DESKTOP_DIR)/wails.json.relay.bak" "$(DESKTOP_DIR)/wails.json"; \
+	  if [ -f "$(DESKTOP_DIR)/wails.json.kurlo.bak" ]; then \
+	    mv "$(DESKTOP_DIR)/wails.json.kurlo.bak" "$(DESKTOP_DIR)/wails.json"; \
 	  fi; \
 	}; \
 	trap cleanup EXIT INT TERM; \
@@ -238,32 +238,32 @@ _exec-release-mac-local:
 	  git tag -a "v$(_NEXT)" -F "$$NOTES_FILE"; \
 	fi; \
 	printf '\033[1m[2/7]\033[0m Updating apps/desktop/wails.json productVersion\n'; \
-	cp "$(DESKTOP_DIR)/wails.json" "$(DESKTOP_DIR)/wails.json.relay.bak"; \
+	cp "$(DESKTOP_DIR)/wails.json" "$(DESKTOP_DIR)/wails.json.kurlo.bak"; \
 	node -e "const fs=require('fs');const p='$(DESKTOP_DIR)/wails.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));j.info=j.info||{};j.info.productVersion='$(_NEXT)';fs.writeFileSync(p,JSON.stringify(j,null,2)+'\n');"; \
 	printf '\033[1m[3/7]\033[0m Building macOS universal binary (appVersion=$(_NEXT))\n'; \
 	$(MAKE) -s build-macos VERSION="$(_NEXT)"; \
 	printf '\033[1m[4/7]\033[0m Packaging raw binary + installer\n'; \
-	cp "$(DESKTOP_DIR)/build/bin/Relay.app/Contents/MacOS/relay" "$$WORK_DIR/relay-darwin-universal"; \
-	(cd "$(DESKTOP_DIR)/build/bin" && ditto -c -k --keepParent Relay.app "$$WORK_DIR/relay-darwin-universal.app.zip"); \
+	cp "$(DESKTOP_DIR)/build/bin/Kurlo.app/Contents/MacOS/kurlo" "$$WORK_DIR/kurlo-darwin-universal"; \
+	(cd "$(DESKTOP_DIR)/build/bin" && ditto -c -k --keepParent Kurlo.app "$$WORK_DIR/kurlo-darwin-universal.app.zip"); \
 	if command -v create-dmg >/dev/null 2>&1; then \
 	  "$(DESKTOP_DIR)/build/darwin/make-dmg.sh" \
-	    "$(DESKTOP_DIR)/build/bin/Relay.app" \
-	    "$$WORK_DIR/relay-$(_NEXT)-darwin-universal.dmg" \
-	    "Relay $(_NEXT)"; \
+	    "$(DESKTOP_DIR)/build/bin/Kurlo.app" \
+	    "$$WORK_DIR/kurlo-$(_NEXT)-darwin-universal.dmg" \
+	    "Kurlo $(_NEXT)"; \
 	else \
 	  printf '       \033[90mcreate-dmg not installed — packaging .app as .zip instead\033[0m\n'; \
-	  (cd "$(DESKTOP_DIR)/build/bin" && ditto -c -k --sequesterRsrc --keepParent Relay.app "$$WORK_DIR/relay-$(_NEXT)-darwin-universal.zip"); \
+	  (cd "$(DESKTOP_DIR)/build/bin" && ditto -c -k --sequesterRsrc --keepParent Kurlo.app "$$WORK_DIR/kurlo-$(_NEXT)-darwin-universal.zip"); \
 	fi; \
 	printf '\033[1m[5/7]\033[0m Signing\n'; \
 	if [ -f "$(ROOT_DIR)/update-signing-key" ]; then \
 	  minisign -S -s "$(ROOT_DIR)/update-signing-key" \
-	    -t "relay v$(_NEXT) relay-darwin-universal" \
-	    -m "$$WORK_DIR/relay-darwin-universal"; \
-	  test -f "$$WORK_DIR/relay-darwin-universal.minisig"; \
+	    -t "kurlo v$(_NEXT) kurlo-darwin-universal" \
+	    -m "$$WORK_DIR/kurlo-darwin-universal"; \
+	  test -f "$$WORK_DIR/kurlo-darwin-universal.minisig"; \
 	  minisign -S -s "$(ROOT_DIR)/update-signing-key" \
-	    -t "relay v$(_NEXT) relay-darwin-universal.app.zip" \
-	    -m "$$WORK_DIR/relay-darwin-universal.app.zip"; \
-	  test -f "$$WORK_DIR/relay-darwin-universal.app.zip.minisig"; \
+	    -t "kurlo v$(_NEXT) kurlo-darwin-universal.app.zip" \
+	    -m "$$WORK_DIR/kurlo-darwin-universal.app.zip"; \
+	  test -f "$$WORK_DIR/kurlo-darwin-universal.app.zip.minisig"; \
 	  printf '       \033[32m✓\033[0m minisign signature created\n'; \
 	else \
 	  printf '       \033[90mskipped — no update-signing-key in repo root\033[0m\n'; \
@@ -362,14 +362,14 @@ tidy:
 check:
 	cd $(ROOT_DIR) && npm run lint
 	cd $(ROOT_DIR) && npm run frontend:check
-	cd $(ROOT_DIR) && npm --workspace @relay/desktop-frontend run test
+	cd $(ROOT_DIR) && npm --workspace @kurlo/desktop-frontend run test
 	cd $(ROOT_DIR) && $(GO_ENV) go test ./apps/desktop/...
 
 test:
 	cd $(ROOT_DIR) && $(GO_ENV) go test ./apps/desktop/...
 
 test-extension:
-	cd $(ROOT_DIR) && $(GO_ENV) RELAY_BROWSER_EXTENSION_TEST=1 go test ./apps/desktop/internal/api/ -run TestCookieSyncWithARealBrowserExtension -count=1 -v
+	cd $(ROOT_DIR) && $(GO_ENV) KURLO_BROWSER_EXTENSION_TEST=1 go test ./apps/desktop/internal/api/ -run TestCookieSyncWithARealBrowserExtension -count=1 -v
 
 build: build-desktop
 
@@ -425,9 +425,9 @@ bindings:
 	@printf '\n\033[32m✓\033[0m Bindings regenerated in apps/desktop/frontend/wailsjs.\n'
 
 screenshots:
-	cd $(DESKTOP_DIR)/frontend && RELAY_DOCS_SCREENSHOT_DIR=$(CURDIR)/apps/web/src/assets/screenshots npx playwright test e2e/full-app.spec.ts --project=chromium
+	cd $(DESKTOP_DIR)/frontend && KURLO_DOCS_SCREENSHOT_DIR=$(CURDIR)/apps/web/src/assets/screenshots npx playwright test e2e/full-app.spec.ts --project=chromium
 	@printf '\n\033[32m✓\033[0m Documentation screenshots retaken in apps/web/src/assets/screenshots.\n'
 
 readme-screenshot:
-	cd $(DESKTOP_DIR)/frontend && RELAY_README_SCREENSHOT=$(CURDIR)/.github/assets/screenshot.png npx playwright test e2e/full-app.spec.ts --project=chromium -g "README screenshot"
+	cd $(DESKTOP_DIR)/frontend && KURLO_README_SCREENSHOT=$(CURDIR)/.github/assets/screenshot.png npx playwright test e2e/full-app.spec.ts --project=chromium -g "README screenshot"
 	@printf '\n\033[32m✓\033[0m README screenshot retaken in .github/assets/screenshot.png.\n'

@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/relay-client/relay/apps/desktop/internal/api/state"
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/api/state"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 func decodeResponseField(t *testing.T, resp model.HttpResponse, field string) any {

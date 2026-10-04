@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://relayclient.dev
+      url: https://kurlo.dev
     steps:
       - uses: actions/checkout@v7
 
@@ -34,8 +34,8 @@ jobs:
 
       - name: Build site
         env:
-          RELAY_SITE_URL: ${{ vars.RELAY_SITE_URL }}
-          RELAY_SITE_BASE: ${{ vars.RELAY_SITE_BASE }}
+          KURLO_SITE_URL: ${{ vars.KURLO_SITE_URL }}
+          KURLO_SITE_BASE: ${{ vars.KURLO_SITE_BASE }}
         run: npm run web:build
 
       - name: Check docs
@@ -46,7 +46,7 @@ jobs:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          SITE_ROOT: /srv/relayclient.dev
+          SITE_ROOT: /srv/kurlo.dev
           KEEP_RELEASES: '5'
         run: |
           set -euo pipefail

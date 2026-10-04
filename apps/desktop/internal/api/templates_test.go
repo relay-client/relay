@@ -10,8 +10,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/relay-client/relay/apps/desktop/internal/api/state"
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/api/state"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 func TestResolveTemplateValueSupportsNestedAndPostmanStyleNames(t *testing.T) {

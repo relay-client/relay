@@ -72,14 +72,14 @@ describe('parseOpenApiResponse', () => {
 
   it('rejects junk that no parser makes sense of', () => {
     expect(() => parseOpenApiResponse('{ this is not: valid ]', 'application/json'))
-      .toThrow(/not a spec Relay can import/);
+      .toThrow(/not a spec Kurlo can import/);
     expect(() => parseOpenApiResponse('just some words', 'text/plain'))
-      .toThrow(/not a spec Relay can import/);
+      .toThrow(/not a spec Kurlo can import/);
   });
 
   it('rejects a document of the wrong shape entirely', () => {
     expect(() => parseOpenApiResponse('[1, 2, 3]', 'application/json'))
-      .toThrow(/not a spec Relay can import/);
+      .toThrow(/not a spec Kurlo can import/);
   });
 });
 

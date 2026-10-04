@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
 func frontendSource(t *testing.T, name string) string {
@@ -143,7 +143,7 @@ func TestCLIStructsCoverTheAuthModel(t *testing.T) {
 	}
 
 	if missing := missingFrom(want, declared); len(missing) > 0 {
-		t.Errorf("cliAuth cannot decode these auth fields, so `relay run` ignores them: %s\n"+
+		t.Errorf("cliAuth cannot decode these auth fields, so `kurlo run` ignores them: %s\n"+
 			"add them to cliAuth and map them in buildHTTPRequest, or add them to the skip list with a reason",
 			strings.Join(missing, ", "))
 	}
@@ -174,7 +174,7 @@ func TestCLIStructsCoverTheSettingsModel(t *testing.T) {
 	}
 
 	if missing := missingFrom(want, declared); len(missing) > 0 {
-		t.Errorf("cliSettings cannot decode these settings, so `relay run` behaves differently from the app: %s",
+		t.Errorf("cliSettings cannot decode these settings, so `kurlo run` behaves differently from the app: %s",
 			strings.Join(missing, ", "))
 	}
 }

@@ -99,7 +99,7 @@ func TestFetchUpdateManifestParsesLatestJSON(t *testing.T) {
 			"published_at": "2026-05-14T10:00:00Z",
 			"platforms": {
 				"darwin-universal": {
-					"url": "https://github.com/relay-client/relay/releases/download/v0.1.26/relay-darwin-universal",
+					"url": "https://github.com/stormhop/kurlo/releases/download/v0.1.26/kurlo-darwin-universal",
 					"sha256": "abc123"
 				}
 			}
@@ -127,7 +127,7 @@ func TestUpdateInfoFromManifestUsesPlatformKey(t *testing.T) {
 		PublishedAt: "2026-05-14T10:00:00Z",
 		Platforms: map[string]updatePlatform{
 			target: {
-				URL:    "https://github.com/relay-client/relay/releases/download/v0.1.26/relay-binary",
+				URL:    "https://github.com/stormhop/kurlo/releases/download/v0.1.26/kurlo-binary",
 				SHA256: "abc123",
 			},
 		},
@@ -139,7 +139,7 @@ func TestUpdateInfoFromManifestUsesPlatformKey(t *testing.T) {
 	if info.Version != "0.1.26" || info.DownloadURL != manifest.Platforms[target].URL || info.SHA256 != "abc123" {
 		t.Fatalf("unexpected update info: %+v", info)
 	}
-	if info.AssetName != "relay-binary" {
+	if info.AssetName != "kurlo-binary" {
 		t.Fatalf("expected asset name from URL, got %q", info.AssetName)
 	}
 }
@@ -149,7 +149,7 @@ func TestUpdateInfoFromManifestRequiresChecksum(t *testing.T) {
 	manifest := &updateManifest{
 		Version: "0.1.26",
 		Platforms: map[string]updatePlatform{
-			target: {URL: "https://github.com/relay-client/relay/releases/download/v0.1.26/relay-binary"},
+			target: {URL: "https://github.com/stormhop/kurlo/releases/download/v0.1.26/kurlo-binary"},
 		},
 	}
 	if _, err := updateInfoFromManifest(manifest); err == nil || !strings.Contains(err.Error(), "checksum") {
@@ -158,8 +158,8 @@ func TestUpdateInfoFromManifestRequiresChecksum(t *testing.T) {
 }
 
 func TestVerifySHA256(t *testing.T) {
-	data := []byte("relay update")
-	file, err := os.CreateTemp("", "relay-checksum-*")
+	data := []byte("kurlo update")
+	file, err := os.CreateTemp("", "kurlo-checksum-*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -180,12 +180,12 @@ func TestVerifySHA256(t *testing.T) {
 }
 
 func TestFriendlyUpdateErrorHidesServiceDetails(t *testing.T) {
-	err := errors.New(`Get "https://github.com/relay-client/relay/releases/latest/download/latest.json": net/http: TLS handshake timeout`)
+	err := errors.New(`Get "https://github.com/stormhop/kurlo/releases/latest/download/latest.json": net/http: TLS handshake timeout`)
 	got := friendlyUpdateError(err, "check for updates")
 	if got == "" {
 		t.Fatal("expected friendly update error")
 	}
-	if containsAny(got, []string{"github", "relay-client", "relay/releases", "latest.json"}) {
+	if containsAny(got, []string{"github", "stormhop", "kurlo/releases", "latest.json"}) {
 		t.Fatalf("expected service details to be hidden, got %q", got)
 	}
 	if !containsAny(got, []string{"timed out", "internet connection"}) {
@@ -201,7 +201,7 @@ func TestFriendlyUpdateErrorClasses(t *testing.T) {
 	}{
 		{name: "timeout", err: context.DeadlineExceeded, want: "timed out"},
 		{name: "permission", err: errors.New("permission denied"), want: "permission"},
-		{name: "asset", err: errors.New("no release asset found for relay-darwin-universal"), want: "compatible update package"},
+		{name: "asset", err: errors.New("no release asset found for kurlo-darwin-universal"), want: "compatible update package"},
 		{name: "checksum", err: errors.New("update checksum mismatch"), want: "verified"},
 		{name: "generic", err: http.ErrServerClosed, want: "try again"},
 	}
@@ -263,7 +263,7 @@ func TestVerifyUpdateSignatureAcceptsValidSignature(t *testing.T) {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	binaryPath := filepath.Join(dir, "relay-binary")
+	binaryPath := filepath.Join(dir, "kurlo-binary")
 	payload := []byte("update payload for signature test")
 	if err := os.WriteFile(binaryPath, payload, 0o644); err != nil {
 		t.Fatal(err)
@@ -273,7 +273,7 @@ func TestVerifyUpdateSignatureAcceptsValidSignature(t *testing.T) {
 		_, _ = w.Write(signature)
 	}))
 	defer server.Close()
-	if err := verifyUpdateSignature(context.Background(), binaryPath, server.URL+"/relay.minisig", string(rawPublicKey)); err != nil {
+	if err := verifyUpdateSignature(context.Background(), binaryPath, server.URL+"/kurlo.minisig", string(rawPublicKey)); err != nil {
 		t.Fatalf("expected valid signature to verify, got: %v", err)
 	}
 }
@@ -289,7 +289,7 @@ func TestVerifyUpdateSignatureRejectsTamperedBinary(t *testing.T) {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	binaryPath := filepath.Join(dir, "relay-binary")
+	binaryPath := filepath.Join(dir, "kurlo-binary")
 	original := []byte("original payload")
 	signature := minisign.Sign(privateKey, original)
 	tampered := []byte("tampered payload")
@@ -300,7 +300,7 @@ func TestVerifyUpdateSignatureRejectsTamperedBinary(t *testing.T) {
 		_, _ = w.Write(signature)
 	}))
 	defer server.Close()
-	err = verifyUpdateSignature(context.Background(), binaryPath, server.URL+"/relay.minisig", string(rawPublicKey))
+	err = verifyUpdateSignature(context.Background(), binaryPath, server.URL+"/kurlo.minisig", string(rawPublicKey))
 	if err == nil || !strings.Contains(err.Error(), "signature mismatch") {
 		t.Fatalf("expected signature mismatch error for tampered binary, got: %v", err)
 	}
@@ -321,7 +321,7 @@ func TestVerifyUpdateSignatureRejectsForeignKey(t *testing.T) {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	binaryPath := filepath.Join(dir, "relay-binary")
+	binaryPath := filepath.Join(dir, "kurlo-binary")
 	payload := []byte("payload signed by attacker key")
 	if err := os.WriteFile(binaryPath, payload, 0o644); err != nil {
 		t.Fatal(err)
@@ -331,7 +331,7 @@ func TestVerifyUpdateSignatureRejectsForeignKey(t *testing.T) {
 		_, _ = w.Write(signature)
 	}))
 	defer server.Close()
-	err = verifyUpdateSignature(context.Background(), binaryPath, server.URL+"/relay.minisig", string(rawVerifyingPub))
+	err = verifyUpdateSignature(context.Background(), binaryPath, server.URL+"/kurlo.minisig", string(rawVerifyingPub))
 	if err == nil || !strings.Contains(err.Error(), "signature mismatch") {
 		t.Fatalf("expected signature mismatch for foreign key, got: %v", err)
 	}
@@ -343,9 +343,9 @@ func TestUpdateInfoFromManifestCarriesSignatureURL(t *testing.T) {
 		Version: "0.1.26",
 		Platforms: map[string]updatePlatform{
 			target: {
-				URL:       "https://example.invalid/relay-binary",
+				URL:       "https://example.invalid/kurlo-binary",
 				SHA256:    "abc123",
-				Signature: "https://example.invalid/relay-binary.minisig",
+				Signature: "https://example.invalid/kurlo-binary.minisig",
 			},
 		},
 	}
@@ -353,7 +353,7 @@ func TestUpdateInfoFromManifestCarriesSignatureURL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("updateInfoFromManifest failed: %v", err)
 	}
-	if info.SignatureURL != "https://example.invalid/relay-binary.minisig" {
+	if info.SignatureURL != "https://example.invalid/kurlo-binary.minisig" {
 		t.Fatalf("expected signature URL to be carried through, got %q", info.SignatureURL)
 	}
 }

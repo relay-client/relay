@@ -12,10 +12,10 @@ import (
 
 func TestAppBundleFromExecutable(t *testing.T) {
 	cases := map[string]string{
-		"/Applications/Relay.app/Contents/MacOS/relay":        "/Applications/Relay.app",
-		"/Users/ada/Apps/Relay Beta.app/Contents/MacOS/relay": "/Users/ada/Apps/Relay Beta.app",
-		"/usr/local/bin/relay":                                "",
-		`C:\Program Files\Relay\relay.exe`:                    "",
+		"/Applications/Kurlo.app/Contents/MacOS/kurlo":        "/Applications/Kurlo.app",
+		"/Users/ada/Apps/Kurlo Beta.app/Contents/MacOS/kurlo": "/Users/ada/Apps/Kurlo Beta.app",
+		"/usr/local/bin/kurlo":                                "",
+		`C:\Program Files\Kurlo\kurlo.exe`:                    "",
 	}
 	for exe, want := range cases {
 		if got := appBundleFromExecutable(exe); got != want {
@@ -25,7 +25,7 @@ func TestAppBundleFromExecutable(t *testing.T) {
 }
 
 func TestUpdatePlatformKeysPreferTheBundleInsideAMacApp(t *testing.T) {
-	if got := updatePlatformKeys("darwin", "/Applications/Relay.app", "darwin-universal"); strings.Join(got, ",") != "darwin-universal-app,darwin-universal" {
+	if got := updatePlatformKeys("darwin", "/Applications/Kurlo.app", "darwin-universal"); strings.Join(got, ",") != "darwin-universal-app,darwin-universal" {
 		t.Fatalf("a Mac app should ask for the whole bundle first, got %v", got)
 	}
 	if got := updatePlatformKeys("darwin", "", "darwin-universal"); strings.Join(got, ",") != "darwin-universal" {
@@ -40,8 +40,8 @@ func TestUpdateInfoFromManifestPrefersTheBundleArchive(t *testing.T) {
 	manifest := &updateManifest{
 		Version: "v2.1.0",
 		Platforms: map[string]updatePlatform{
-			"darwin-universal":     {URL: "https://github.com/relay-client/relay/releases/download/v2.1.0/relay-darwin-universal", SHA256: "aa", Signature: "https://github.com/relay-client/relay/releases/download/v2.1.0/relay-darwin-universal.minisig"},
-			"darwin-universal-app": {URL: "https://github.com/relay-client/relay/releases/download/v2.1.0/relay-darwin-universal.app.zip", SHA256: "bb", Signature: "https://github.com/relay-client/relay/releases/download/v2.1.0/relay-darwin-universal.app.zip.minisig"},
+			"darwin-universal":     {URL: "https://github.com/stormhop/kurlo/releases/download/v2.1.0/kurlo-darwin-universal", SHA256: "aa", Signature: "https://github.com/stormhop/kurlo/releases/download/v2.1.0/kurlo-darwin-universal.minisig"},
+			"darwin-universal-app": {URL: "https://github.com/stormhop/kurlo/releases/download/v2.1.0/kurlo-darwin-universal.app.zip", SHA256: "bb", Signature: "https://github.com/stormhop/kurlo/releases/download/v2.1.0/kurlo-darwin-universal.app.zip.minisig"},
 		},
 	}
 	info, err := updateInfoFromManifestFor(manifest, []string{"darwin-universal-app", "darwin-universal"})
@@ -63,8 +63,8 @@ func TestUpdateInfoFromManifestPrefersTheBundleArchive(t *testing.T) {
 }
 
 func TestBundleArchiveURLsPointAtTheVersionsRelease(t *testing.T) {
-	archive, signature := bundleArchiveURLs("relay-client/relay", "v2.0.1")
-	if archive != "https://github.com/relay-client/relay/releases/download/v2.0.1/relay-darwin-universal.app.zip" {
+	archive, signature := bundleArchiveURLs("stormhop/kurlo", "v2.0.1")
+	if archive != "https://github.com/stormhop/kurlo/releases/download/v2.0.1/kurlo-darwin-universal.app.zip" {
 		t.Fatalf("unexpected archive URL %q", archive)
 	}
 	if signature != archive+".minisig" {
@@ -94,13 +94,13 @@ func writeFakeBundle(t *testing.T, bundle, version, marker string) {
 	plist := `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
-<key>CFBundleExecutable</key><string>relay</string>
+<key>CFBundleExecutable</key><string>kurlo</string>
 <key>CFBundleShortVersionString</key><string>` + version + `</string>
 </dict></plist>
 `
 	files := map[string]string{
 		"Contents/Info.plist":              plist,
-		"Contents/MacOS/relay":             "binary " + marker,
+		"Contents/MacOS/kurlo":             "binary " + marker,
 		"Contents/Resources/iconfile.icns": "icon " + marker,
 	}
 	for name, body := range files {
@@ -112,7 +112,7 @@ func writeFakeBundle(t *testing.T, bundle, version, marker string) {
 
 func zipBundle(t *testing.T, bundle string) string {
 	t.Helper()
-	archive := filepath.Join(t.TempDir(), "relay-darwin-universal.app.zip")
+	archive := filepath.Join(t.TempDir(), "kurlo-darwin-universal.app.zip")
 	if out, err := exec.Command("ditto", "-c", "-k", "--keepParent", bundle, archive).CombinedOutput(); err != nil {
 		t.Fatalf("zip bundle: %v: %s", err, out)
 	}
@@ -135,7 +135,7 @@ func assertNoStagingLeft(t *testing.T, bundle string) {
 		t.Fatal(err)
 	}
 	for _, entry := range entries {
-		if strings.HasPrefix(entry.Name(), ".relay-update-") {
+		if strings.HasPrefix(entry.Name(), ".kurlo-update-") {
 			t.Fatalf("staging directory %s was left inside the bundle", entry.Name())
 		}
 	}
@@ -143,9 +143,9 @@ func assertNoStagingLeft(t *testing.T, bundle string) {
 
 func TestApplyBundleUpdateReplacesTheWholeBundle(t *testing.T) {
 	requireBundleTools(t)
-	installed := filepath.Join(t.TempDir(), "Relay.app")
+	installed := filepath.Join(t.TempDir(), "Kurlo.app")
 	writeFakeBundle(t, installed, "1.8.1", "old")
-	release := filepath.Join(t.TempDir(), "Relay.app")
+	release := filepath.Join(t.TempDir(), "Kurlo.app")
 	writeFakeBundle(t, release, "2.0.1", "new")
 
 	if err := applyBundleUpdate(zipBundle(t, release), installed, "v2.0.1"); err != nil {
@@ -155,14 +155,14 @@ func TestApplyBundleUpdateReplacesTheWholeBundle(t *testing.T) {
 	if got := readFile(t, filepath.Join(installed, "Contents/Resources/iconfile.icns")); got != "icon new" {
 		t.Fatalf("the icon was not replaced: %q", got)
 	}
-	if got := readFile(t, filepath.Join(installed, "Contents/MacOS/relay")); got != "binary new" {
+	if got := readFile(t, filepath.Join(installed, "Contents/MacOS/kurlo")); got != "binary new" {
 		t.Fatalf("the binary was not replaced: %q", got)
 	}
 	version, err := plistShortVersion(filepath.Join(installed, "Contents/Info.plist"))
 	if err != nil || version != "2.0.1" {
 		t.Fatalf("Info.plist was not replaced: %q %v", version, err)
 	}
-	info, err := os.Stat(filepath.Join(installed, "Contents/MacOS/relay"))
+	info, err := os.Stat(filepath.Join(installed, "Contents/MacOS/kurlo"))
 	if err != nil || info.Mode().Perm()&0o100 == 0 {
 		t.Fatalf("the binary lost its executable bit: %v %v", info, err)
 	}
@@ -171,9 +171,9 @@ func TestApplyBundleUpdateReplacesTheWholeBundle(t *testing.T) {
 
 func TestApplyBundleUpdateRefusesAnotherVersion(t *testing.T) {
 	requireBundleTools(t)
-	installed := filepath.Join(t.TempDir(), "Relay.app")
+	installed := filepath.Join(t.TempDir(), "Kurlo.app")
 	writeFakeBundle(t, installed, "1.8.1", "old")
-	release := filepath.Join(t.TempDir(), "Relay.app")
+	release := filepath.Join(t.TempDir(), "Kurlo.app")
 	writeFakeBundle(t, release, "2.0.0", "new")
 
 	err := applyBundleUpdate(zipBundle(t, release), installed, "2.0.1")
@@ -188,7 +188,7 @@ func TestApplyBundleUpdateRefusesAnotherVersion(t *testing.T) {
 
 func TestApplyBundleUpdateRefusesAnArchiveWithoutAnApp(t *testing.T) {
 	requireBundleTools(t)
-	installed := filepath.Join(t.TempDir(), "Relay.app")
+	installed := filepath.Join(t.TempDir(), "Kurlo.app")
 	writeFakeBundle(t, installed, "1.8.1", "old")
 	notAnApp := filepath.Join(t.TempDir(), "payload")
 	if err := os.MkdirAll(notAnApp, 0o755); err != nil {
@@ -202,20 +202,20 @@ func TestApplyBundleUpdateRefusesAnArchiveWithoutAnApp(t *testing.T) {
 	if !errors.Is(err, errUpdateBundleInvalid) {
 		t.Fatalf("expected an invalid bundle, got %v", err)
 	}
-	if got := readFile(t, filepath.Join(installed, "Contents/MacOS/relay")); got != "binary old" {
+	if got := readFile(t, filepath.Join(installed, "Contents/MacOS/kurlo")); got != "binary old" {
 		t.Fatalf("a refused update must leave the bundle alone, got %q", got)
 	}
 }
 
 func TestSwapBundleContentsRestoresTheOldContentsOnFailure(t *testing.T) {
-	bundle := filepath.Join(t.TempDir(), "Relay.app")
+	bundle := filepath.Join(t.TempDir(), "Kurlo.app")
 	if err := os.MkdirAll(filepath.Join(bundle, "Contents"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(bundle, "Contents", "marker"), []byte("old"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	stage := filepath.Join(bundle, ".relay-update-test")
+	stage := filepath.Join(bundle, ".kurlo-update-test")
 	if err := os.MkdirAll(stage, 0o755); err != nil {
 		t.Fatal(err)
 	}

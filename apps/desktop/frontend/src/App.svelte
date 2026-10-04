@@ -2,7 +2,7 @@
   import { onMount, untrack } from 'svelte';
   import { getAppInfo, checkForUpdate, applyUpdate, restartApp, clipboardSet } from './lib/backend';
   import type { MockRequestLog, OAuth2DevicePrompt, UpdateInfo } from './lib/backend';
-  import { hasReleaseNotes } from 'virtual:relay-changelog-meta';
+  import { hasReleaseNotes } from 'virtual:kurlo-changelog-meta';
   import { isReleaseVersion, latestReleaseNotes, releaseNotesFor, shouldShowWhatsNew, type ChangelogSection } from './lib/whatsNew';
   import WhatsNewModal from './lib/components/WhatsNewModal.svelte';
   import UpdateBanner from './lib/components/UpdateBanner.svelte';
@@ -31,14 +31,14 @@
   import { shouldVirtualizeResponseBody, type ResponseRenderMode } from './lib/response-render';
   import { tallyCollectionRun } from './lib/collectionRuns';
 
-  const AUTO_UPDATE_INSTALL_KEY = 'relay:auto-update-install';
-  const UPDATE_READY_KEY = 'relay:update-ready';
-  const LAST_SEEN_VERSION_KEY = 'relay:last-seen-version';
+  const AUTO_UPDATE_INSTALL_KEY = 'kurlo:auto-update-install';
+  const UPDATE_READY_KEY = 'kurlo:update-ready';
+  const LAST_SEEN_VERSION_KEY = 'kurlo:last-seen-version';
 
   let whatsNewSection = $state<ChangelogSection | null>(null);
 
   async function loadChangelog(): Promise<string> {
-    return (await import('virtual:relay-changelog')).default;
+    return (await import('virtual:kurlo-changelog')).default;
   }
 
   async function checkWhatsNew(version: string) {
@@ -244,7 +244,7 @@
 
   onMount(() => {
     const uninstallTitlebarDoubleClick = installTitlebarDoubleClickHandler();
-    const offBeforeQuit = window.runtime?.EventsOn?.('relay:before-quit', () => {
+    const offBeforeQuit = window.runtime?.EventsOn?.('kurlo:before-quit', () => {
       void vm.reviewDraftsBeforeQuit();
     });
     const offDevicePrompt = window.runtime?.EventsOn?.<OAuth2DevicePrompt>('oauth2:device-prompt', prompt => {
@@ -253,7 +253,7 @@
     const offMockRequest = window.runtime?.EventsOn?.<MockRequestLog>('mock:request', entry => {
       vm.recordMockRequest(entry);
     });
-    const offZoom = window.runtime?.EventsOn?.<string>('relay:zoom', action => {
+    const offZoom = window.runtime?.EventsOn?.<string>('kurlo:zoom', action => {
       if (action === 'in') vm.zoomIn();
       else if (action === 'out') vm.zoomOut();
       else if (action === 'reset') vm.resetZoom();

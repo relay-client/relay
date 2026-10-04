@@ -12,9 +12,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/relay-client/relay/apps/desktop/internal/api/auth"
-	"github.com/relay-client/relay/apps/desktop/internal/api/state"
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/api/auth"
+	"github.com/stormhop/kurlo/apps/desktop/internal/api/state"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -121,13 +121,13 @@ func (a *App) BeforeClose(ctx context.Context) bool {
 	}
 	a.quitPending = true
 	a.quitMu.Unlock()
-	runtime.EventsEmit(ctx, "relay:before-quit")
+	runtime.EventsEmit(ctx, "kurlo:before-quit")
 	return true
 }
 
 func (a *App) AppInfo() model.AppInfo {
 	return model.AppInfo{
-		Name:      "Relay",
+		Name:      "Kurlo",
 		Version:   appVersion,
 		Runtime:   goruntime.GOOS + "/" + goruntime.GOARCH,
 		GoVersion: goruntime.Version(),
@@ -147,7 +147,7 @@ func (a *App) MenuZoom(action string) {
 	}
 	switch action {
 	case "in", "out", "reset":
-		runtime.EventsEmit(a.ctx, "relay:zoom", action)
+		runtime.EventsEmit(a.ctx, "kurlo:zoom", action)
 	}
 }
 
@@ -155,7 +155,7 @@ func (a *App) emitWorkspaceChanged(reason string) {
 	if a.ctx == nil {
 		return
 	}
-	runtime.EventsEmit(a.ctx, "relay:workspace-changed", reason)
+	runtime.EventsEmit(a.ctx, "kurlo:workspace-changed", reason)
 }
 
 func (a *App) Hide() {
@@ -258,7 +258,7 @@ func (a *App) SaveFileDialog(defaultName string, content string) string {
 func (a *App) LoadRequestStore() string {
 	gitOperationMu.RLock()
 	defer gitOperationMu.RUnlock()
-	payload, _, err := loadRelayStorePayloadWithDiagnostics(requestStorePath(), fileWorkspaceStorePath())
+	payload, _, err := loadKurloStorePayloadWithDiagnostics(requestStorePath(), fileWorkspaceStorePath())
 	if err != nil {
 		return ""
 	}
@@ -268,7 +268,7 @@ func (a *App) LoadRequestStore() string {
 func (a *App) LoadWorkspaceDiagnostics() []WorkspaceDiagnostic {
 	gitOperationMu.RLock()
 	defer gitOperationMu.RUnlock()
-	_, diagnostics, _ := loadRelayStorePayloadWithDiagnostics(requestStorePath(), fileWorkspaceStorePath())
+	_, diagnostics, _ := loadKurloStorePayloadWithDiagnostics(requestStorePath(), fileWorkspaceStorePath())
 	if diagnostics == nil {
 		return []WorkspaceDiagnostic{}
 	}
@@ -299,21 +299,21 @@ func (a *App) saveRequestStorePayload(payload string) error {
 			if _, backupErr := backupRequestStoreForRecovery(requestStorePath()); backupErr != nil {
 				return fmt.Errorf("request store could not be decrypted and backup failed: %w", backupErr)
 			}
-			return saveRelayStorePayloadPreserving(requestStorePath(), root, payload, nil)
+			return saveKurloStorePayloadPreserving(requestStorePath(), root, payload, nil)
 		}
-		_, diagnostics, err := loadRelayStorePayloadWithDiagnostics(requestStorePath(), root)
+		_, diagnostics, err := loadKurloStorePayloadWithDiagnostics(requestStorePath(), root)
 		if err != nil {
 			if isRequestStoreAuthenticationError(err) {
 				if _, backupErr := backupRequestStoreForRecovery(requestStorePath()); backupErr != nil {
 					return fmt.Errorf("request store could not be decrypted and backup failed: %w", backupErr)
 				}
-				return saveRelayStorePayloadPreserving(requestStorePath(), root, payload, nil)
+				return saveKurloStorePayloadPreserving(requestStorePath(), root, payload, nil)
 			}
 			return err
 		}
-		return saveRelayStorePayloadPreserving(requestStorePath(), root, payload, diagnosticPreserveDirs(root, diagnostics))
+		return saveKurloStorePayloadPreserving(requestStorePath(), root, payload, diagnosticPreserveDirs(root, diagnostics))
 	}
-	return saveRelayStorePayload(requestStorePath(), root, payload)
+	return saveKurloStorePayload(requestStorePath(), root, payload)
 }
 
 func (a *App) GetVariables() map[string]string         { return a.state.GetVariables() }
@@ -461,7 +461,7 @@ type DownloadResult struct {
 
 func newResponseDownloadSink(path string, onCommit func()) (*responseBodySink, error) {
 	dir := filepath.Dir(path)
-	tmp, err := os.CreateTemp(dir, ".relay-download-*.tmp")
+	tmp, err := os.CreateTemp(dir, ".kurlo-download-*.tmp")
 	if err != nil {
 		return nil, err
 	}
@@ -520,7 +520,7 @@ func (a *App) SendRequestToFile(req model.HttpRequest, defaultName string) Downl
 		if a.ctx == nil {
 			return nil
 		}
-		tmp, err := os.CreateTemp("", "relay-download-*")
+		tmp, err := os.CreateTemp("", "kurlo-download-*")
 		if err != nil {
 			stageErr = err
 			return nil

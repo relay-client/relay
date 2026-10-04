@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 
-export const UI_SCALE_STORAGE_KEY = 'relay.uiScale.v1';
+export const UI_SCALE_STORAGE_KEY = 'kurlo.uiScale.v1';
 export const UI_SCALE_STEPS = [0.8, 0.9, 1, 1.1, 1.25, 1.5] as const;
 export const DEFAULT_UI_SCALE = 1;
 export const ROOT_FONT_PX = 16;

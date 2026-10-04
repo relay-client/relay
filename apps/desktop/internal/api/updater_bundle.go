@@ -15,13 +15,13 @@ import (
 
 const (
 	bundleManifestKey   = "darwin-universal-app"
-	bundleArchiveName   = "relay-darwin-universal.app.zip"
+	bundleArchiveName   = "kurlo-darwin-universal.app.zip"
 	bundleRepairTimeout = 5 * time.Minute
 	lsregisterPath      = "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
 )
 
 var (
-	errUpdateBundleInvalid  = errors.New("update bundle is not a Relay application")
+	errUpdateBundleInvalid  = errors.New("update bundle is not a Kurlo application")
 	errUpdateBundleMismatch = errors.New("update bundle carries a different version")
 )
 
@@ -59,7 +59,7 @@ func updatePlatformKeys(goos, bundlePath, platform string) []string {
 }
 
 func applyBundleUpdate(archivePath, bundlePath, expectedVersion string) error {
-	stage, err := os.MkdirTemp(bundlePath, ".relay-update-")
+	stage, err := os.MkdirTemp(bundlePath, ".kurlo-update-")
 	if err != nil {
 		return err
 	}
@@ -186,7 +186,7 @@ func repairStaleBundle(ctx context.Context) error {
 	if err := applyBundleUpdate(archive, bundle, current); err != nil {
 		return err
 	}
-	log.Printf("relay: refreshed the app bundle from %s to %s", installed, current)
+	log.Printf("kurlo: refreshed the app bundle from %s to %s", installed, current)
 	return nil
 }
 
@@ -198,7 +198,7 @@ func repairStaleBundleInBackground(ctx context.Context) {
 		repairCtx, cancel := context.WithTimeout(updateBaseContext(ctx), bundleRepairTimeout)
 		defer cancel()
 		if err := repairStaleBundle(repairCtx); err != nil {
-			log.Printf("relay: could not refresh the app bundle: %v", err)
+			log.Printf("kurlo: could not refresh the app bundle: %v", err)
 		}
 	}()
 }

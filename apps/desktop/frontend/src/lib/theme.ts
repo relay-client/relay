@@ -40,8 +40,8 @@ export type ThemeVariant = {
   };
 };
 
-export const THEME_KEY = 'relay.theme.v2';
-const LEGACY_THEME_KEY = 'relay.theme.v1';
+export const THEME_KEY = 'kurlo.theme.v2';
+const LEGACY_THEME_KEY = 'kurlo.theme.v1';
 
 export const DEFAULT_THEME_SETTINGS: AppTheme = {
   mode: 'system',

@@ -14,10 +14,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/relay-client/relay/apps/desktop/internal/model"
+	"github.com/stormhop/kurlo/apps/desktop/internal/model"
 )
 
-const cookieSyncBrowserTestEnv = "RELAY_BROWSER_EXTENSION_TEST"
+const cookieSyncBrowserTestEnv = "KURLO_BROWSER_EXTENSION_TEST"
 
 func repoRoot(t *testing.T) string {
 	t.Helper()
@@ -47,7 +47,7 @@ func TestCookieSyncWithARealBrowserExtension(t *testing.T) {
 	}
 
 	root := repoRoot(t)
-	harness := startTestCookieSync(t, "relay.test")
+	harness := startTestCookieSync(t, "kurlo.test")
 
 	approvals := make(chan string, 4)
 	stopApprover := make(chan struct{})
@@ -83,9 +83,9 @@ func TestCookieSyncWithARealBrowserExtension(t *testing.T) {
 	cmd := exec.CommandContext(ctx, "node", "e2e/cookie-sync-extension.mjs")
 	cmd.Dir = filepath.Join(root, "apps", "desktop", "frontend")
 	cmd.Env = append(os.Environ(),
-		"RELAY_BRIDGE_PORT="+strconv.Itoa(harness.port),
-		"RELAY_EXTENSION_DIR="+filepath.Join(root, "apps", "extension"),
-		"RELAY_COOKIE_DOMAIN=relay.test",
+		"KURLO_BRIDGE_PORT="+strconv.Itoa(harness.port),
+		"KURLO_EXTENSION_DIR="+filepath.Join(root, "apps", "extension"),
+		"KURLO_COOKIE_DOMAIN=kurlo.test",
 	)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {

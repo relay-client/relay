@@ -4,7 +4,7 @@ import (
 	"embed"
 	"testing"
 
-	"github.com/relay-client/relay/apps/desktop/internal/api"
+	"github.com/stormhop/kurlo/apps/desktop/internal/api"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	winopts "github.com/wailsapp/wails/v2/pkg/options/windows"
 )
@@ -16,8 +16,8 @@ func TestBuildAppOptionsEnablesSingleInstanceLock(t *testing.T) {
 	if opts.SingleInstanceLock == nil {
 		t.Fatalf("expected single instance lock to be configured")
 	}
-	if got := opts.SingleInstanceLock.UniqueId; got != relaySingleInstanceID {
-		t.Fatalf("expected single instance id %q, got %q", relaySingleInstanceID, got)
+	if got := opts.SingleInstanceLock.UniqueId; got != kurloSingleInstanceID {
+		t.Fatalf("expected single instance id %q, got %q", kurloSingleInstanceID, got)
 	}
 	if opts.SingleInstanceLock.OnSecondInstanceLaunch == nil {
 		t.Fatalf("expected second instance launch callback to be configured")
