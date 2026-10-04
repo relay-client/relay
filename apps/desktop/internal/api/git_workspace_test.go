@@ -205,6 +205,76 @@ func TestUseLocalWorkspaceStoreSuppressesGitRepoInDefaultStorage(t *testing.T) {
 	}
 }
 
+func TestDefaultWorkspaceRootFollowsMovedAppData(t *testing.T) {
+	firstConfigDir := t.TempDir()
+	useTempConfigDir(t, firstConfigDir)
+	writeKurloWorkspaceFiles(t, defaultFileWorkspaceStorePath())
+	app := NewApp()
+	if result := app.UseLocalWorkspaceStore(); !result.Ok {
+		t.Fatalf("use local failed: %s", result.Error)
+	}
+	store, _, err := loadLocalRequestStore(requestStorePath())
+	if err != nil {
+		t.Fatalf("load store: %v", err)
+	}
+	if stored := stringValue(localStoreStorage(store), "root"); stored != "" {
+		t.Fatalf("default workspace root should not be stored as an absolute path, got %q", stored)
+	}
+
+	oldAppDir := requestStoreDir()
+	secondConfigDir := t.TempDir()
+	useTempConfigDir(t, secondConfigDir)
+	newAppDir := requestStoreDir()
+	if err := os.MkdirAll(filepath.Dir(newAppDir), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(oldAppDir, newAppDir); err != nil {
+		t.Fatal(err)
+	}
+
+	root := fileWorkspaceStorePath()
+	if root != defaultFileWorkspaceStorePath() || !strings.HasPrefix(root, secondConfigDir) {
+		t.Fatalf("workspace root should follow the moved app data, got %q", root)
+	}
+	if workspaceRootMissing(root) {
+		t.Fatalf("moved default workspace root reported missing: %q", root)
+	}
+}
+
+func TestFreshInstallDoesNotReportDefaultWorkspaceMissing(t *testing.T) {
+	useTempConfigDir(t, t.TempDir())
+	if _, err := os.Stat(defaultFileWorkspaceStorePath()); !os.IsNotExist(err) {
+		t.Fatalf("expected no default workspace folder before first save, got %v", err)
+	}
+	status := NewApp().GitStatus()
+	if status.MissingRoot {
+		t.Fatalf("a not yet created default workspace folder must not be reported missing: %#v", status)
+	}
+	if status.GitMissing {
+		t.Fatalf("a not yet created default workspace folder must not look like missing Git: %#v", status)
+	}
+	if status.Error != "" {
+		t.Fatalf("fresh install status should carry no error, got %q", status.Error)
+	}
+}
+
+func TestCustomWorkspaceRootIsStoredAsAbsolutePath(t *testing.T) {
+	useTempConfigDir(t, t.TempDir())
+	custom := filepath.Join(t.TempDir(), "team-workspace")
+	writeKurloWorkspaceFiles(t, custom)
+	app := NewApp()
+	if result := app.OpenWorkspaceRoot(custom); !result.Ok {
+		t.Fatalf("open custom root failed: %s", result.Error)
+	}
+	store, _, err := loadLocalRequestStore(requestStorePath())
+	if err != nil {
+		t.Fatalf("load store: %v", err)
+	}
+	if stored := stringValue(localStoreStorage(store), "root"); !sameWorkspaceRoot(stored, custom) {
+		t.Fatalf("custom workspace root should be stored as given, got %q", stored)
+	}
+}
+
 func TestCreateLocalWorkspaceRootCreatesFolderWorkspace(t *testing.T) {
 	configDir := t.TempDir()
 	useTempConfigDir(t, configDir)

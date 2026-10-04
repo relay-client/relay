@@ -888,7 +888,7 @@ func (a *App) SaveWorkspaceSecrets(values map[string]string) WorkspaceOpenResult
 	storage := cloneMap(localStoreStorage(store))
 	storage["kind"] = workspaceStoreKind
 	storage["format"] = workspaceStoreFormat
-	storage["root"] = root
+	storage["root"] = persistedWorkspaceRoot(root)
 	storage["mode"] = fileWorkspaceStorageMode()
 	store["storage"] = storage
 	if err := saveLocalKurloStore(requestStorePath(), store); err != nil {
@@ -987,12 +987,12 @@ func persistActiveWorkspaceRootMode(root, mode string) error {
 		store = map[string]any{}
 	}
 	storage := cloneMap(localStoreStorage(store))
-	if stringFromAny(storage["root"]) != root {
+	if !sameWorkspaceRoot(resolvedStoredWorkspaceRoot(stringFromAny(storage["root"])), root) {
 		delete(storage, "sharedHash")
 	}
 	storage["kind"] = workspaceStoreKind
 	storage["format"] = workspaceStoreFormat
-	storage["root"] = root
+	storage["root"] = persistedWorkspaceRoot(root)
 	if mode != workspaceStorageModeGit && mode != workspaceStorageModeLocal {
 		mode = inferWorkspaceStorageMode(root)
 	}
@@ -1014,7 +1014,7 @@ func localWorkspaceGitStatus(root string) GitWorkspaceStatus {
 		Files:         []GitFileStatus{},
 		Stashes:       []GitStashEntry{},
 	}
-	if workspaceRootMissing(root) {
+	if workspaceRootUnavailable(root) {
 		status.MissingRoot = true
 		status.Error = missingWorkspaceRootMessage()
 	}
@@ -1024,6 +1024,9 @@ func localWorkspaceGitStatus(root string) GitWorkspaceStatus {
 func gitStatusForWorkspace(workspaceRoot string) GitWorkspaceStatus {
 	status := GitWorkspaceStatus{WorkspaceRoot: workspaceRoot, Clean: true, Files: []GitFileStatus{}, Stashes: []GitStashEntry{}}
 	if workspaceRootMissing(workspaceRoot) {
+		if isDefaultWorkspaceRoot(workspaceRoot) {
+			return status
+		}
 		status.MissingRoot = true
 		status.Error = missingWorkspaceRootMessage()
 		return status
@@ -3468,6 +3471,10 @@ func workspaceRootMissing(path string) bool {
 	}
 	_, err := os.Stat(path)
 	return errors.Is(err, os.ErrNotExist)
+}
+
+func workspaceRootUnavailable(path string) bool {
+	return workspaceRootMissing(path) && !isDefaultWorkspaceRoot(path)
 }
 
 func missingWorkspaceRootMessage() string {

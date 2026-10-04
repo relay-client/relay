@@ -198,7 +198,7 @@ func loadKurloStorePayloadWithDiagnostics(localStorePath, workspaceRoot string) 
 		localStore = nil
 	}
 
-	if workspaceRootMissing(workspaceRoot) && !isDefaultWorkspaceRoot(workspaceRoot) {
+	if workspaceRootUnavailable(workspaceRoot) {
 		return "", nil, fmt.Errorf("%s", missingWorkspaceRootMessage())
 	}
 	if !hasYAMLWorkspaceStore(workspaceRoot) {
@@ -265,7 +265,7 @@ func saveKurloStorePayloadPreserving(localStorePath, workspaceRoot, payload stri
 	existingSharedHash := ""
 	existingStorageMode := inferWorkspaceStorageMode(workspaceRoot)
 	if existingStore, _, err := loadLocalRequestStore(localStorePath); err == nil {
-		if workspaceRootMissing(workspaceRoot) && !isDefaultWorkspaceRoot(workspaceRoot) && sameWorkspaceRoot(stringValue(localStoreStorage(existingStore), "root"), workspaceRoot) {
+		if workspaceRootUnavailable(workspaceRoot) && sameWorkspaceRoot(resolvedStoredWorkspaceRoot(stringValue(localStoreStorage(existingStore), "root")), workspaceRoot) {
 			return fmt.Errorf("%s", missingWorkspaceRootMessage())
 		}
 		for key, value := range stringMap(existingStore["secrets"]) {
@@ -317,7 +317,7 @@ func buildLocalKurloStore(store map[string]any, workspaceRoot string, secrets ma
 	storage := map[string]any{
 		"kind":       workspaceStoreKind,
 		"format":     workspaceStoreFormat,
-		"root":       workspaceRoot,
+		"root":       persistedWorkspaceRoot(workspaceRoot),
 		"mode":       storageMode,
 		"sharedHash": sharedHash,
 	}

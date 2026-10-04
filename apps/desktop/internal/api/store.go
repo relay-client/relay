@@ -37,11 +37,21 @@ func configuredFileWorkspaceStorePath() string {
 	if err != nil {
 		return ""
 	}
-	root := stringValue(localStoreStorage(store), "root")
-	if root == "" {
+	return stringValue(localStoreStorage(store), "root")
+}
+
+func persistedWorkspaceRoot(root string) string {
+	if isDefaultWorkspaceRoot(root) {
 		return ""
 	}
 	return root
+}
+
+func resolvedStoredWorkspaceRoot(stored string) string {
+	if stored == "" {
+		return defaultFileWorkspaceStorePath()
+	}
+	return stored
 }
 
 func inferWorkspaceStorageMode(root string) string {
