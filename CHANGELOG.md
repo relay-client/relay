@@ -11,6 +11,10 @@ All notable changes to Kurlo are documented here. This project follows
 
 - **kurlo.dev has a new landing page built around what people ask before switching.** It shows how to bring a Postman, Insomnia or Bruno collection across in three steps, which features other clients keep behind a paid plan, a side-by-side table of Kurlo, Postman, Insomnia and Bruno on price, accounts, storage, scripts, mocks and browser checks, and a short FAQ. The table records the date it was checked against each vendor's public pricing. `kurlo.dev/pricing` answers with a 404, because there is nothing to buy: a page in a browser, plain text for `curl`.
 
+### Fixed
+
+- **The Linux AppImage would not start on Ubuntu 24.04 or later.** It was linked against WebKitGTK 4.0, which Ubuntu stopped shipping after 22.04, so launching it on 24.04, 25.10 or 26.04 stopped at `libwebkit2gtk-4.0.so.37: cannot open shared object file`. Linux builds now use WebKitGTK 4.1, available on Ubuntu 22.04 and later, Debian 12 and later and Fedora 37 and later. Ubuntu 20.04 and Debian 11 are no longer supported. The installation guide lists the packages to install.
+
 ## [2.2.2] - 2026-10-04
 
 ### Fixed

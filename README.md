@@ -128,7 +128,7 @@ pm.test("has an id", () => pm.response.to.have.jsonSchema({ type: "object", requ
 - [Wails v2](https://wails.io/docs/gettingstarted/installation) — `go install github.com/wailsapp/wails/v2/cmd/wails@latest`
 - macOS: Xcode Command Line Tools
 - Windows: NSIS (for installer builds) and Windows SDK (for MSIX packaging/signing tools)
-- Linux: `libgtk-3-dev`, `libwebkit2gtk-4.0-dev`
+- Linux: `libgtk-3-dev`, `libwebkit2gtk-4.1-dev`
 
 **Dev mode** (hot-reload frontend + Go backend):
 ```bash

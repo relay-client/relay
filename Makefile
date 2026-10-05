@@ -23,6 +23,8 @@ WIN_EXE   := $(DESKTOP_DIR)/build/bin/kurlo-$(WIN_ARCH)-installer.exe
 WIN_MSIX  := $(DESKTOP_DIR)/build/bin/kurlo-$(VERSION)-windows-$(WIN_ARCH).msix
 
 HOST_OS := $(shell uname -s 2>/dev/null || echo Windows_NT)
+LINUX_WAILS_TAGS := -tags webkit2_41
+HOST_WAILS_TAGS := $(if $(filter Linux,$(HOST_OS)),$(LINUX_WAILS_TAGS),)
 POWERSHELL := $(shell command -v pwsh 2>/dev/null || command -v powershell.exe 2>/dev/null || command -v powershell 2>/dev/null || printf '%s' 'pwsh')
 
 MSIX_IDENTITY_NAME ?= dev.kurlo.app
@@ -342,10 +344,10 @@ release-mac-publish:
 	printf '  https://github.com/$(UPDATE_REPO)/releases/tag/%s\n' "$$TAG"
 
 dev:
-	cd $(DESKTOP_DIR) && $(DEV_ENV) $(WAILS_CMD) dev
+	cd $(DESKTOP_DIR) && $(DEV_ENV) $(WAILS_CMD) dev $(HOST_WAILS_TAGS)
 
 dev-go:
-	cd $(DESKTOP_DIR) && $(DEV_ENV) go run github.com/wailsapp/wails/v2/cmd/wails@$(WAILS_VERSION) dev
+	cd $(DESKTOP_DIR) && $(DEV_ENV) go run github.com/wailsapp/wails/v2/cmd/wails@$(WAILS_VERSION) dev $(HOST_WAILS_TAGS)
 
 dev-run: dev
 
@@ -374,7 +376,7 @@ test-extension:
 build: build-desktop
 
 build-desktop:
-	cd $(DESKTOP_DIR) && $(GO_ENV) $(WAILS_CMD) build -ldflags "$(LDFLAGS)"
+	cd $(DESKTOP_DIR) && $(GO_ENV) $(WAILS_CMD) build $(HOST_WAILS_TAGS) -ldflags "$(LDFLAGS)"
 
 build-macos:
 	cd $(DESKTOP_DIR) && $(GO_ENV) $(WAILS_CMD) build -platform darwin/universal -ldflags "$(LDFLAGS)"
@@ -396,7 +398,7 @@ build-windows-msix:
 		-TimestampUrl "$(MSIX_TIMESTAMP_URL)"
 
 build-linux:
-	cd $(DESKTOP_DIR) && $(GO_ENV) $(WAILS_CMD) build -platform linux/amd64 -ldflags "$(LDFLAGS)"
+	cd $(DESKTOP_DIR) && $(GO_ENV) $(WAILS_CMD) build -platform linux/amd64 $(LINUX_WAILS_TAGS) -ldflags "$(LDFLAGS)"
 
 build-all: build-macos build-windows build-linux
 

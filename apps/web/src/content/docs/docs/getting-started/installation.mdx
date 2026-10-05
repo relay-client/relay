@@ -42,13 +42,20 @@ If an older copy installed for all users in Program Files is found, the installe
 
 ## Linux
 
-**Requirements:** glibc 2.31+ (Ubuntu 20.04+, Fedora 33+, Debian 11+), x64, and `libgtk-3` plus `libwebkit2gtk-4.0` from your distribution's package manager.
+**Requirements:** x64 with Ubuntu 22.04 or later, Debian 12 or later, or Fedora 37 or later, plus GTK 3, WebKitGTK 4.1 and FUSE 2 from your distribution's package manager.
 
 <Steps>
 
-1. Download `kurlo-<version>-linux-amd64.AppImage`.
+1. Install the libraries Kurlo draws its window with:
 
-2. Make it executable and run it:
+   ```sh
+   sudo apt install libgtk-3-0 libwebkit2gtk-4.1-0 libfuse2   # Ubuntu, Debian
+   sudo dnf install gtk3 webkit2gtk4.1 fuse-libs              # Fedora
+   ```
+
+2. Download `kurlo-<version>-linux-amd64.AppImage`.
+
+3. Make it executable and run it:
 
    ```sh
    chmod +x kurlo-*.AppImage

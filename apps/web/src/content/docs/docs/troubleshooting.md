@@ -47,15 +47,17 @@ sudo dnf install fuse-libs    # Fedora
 
 ### Linux: GTK / WebKit errors
 
-Kurlo needs the GTK 3 and WebKit 2 runtime libs. Install:
+An error such as `libwebkit2gtk-4.1.so.0: cannot open shared object file` means the GTK 3 or WebKitGTK 4.1 runtime is missing. Install it:
 
 ```bash
 # Debian / Ubuntu
-sudo apt install libgtk-3-0 libwebkit2gtk-4.0-37
+sudo apt install libgtk-3-0 libwebkit2gtk-4.1-0
 
 # Fedora
-sudo dnf install gtk3 webkit2gtk4.0
+sudo dnf install gtk3 webkit2gtk4.1
 ```
+
+Kurlo 2.2.2 and earlier linked against WebKitGTK 4.0, which Ubuntu 24.04 and later no longer ship, so those versions fail on them with `libwebkit2gtk-4.0.so.37: cannot open shared object file`. Use a newer release.
 
 ## Connectivity
 
