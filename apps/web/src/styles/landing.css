@@ -351,3 +351,41 @@ body.landing {
 .foot nav { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; }
 .foot a { text-decoration: none; }
 .foot a:hover { color: var(--ink); }
+
+.miss { padding-block: clamp(3rem, 2rem + 6vw, 7.5rem); }
+.miss-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: clamp(2.5rem, 1rem + 5vw, 5.5rem); align-items: center; }
+.miss h1 { font-size: var(--t-display); font-weight: 600; line-height: 1.02; letter-spacing: -0.045em; max-width: 11ch; }
+.miss-curl { margin-top: 2.5rem; padding-top: 1.25rem; border-top: 1px solid var(--line); }
+.miss-curl p { font-size: var(--t-small); color: var(--ink-3); }
+.miss-curl-row { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; padding: 0.375rem 0.375rem 0.375rem 0.875rem; border: 1px solid var(--line-2); border-radius: 8px; background: var(--surface); }
+.miss-curl-row code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; font-size: var(--t-mono); }
+.miss-copy-btn { flex: none; height: 1.875rem; padding-inline: 0.75rem; border: 1px solid var(--line-2); border-radius: 6px; background: var(--sunken); color: var(--ink); font: 500 var(--t-micro)/1 var(--font-sans); cursor: pointer; }
+.miss-copy-btn:hover { background: var(--bg); }
+
+.miss-window { min-width: 0; overflow: hidden; border: 1px solid var(--line-2); border-radius: 12px; background: var(--surface); box-shadow: var(--shot-shadow); }
+.miss-bar { display: flex; gap: 0.5rem; padding: 0.875rem; border-bottom: 1px solid var(--line); }
+.miss-url { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.75rem; height: 2.5rem; padding-inline: 0.875rem; border-radius: 8px; background: var(--sunken); font: 400 var(--t-mono)/1 var(--font-mono); }
+.miss-url b { color: var(--ok); font-weight: 500; }
+.miss-url span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.miss-send { display: inline-flex; align-items: center; height: 2.5rem; padding-inline: 1.25rem; border-radius: 8px; background: var(--accent); color: var(--accent-ink); font-weight: 500; font-size: var(--t-small); }
+.miss-status { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 1rem; padding: 0.875rem 1rem 0.5rem; font: 400 var(--t-mono)/1.4 var(--font-mono); color: var(--ink-3); }
+.miss-status b { color: var(--warn); font-weight: 500; }
+.miss-dot { width: 0.5rem; height: 0.5rem; margin-right: -0.5rem; border-radius: 50%; background: var(--warn); }
+.miss-pass { color: var(--ok); }
+.miss-tabs { display: flex; gap: 1.25rem; padding-inline: 1rem; border-bottom: 1px solid var(--line); }
+.miss-tab { appearance: none; padding: 0.625rem 0; margin-bottom: -1px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--ink-3); font: 500 var(--t-small)/1 var(--font-sans); cursor: pointer; }
+.miss-tab span { margin-left: 0.25rem; font-family: var(--font-mono); font-size: var(--t-micro); }
+.miss-tab:hover { color: var(--ink); }
+.miss-tab[aria-selected='true'] { color: var(--ink); border-bottom-color: var(--ink); }
+.miss-panel { min-height: 8.5rem; margin: 0; padding: 1rem; font: 400 var(--t-mono)/1.9 var(--font-mono); }
+.miss-code { list-style: none; counter-reset: line; }
+.miss-code li { counter-increment: line; display: grid; grid-template-columns: 1.5rem minmax(0, 1fr); gap: 0.75rem; }
+.miss-code li::before { content: counter(line); text-align: right; color: var(--ink-3); }
+.miss-headers div { display: grid; grid-template-columns: 9rem minmax(0, 1fr); gap: 1rem; }
+.miss-headers dt { color: var(--ink-3); }
+.miss-tests { list-style: none; }
+.miss-tests b { margin-right: 0.5rem; color: var(--ok); font-weight: 500; }
+
+@media (max-width: 900px) {
+  .miss-grid { grid-template-columns: minmax(0, 1fr); }
+}

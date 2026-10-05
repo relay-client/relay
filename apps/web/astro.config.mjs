@@ -236,6 +236,6 @@ export default defineConfig({
       lastUpdated: true,
       pagefind: true,
     }),
-    sitemap(),
+    sitemap({ filter: page => !page.endsWith('/pricing/') }),
   ],
 });
