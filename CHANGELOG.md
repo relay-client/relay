@@ -5,6 +5,12 @@ All notable changes to Kurlo are documented here. This project follows
 
 ---
 
+## [Unreleased]
+
+### Changed
+
+- **kurlo.dev has a new landing page built around what people ask before switching.** It shows how to bring a Postman, Insomnia or Bruno collection across in three steps, which features other clients keep behind a paid plan, a side-by-side table of Kurlo, Postman, Insomnia and Bruno on price, accounts, storage, scripts, mocks and browser checks, and a short FAQ. The table records the date it was checked against each vendor's public pricing. `kurlo.dev/pricing` answers with a plain-text 404, because there is nothing to buy.
+
 ## [2.2.2] - 2026-10-04
 
 ### Fixed
