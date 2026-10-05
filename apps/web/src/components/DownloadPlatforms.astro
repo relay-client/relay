@@ -43,11 +43,11 @@ const platforms: Platform[] = [
   {
     id: 'linux',
     name: 'Linux',
-    requirement: 'glibc 2.31+ · x64 · libgtk-3 and libwebkit2gtk-4.0',
+    requirement: 'Ubuntu 22.04+, Debian 12+ or Fedora 37+ · x64 · WebKitGTK 4.1',
     files: [
       { label: 'Portable AppImage', file: 'kurlo-<version>-linux-amd64.AppImage', match: '-linux-amd64.AppImage', primary: true },
     ],
-    note: 'Make it executable with chmod +x, then run it. Nothing to install.',
+    note: 'Install libwebkit2gtk-4.1-0 and libfuse2, make the file executable with chmod +x, then run it.',
   },
 ];
 ---
