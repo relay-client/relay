@@ -28,7 +28,7 @@
     "web:preview": "npm --workspace @kurlo/web run preview"
   },
   "devDependencies": {
-    "eslint": "^9.39.5",
+    "eslint": "^10.12.0",
     "eslint-plugin-svelte": "^3.23.0",
     "globals": "^17.12.0",
     "svelte-eslint-parser": "^1.8.1",
