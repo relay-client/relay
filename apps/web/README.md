@@ -5,7 +5,7 @@ Astro Starlight project that powers the public Kurlo site:
 - `/` — the marketing landing, a standalone Astro page (`src/pages/index.astro`, styles in `src/styles/landing.css`) outside Starlight. Its cropped showcase images in `src/assets/landing/` come from `node scripts/gen-landing-images.mjs`.
 - `/download/` — installer matrix for macOS / Windows / Linux.
 - `/docs/...` — full documentation: getting started, guides, reference, FAQ.
-- `/changelog/` — notable changes plus a link to tag-specific release notes.
+- `/changelog/` — notable changes plus a link to tag-specific release notes; `/changelog/v1/` keeps the 1.x notes.
 
 ## Local development
 
@@ -60,7 +60,8 @@ apps/web/
 │   ├── content/docs/
 │   │   ├── index.mdx         # /  splash landing
 │   │   ├── download.mdx      # /download
-│   │   ├── changelog.md      # /changelog
+│   │   ├── changelog.md      # /changelog — 2.x
+│   │   ├── changelog/v1.md   # /changelog/v1 — 1.x archive
 │   │   └── docs/             # /docs/* — actual documentation tree
 │   └── styles/custom.css     # brand tokens, splash refinements
 └── public/                   # static files served as-is
