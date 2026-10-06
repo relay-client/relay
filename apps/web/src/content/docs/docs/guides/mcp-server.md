@@ -1,6 +1,6 @@
 ---
 title: MCP server (kurlo mcp)
-description: Let Claude, Cursor and other AI assistants list, inspect and run your saved Kurlo requests through the Model Context Protocol.
+description: Let Claude, Codex, Cursor and other AI assistants list, inspect and run your saved Kurlo requests through the Model Context Protocol.
 ---
 
 `kurlo mcp` serves a Kurlo workspace to AI assistants as a [Model Context Protocol](https://modelcontextprotocol.io) server. Once it is connected, an assistant can see your collections and environments, run a saved request and read the response, run a collection's tests, or send a one-off call that uses your environment's variables. It does this with the same engine as the app and [`kurlo run`](/docs/guides/cli-runner/).
@@ -15,6 +15,20 @@ On macOS the binary is inside the app bundle, at `/Applications/Kurlo.app/Conten
 
 ```bash
 claude mcp add kurlo -- /Applications/Kurlo.app/Contents/MacOS/kurlo mcp --env Local
+```
+
+**Codex** (CLI, IDE extension and desktop app share one config)
+
+```bash
+codex mcp add kurlo -- /Applications/Kurlo.app/Contents/MacOS/kurlo mcp --env Local
+```
+
+or in `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.kurlo]
+command = "/Applications/Kurlo.app/Contents/MacOS/kurlo"
+args = ["mcp", "--env", "Local"]
 ```
 
 **Claude Desktop, Cursor and other clients with a JSON config** (`claude_desktop_config.json`, `.cursor/mcp.json`, …)

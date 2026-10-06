@@ -76,6 +76,19 @@ const agentClients = [
     code: '<span class="d">$</span> claude mcp add kurlo -- \\\n    /Applications/Kurlo.app/Contents/MacOS/kurlo mcp --env Staging',
   },
   {
+    id: 'codex',
+    label: 'Codex',
+    code: [
+      '<span class="d">$</span> codex mcp add kurlo -- \\',
+      '    /Applications/Kurlo.app/Contents/MacOS/kurlo mcp --env Staging',
+      '',
+      '<span class="d"># or in ~/.codex/config.toml</span>',
+      '[mcp_servers.kurlo]',
+      'command = "/Applications/Kurlo.app/Contents/MacOS/kurlo"',
+      'args = ["mcp", "--env", "Staging"]',
+    ].join('\n'),
+  },
+  {
     id: 'mcp-json',
     label: 'Cursor and other clients',
     code: [
@@ -316,7 +329,7 @@ const ldJson = JSON.stringify({
             </div>
             <a class="hero-agents" href="#agents">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M7.5 7.5l-2-2m13 13-2-2m0-9 2-2m-13 13 2-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/></svg>
-              <span>Works with Claude Code, Cursor and any MCP client&nbsp;→</span>
+              <span>Works with Claude Code, Codex, Cursor and any MCP client&nbsp;→</span>
             </a>
             <ul class="hero-meta">
               {heroMeta.map(item => (
@@ -393,7 +406,7 @@ const ldJson = JSON.stringify({
       <div class="wrap">
         <div class="head">
           <h2 id="agents-title">Your AI agent can run your requests.</h2>
-          <p>The app is also an MCP server. Connect Claude Code, Cursor or any MCP client, and the agent can list your collections, send saved requests and run their tests. Your tokens reach the API; the model only ever sees <code>[secret]</code>.</p>
+          <p>The app is also an MCP server. Connect Claude Code, Codex, Cursor or any MCP client, and the agent can list your collections, send saved requests and run their tests. Your tokens reach the API; the model only ever sees <code>[secret]</code>.</p>
         </div>
         <div class="agents">
           <div>
