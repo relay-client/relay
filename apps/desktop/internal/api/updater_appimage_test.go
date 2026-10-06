@@ -24,17 +24,18 @@ func TestAppImageFromEnvironmentNeedsTheRunningBinaryInsideTheImage(t *testing.T
 	if err := os.WriteFile(appImage, []byte("image"), 0755); err != nil {
 		t.Fatal(err)
 	}
-	mount := "/tmp/.mount_KurloX1"
-	if got := appImageFromEnvironment(appImage, mount, mount+"/usr/bin/kurlo"); got != appImage {
+	mount := filepath.Join(t.TempDir(), ".mount_KurloX1")
+	inside := filepath.Join(mount, "usr", "bin", "kurlo")
+	if got := appImageFromEnvironment(appImage, mount, inside); got != appImage {
 		t.Fatalf("expected %q, got %q", appImage, got)
 	}
 	for name, c := range map[string][3]string{
-		"no APPIMAGE":            {"", mount, mount + "/usr/bin/kurlo"},
-		"no APPDIR":              {appImage, "", mount + "/usr/bin/kurlo"},
-		"relative APPIMAGE":      {"Kurlo.AppImage", mount, mount + "/usr/bin/kurlo"},
-		"binary outside the img": {appImage, mount, "/usr/local/bin/kurlo"},
-		"sibling mount":          {appImage, mount, mount + "2/usr/bin/kurlo"},
-		"missing AppImage file":  {filepath.Join(dir, "gone.AppImage"), mount, mount + "/usr/bin/kurlo"},
+		"no APPIMAGE":            {"", mount, inside},
+		"no APPDIR":              {appImage, "", inside},
+		"relative APPIMAGE":      {"Kurlo.AppImage", mount, inside},
+		"binary outside the img": {appImage, mount, filepath.Join(dir, "bin", "kurlo")},
+		"sibling mount":          {appImage, mount, filepath.Join(mount+"2", "usr", "bin", "kurlo")},
+		"missing AppImage file":  {filepath.Join(dir, "gone.AppImage"), mount, inside},
 	} {
 		if got := appImageFromEnvironment(c[0], c[1], c[2]); got != "" {
 			t.Fatalf("%s: expected no AppImage, got %q", name, got)
