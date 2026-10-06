@@ -5,6 +5,25 @@ description: Notable Kurlo changes and links to the exact notes for each publish
 
 This page summarizes the notable-change log maintained in the source repository. For the exact notes and artifacts attached to every published tag, use the [Kurlo releases page](https://github.com/stormhop/kurlo/releases).
 
+## 2.2.4
+
+### Fixed
+
+- **On Linux, closing the window quits Kurlo.** It used to hide the window and keep running with no way back, and opening Kurlo again could bring back a blank window. Windows quits on close too; macOS keeps the app in the Dock as before.
+- **Quit works when the window has stopped responding.** If the window does not answer within five seconds, Kurlo quits anyway. A window still asking whether to save your changes is never cut short.
+- **Restart after an update reopens Kurlo** on Windows, where the new version started hidden, and on Linux, where it did not start at all.
+- **The Linux AppImage installs updates.** Kurlo replaces the `.AppImage` file it was started from, so keep it in a folder you can write to. AppImages from 2.2.3 and earlier cannot update themselves: download 2.2.4 by hand once. See [Installation](/docs/getting-started/installation/#auto-updates).
+
+## 2.2.3
+
+### Changed
+
+- **A new landing page** shows how to bring a Postman, Insomnia or Bruno collection across, which features other clients keep behind a paid plan, and a dated side-by-side comparison of Kurlo, Postman, Insomnia and Bruno. `kurlo.dev/pricing` answers with a 404, because there is nothing to buy.
+
+### Fixed
+
+- **The Linux AppImage starts on Ubuntu 24.04 and later.** Linux builds now use WebKitGTK 4.1, available on Ubuntu 22.04 and later, Debian 12 and later and Fedora 37 and later. Ubuntu 20.04 and Debian 11 are no longer supported. See [Installation](/docs/getting-started/installation/#linux) for the packages to install.
+
 ## 2.2.2
 
 ### Fixed
