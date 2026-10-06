@@ -11,7 +11,7 @@ Kurlo ships frequently and only the most recent release receives security fixes.
 **Please do not open a public GitHub issue for security problems.** Instead use one of the channels below so we can investigate and ship a fix before details are public.
 
 - **Preferred — GitHub Security Advisories**: open a private advisory at <https://github.com/stormhop/kurlo/security/advisories/new>. This keeps the report private until we publish a fix.
-- **Alternative — public tracker triage**: if advisories are unavailable, open a minimal issue at <https://github.com/stormhop/kurlo/issues/new> saying you have a security report and include a safe contact method. Do not post exploit details publicly.
+- **Alternative — email**: write to <releases@kurlo.dev> if you can't use advisories or would rather not have a GitHub account involved. Mention "security" in the subject.
 
 When reporting, please include:
 

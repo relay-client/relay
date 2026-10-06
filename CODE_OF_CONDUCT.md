@@ -54,9 +54,8 @@ event.
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the
 maintainers privately by opening a
-[private report](https://github.com/stormhop/kurlo/security/advisories/new) — it is
-currently the only confidential channel on this repository, and reports sent there are
-visible only to the maintainers.
+[private report](https://github.com/stormhop/kurlo/security/advisories/new), which only the
+maintainers can see, or by emailing <releases@kurlo.dev>.
 
 All complaints will be reviewed and investigated promptly and fairly. All community leaders
 are obligated to respect the privacy and security of the reporter of any incident.
