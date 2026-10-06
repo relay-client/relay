@@ -7,6 +7,18 @@ npm install -g @kurlo/cli
 kurlo --version
 ```
 
+### `EACCES: permission denied` on `npm install -g`
+
+npm could not write to the folder that holds global packages. It happens with Node from the nodejs.org installer, which puts that folder in `/usr/local`, owned by the system. It is not specific to Kurlo, and any global package fails the same way. Either skip the install and run the CLI with `npx -y @kurlo/cli`, or move global packages into your home folder once:
+
+```bash
+mkdir -p ~/.npm-global && npm config set prefix ~/.npm-global
+echo 'export PATH="$HOME/.npm-global/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
+npm install -g @kurlo/cli
+```
+
+Node installed with Homebrew, Volta or nvm keeps global packages in your home folder already. Avoid `sudo npm install -g`: it works, but leaves root-owned files that break later installs.
+
 ## Connect an AI agent
 
 Claude Code:
