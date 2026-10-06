@@ -20,6 +20,35 @@ func applyCollectionDefaults(req cliSavedRequest, collection *cliCollection) cli
 	req.PreRequestScriptJs = joinScripts(defaults.PreRequestScriptJs, req.PreRequestScriptJs)
 	req.TestScriptJs = joinScripts(req.TestScriptJs, defaults.TestScriptJs)
 	req.Settings = mergeCollectionSettings(defaults.Settings, req.Settings)
+	req.Settings = mergeBrowserSettings(defaults.Settings, req.Settings, req.SettingsOverrides)
+	return req
+}
+
+func mergeBrowserSettings(defaults, req cliSettings, overrides map[string]bool) cliSettings {
+	ownValue := func(key string, differsFromDefault bool) bool {
+		if overrides != nil {
+			return overrides[key]
+		}
+		return differsFromDefault
+	}
+	if !ownValue("browserEmulation", req.BrowserEmulation) {
+		req.BrowserEmulation = defaults.BrowserEmulation
+	}
+	if !ownValue("browserOrigin", req.BrowserOrigin != "") {
+		req.BrowserOrigin = defaults.BrowserOrigin
+	}
+	if !ownValue("browserWithCredentials", req.BrowserWithCredentials) {
+		req.BrowserWithCredentials = defaults.BrowserWithCredentials
+	}
+	if !ownValue("browserEnforceCORS", req.BrowserEnforceCORS) {
+		req.BrowserEnforceCORS = defaults.BrowserEnforceCORS
+	}
+	if !ownValue("browserEnforceCSP", req.BrowserEnforceCSP) {
+		req.BrowserEnforceCSP = defaults.BrowserEnforceCSP
+	}
+	if !ownValue("browserCSP", req.BrowserCSP != "") {
+		req.BrowserCSP = defaults.BrowserCSP
+	}
 	return req
 }
 

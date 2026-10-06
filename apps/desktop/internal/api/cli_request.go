@@ -67,31 +67,55 @@ type cliSettings struct {
 	ClientCertPath         string `json:"clientCertPath"`
 	ClientKeyPath          string `json:"clientKeyPath"`
 	ClientKeyPassword      string `json:"clientKeyPassword"`
+	BrowserEmulation       bool   `json:"browserEmulation"`
+	BrowserOrigin          string `json:"browserOrigin"`
+	BrowserWithCredentials bool   `json:"browserWithCredentials"`
+	BrowserEnforceCORS     bool   `json:"browserEnforceCORS"`
+	BrowserEnforceCSP      bool   `json:"browserEnforceCSP"`
+	BrowserCSP             string `json:"browserCSP"`
+}
+
+type cliExampleResponse struct {
+	StatusCode    int     `json:"statusCode"`
+	Status        string  `json:"status"`
+	Headers       []cliKV `json:"headers"`
+	Body          string  `json:"body"`
+	BodyMediaType string  `json:"bodyMediaType"`
+}
+
+type cliExample struct {
+	ID       string             `json:"id"`
+	Name     string             `json:"name"`
+	Source   string             `json:"source"`
+	Notes    string             `json:"notes"`
+	Response cliExampleResponse `json:"response"`
 }
 
 type cliSavedRequest struct {
-	ID                 string      `json:"id"`
-	Name               string      `json:"name"`
-	RequestType        string      `json:"requestType"`
-	CollectionID       string      `json:"collectionId"`
-	Collection         string      `json:"collection"`
-	FolderPath         []string    `json:"folderPath"`
-	Method             string      `json:"method"`
-	URL                string      `json:"url"`
-	IsDraft            bool        `json:"isDraft"`
-	Params             []cliKV     `json:"params"`
-	Headers            []cliKV     `json:"headers"`
-	Auth               cliAuth     `json:"auth"`
-	BodyType           string      `json:"bodyType"`
-	RawBodyType        string      `json:"rawBodyType"`
-	BodyContent        string      `json:"bodyContent"`
-	BodyFilePath       string      `json:"bodyFilePath"`
-	FormRows           []cliKV     `json:"formRows"`
-	PreRequestScript   string      `json:"preRequestScript"`
-	TestScript         string      `json:"testScript"`
-	PreRequestScriptJs string      `json:"preRequestScriptJs"`
-	TestScriptJs       string      `json:"testScriptJs"`
-	Settings           cliSettings `json:"settings"`
+	ID                 string          `json:"id"`
+	Name               string          `json:"name"`
+	RequestType        string          `json:"requestType"`
+	CollectionID       string          `json:"collectionId"`
+	Collection         string          `json:"collection"`
+	FolderPath         []string        `json:"folderPath"`
+	Method             string          `json:"method"`
+	URL                string          `json:"url"`
+	IsDraft            bool            `json:"isDraft"`
+	Params             []cliKV         `json:"params"`
+	Headers            []cliKV         `json:"headers"`
+	Auth               cliAuth         `json:"auth"`
+	BodyType           string          `json:"bodyType"`
+	RawBodyType        string          `json:"rawBodyType"`
+	BodyContent        string          `json:"bodyContent"`
+	BodyFilePath       string          `json:"bodyFilePath"`
+	FormRows           []cliKV         `json:"formRows"`
+	PreRequestScript   string          `json:"preRequestScript"`
+	TestScript         string          `json:"testScript"`
+	PreRequestScriptJs string          `json:"preRequestScriptJs"`
+	TestScriptJs       string          `json:"testScriptJs"`
+	Settings           cliSettings     `json:"settings"`
+	SettingsOverrides  map[string]bool `json:"settingsOverrides"`
+	Examples           []cliExample    `json:"examples"`
 }
 
 type cliCollectionDefaults struct {
@@ -270,6 +294,12 @@ func buildHTTPRequest(req cliSavedRequest, values map[string]string, secretValue
 		ClientCertPath:          req.Settings.ClientCertPath,
 		ClientKeyPath:           req.Settings.ClientKeyPath,
 		ClientKeyPassword:       req.Settings.ClientKeyPassword,
+		BrowserEmulation:        req.Settings.BrowserEmulation,
+		BrowserOrigin:           strings.TrimSpace(req.Settings.BrowserOrigin),
+		BrowserWithCredentials:  req.Settings.BrowserWithCredentials,
+		BrowserEnforceCORS:      req.Settings.BrowserEnforceCORS,
+		BrowserEnforceCSP:       req.Settings.BrowserEnforceCSP,
+		BrowserCSP:              req.Settings.BrowserCSP,
 		SecretEnvironmentValues: secretValues,
 		ResolveTemplates:        true,
 		TemplateValues:          values,

@@ -27,6 +27,7 @@ var mcpServerHandshakeVersions = []string{"2025-11-25", "2025-06-18", "2025-03-2
 const (
 	mcpServerDefaultBodyLimit = 64 * 1024
 	mcpServerMaxBodyLimit     = 1024 * 1024
+	mcpServerExampleBodyLimit = 8 * 1024
 )
 
 const (
@@ -298,6 +299,7 @@ func (s *mcpServer) instructions() string {
 		"Call list_requests to see what is saved and list_environments to see the environments, then run_request to send one saved request and read its response, " +
 		"run_collection to run a collection or folder with its test scripts, or send_request for a one-off HTTP call that can use the environment's {{variables}}. " +
 		"Values that scripts set with pm.environment.set or pm.collectionVariables.set are kept for later calls in this session, so a login request can hand its token to the requests after it. " +
+		"To find out whether a browser would let a web page make a call, pass browserOrigin to run_request or send_request: Kurlo then sends it the way a browser on that origin would, runs the CORS preflight, and reports the CORS error the browser would raise. " +
 		"Secret environment values are used when sending but never shown."
 	if s.opts.env != "" {
 		text += " Calls that do not name an environment use " + s.opts.env + "."
@@ -342,6 +344,8 @@ func mcpServerTools() []map[string]any {
 		"additionalProperties": map[string]any{"type": "string"},
 	}
 	maxBody := map[string]any{"type": "integer", "description": "Most bytes of the response body to return (default 65536, max 1048576)."}
+	browserOrigin := map[string]any{"type": "string", "description": "Send the call the way a browser on this page origin would, for example https://app.example.com: browser headers, the CORS preflight when one is needed, and the CORS error a browser would raise. Omit it and a saved request uses its own browser settings, if any."}
+	browserCredentials := map[string]any{"type": "boolean", "description": "With browserOrigin, make it a credentialed request (fetch credentials: include), which a wildcard Access-Control-Allow-Origin does not satisfy."}
 	readOnly := map[string]any{"readOnlyHint": true, "openWorldHint": false}
 	network := map[string]any{"readOnlyHint": false, "openWorldHint": true}
 
@@ -354,6 +358,7 @@ func mcpServerTools() []map[string]any {
 				"type": "object",
 				"properties": map[string]any{
 					"collection": map[string]any{"type": "string", "description": "Only list requests in this collection."},
+					"query":      map[string]any{"type": "string", "description": "Only list requests whose path, method or URL contains every word of this text, ignoring case. For example: \"post orders\"."},
 				},
 			},
 			"annotations": readOnly,
@@ -361,7 +366,7 @@ func mcpServerTools() []map[string]any {
 		{
 			"name":        "get_request",
 			"title":       "Show a saved request",
-			"description": "Show how a saved request is defined: method, URL, query parameters, headers, body, auth type and scripts. Credentials are not included.",
+			"description": "Show how a saved request is defined: method, URL, query parameters, headers, body, auth type, scripts, browser settings, and the saved example responses to compare a live response against. Credentials are not included.",
 			"inputSchema": map[string]any{
 				"type": "object",
 				"properties": map[string]any{
@@ -385,10 +390,12 @@ func mcpServerTools() []map[string]any {
 			"inputSchema": map[string]any{
 				"type": "object",
 				"properties": map[string]any{
-					"request":      map[string]any{"type": "string", "description": "Request id, path (Collection/Folder/Name) or name."},
-					"environment":  environment,
-					"variables":    variables,
-					"maxBodyBytes": maxBody,
+					"request":            map[string]any{"type": "string", "description": "Request id, path (Collection/Folder/Name) or name."},
+					"environment":        environment,
+					"variables":          variables,
+					"maxBodyBytes":       maxBody,
+					"browserOrigin":      browserOrigin,
+					"browserCredentials": browserCredentials,
 				},
 				"required": []string{"request"},
 			},
@@ -397,7 +404,7 @@ func mcpServerTools() []map[string]any {
 		{
 			"name":        "run_collection",
 			"title":       "Run a collection",
-			"description": "Run the HTTP and GraphQL requests of a collection or folder in order, with their test scripts, and return a pass/fail summary per request. Realtime requests are skipped.",
+			"description": "Run the HTTP and GraphQL requests of a collection or folder in order, with their test scripts, and return a pass/fail summary per request. Realtime requests are skipped. Reports progress after each request when the call carries a progressToken.",
 			"inputSchema": map[string]any{
 				"type": "object",
 				"properties": map[string]any{
@@ -424,10 +431,12 @@ func mcpServerTools() []map[string]any {
 						"description":          "Request headers, as name to value.",
 						"additionalProperties": map[string]any{"type": "string"},
 					},
-					"body":         map[string]any{"type": "string", "description": "Request body. JSON is sent as application/json, anything else as text/plain, unless a Content-Type header says otherwise."},
-					"environment":  environment,
-					"variables":    variables,
-					"maxBodyBytes": maxBody,
+					"body":               map[string]any{"type": "string", "description": "Request body. JSON is sent as application/json, anything else as text/plain, unless a Content-Type header says otherwise."},
+					"environment":        environment,
+					"variables":          variables,
+					"maxBodyBytes":       maxBody,
+					"browserOrigin":      browserOrigin,
+					"browserCredentials": browserCredentials,
 				},
 				"required": []string{"url"},
 			},
@@ -440,9 +449,15 @@ func (s *mcpServer) callTool(ctx context.Context, params json.RawMessage) (map[s
 	var call struct {
 		Name      string          `json:"name"`
 		Arguments json.RawMessage `json:"arguments"`
+		Meta      struct {
+			ProgressToken json.RawMessage `json:"progressToken"`
+		} `json:"_meta"`
 	}
 	if err := json.Unmarshal(params, &call); err != nil {
 		return nil, &mcpServerError{code: mcpRPCInvalidParams, message: "invalid tools/call params: " + err.Error()}
+	}
+	if token := call.Meta.ProgressToken; len(token) > 0 && string(token) != "null" {
+		ctx = context.WithValue(ctx, mcpProgressTokenKey{}, token)
 	}
 	arguments := call.Arguments
 	if len(arguments) == 0 || string(arguments) == "null" {
@@ -481,6 +496,42 @@ func (s *mcpServer) callTool(ctx context.Context, params json.RawMessage) (map[s
 		return mcpToolText(err.Error(), true), nil
 	}
 	return mcpToolValue(value)
+}
+
+type mcpProgressTokenKey struct{}
+
+func (s *mcpServer) progress(ctx context.Context, done, total int, message string) {
+	token, _ := ctx.Value(mcpProgressTokenKey{}).(json.RawMessage)
+	if len(token) == 0 {
+		return
+	}
+	s.write(map[string]any{
+		"jsonrpc": "2.0",
+		"method":  "notifications/progress",
+		"params": map[string]any{
+			"progressToken": token,
+			"progress":      done,
+			"total":         total,
+			"message":       message,
+		},
+	})
+}
+
+type mcpBrowserArgs struct {
+	BrowserOrigin      string `json:"browserOrigin"`
+	BrowserCredentials bool   `json:"browserCredentials"`
+}
+
+func (b mcpBrowserArgs) apply(req cliSavedRequest) cliSavedRequest {
+	origin := strings.TrimSpace(b.BrowserOrigin)
+	if origin == "" {
+		return req
+	}
+	req.Settings.BrowserEmulation = true
+	req.Settings.BrowserOrigin = origin
+	req.Settings.BrowserEnforceCORS = true
+	req.Settings.BrowserWithCredentials = b.BrowserCredentials
+	return req
 }
 
 func mcpToolText(text string, isError bool) map[string]any {
@@ -619,6 +670,7 @@ type mcpRequestSummary struct {
 func (s *mcpServer) toolListRequests(_ context.Context, arguments json.RawMessage) (any, error) {
 	var args struct {
 		Collection string `json:"collection"`
+		Query      string `json:"query"`
 	}
 	if err := mcpDecodeArguments(arguments, &args); err != nil {
 		return nil, err
@@ -627,6 +679,7 @@ func (s *mcpServer) toolListRequests(_ context.Context, arguments json.RawMessag
 	if err != nil {
 		return nil, err
 	}
+	terms := strings.Fields(strings.ToLower(args.Query))
 	summaries := make([]mcpRequestSummary, 0, len(ws.requests))
 	for _, req := range ws.requests {
 		if args.Collection != "" && !strings.EqualFold(strings.TrimSpace(req.Collection), strings.TrimSpace(args.Collection)) {
@@ -638,6 +691,9 @@ func (s *mcpServer) toolListRequests(_ context.Context, arguments json.RawMessag
 			if isGraphQLRequest(req) {
 				method = "POST"
 			}
+		}
+		if !mcpMatchesTerms(strings.ToLower(strings.Join([]string{mcpRequestPath(req), method, req.URL, req.ID}, " ")), terms) {
+			continue
 		}
 		summaries = append(summaries, mcpRequestSummary{
 			ID:         req.ID,
@@ -652,6 +708,15 @@ func (s *mcpServer) toolListRequests(_ context.Context, arguments json.RawMessag
 		})
 	}
 	return map[string]any{"count": len(summaries), "requests": summaries}, nil
+}
+
+func mcpMatchesTerms(text string, terms []string) bool {
+	for _, term := range terms {
+		if !strings.Contains(text, term) {
+			return false
+		}
+	}
+	return true
 }
 
 type mcpKeyValue struct {
@@ -712,7 +777,70 @@ func (s *mcpServer) toolGetRequest(_ context.Context, arguments json.RawMessage)
 	if script := cliTestScript(req); strings.TrimSpace(script) != "" {
 		detail["testScript"] = script
 	}
+	for i := range ws.collections {
+		if ws.collections[i].ID == req.CollectionID {
+			req = applyCollectionDefaults(req, &ws.collections[i])
+			break
+		}
+	}
+	if browser := mcpBrowserSettings(req.Settings); browser != nil {
+		detail["browser"] = browser
+	}
+	if examples := mcpExamples(req.Examples); len(examples) > 0 {
+		detail["examples"] = examples
+	}
 	return detail, nil
+}
+
+func mcpBrowserSettings(settings cliSettings) map[string]any {
+	if !settings.BrowserEmulation && !settings.BrowserEnforceCORS && !settings.BrowserEnforceCSP {
+		return nil
+	}
+	browser := map[string]any{
+		"emulation":       settings.BrowserEmulation,
+		"origin":          strings.TrimSpace(settings.BrowserOrigin),
+		"withCredentials": settings.BrowserWithCredentials,
+		"enforceCors":     settings.BrowserEnforceCORS,
+		"enforceCsp":      settings.BrowserEnforceCSP,
+	}
+	if csp := strings.TrimSpace(settings.BrowserCSP); csp != "" {
+		browser["csp"] = csp
+	}
+	return browser
+}
+
+type mcpExample struct {
+	Name          string `json:"name"`
+	Source        string `json:"source,omitempty"`
+	Notes         string `json:"notes,omitempty"`
+	Status        int    `json:"status"`
+	StatusText    string `json:"statusText,omitempty"`
+	ContentType   string `json:"contentType,omitempty"`
+	Body          string `json:"body,omitempty"`
+	BodyTruncated bool   `json:"bodyTruncated,omitempty"`
+}
+
+func mcpExamples(examples []cliExample) []mcpExample {
+	out := make([]mcpExample, 0, len(examples))
+	for _, example := range examples {
+		contentType := strings.TrimSpace(example.Response.BodyMediaType)
+		for _, header := range example.Response.Headers {
+			if contentType == "" && strings.EqualFold(strings.TrimSpace(header.Key), "Content-Type") {
+				contentType = header.Value
+			}
+		}
+		entry := mcpExample{
+			Name:        example.Name,
+			Source:      example.Source,
+			Notes:       example.Notes,
+			Status:      example.Response.StatusCode,
+			StatusText:  example.Response.Status,
+			ContentType: contentType,
+		}
+		entry.Body, entry.BodyTruncated = mcpTruncate(example.Response.Body, mcpServerExampleBodyLimit)
+		out = append(out, entry)
+	}
+	return out
 }
 
 func (s *mcpServer) toolListEnvironments(_ context.Context, _ json.RawMessage) (any, error) {
@@ -936,6 +1064,7 @@ func (s *mcpServer) toolRunRequest(ctx context.Context, arguments json.RawMessag
 		Environment  string         `json:"environment"`
 		Variables    map[string]any `json:"variables"`
 		MaxBodyBytes int            `json:"maxBodyBytes"`
+		mcpBrowserArgs
 	}
 	if err := mcpDecodeArguments(arguments, &args); err != nil {
 		return nil, err
@@ -957,6 +1086,7 @@ func (s *mcpServer) toolRunRequest(ctx context.Context, arguments json.RawMessag
 			break
 		}
 	}
+	req = args.apply(req)
 	run, err := s.prepareRun(ws, args.Environment, args.Variables)
 	if err != nil {
 		return nil, err
@@ -976,6 +1106,7 @@ func (s *mcpServer) toolSendRequest(ctx context.Context, arguments json.RawMessa
 		Environment  string         `json:"environment"`
 		Variables    map[string]any `json:"variables"`
 		MaxBodyBytes int            `json:"maxBodyBytes"`
+		mcpBrowserArgs
 	}
 	if err := mcpDecodeArguments(arguments, &args); err != nil {
 		return nil, err
@@ -1008,6 +1139,7 @@ func (s *mcpServer) toolSendRequest(ctx context.Context, arguments json.RawMessa
 			req.BodyType = "json"
 		}
 	}
+	req = args.apply(req)
 	run, err := s.prepareRun(ws, args.Environment, args.Variables)
 	if err != nil {
 		return nil, err
@@ -1072,6 +1204,7 @@ func (s *mcpServer) toolRunCollection(ctx context.Context, arguments json.RawMes
 			result.Tests[i].Error = redactSecrets(result.Tests[i].Error, run.secrets)
 		}
 		results = append(results, result)
+		s.progress(ctx, len(results), len(selected), mcpProgressMessage(result))
 		if args.FailFast && result.failed() {
 			break
 		}
@@ -1099,6 +1232,19 @@ func (s *mcpServer) toolRunCollection(ctx context.Context, arguments json.RawMes
 		Results:          results,
 		VariablesChanged: s.remember(run),
 	}, nil
+}
+
+func mcpProgressMessage(result cliRunResult) string {
+	outcome := fmt.Sprint(result.StatusCode)
+	switch {
+	case result.Skipped:
+		outcome = "skipped"
+	case result.Error != "" && result.StatusCode == 0:
+		outcome = "error"
+	case result.failed():
+		outcome += " failed"
+	}
+	return fmt.Sprintf("%s %s → %s", result.Method, result.URL, outcome)
 }
 
 func sortedKeys(values map[string]string) []string {

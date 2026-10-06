@@ -12,6 +12,12 @@ This page summarizes the notable-change log maintained in the source repository.
 ### Added
 
 - **The command line is on npm: `npx -y @kurlo/cli`.** `kurlo run` and `kurlo mcp` work without the desktop app, on macOS, Linux and Windows. An AI agent connects with `claude mcp add kurlo -- npx -y @kurlo/cli mcp`, and CI runs a workspace with `npx -y @kurlo/cli run ./workspace --env CI`. See [MCP server](/docs/guides/mcp-server/) and [CLI runner](/docs/guides/cli-runner/).
+- **AI assistants can check a call the way a browser would.** `run_request` and `send_request` take `browserOrigin` and report the CORS error a browser on that page would raise. See [Checking a call the way a browser would](/docs/guides/mcp-server/#checking-a-call-the-way-a-browser-would).
+- **`list_requests` searches** with `query`, **`get_request` shows saved examples** and the browser settings in effect, and **`run_collection` reports progress** after every request.
+
+### Fixed
+
+- **`kurlo run` and `kurlo mcp` now honor browser emulation.** Requests with Enforce CORS or CSP on, by themselves or through their collection, were sent as plain requests. A CORS or CSP refusal now fails the run, as it would in the browser.
 
 ## 2.2.4
 

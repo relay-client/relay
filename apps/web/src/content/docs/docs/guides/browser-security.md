@@ -138,4 +138,8 @@ A page on `localhost` may reach any address. WebSocket and Socket.IO handshakes 
 4. Paste the deployed page policy and enable CSP.
 5. Turn on credentials only if frontend code intentionally sends cookies across origins.
 
+## In CI and for AI assistants
+
+[`kurlo run`](/docs/guides/cli-runner/) and [`kurlo mcp`](/docs/guides/mcp-server/) honor the same settings, saved on a request or inherited from its collection. A run fails on a request the browser would refuse, so a CORS change breaks the build before it breaks the frontend. An assistant can also check any call against an origin with the `browserOrigin` argument of `run_request` and `send_request`.
+
 For cookie storage and domain matching, see [Cookies](/docs/guides/cookies/).

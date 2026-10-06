@@ -43,6 +43,7 @@ The first argument is the workspace directory (the folder that contains `kurlo.y
 - **Pre-request and test scripts** — the same sandboxed JavaScript `pm.*` API as the app. Assertions become the pass/fail signal.
 - **Collection defaults** — a collection's auth, headers, scripts, and settings are applied exactly as they are in the app, so a request set to **Inherit auth** authenticates in CI too.
 - **Variable chaining**: a value a test writes with `pm.environment.set(...)` is visible to later requests in the same run, so a login step can hand a token to the requests after it.
+- **Browser checks**: a request with [browser emulation](/docs/guides/browser-security/) turned on, by itself or through its collection, is sent the way the browser would send it, and a CORS or CSP refusal fails the run. Keep it on for the requests your frontend makes, and CI catches a CORS change before the frontend ships.
 
 Realtime request types (WebSocket, SSE, Socket.IO, gRPC) need a live session and are skipped. A request whose pre-request script calls `pm.execution.skipRequest()` is also skipped — reported as such, and it does not fail the run.
 

@@ -10,6 +10,14 @@ All notable changes to Kurlo are documented here. This project follows
 ### Added
 
 - **`kurlo run` and `kurlo mcp` without the desktop app: `npx -y @kurlo/cli`.** The command line is now on npm as `@kurlo/cli`, with prebuilt binaries for macOS, Linux and Windows on x64 and arm64. npm downloads only the one your machine needs, about 8 MB. An AI agent connects with one line on every system, for example `claude mcp add kurlo -- npx -y @kurlo/cli mcp`, instead of a path into the app bundle, and a CI runner can run a workspace's tests with `npx -y @kurlo/cli run ./workspace --env CI` without installing the app. It is the same engine as the app, and with no workspace argument `kurlo mcp` still serves the workspace the app has open. See [MCP server](https://kurlo.dev/docs/guides/mcp-server/) and [CLI runner](https://kurlo.dev/docs/guides/cli-runner/).
+- **An AI assistant can check a call the way a browser would.** `run_request` and `send_request` in `kurlo mcp` take `browserOrigin`, the origin of the page that would make the call, and `browserCredentials`. The call then goes out with browser emulation: the `Origin` and browser headers, the CORS preflight when one is needed, and the CORS error a browser would raise. An assistant asked "why does my frontend get a CORS error" can now reproduce it instead of guessing.
+- **`list_requests` searches.** Its `query` argument keeps the requests whose path, method or URL contains every word, ignoring case, so an assistant in a large workspace finds `POST /orders` with `post orders` instead of reading the whole list.
+- **`get_request` shows the saved examples and the browser settings.** An assistant sees the status, content type and body of each example, up to 8 KB of body each, and can compare a live response with the expected one. It also sees the browser settings in effect, including those inherited from the collection.
+- **`run_collection` reports progress.** When the call carries a `progressToken`, the server sends a progress notification after every request, naming the request and its outcome, so a long run no longer looks stuck.
+
+### Fixed
+
+- **`kurlo run` and `kurlo mcp` ignored browser emulation.** A request with Browser request emulation, Enforce CORS or Enforce CSP turned on, by itself or through its collection, was sent as a plain request, so a run passed where the browser would refuse the call. These settings now apply exactly as in the app, including a request that turns a collection's setting off for itself, and a CORS or CSP refusal fails the run.
 
 ## [2.2.4] - 2026-10-06
 
