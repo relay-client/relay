@@ -5,6 +5,13 @@ All notable changes to Kurlo are documented here. This project follows
 
 ---
 
+## [Unreleased]
+
+### Fixed
+
+- **On Linux, closing the window left Kurlo running with no way back.** The close button hid the window instead of quitting, and with no Dock or tray icon to bring it back, the hidden Kurlo kept running. Opening Kurlo again just woke that hidden copy, which could come back as a blank window. Closing the window now quits Kurlo on Linux and Windows. macOS keeps the app in the Dock as before. The Linux menu no longer has **Show Window** and **Hide Window**.
+- **Quit did nothing when the window had stopped responding.** Quitting waits for the window to save your changes, so a window that never answered kept Kurlo open for good. If the window does not answer within five seconds, Kurlo now quits anyway. A window that is still asking whether to save your changes is never cut short.
+
 ## [2.2.3] - 2026-10-05
 
 ### Changed

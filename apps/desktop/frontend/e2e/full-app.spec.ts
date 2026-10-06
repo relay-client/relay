@@ -393,6 +393,9 @@ async function installKurloBridge(page: Page, largeResponseBody = '', runtime = 
       AppInfo: async () => ({ name: 'Kurlo', version: 'dev', runtime, goVersion: 'e2e' }),
       LoadWorkspaceDiagnostics: async () => [],
       LoadRequestStore: async () => JSON.stringify(state.store),
+      AckQuit: async () => {
+        state.calls.push('AckQuit');
+      },
       ConfirmQuit: async () => {
         state.calls.push('ConfirmQuit');
       },
@@ -2414,6 +2417,9 @@ test.describe('Kurlo desktop browser E2E', () => {
 
     const dialog = page.getByRole('dialog', { name: 'Quit without saving?' });
     await expect(dialog).toBeVisible();
+    const callsWhileAsking = await page.evaluate(() => [...window.__kurloE2E.calls]);
+    expect(callsWhileAsking[0]).toBe('AckQuit');
+    expect(callsWhileAsking).not.toContain('ConfirmQuit');
     await dialog.getByRole('button', { name: 'Quit without saving' }).click();
 
     await expect.poll(() => page.evaluate(() => window.__kurloE2E.calls)).toContain('ConfirmQuit');

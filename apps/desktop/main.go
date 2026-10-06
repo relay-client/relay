@@ -53,6 +53,10 @@ func main() {
 
 const kurloSingleInstanceID = "dev.kurlo.app"
 
+func hideWindowOnClose(goos string) bool {
+	return goos == "darwin"
+}
+
 func buildAppOptions(app *api.App, frontendAssets embed.FS) *options.App {
 	bgR, bgG, bgB, bgA := api.InitialWindowBackgroundRGBA()
 
@@ -62,7 +66,7 @@ func buildAppOptions(app *api.App, frontendAssets embed.FS) *options.App {
 		Height:            820,
 		MinWidth:          1120,
 		MinHeight:         680,
-		HideWindowOnClose: true,
+		HideWindowOnClose: hideWindowOnClose(runtime.GOOS),
 		Frameless:         runtime.GOOS == "windows",
 		AssetServer: &assetserver.Options{
 			Assets: frontendAssets,
@@ -138,7 +142,11 @@ func viewMenu(app *api.App) *menu.MenuItem {
 }
 
 func buildMenu(app *api.App) *menu.Menu {
-	if runtime.GOOS == "darwin" {
+	return buildMenuFor(app, runtime.GOOS)
+}
+
+func buildMenuFor(app *api.App, goos string) *menu.Menu {
+	if goos == "darwin" {
 		return menu.NewMenuFromItems(
 			menu.AppMenu(),
 			menu.EditMenu(),
@@ -150,9 +158,6 @@ func buildMenu(app *api.App) *menu.Menu {
 	appMenu := menu.NewMenu()
 
 	kurlo := appMenu.AddSubmenu("Kurlo")
-	kurlo.AddText("Show Window", nil, func(_ *menu.CallbackData) { app.Show() })
-	kurlo.AddText("Hide Window", nil, func(_ *menu.CallbackData) { app.Hide() })
-	kurlo.AddSeparator()
 	kurlo.AddText("Quit", keys.CmdOrCtrl("q"), func(_ *menu.CallbackData) { app.Quit() })
 	appMenu.Append(viewMenu(app))
 

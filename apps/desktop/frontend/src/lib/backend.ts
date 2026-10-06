@@ -227,6 +227,10 @@ export async function saveRequestStore(payload: string): Promise<SaveRequestStor
   return { ok, error: ok ? '' : 'request store save failed' };
 }
 
+export async function ackQuit(): Promise<void> {
+  await window.go?.api?.App?.AckQuit?.();
+}
+
 export async function confirmQuit(): Promise<void> {
   await window.go?.api?.App?.ConfirmQuit?.();
 }

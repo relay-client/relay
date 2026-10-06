@@ -3,6 +3,8 @@
 import {model} from '../models';
 import {api} from '../models';
 
+export function AckQuit():Promise<void>;
+
 export function AppInfo():Promise<model.AppInfo>;
 
 export function ApplyUpdate(arg1:model.UpdateInfo):Promise<string>;
@@ -140,8 +142,6 @@ export function GitTestRemote(arg1:string):Promise<api.GitOperationResult>;
 export function GitTokenInfo(arg1:string):Promise<api.GitTokenInfoResult>;
 
 export function GrpcDiscover(arg1:model.GrpcRequest):Promise<model.GrpcServiceDefinition>;
-
-export function Hide():Promise<void>;
 
 export function ListCookies(arg1:string):Promise<Array<model.Cookie>>;
 

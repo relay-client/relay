@@ -24,9 +24,7 @@ const maxTextFileReadSize = 100 * 1024 * 1024
 
 type App struct {
 	ctx            context.Context
-	quitMu         sync.Mutex
-	allowQuit      bool
-	quitPending    bool
+	quit           *quitGate
 	requestMu      sync.Mutex
 	requestSeq     uint64
 	requestCancels map[string]requestCancel
@@ -53,6 +51,7 @@ type requestCancel struct {
 func NewApp() *App {
 	jars := newCookieJarRegistry()
 	return &App{
+		quit:           newQuitGate(),
 		requestCancels: make(map[string]requestCancel),
 		state:          state.New(),
 		cookieJars:     jars,
@@ -110,19 +109,7 @@ func (a *App) Shutdown(_ context.Context) {
 }
 
 func (a *App) BeforeClose(ctx context.Context) bool {
-	a.quitMu.Lock()
-	if a.allowQuit {
-		a.quitMu.Unlock()
-		return false
-	}
-	if a.quitPending {
-		a.quitMu.Unlock()
-		return true
-	}
-	a.quitPending = true
-	a.quitMu.Unlock()
-	runtime.EventsEmit(ctx, "kurlo:before-quit")
-	return true
+	return a.quit.beforeClose(ctx)
 }
 
 func (a *App) AppInfo() model.AppInfo {
@@ -158,33 +145,25 @@ func (a *App) emitWorkspaceChanged(reason string) {
 	runtime.EventsEmit(a.ctx, "kurlo:workspace-changed", reason)
 }
 
-func (a *App) Hide() {
-	if a.ctx != nil {
-		runtime.WindowHide(a.ctx)
-	}
-}
-
 func (a *App) Quit() {
 	if a.ctx != nil {
 		runtime.Quit(a.ctx)
 	}
 }
 
+func (a *App) AckQuit() {
+	a.quit.acknowledge()
+}
+
 func (a *App) ConfirmQuit() {
 	if a.ctx == nil {
 		return
 	}
-	a.quitMu.Lock()
-	a.allowQuit = true
-	a.quitPending = false
-	a.quitMu.Unlock()
-	runtime.Quit(a.ctx)
+	a.quit.confirm(a.ctx)
 }
 
 func (a *App) CancelQuit() {
-	a.quitMu.Lock()
-	a.quitPending = false
-	a.quitMu.Unlock()
+	a.quit.cancel()
 }
 
 func (a *App) SetAppThemeBackground(theme string, background string) {

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte';
-  import { getAppInfo, checkForUpdate, applyUpdate, restartApp, clipboardSet } from './lib/backend';
+  import { getAppInfo, checkForUpdate, applyUpdate, restartApp, clipboardSet, ackQuit } from './lib/backend';
   import type { MockRequestLog, OAuth2DevicePrompt, UpdateInfo } from './lib/backend';
   import { hasReleaseNotes } from 'virtual:kurlo-changelog-meta';
   import { isReleaseVersion, latestReleaseNotes, releaseNotesFor, shouldShowWhatsNew, type ChangelogSection } from './lib/whatsNew';
@@ -245,6 +245,7 @@
   onMount(() => {
     const uninstallTitlebarDoubleClick = installTitlebarDoubleClickHandler();
     const offBeforeQuit = window.runtime?.EventsOn?.('kurlo:before-quit', () => {
+      void ackQuit();
       void vm.reviewDraftsBeforeQuit();
     });
     const offDevicePrompt = window.runtime?.EventsOn?.<OAuth2DevicePrompt>('oauth2:device-prompt', prompt => {
