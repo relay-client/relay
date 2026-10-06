@@ -63,10 +63,40 @@ const checks = [
 const extras = [
   { title: 'Your browser’s cookies', text: 'Pair the extension for Chrome, Edge, Brave or Firefox and send with the session you’re already signed into.', link: 'docs/guides/cookies/' },
   { title: 'Every environment side by side', text: 'A matrix of variables across environments. The token missing from staging is one glance away.', link: 'docs/guides/environments/' },
-  { title: 'AI agents can run your requests', text: 'kurlo mcp lets Claude or Cursor list and run saved requests, with secret values masked.', link: 'docs/guides/mcp-server/' },
+  { title: 'Auth set once per collection', text: 'Headers, auth, scripts and settings defined on a collection apply to every request inside it.', link: 'docs/guides/collection-defaults/' },
   { title: 'Keyboard first', text: 'A command palette and rebindable shortcuts that follow the physical key on any layout.', link: 'docs/reference/keyboard-shortcuts/' },
   { title: 'History you can reopen', text: 'Every send with its response, kept for 14 days. Open an old one back in the editor.', link: 'docs/guides/history/' },
   { title: 'Large responses stay fast', text: 'Bodies over 10 MB are paged instead of freezing the window. Images, HTML and PDFs preview inline.', link: 'docs/guides/response-viewer/' },
+];
+
+const agentClients = [
+  {
+    id: 'claude-code',
+    label: 'Claude Code',
+    code: '<span class="d">$</span> claude mcp add kurlo -- \\\n    /Applications/Kurlo.app/Contents/MacOS/kurlo mcp --env Staging',
+  },
+  {
+    id: 'mcp-json',
+    label: 'Cursor and other clients',
+    code: [
+      '<span class="d">// .cursor/mcp.json or claude_desktop_config.json</span>',
+      '{',
+      '  "mcpServers": {',
+      '    "kurlo": {',
+      '      "command": "/Applications/Kurlo.app/Contents/MacOS/kurlo",',
+      '      "args": ["mcp", "--env", "Staging"]',
+      '    }',
+      '  }',
+      '}',
+    ].join('\n'),
+  },
+];
+
+const agentTicks = [
+  'Runs saved requests with their collection auth, scripts and tests',
+  'A login request run once hands its token to every call after it',
+  'Reads the workspace on each call, so your last edit is what runs',
+  'The same engine as kurlo run in CI',
 ];
 
 type Mark = 'yes' | 'part' | 'no';
@@ -178,7 +208,7 @@ const faq = [
   { q: 'Which platforms?', a: 'macOS on Apple silicon and Intel, Windows 10 and 11 on x64 and Arm64, and Linux x64 as an AppImage.' },
 ];
 
-const codeTerms = /(pm\.sendRequest|CryptoJS|require|setTimeout|postman\.setNextRequest|kurlo run \.\/workspace --env CI|kurlo mcp|pm\.\*|bru\.\*)/g;
+const codeTerms = /(pm\.sendRequest|CryptoJS|require|setTimeout|postman\.setNextRequest|kurlo run \.\/workspace --env CI|kurlo run|kurlo mcp|pm\.\*|bru\.\*)/g;
 const withCode = (text: string) => text.split(codeTerms).map((part, i) => (i % 2 ? { code: part } : { text: part }));
 
 const pricingBody = '<span>content-type</span>: text/plain\n\nEvery feature is in the free app.\nThere is nothing to upgrade to.';
@@ -254,6 +284,7 @@ const ldJson = JSON.stringify({
       </a>
       <nav class="nav-links" aria-label="Site">
         <a href="#tour">Features</a>
+        <a href="#agents">AI agents</a>
         <a href="#browser">Browser checks</a>
         <a href="#compare">Compare</a>
         <a href="#faq">FAQ</a>
@@ -283,6 +314,10 @@ const ldJson = JSON.stringify({
               </a>
               <a class="btn btn-quiet" href="#switch">Bring my Postman collection</a>
             </div>
+            <a class="hero-agents" href="#agents">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M7.5 7.5l-2-2m13 13-2-2m0-9 2-2m-13 13 2-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/></svg>
+              <span>Works with Claude Code, Cursor and any MCP client&nbsp;→</span>
+            </a>
             <ul class="hero-meta">
               {heroMeta.map(item => (
                 <li>
@@ -349,6 +384,49 @@ const ldJson = JSON.stringify({
               <div><b>✓</b> status is 200 <span>· 0.4 ms</span></div>
               <div><b>✓</b> returns a session <span>· 0.6 ms</span></div>
             </div>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="agents" aria-labelledby="agents-title">
+      <div class="wrap">
+        <div class="head">
+          <h2 id="agents-title">Your AI agent can run your requests.</h2>
+          <p>The app is also an MCP server. Connect Claude Code, Cursor or any MCP client, and the agent can list your collections, send saved requests and run their tests. Your tokens reach the API; the model only ever sees <code>[secret]</code>.</p>
+        </div>
+        <div class="agents">
+          <div>
+            <div class="tabs" role="tablist" aria-label="MCP client">
+              {agentClients.map((client, i) => (
+                <button class="tab" type="button" role="tab" id={`agent-${client.id}`} aria-controls={`agent-panel-${client.id}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1}>{client.label}</button>
+              ))}
+            </div>
+            {agentClients.map((client, i) => (
+              <pre class="cli agent-cli" role="tabpanel" id={`agent-panel-${client.id}`} aria-labelledby={`agent-${client.id}`} hidden={i !== 0} set:html={client.code} />
+            ))}
+            <p class="agent-note">Nothing extra to install: the Kurlo binary you already have is the server.</p>
+            <ul class="ticks">{agentTicks.map(item => <li><span>{withCode(item).map(part => ('code' in part ? <code>{part.code}</code> : part.text))}</span></li>)}</ul>
+            <a class="tour-link" href={href('docs/guides/mcp-server/')}>Connect an assistant →</a>
+          </div>
+
+          <figure class="agent" aria-label="An AI agent runs the Checkout collection through kurlo mcp, finds the failing payment request and explains why">
+            <div class="script-head"><span>Agent session</span><span>kurlo mcp · Staging</span></div>
+            <ol class="agent-log">
+              <li class="agent-say"><span class="who">you</span><p>Check that checkout still works on staging.</p></li>
+              <li class="agent-call">
+                <div><span class="tool">run_collection</span> <span class="dim">Checkout</span></div>
+                <div><b class="ok">✓</b> POST /cart <span class="dim">→</span> 201 <span class="dim">[2/2]</span></div>
+                <div><b class="ok">✓</b> POST /orders <span class="dim">→</span> 201 <span class="dim">[3/3]</span></div>
+                <div><b class="err">✗</b> POST /payments <span class="dim">→</span> <span class="err">422</span> <span class="dim">[0/1]</span></div>
+              </li>
+              <li class="agent-call">
+                <div><span class="tool">get_request</span> <span class="dim">Checkout/Create payment</span></div>
+                <div class="dim">"amount": "&#123;&#123;total&#125;&#125;", "currency": "EUR"</div>
+              </li>
+              <li class="agent-say"><span class="who">agent</span><p>Payments fails: the body sends <em>amount</em> as a string, and the API now wants a number. Remove the quotes around <em>&#123;&#123;total&#125;&#125;</em>?</p></li>
+            </ol>
+            <div class="agent-foot">Authorization: Bearer <span>[secret]</span> <span class="dim">· the token is sent, never shown to the model</span></div>
           </figure>
         </div>
       </div>
