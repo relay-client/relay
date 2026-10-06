@@ -20,6 +20,8 @@ import (
 var assets embed.FS
 
 func main() {
+	var previousInstance int
+	os.Args, previousInstance = api.TakeRelaunchWait(os.Args)
 	if len(os.Args) >= 2 {
 		switch os.Args[1] {
 		case "--version", "-version", "version":
@@ -39,6 +41,8 @@ func main() {
 	if len(os.Args) >= 2 && os.Args[1] == "mcp" {
 		os.Exit(api.RunMCPServer(os.Args[2:]))
 	}
+
+	api.WaitForPreviousInstance(previousInstance)
 
 	if path, err := api.InstallLogFile(); err != nil {
 		fmt.Fprintf(os.Stderr, "kurlo: could not open the log file at %s: %v\n", path, err)

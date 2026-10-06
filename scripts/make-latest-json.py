@@ -12,7 +12,7 @@ Usage:
         --tag v0.1.5 \
         --repo stormhop/kurlo \
         --notes-file release-notes.md \
-        [--platforms darwin-universal,darwin-universal-app,windows-amd64,windows-arm64,linux-amd64]
+        [--platforms darwin-universal,darwin-universal-app,windows-amd64,windows-arm64,linux-amd64,linux-amd64-appimage]
 
 If --platforms is omitted, every entry from the default platform table is
 included. Missing assets cause an error UNLESS --platforms restricts the set.
@@ -32,6 +32,7 @@ DEFAULT_ASSETS = {
     "windows-amd64": "kurlo-windows-amd64.exe",
     "windows-arm64": "kurlo-windows-arm64.exe",
     "linux-amd64": "kurlo-linux-amd64",
+    "linux-amd64-appimage": "kurlo-{version}-linux-amd64.AppImage",
 }
 
 
@@ -87,6 +88,7 @@ def main() -> int:
     else:
         assets = DEFAULT_ASSETS
         strict = False
+    assets = {p: name.format(version=version) for p, name in assets.items()}
 
     manifest: dict = {
         "version": version,

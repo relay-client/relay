@@ -363,7 +363,7 @@ jobs:
           key_file="$(mktemp)"
           printf '%s\n' "$UPDATE_SIGNING_KEY" > "$key_file"
           trap 'rm -f "$key_file"' EXIT
-          for asset in release/kurlo-darwin-universal release/kurlo-darwin-universal.app.zip release/kurlo-windows-amd64.exe release/kurlo-windows-arm64.exe release/kurlo-linux-amd64; do
+          for asset in release/kurlo-darwin-universal release/kurlo-darwin-universal.app.zip release/kurlo-windows-amd64.exe release/kurlo-windows-arm64.exe release/kurlo-linux-amd64 "release/kurlo-${GITHUB_REF_NAME#v}-linux-amd64.AppImage"; do
             if [ ! -f "$asset" ]; then
               echo "::error::missing asset for signing: $asset"
               exit 1
@@ -384,7 +384,7 @@ jobs:
             --tag "$GITHUB_REF_NAME"
             --repo "$UPDATE_REPOSITORY"
             --notes-file release-notes.md
-            --platforms darwin-universal,darwin-universal-app,windows-amd64,windows-arm64,linux-amd64
+            --platforms darwin-universal,darwin-universal-app,windows-amd64,windows-arm64,linux-amd64,linux-amd64-appimage
             --require-signature
           )
           python3 scripts/make-latest-json.py "${args[@]}"

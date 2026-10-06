@@ -51,9 +51,12 @@ func isBundleArchive(assetName string) bool {
 	return strings.HasSuffix(strings.ToLower(strings.TrimSpace(assetName)), ".app.zip")
 }
 
-func updatePlatformKeys(goos, bundlePath, platform string) []string {
+func updatePlatformKeys(goos, bundlePath, appImagePath, platform string) []string {
 	if goos == "darwin" && bundlePath != "" {
 		return []string{bundleManifestKey, platform}
+	}
+	if goos == "linux" && appImagePath != "" {
+		return []string{appImageManifestKey(platform)}
 	}
 	return []string{platform}
 }

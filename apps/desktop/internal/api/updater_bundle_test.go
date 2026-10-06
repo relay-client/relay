@@ -25,13 +25,13 @@ func TestAppBundleFromExecutable(t *testing.T) {
 }
 
 func TestUpdatePlatformKeysPreferTheBundleInsideAMacApp(t *testing.T) {
-	if got := updatePlatformKeys("darwin", "/Applications/Kurlo.app", "darwin-universal"); strings.Join(got, ",") != "darwin-universal-app,darwin-universal" {
+	if got := updatePlatformKeys("darwin", "/Applications/Kurlo.app", "", "darwin-universal"); strings.Join(got, ",") != "darwin-universal-app,darwin-universal" {
 		t.Fatalf("a Mac app should ask for the whole bundle first, got %v", got)
 	}
-	if got := updatePlatformKeys("darwin", "", "darwin-universal"); strings.Join(got, ",") != "darwin-universal" {
+	if got := updatePlatformKeys("darwin", "", "", "darwin-universal"); strings.Join(got, ",") != "darwin-universal" {
 		t.Fatalf("a bare binary has no bundle to replace, got %v", got)
 	}
-	if got := updatePlatformKeys("windows", "", "windows-amd64"); strings.Join(got, ",") != "windows-amd64" {
+	if got := updatePlatformKeys("windows", "", "", "windows-amd64"); strings.Join(got, ",") != "windows-amd64" {
 		t.Fatalf("other platforms keep their key, got %v", got)
 	}
 }

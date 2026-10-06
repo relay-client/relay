@@ -44,6 +44,7 @@ func buildFakeRelease(t *testing.T, withSignatures bool) (dir string, checksums 
 		"windows-amd64":        "kurlo-windows-amd64.exe",
 		"windows-arm64":        "kurlo-windows-arm64.exe",
 		"linux-amd64":          "kurlo-linux-amd64",
+		"linux-amd64-appimage": "kurlo-9.9.9-linux-amd64.AppImage",
 	}
 	for platform, asset := range assets {
 		body := []byte("fake binary for " + platform)
@@ -71,7 +72,7 @@ func generateManifest(t *testing.T, releaseDir string, extraArgs ...string) *upd
 		"--release-dir", releaseDir,
 		"--tag", "v9.9.9",
 		"--repo", "stormhop/kurlo",
-		"--platforms", "darwin-universal,darwin-universal-app,windows-amd64,windows-arm64,linux-amd64",
+		"--platforms", "darwin-universal,darwin-universal-app,windows-amd64,windows-arm64,linux-amd64,linux-amd64-appimage",
 	}, extraArgs...)
 
 	output, err := exec.Command(python, args...).CombinedOutput()
@@ -141,6 +142,26 @@ func TestGeneratedManifestCarriesThisPlatformsKey(t *testing.T) {
 	}
 	if info.AssetName == "" || strings.Contains(info.AssetName, "/") {
 		t.Fatalf("expected a bare asset name, got %q", info.AssetName)
+	}
+}
+
+func TestGeneratedManifestPointsAppImagesAtTheVersionedAppImage(t *testing.T) {
+	releaseDir, checksums := buildFakeRelease(t, true)
+
+	manifest := generateManifest(t, releaseDir, "--require-signature")
+
+	info, err := updateInfoFromManifestFor(manifest, updatePlatformKeys("linux", "", "/home/u/Kurlo.AppImage", "linux-amd64"))
+	if err != nil {
+		t.Fatalf("an AppImage found no update in a manifest the release would publish: %v", err)
+	}
+	if info.AssetName != "kurlo-9.9.9-linux-amd64.AppImage" || !isAppImageAsset(info.AssetName) {
+		t.Fatalf("expected the versioned AppImage, got %q", info.AssetName)
+	}
+	if info.SHA256 != checksums["linux-amd64-appimage"] {
+		t.Fatal("the AppImage checksum does not match the built asset")
+	}
+	if !strings.HasSuffix(info.SignatureURL, "/kurlo-9.9.9-linux-amd64.AppImage.minisig") {
+		t.Fatalf("expected the AppImage signature, got %q", info.SignatureURL)
 	}
 }
 

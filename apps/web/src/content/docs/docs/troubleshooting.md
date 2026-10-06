@@ -113,6 +113,10 @@ The downloaded binary's SHA-256 or minisign signature didn't match what `latest.
 - Antivirus modified the binary in transit — temporarily allowlist the Kurlo update cache.
 - Compromised release channel — file a security issue immediately ([SECURITY.md](https://github.com/stormhop/kurlo/blob/main/SECURITY.md)).
 
+### Linux: "Kurlo cannot replace its AppImage file in this folder"
+
+Kurlo updates an AppImage by replacing the `.AppImage` file it was started from, and the folder that holds it is read-only for your user, for example `/opt`. Move the AppImage to a folder you own, such as `~/Applications`, and install the update again. AppImages from Kurlo 2.2.3 and earlier cannot update themselves at all: download 2.2.4 or later from the [download page](/download/) once.
+
 ### Update applied but Kurlo didn't restart
 
 Click *Restart now* in Settings → Updates. If that doesn't work, quit Kurlo manually and reopen it — the new binary is already in place.

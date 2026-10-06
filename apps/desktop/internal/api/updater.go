@@ -177,7 +177,7 @@ func checkForUpdate(ctx context.Context) (*model.UpdateInfo, error) {
 }
 
 func updateInfoFromManifest(manifest *updateManifest) (*model.UpdateInfo, error) {
-	info, err := updateInfoFromManifestFor(manifest, updatePlatformKeys(goruntime.GOOS, runningAppBundle(), platformKey()))
+	info, err := updateInfoFromManifestFor(manifest, updatePlatformKeys(goruntime.GOOS, runningAppBundle(), runningAppImage(), platformKey()))
 	if err != nil {
 		return nil, err
 	}
@@ -329,6 +329,9 @@ func downloadAndApply(ctx context.Context, info *model.UpdateInfo) error {
 		}
 		return applyBundleUpdate(tmpPath, bundle, info.Version)
 	}
+	if isAppImageAsset(info.AssetName) {
+		return applyAppImageUpdate(tmpPath, runningAppImage())
+	}
 	file, err := os.Open(tmpPath)
 	if err != nil {
 		return err
@@ -389,8 +392,8 @@ func downloadUpdateAsset(ctx context.Context, downloadURL string) (string, error
 }
 
 func relaunchSelf() {
-	exe, err := os.Executable()
-	if err != nil {
+	exe := relaunchExecutable(launchExecutable, currentExecutable())
+	if exe == "" {
 		os.Exit(0)
 	}
 	if goruntime.GOOS == "darwin" {
@@ -402,9 +405,7 @@ func relaunchSelf() {
 			os.Exit(0)
 		}
 	}
-	cmd := exec.Command(exe)
-	hideCmdWindow(cmd)
-	_ = cmd.Start()
+	_ = relaunchCommand(relaunchTarget(goruntime.GOOS, exe, runningAppImage()), os.Getpid()).Start()
 	os.Exit(0)
 }
 
@@ -430,6 +431,8 @@ func friendlyUpdateError(err error, action string) string {
 		return base + " The update server returned an unexpected location. Please try again later."
 	case errors.Is(err, errUpdateVersionRollback):
 		return base + " The available update is not newer than the installed version."
+	case errors.Is(err, errUpdateAppImageNotWritable):
+		return base + " Kurlo cannot replace its AppImage file in this folder. Download the new AppImage from kurlo.dev and replace the old one."
 	case errors.Is(err, errUpdateManagedByPackage):
 		return base + " Kurlo is installed from the Windows app package, which Windows keeps read-only. Download the new package and open it to update."
 	}

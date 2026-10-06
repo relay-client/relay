@@ -11,6 +11,9 @@ All notable changes to Kurlo are documented here. This project follows
 
 - **On Linux, closing the window left Kurlo running with no way back.** The close button hid the window instead of quitting, and with no Dock or tray icon to bring it back, the hidden Kurlo kept running. Opening Kurlo again just woke that hidden copy, which could come back as a blank window. Closing the window now quits Kurlo on Linux and Windows. macOS keeps the app in the Dock as before. The Linux menu no longer has **Show Window** and **Hide Window**.
 - **Quit did nothing when the window had stopped responding.** Quitting waits for the window to save your changes, so a window that never answered kept Kurlo open for good. If the window does not answer within five seconds, Kurlo now quits anyway. A window that is still asking whether to save your changes is never cut short.
+- **On Windows, Restart after an update closed Kurlo instead of reopening it.** The new version did start, but with its window hidden, so it looked like Kurlo had quit until you opened it again. Restart now brings the new version back in view.
+- **On Linux, Restart after an update closed Kurlo for good.** Installing the update replaced the running file, and Restart then tried to start the old file, which no longer existed. Restart now starts the file Kurlo was launched from. The new copy also waits for the old one to exit, so it is not mistaken for a second launch.
+- **The Linux AppImage could not install updates.** The updater tried to write inside the AppImage, which is read-only while it runs, and failed with "Please try again in a moment" every time. The updater now replaces the `.AppImage` file itself and restarts from it. It needs write access to the folder that holds the AppImage. AppImages from 2.2.3 and earlier still cannot update themselves: download 2.2.4 by hand once, and updates install from then on.
 
 ## [2.2.3] - 2026-10-05
 
