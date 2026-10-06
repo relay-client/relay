@@ -7,6 +7,12 @@ tableOfContents:
 
 This page summarizes the notable-change log maintained in the source repository. For the exact notes and artifacts attached to every published tag, use the [Kurlo releases page](https://github.com/stormhop/kurlo/releases).
 
+## Unreleased
+
+### Added
+
+- **The command line is on npm: `npx -y @kurlo/cli`.** `kurlo run` and `kurlo mcp` work without the desktop app, on macOS, Linux and Windows. An AI agent connects with `claude mcp add kurlo -- npx -y @kurlo/cli mcp`, and CI runs a workspace with `npx -y @kurlo/cli run ./workspace --env CI`. See [MCP server](/docs/guides/mcp-server/) and [CLI runner](/docs/guides/cli-runner/).
+
 ## 2.2.4
 
 ### Fixed

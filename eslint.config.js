@@ -14,6 +14,7 @@ export default [
       'apps/desktop/build/**',
       'apps/desktop/frontend/wailsjs/**',
       'perf/fixtures/**',
+      'release/**',
     ],
   },
 

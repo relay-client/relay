@@ -29,6 +29,12 @@ Grab the latest build from the [releases page](https://github.com/stormhop/kurlo
 
 Every release ships SHA256 checksums and minisign signatures, and the in-app updater refuses any binary that fails either check.
 
+The command line (`kurlo run` for CI, `kurlo mcp` for AI agents) is also on npm as [`@kurlo/cli`](https://www.npmjs.com/package/@kurlo/cli), with prebuilt binaries for macOS, Linux and Windows on x64 and arm64. It does not need the desktop app:
+
+```bash
+npx -y @kurlo/cli --version
+```
+
 Guides, the scripting reference, and the YAML workspace format live in the **[documentation site](https://kurlo.dev/)**.
 
 ---
@@ -84,16 +90,16 @@ pm.test("has an id", () => pm.response.to.have.jsonSchema({ type: "object", requ
 - Request history — every send on its own page, request and stored response side by side, reopenable in the editor (14-day retention, 1000 entries)
 - Collection runner — sequential or parallel, data files, iterations, an HTML report, and the last run of every collection kept
 - Git-backed YAML workspaces with diagnostics, conflict helpers, and local-only secrets
-- **CLI runner** — `kurlo run ./workspace --env CI` executes requests and their test scripts for CI, with data-driven iterations (`--data`), pretty/JSON/JUnit reporters, variable export, and a non-zero exit code on failure
+- **CLI runner** — `npx -y @kurlo/cli run ./workspace --env CI` executes requests and their test scripts for CI, with data-driven iterations (`--data`), pretty/JSON/JUnit reporters, variable export, and a non-zero exit code on failure
 
-**AI agents (MCP server)** — the Kurlo binary is also a Model Context Protocol server, so Claude Code, Codex, Cursor, Claude Desktop or any other MCP client can list your collections and environments, read how a request is defined, run saved requests and whole collections with their auth, scripts and tests, and send one-off calls with your `{{variables}}`. A login request run once hands its token to every call after it. The workspace is re-read on every call, so your last edit in the app is what runs. Secret environment values are sent to the API but masked as `[secret]` in everything the model sees. Nothing extra to install:
+**AI agents (MCP server)** — the Kurlo binary is also a Model Context Protocol server, so Claude Code, Codex, Cursor, Claude Desktop or any other MCP client can list your collections and environments, read how a request is defined, run saved requests and whole collections with their auth, scripts and tests, and send one-off calls with your `{{variables}}`. A login request run once hands its token to every call after it. The workspace is re-read on every call, so your last edit in the app is what runs. Secret environment values are sent to the API but masked as `[secret]` in everything the model sees. `npx` fetches the server from npm, so it works with or without the app installed:
 
 ```bash
 # Claude Code
-claude mcp add kurlo -- /Applications/Kurlo.app/Contents/MacOS/kurlo mcp --env Staging
+claude mcp add kurlo -- npx -y @kurlo/cli mcp --env Staging
 
 # Codex (CLI, IDE extension and desktop app share one config)
-codex mcp add kurlo -- /Applications/Kurlo.app/Contents/MacOS/kurlo mcp --env Staging
+codex mcp add kurlo -- npx -y @kurlo/cli mcp --env Staging
 ```
 
 Cursor, Claude Desktop and other clients with a JSON config (`.cursor/mcp.json`, `claude_desktop_config.json`, …):
@@ -102,14 +108,14 @@ Cursor, Claude Desktop and other clients with a JSON config (`.cursor/mcp.json`,
 {
   "mcpServers": {
     "kurlo": {
-      "command": "/Applications/Kurlo.app/Contents/MacOS/kurlo",
-      "args": ["mcp", "--env", "Staging"]
+      "command": "npx",
+      "args": ["-y", "@kurlo/cli", "mcp", "--env", "Staging"]
     }
   }
 }
 ```
 
-On Linux and Windows, use the path to the installed `kurlo` executable. Tools, flags and serving a Git-backed workspace are covered in the [MCP server guide](https://kurlo.dev/docs/guides/mcp-server/).
+Without Node.js, point the client at the desktop app instead: `/Applications/Kurlo.app/Contents/MacOS/kurlo mcp` on macOS, or the installed `kurlo` executable on Linux and Windows. Tools, flags and serving a Git-backed workspace are covered in the [MCP server guide](https://kurlo.dev/docs/guides/mcp-server/).
 
 **Response examples** — save any response as a named example on its request: the status, headers and body it came back with, alongside the request that produced it. Secrets are redacted on capture, a clean body is stored byte for byte, and examples ride along through Postman, OpenCollection, HAR and OpenAPI imports and exports. A response can be diffed against an example instead of against the previous send.
 
@@ -186,6 +192,7 @@ See `make help` for every available target.
 ```
 apps/desktop/               Wails v2 desktop application
 apps/desktop/main.go        Entry point, window config, native menus
+apps/desktop/cmd/kurlo/     Headless CLI (run, mcp) published to npm as @kurlo/cli
 apps/desktop/internal/
   api/                      HTTP executor, auth, request store, state
   api/auth/                 Bearer, Basic, Digest, API Key, OAuth2, AWS SigV4
@@ -199,6 +206,7 @@ apps/desktop/frontend/src/
   lib/backend.ts            Wails bridge type definitions
 apps/extension/             Cookie Sync browser extension (MV3 + Firefox event page)
 apps/web/                   Astro Starlight documentation site
+npm/cli/                    The @kurlo/cli npm launcher; scripts/build-npm-packages.mjs adds the binaries
 schemas/                    Public Git/YAML workspace JSON Schema
 perf/                       Generated performance fixtures (ignored by Git)
 ```

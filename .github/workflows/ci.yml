@@ -91,6 +91,9 @@ jobs:
       - name: Test Go (race detector)
         run: go test -race ./apps/desktop/...
 
+      - name: Build the npm CLI without cgo
+        run: node scripts/build-npm-packages.mjs --version 0.0.0-ci --out "$RUNNER_TEMP/npm"
+
       - name: Dead code check
         run: |
           output=$(go run golang.org/x/tools/cmd/deadcode@v0.45.0 -test ./apps/desktop/...)

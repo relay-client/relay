@@ -5,6 +5,12 @@ All notable changes to Kurlo are documented here. This project follows
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- **`kurlo run` and `kurlo mcp` without the desktop app: `npx -y @kurlo/cli`.** The command line is now on npm as `@kurlo/cli`, with prebuilt binaries for macOS, Linux and Windows on x64 and arm64. npm downloads only the one your machine needs, about 8 MB. An AI agent connects with one line on every system, for example `claude mcp add kurlo -- npx -y @kurlo/cli mcp`, instead of a path into the app bundle, and a CI runner can run a workspace's tests with `npx -y @kurlo/cli run ./workspace --env CI` without installing the app. It is the same engine as the app, and with no workspace argument `kurlo mcp` still serves the workspace the app has open. See [MCP server](https://kurlo.dev/docs/guides/mcp-server/) and [CLI runner](https://kurlo.dev/docs/guides/cli-runner/).
+
 ## [2.2.4] - 2026-10-06
 
 ### Fixed

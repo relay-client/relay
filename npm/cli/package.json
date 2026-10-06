@@ -1,0 +1,37 @@
+{
+  "name": "@kurlo/cli",
+  "version": "0.0.0",
+  "description": "Kurlo's command line: run API collections in CI and serve them to AI agents over MCP.",
+  "keywords": [
+    "api",
+    "api-client",
+    "http",
+    "mcp",
+    "mcp-server",
+    "postman",
+    "cli",
+    "testing"
+  ],
+  "homepage": "https://kurlo.dev",
+  "bugs": "https://github.com/stormhop/kurlo/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stormhop/kurlo.git",
+    "directory": "npm/cli"
+  },
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "kurlo": "bin/kurlo.js"
+  },
+  "files": [
+    "bin"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  }
+}

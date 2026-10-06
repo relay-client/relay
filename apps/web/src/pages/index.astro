@@ -73,19 +73,18 @@ const agentClients = [
   {
     id: 'claude-code',
     label: 'Claude Code',
-    code: '<span class="d">$</span> claude mcp add kurlo -- \\\n    /Applications/Kurlo.app/Contents/MacOS/kurlo mcp --env Staging',
+    code: '<span class="d">$</span> claude mcp add kurlo -- npx -y @kurlo/cli mcp --env Staging',
   },
   {
     id: 'codex',
     label: 'Codex',
     code: [
-      '<span class="d">$</span> codex mcp add kurlo -- \\',
-      '    /Applications/Kurlo.app/Contents/MacOS/kurlo mcp --env Staging',
+      '<span class="d">$</span> codex mcp add kurlo -- npx -y @kurlo/cli mcp --env Staging',
       '',
       '<span class="d"># or in ~/.codex/config.toml</span>',
       '[mcp_servers.kurlo]',
-      'command = "/Applications/Kurlo.app/Contents/MacOS/kurlo"',
-      'args = ["mcp", "--env", "Staging"]',
+      'command = "npx"',
+      'args = ["-y", "@kurlo/cli", "mcp", "--env", "Staging"]',
     ].join('\n'),
   },
   {
@@ -96,8 +95,8 @@ const agentClients = [
       '{',
       '  "mcpServers": {',
       '    "kurlo": {',
-      '      "command": "/Applications/Kurlo.app/Contents/MacOS/kurlo",',
-      '      "args": ["mcp", "--env", "Staging"]',
+      '      "command": "npx",',
+      '      "args": ["-y", "@kurlo/cli", "mcp", "--env", "Staging"]',
       '    }',
       '  }',
       '}',
@@ -215,13 +214,13 @@ const faq = [
   { q: 'Does Kurlo send anything home?', a: 'No analytics and no crash reports. The network carries your requests, OAuth, Git and the update check. Nothing else.' },
   { q: 'How does my team share collections?', a: 'Put the workspace in a Git repository. Requests are YAML you review in pull requests; secrets stay on each machine.' },
   { q: 'Will my Postman scripts work?', a: 'Most run unchanged, including pm.sendRequest, CryptoJS and require for lodash, ajv, chai and uuid. setTimeout, async and await, and postman.setNextRequest aren’t supported yet.' },
-  { q: 'Can I run tests in CI?', a: 'kurlo run ./workspace --env CI runs the same requests and scripts, writes JUnit or JSON, and exits non-zero on a failed test.' },
+  { q: 'Can I run tests in CI?', a: 'npx @kurlo/cli run ./workspace --env CI runs the same requests and scripts, writes JUnit or JSON, and exits non-zero on a failed test. No desktop app needed on the runner.' },
   { q: 'macOS says the app can’t be opened.', a: 'Builds aren’t notarized by Apple yet. Right-click Kurlo.app, choose Open, and confirm once. Every update is checked against a SHA-256 hash and a minisign signature before it installs.' },
   { q: 'Is it maintained?', a: 'New versions ship often, and every change is listed in the public changelog. Updates install from inside the app.' },
   { q: 'Which platforms?', a: 'macOS on Apple silicon and Intel, Windows 10 and 11 on x64 and Arm64, and Linux x64 as an AppImage.' },
 ];
 
-const codeTerms = /(pm\.sendRequest|CryptoJS|require|setTimeout|postman\.setNextRequest|kurlo run \.\/workspace --env CI|kurlo run|kurlo mcp|pm\.\*|bru\.\*)/g;
+const codeTerms = /(pm\.sendRequest|CryptoJS|require|setTimeout|postman\.setNextRequest|npx @kurlo\/cli run \.\/workspace --env CI|kurlo run|kurlo mcp|pm\.\*|bru\.\*)/g;
 const withCode = (text: string) => text.split(codeTerms).map((part, i) => (i % 2 ? { code: part } : { text: part }));
 
 const pricingBody = '<span>content-type</span>: text/plain\n\nEvery feature is in the free app.\nThere is nothing to upgrade to.';
@@ -406,7 +405,7 @@ const ldJson = JSON.stringify({
       <div class="wrap">
         <div class="head">
           <h2 id="agents-title">Your AI agent can run your requests.</h2>
-          <p>The app is also an MCP server. Connect Claude Code, Codex, Cursor or any MCP client, and the agent can list your collections, send saved requests and run their tests. Your tokens reach the API; the model only ever sees <code>[secret]</code>.</p>
+          <p>Kurlo is also an MCP server. Connect Claude Code, Codex, Cursor or any MCP client, and the agent can list your collections, send saved requests and run their tests. Your tokens reach the API; the model only ever sees <code>[secret]</code>.</p>
         </div>
         <div class="agents">
           <div>
@@ -418,7 +417,8 @@ const ldJson = JSON.stringify({
             {agentClients.map((client, i) => (
               <pre class="cli agent-cli" role="tabpanel" id={`agent-panel-${client.id}`} aria-labelledby={`agent-${client.id}`} hidden={i !== 0} set:html={client.code} />
             ))}
-            <p class="agent-note">Nothing extra to install: the Kurlo binary you already have is the server.</p>
+            <p class="agent-note">npx fetches the server from npm, with or without the app installed. To keep it around, install it once:</p>
+            <pre class="cli agent-install"><span class="d">$</span> npm install -g @kurlo/cli</pre>
             <ul class="ticks">{agentTicks.map(item => <li><span>{withCode(item).map(part => ('code' in part ? <code>{part.code}</code> : part.text))}</span></li>)}</ul>
             <a class="tour-link" href={href('docs/guides/mcp-server/')}>Connect an assistant →</a>
           </div>

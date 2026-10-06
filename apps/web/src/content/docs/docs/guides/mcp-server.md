@@ -5,30 +5,28 @@ description: Let Claude, Codex, Cursor and other AI assistants list, inspect and
 
 `kurlo mcp` serves a Kurlo workspace to AI assistants as a [Model Context Protocol](https://modelcontextprotocol.io) server. Once it is connected, an assistant can see your collections and environments, run a saved request and read the response, run a collection's tests, or send a one-off call that uses your environment's variables. It does this with the same engine as the app and [`kurlo run`](/docs/guides/cli-runner/).
 
-The desktop binary is the server. There is nothing extra to install. The assistant starts `kurlo mcp` itself and talks to it over stdin and stdout.
+The assistant starts `kurlo mcp` itself and talks to it over stdin and stdout. The server comes from the [`@kurlo/cli`](https://www.npmjs.com/package/@kurlo/cli) npm package, which `npx` downloads on first use, so the commands below work with or without the desktop app installed.
 
 ## Connect an assistant
-
-On macOS the binary is inside the app bundle, at `/Applications/Kurlo.app/Contents/MacOS/kurlo`. On Linux and Windows, use the path to the installed `kurlo` executable.
 
 **Claude Code**
 
 ```bash
-claude mcp add kurlo -- /Applications/Kurlo.app/Contents/MacOS/kurlo mcp --env Local
+claude mcp add kurlo -- npx -y @kurlo/cli mcp --env Local
 ```
 
 **Codex** (CLI, IDE extension and desktop app share one config)
 
 ```bash
-codex mcp add kurlo -- /Applications/Kurlo.app/Contents/MacOS/kurlo mcp --env Local
+codex mcp add kurlo -- npx -y @kurlo/cli mcp --env Local
 ```
 
 or in `~/.codex/config.toml`:
 
 ```toml
 [mcp_servers.kurlo]
-command = "/Applications/Kurlo.app/Contents/MacOS/kurlo"
-args = ["mcp", "--env", "Local"]
+command = "npx"
+args = ["-y", "@kurlo/cli", "mcp", "--env", "Local"]
 ```
 
 **Claude Desktop, Cursor and other clients with a JSON config** (`claude_desktop_config.json`, `.cursor/mcp.json`, …)
@@ -37,11 +35,19 @@ args = ["mcp", "--env", "Local"]
 {
   "mcpServers": {
     "kurlo": {
-      "command": "/Applications/Kurlo.app/Contents/MacOS/kurlo",
-      "args": ["mcp", "--env", "Local"]
+      "command": "npx",
+      "args": ["-y", "@kurlo/cli", "mcp", "--env", "Local"]
     }
   }
 }
+```
+
+### Without Node.js
+
+The desktop app is the same server. Point the client at its binary instead of `npx`: `/Applications/Kurlo.app/Contents/MacOS/kurlo` on macOS, or the installed `kurlo` executable on Linux and Windows.
+
+```bash
+claude mcp add kurlo -- /Applications/Kurlo.app/Contents/MacOS/kurlo mcp --env Local
 ```
 
 With no workspace argument, the server uses the workspace the app has open, including the secret values the app keeps on this machine. To serve a different [Git-backed workspace](/docs/guides/git-workspaces/), pass its folder (the one that contains `kurlo.yml`) as the first argument:

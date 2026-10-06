@@ -451,3 +451,49 @@ jobs:
           git add Casks/kurlo.rb
           git commit -m "Update Kurlo to ${GITHUB_REF_NAME}" || exit 0
           git push
+
+  npm:
+    name: Stage npm packages
+    needs: publish
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: apps/desktop/go.mod
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Update npm
+        run: npm install -g npm@latest
+
+      - name: Build packages
+        run: node scripts/build-npm-packages.mjs --version "${GITHUB_REF_NAME#v}"
+
+      - name: Stage packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          tag=latest
+          case "$version" in *-*) tag=next ;; esac
+          for dir in release/npm/@kurlo/*-* release/npm/@kurlo/cli; do
+            name="$(node -p "require('./$dir/package.json').name")"
+            if npm view "$name@$version" version >/dev/null 2>&1; then
+              echo "$name@$version is already on npm"
+              continue
+            fi
+            npm stage publish "./$dir" --access public --tag "$tag"
+          done
+

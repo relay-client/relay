@@ -5,7 +5,22 @@ description: Run a Kurlo YAML workspace's requests and test scripts from the ter
 
 `kurlo run` executes a [Git-backed YAML workspace](/docs/guides/git-workspaces/) from the command line — the same requests and JavaScript test scripts you run in the app, without the window. It's built for CI: a non-zero exit code fails the build when a request errors or an assertion fails.
 
-The desktop binary is the CLI. There is nothing extra to install — the app you already have responds to `kurlo run`.
+## Install
+
+On a CI runner or any machine with Node.js 18 or later, use the npm package. It has prebuilt binaries for macOS, Linux and Windows on x64 and arm64, and needs no desktop app:
+
+```bash
+npx -y @kurlo/cli run ./my-workspace --env CI
+```
+
+or install it once and call `kurlo` directly:
+
+```bash
+npm install -g @kurlo/cli
+kurlo run ./my-workspace --env CI
+```
+
+The desktop app is the CLI as well. If it is installed, `/Applications/Kurlo.app/Contents/MacOS/kurlo run` on macOS, or the `kurlo` executable on Linux and Windows, works the same way.
 
 ## Quick start
 
@@ -172,7 +187,7 @@ kurlo run . --env CI --folder "Billing/Refunds"      # a folder subtree
 
 ```yaml
 - name: API smoke tests
-  run: kurlo run ./workspace --env CI --reporter junit --var token="${{ secrets.API_TOKEN }}" > results.xml
+  run: npx -y @kurlo/cli run ./workspace --env CI --reporter junit --var token="${{ secrets.API_TOKEN }}" > results.xml
 ```
 
 ## Related
