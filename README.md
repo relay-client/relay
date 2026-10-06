@@ -85,7 +85,31 @@ pm.test("has an id", () => pm.response.to.have.jsonSchema({ type: "object", requ
 - Collection runner — sequential or parallel, data files, iterations, an HTML report, and the last run of every collection kept
 - Git-backed YAML workspaces with diagnostics, conflict helpers, and local-only secrets
 - **CLI runner** — `kurlo run ./workspace --env CI` executes requests and their test scripts for CI, with data-driven iterations (`--data`), pretty/JSON/JUnit reporters, variable export, and a non-zero exit code on failure
-- **MCP server** — `kurlo mcp` lets Claude, Codex, Cursor and other AI assistants list, inspect and run your saved requests and collections as tools, with secret environment values masked in everything they get back
+
+**AI agents (MCP server)** — the Kurlo binary is also a Model Context Protocol server, so Claude Code, Codex, Cursor, Claude Desktop or any other MCP client can list your collections and environments, read how a request is defined, run saved requests and whole collections with their auth, scripts and tests, and send one-off calls with your `{{variables}}`. A login request run once hands its token to every call after it. The workspace is re-read on every call, so your last edit in the app is what runs. Secret environment values are sent to the API but masked as `[secret]` in everything the model sees. Nothing extra to install:
+
+```bash
+# Claude Code
+claude mcp add kurlo -- /Applications/Kurlo.app/Contents/MacOS/kurlo mcp --env Staging
+
+# Codex (CLI, IDE extension and desktop app share one config)
+codex mcp add kurlo -- /Applications/Kurlo.app/Contents/MacOS/kurlo mcp --env Staging
+```
+
+Cursor, Claude Desktop and other clients with a JSON config (`.cursor/mcp.json`, `claude_desktop_config.json`, …):
+
+```json
+{
+  "mcpServers": {
+    "kurlo": {
+      "command": "/Applications/Kurlo.app/Contents/MacOS/kurlo",
+      "args": ["mcp", "--env", "Staging"]
+    }
+  }
+}
+```
+
+On Linux and Windows, use the path to the installed `kurlo` executable. Tools, flags and serving a Git-backed workspace are covered in the [MCP server guide](https://kurlo.dev/docs/guides/mcp-server/).
 
 **Response examples** — save any response as a named example on its request: the status, headers and body it came back with, alongside the request that produced it. Secrets are redacted on capture, a clean body is stored byte for byte, and examples ride along through Postman, OpenCollection, HAR and OpenAPI imports and exports. A response can be diffed against an example instead of against the previous send.
 
