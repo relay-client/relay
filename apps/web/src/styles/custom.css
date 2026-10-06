@@ -325,6 +325,9 @@ starlight-theme-select select {
 .sl-markdown-content td:first-child {
   color: var(--sl-color-white);
 }
+.sl-markdown-content :is(th, td) code {
+  overflow-wrap: break-word;
+}
 @media (max-width: 50rem) {
   .sl-markdown-content table {
     display: block;
